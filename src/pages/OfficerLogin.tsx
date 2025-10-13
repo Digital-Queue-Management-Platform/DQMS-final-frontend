@@ -22,8 +22,11 @@ export default function OfficerLogin() {
       const response = await api.post("/officer/login", { mobileNumber })
 
       if (response.data.success) {
-        // Store officer data in localStorage
+        // Store officer data and token in localStorage
         localStorage.setItem("officer", JSON.stringify(response.data.officer))
+        if (response.data.token) {
+          localStorage.setItem("officerToken", response.data.token)
+        }
         navigate("/officer/dashboard")
       }
     } catch (err: any) {

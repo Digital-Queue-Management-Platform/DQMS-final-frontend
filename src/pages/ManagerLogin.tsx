@@ -22,8 +22,9 @@ export default function ManagerLogin() {
       const response = await api.post("/manager/login", { email })
 
       if (response.data.success) {
-        // Store manager data in localStorage
+        // Store manager data and JWT token in localStorage
         localStorage.setItem("manager", JSON.stringify(response.data.manager))
+        localStorage.setItem("managerToken", response.data.token)
         // Set role in UserContext
         localStorage.setItem("dq_role", "region_manager")
         localStorage.setItem("dq_user", JSON.stringify({

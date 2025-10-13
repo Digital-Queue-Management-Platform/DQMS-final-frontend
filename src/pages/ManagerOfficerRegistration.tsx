@@ -3,8 +3,10 @@
 import React, { useEffect, useMemo, useState } from "react"
 import api from "../config/api"
 import type { Outlet } from "../types"
+import { useUser } from "../contexts/UserContext"
 
 export default function ManagerOfficerRegistration() {
+  const { currentUser } = useUser()
   const [name, setName] = useState("")
   const [mobileNumber, setMobileNumber] = useState("")
   const [outlets, setOutlets] = useState<Outlet[]>([])
@@ -20,7 +22,12 @@ export default function ManagerOfficerRegistration() {
     let mounted = true
     ;(async () => {
       try {
-        const res = await api.get("/manager/me")
+        const storedManager = localStorage.getItem('manager')
+        const managerData = storedManager ? JSON.parse(storedManager) : null
+        const params: any = {}
+        if (managerData?.email) params.email = managerData.email
+        
+        const res = await api.get("/manager/me", { params })
   const all = (res.data?.manager?.outlets || []) as Outlet[]
   const active = all.filter((o: any) => o.isActive !== false)
   if (!mounted) return
@@ -48,6 +55,7 @@ export default function ManagerOfficerRegistration() {
         name,
         mobileNumber,
         outletId: selectedOutlet,
+        managerEmail: currentUser?.email, // Add manager email for fallback authentication
       }
       if (counterNumber !== "") payload.counterNumber = Number(counterNumber)
       if (isTraining) payload.isTraining = true

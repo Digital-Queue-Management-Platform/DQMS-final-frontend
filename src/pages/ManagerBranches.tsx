@@ -35,7 +35,12 @@ export default function ManagerBranches() {
   const fetchBranches = async () => {
     try {
   // Get manager-scoped outlets
-  const meRes = await api.get('/manager/me')
+  const storedManager = localStorage.getItem('manager')
+  const managerData = storedManager ? JSON.parse(storedManager) : null
+  const params: any = {}
+  if (managerData?.email) params.email = managerData.email
+  
+  const meRes = await api.get('/manager/me', { params })
   const outlets = (meRes.data?.manager?.outlets || [])
 
       const branchData = await Promise.all(
