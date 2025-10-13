@@ -1,6 +1,6 @@
 import axios from "axios"
 
-const API_BASE_URL = "http://localhost:3001/api"
+const API_BASE_URL = import.meta.env.VITE_API_URL || "https://dqms-final-backend.onrender.com/api"
 
 export const api = axios.create({
   baseURL: API_BASE_URL,
@@ -11,6 +11,6 @@ export const api = axios.create({
 })
 
 // WebSocket connection
-export const WS_URL = "ws://localhost:3001"
+export const WS_URL = import.meta.env.VITE_WS_URL || "wss://dqms-final-backend.onrender.com"
 
 export default api
