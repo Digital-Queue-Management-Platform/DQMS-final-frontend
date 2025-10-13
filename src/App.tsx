@@ -270,8 +270,8 @@ function Layout({ children }: { children: React.ReactNode }) {
   const isManagerPath = location.pathname.startsWith('/manager')
   const isOfficerLogin = location.pathname === '/officer/login'
   const isManagerLogin = location.pathname === '/manager/login'
-  // Ensure sidebar is visible on admin, officer, and manager routes
-  const showSidebar = isAdminPath || isOfficerPath || isManagerPath
+  // Ensure sidebar is visible on admin, officer, and manager routes (but not on login pages)
+  const showSidebar = isAdminPath || (isOfficerPath && !isOfficerLogin) || (isManagerPath && !isManagerLogin)
   const [isCollapsed, setIsCollapsed] = React.useState<boolean>(false)
   const [activePage, setActivePage] = React.useState<string>('')
 
