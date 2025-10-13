@@ -150,53 +150,53 @@ export default function OfficerDashboard() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Main Content */}
-      <main className="mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 lg:py-8">
         {/* Confirm handled inside OfficerTopBar */}
         
   
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
-          <div className="bg-white rounded-xl shadow-sm p-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4 lg:gap-6 mb-6 sm:mb-8">
+          <div className="bg-white rounded-lg sm:rounded-xl shadow-sm p-4 sm:p-6">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 mb-1">Tokens Handled Today</p>
-                <p className="text-3xl text-gray-900">{stats.tokensHandled}</p>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs sm:text-sm text-gray-600 mb-1 truncate">Tokens Handled Today</p>
+                <p className="text-xl sm:text-2xl lg:text-3xl text-gray-900">{stats.tokensHandled}</p>
               </div>
-              <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                <Users className="w-6 h-6 text-blue-600" />
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 ml-3">
+                <Users className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-xl shadow-sm p-6">
+          <div className="bg-white rounded-lg sm:rounded-xl shadow-sm p-4 sm:p-6">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 mb-1">Average Rating</p>
-                <p className="text-3xl text-gray-900">{stats.avgRating.toFixed(1)}</p>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs sm:text-sm text-gray-600 mb-1 truncate">Average Rating</p>
+                <p className="text-xl sm:text-2xl lg:text-3xl text-gray-900">{stats.avgRating.toFixed(1)}</p>
               </div>
-              <div className="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center">
-                <Star className="w-6 h-6 text-yellow-600" />
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-yellow-100 rounded-full flex items-center justify-center flex-shrink-0 ml-3">
+                <Star className="w-5 h-5 sm:w-6 sm:h-6 text-yellow-600" />
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-xl shadow-sm p-6">
+          <div className="bg-white rounded-lg sm:rounded-xl shadow-sm p-4 sm:p-6">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 mb-1">Current Status</p>
-                <p className="text-xl text-gray-900 capitalize">{officer.status.replace("_", " ")}</p>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs sm:text-sm text-gray-600 mb-1 truncate">Current Status</p>
+                <p className="text-base sm:text-lg lg:text-xl text-gray-900 capitalize">{officer.status.replace("_", " ")}</p>
               </div>
-              <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-                <Clock className="w-6 h-6 text-green-600" />
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0 ml-3">
+                <Clock className="w-5 h-5 sm:w-6 sm:h-6 text-green-600" />
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-xl shadow-sm p-6">
+          <div className="bg-white rounded-lg sm:rounded-xl shadow-sm p-4 sm:p-6">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 mb-1">Customers Waiting</p>
-                <p className="text-3xl text-gray-900">{queue ? (queue.totalWaiting ?? queue.waiting.length) : 0}</p>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs sm:text-sm text-gray-600 mb-1 truncate">Customers Waiting</p>
+                <p className="text-xl sm:text-2xl lg:text-3xl text-gray-900">{queue ? (queue.totalWaiting ?? queue.waiting.length) : 0}</p>
               </div>
               <div className="w-12 h-12 bg-rose-100 rounded-full flex items-center justify-center">
                 <Users className="w-6 h-6 text-rose-600" />

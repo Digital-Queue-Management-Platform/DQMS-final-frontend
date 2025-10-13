@@ -37,32 +37,32 @@ export default function OfficerLogin() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-blue-100 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-8">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-blue-100 flex items-center justify-center p-3 sm:p-4 lg:p-6">
+      <div className="bg-white rounded-xl sm:rounded-2xl shadow-xl w-full max-w-sm sm:max-w-md p-6 sm:p-8">
         {/* Header */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-indigo-100 rounded-full mb-4">
-            <LogIn className="w-8 h-8 text-indigo-600" />
+        <div className="text-center mb-6 sm:mb-8">
+          <div className="inline-flex items-center justify-center w-12 h-12 sm:w-16 sm:h-16 bg-indigo-100 rounded-full mb-3 sm:mb-4">
+            <LogIn className="w-6 h-6 sm:w-8 sm:h-8 text-indigo-600" />
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Officer Login</h1>
-          <p className="text-gray-600">Enter your mobile number to continue</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1 sm:mb-2">Officer Login</h1>
+          <p className="text-sm sm:text-base text-gray-600">Enter your mobile number to continue</p>
         </div>
 
         {error && (
           <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">{error}</div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-5 sm:space-y-6">
           {/* Mobile Number Input */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Mobile Number</label>
             <div className="relative">
-              <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
               <input
                 type="tel"
                 value={mobileNumber}
                 onChange={(e) => setMobileNumber(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                className="w-full pl-9 sm:pl-10 pr-4 py-2.5 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm sm:text-base"
                 placeholder="07XXXXXXXX"
                 pattern="[0-9]{10}"
                 required
@@ -74,13 +74,13 @@ export default function OfficerLogin() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-indigo-600 text-white py-3 rounded-lg font-semibold hover:bg-indigo-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+            className="w-full bg-indigo-600 text-white py-2.5 sm:py-3 rounded-lg font-semibold hover:bg-indigo-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed text-sm sm:text-base"
           >
             {loading ? "Logging in..." : "Login"}
           </button>
         </form>
 
-        <div className="mt-6 text-center text-sm text-gray-500">
+        <div className="mt-5 sm:mt-6 text-center text-xs sm:text-sm text-gray-500">
           <p>Secure login for authorized officers only</p>
         </div>
       </div>

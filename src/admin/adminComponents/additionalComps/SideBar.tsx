@@ -124,28 +124,36 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed, activePa
       {/* Sidebar */}
       <div className={`
         fixed left-0 top-0 bg-white shadow-xl border-r border-gray-200 h-full min-h-screen z-50 transition-all duration-300
-        ${isMobileMenuOpen ? 'w-72' : 'hidden lg:block'}
-        ${isCollapsed ? 'lg:w-16' : 'lg:w-72'} 
+        ${isMobileMenuOpen ? 'w-full sm:w-80 md:w-72' : 'hidden lg:block'}
+        ${isCollapsed ? 'lg:w-16 xl:w-20' : 'lg:w-72 xl:w-80'} 
       `}>
         
         {/* Header */}
-        <div className="border-b border-gray-200 h-20 flex items-center justify-between p-5 relative">
+        <div className="border-b border-gray-200 h-16 sm:h-20 flex items-center justify-between p-3 sm:p-5 relative">
           {isCollapsed ? (
             <button
               onClick={toggleSidebar}
-              className="flex items-center justify-center w-full cursor-pointer"
+              className="flex flex-col items-center justify-center w-full cursor-pointer group"
             >
-              <Menu className="h-6 w-6 text-gray-600" />
+              <img 
+                src="/logo.jpg" 
+                alt="System Logo" 
+                className="w-8 h-8 rounded-md object-contain mb-1"
+              />
+              <Menu className="h-4 w-4 text-gray-400 group-hover:text-gray-600" />
             </button>
           ) : (
             <>
-              <div>
+              <div className="flex items-center gap-3">
                 <img 
-                  //src={SLTlogo} 
-                  alt='logo' 
-                  className='w-36 pr-2 p-1'
+                  src="/logo.jpg" 
+                  alt="System Logo" 
+                  className="w-10 h-10 rounded-lg object-contain"
                 />
-                {/*<p className="text-sm text-gray-600 mt-1">Admin Panel</p>*/}
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-800">QueueFlow</h2>
+                  <p className="text-xs text-gray-500">Admin Panel</p>
+                </div>
               </div>
               {/* Close button - inside header for expanded state */}
               <button
@@ -165,26 +173,26 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed, activePa
         </div>
 
         {/* Navigation */}
-        <nav className={`${isCollapsed ? 'px-2' : 'px-6'} pt-6`}>
-          <ul className="space-y-3">
+        <nav className={`${isCollapsed ? 'px-1 sm:px-2' : 'px-3 sm:px-6'} pt-4 sm:pt-6`}>
+          <ul className="space-y-2 sm:space-y-3">
             {navigationItems.map((item) => (
               <li key={item.name}>
                 {item.to ? (
                   <Link
                     to={item.to}
                     onClick={() => handleNavClick(item.name)}
-                    className={`w-full flex items-center ${isCollapsed ? 'px-3 py-3 justify-center' : 'px-4 py-3'} text-sm font-semibold rounded-lg transition-all duration-200 relative cursor-pointer ${
+                    className={`w-full flex items-center group ${isCollapsed ? 'px-2 sm:px-3 py-2 sm:py-3 justify-center' : 'px-3 sm:px-4 py-2 sm:py-3'} text-xs sm:text-sm font-medium sm:font-semibold rounded-lg transition-all duration-200 relative cursor-pointer ${
                       (location.pathname === item.to || activePage === item.name)
                         ? 'bg-blue-600 text-white shadow-lg'
                         : 'text-gray-600 hover:text-white hover:bg-blue-600'
                     }`}
                   >
-                    <item.icon className="h-5 w-5" />
-                    {!isCollapsed && <span className="ml-3">{item.name}</span>}
+                    <item.icon className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
+                    {!isCollapsed && <span className="ml-2 sm:ml-3 truncate">{item.name}</span>}
 
                     {/* Tooltip for collapsed state */}
                     {isCollapsed && (
-                      <div className="absolute left-full ml-3 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50">
+                      <div className="absolute left-full ml-2 sm:ml-3 px-2 sm:px-3 py-1 sm:py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50 hidden lg:block">
                         {item.name}
                       </div>
                     )}
