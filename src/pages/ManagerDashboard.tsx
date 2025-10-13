@@ -159,41 +159,41 @@ export default function ManagerDashboard() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Main Content */}
-      <div className="p-6">
+      <div className="p-3 sm:p-4 lg:p-6">
         {/* Regional Overview Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6 mb-8">
-          <div className="bg-white rounded-xl shadow-sm p-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4 lg:gap-6 mb-6 sm:mb-8">
+          <div className="bg-white rounded-lg sm:rounded-xl shadow-sm p-4 sm:p-6">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 mb-1">Customers Served Today</p>
-                <p className="text-3xl font-bold text-gray-900">{regionStats.totalCustomersServed}</p>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs sm:text-sm text-gray-600 mb-1 truncate">Customers Served Today</p>
+                <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">{regionStats.totalCustomersServed}</p>
               </div>
-              <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                <Users className="w-6 h-6 text-blue-600" />
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 ml-3">
+                <Users className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-xl shadow-sm p-6">
+          <div className="bg-white rounded-lg sm:rounded-xl shadow-sm p-4 sm:p-6">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 mb-1">Avg Regional Wait</p>
-                <p className="text-3xl font-bold text-gray-900">{regionStats.avgRegionalWaitTime}m</p>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs sm:text-sm text-gray-600 mb-1 truncate">Avg Regional Wait</p>
+                <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">{regionStats.avgRegionalWaitTime}m</p>
               </div>
-              <div className="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center">
-                <Clock className="w-6 h-6 text-yellow-600" />
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-yellow-100 rounded-full flex items-center justify-center flex-shrink-0 ml-3">
+                <Clock className="w-5 h-5 sm:w-6 sm:h-6 text-yellow-600" />
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-xl shadow-sm p-6">
+          <div className="bg-white rounded-lg sm:rounded-xl shadow-sm p-4 sm:p-6">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 mb-1">Regional Rating</p>
-                <p className="text-3xl font-bold text-gray-900">{regionStats.avgRegionalRating}</p>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs sm:text-sm text-gray-600 mb-1 truncate">Regional Rating</p>
+                <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">{regionStats.avgRegionalRating}</p>
               </div>
-              <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-                <Star className="w-6 h-6 text-green-600" />
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0 ml-3">
+                <Star className="w-5 h-5 sm:w-6 sm:h-6 text-green-600" />
               </div>
             </div>
           </div>

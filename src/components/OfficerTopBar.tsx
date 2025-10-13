@@ -45,13 +45,11 @@ export default function OfficerTopBar({ officer, onOfficerUpdate, onAfterStatusC
       <div className="flex items-center justify-between">
         {/* Logo and Page Title Section */}
         <div className="min-w-0 flex-1 mr-4 flex items-center gap-3">
-          <div className="w-10 h-10 bg-gray-50 rounded-lg hidden sm:flex items-center justify-center p-1">
-            <img 
-              src="/logo.jpg" 
-              alt="System Logo" 
-              className="w-full h-full object-contain"
-            />
-          </div>
+          <img 
+            src="/logo.jpg" 
+            alt="System Logo" 
+            className="w-10 h-10 rounded-lg object-contain hidden sm:block"
+          />
           <div>
             <h1 className="text-xl sm:text-2xl font-bold text-gray-900 truncate leading-tight">Service Officer</h1>
             <p className="text-sm text-gray-600 mt-0.5 truncate leading-tight">

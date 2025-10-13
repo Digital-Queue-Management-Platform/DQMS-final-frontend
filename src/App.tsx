@@ -60,58 +60,56 @@ function TabsLanding() {
 
   return (
     <div className="min-h-screen bg-white">
-      <div className="flex flex-col lg:flex-row min-h-screen">
+      <div className="flex flex-col xl:flex-row min-h-screen">
         {/* Left Side - Branding & Features */}
-        <div className="lg:w-1/2 bg-gradient-to-br from-blue-600 via-indigo-700 to-purple-800 text-white p-12 flex flex-col justify-center relative overflow-hidden">
+        <div className="xl:w-1/2 bg-gradient-to-br from-blue-600 via-indigo-700 to-purple-800 text-white p-4 sm:p-8 lg:p-12 flex flex-col justify-center relative overflow-hidden min-h-[40vh] xl:min-h-screen">
           {/* Decorative Background Elements */}
-          <div className="absolute top-0 right-0 w-96 h-96 bg-white opacity-5 rounded-full -mr-48 -mt-48"></div>
-          <div className="absolute bottom-0 left-0 w-72 h-72 bg-white opacity-5 rounded-full -ml-36 -mb-36"></div>
+          <div className="absolute top-0 right-0 w-48 h-48 sm:w-72 sm:h-72 lg:w-96 lg:h-96 bg-white opacity-5 rounded-full -mr-24 -mt-24 sm:-mr-36 sm:-mt-36 lg:-mr-48 lg:-mt-48"></div>
+          <div className="absolute bottom-0 left-0 w-36 h-36 sm:w-54 sm:h-54 lg:w-72 lg:h-72 bg-white opacity-5 rounded-full -ml-18 -mb-18 sm:-ml-27 sm:-mb-27 lg:-ml-36 lg:-mb-36"></div>
           
-          <div className="relative z-10 max-w-xl mx-auto">
+          <div className="relative z-10 max-w-xl mx-auto w-full">
             {/* Logo/Brand */}
-            <div className="mb-16">
-              <div className="flex items-center gap-4 mb-4">
-                <div className="w-16 h-16 bg-white rounded-xl shadow-lg flex items-center justify-center p-2">
-                  <img 
-                    src="/logo.jpg" 
-                    alt="QueueFlow Logo" 
-                    className="w-full h-full object-contain"
-                  />
-                </div>
-                <h1 className="text-5xl font-bold">QueueFlow</h1>
+            <div className="mb-8 sm:mb-12 lg:mb-16 text-center xl:text-left">
+              <div className="flex flex-col sm:flex-row items-center justify-center xl:justify-start gap-3 sm:gap-4 mb-4">
+                <img 
+                  src="/logo.jpg" 
+                  alt="QueueFlow Logo" 
+                  className="w-12 h-12 sm:w-14 sm:h-14 lg:w-16 lg:h-16 rounded-xl object-contain"
+                />
+                <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold">QueueFlow</h1>
               </div>
-              <p className="text-xl text-blue-100">Smart Queue Management</p>
+              <p className="text-base sm:text-lg lg:text-xl text-blue-100">Smart Queue Management</p>
             </div>
 
             {/* Stats */}
-            <div className="grid grid-cols-3 gap-8 pt-8 border-t border-white border-opacity-20">
-              <div>
-                <div className="text-4xl font-bold mb-2">50%</div>
-                <div className="text-sm text-blue-100">Less Waiting</div>
+            <div className="grid grid-cols-3 gap-4 sm:gap-6 lg:gap-8 pt-6 sm:pt-8 border-t border-white border-opacity-20">
+              <div className="text-center xl:text-left">
+                <div className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-1 sm:mb-2">50%</div>
+                <div className="text-xs sm:text-sm text-blue-100">Less Waiting</div>
               </div>
-              <div>
-                <div className="text-4xl font-bold mb-2">24/7</div>
-                <div className="text-sm text-blue-100">Available</div>
+              <div className="text-center xl:text-left">
+                <div className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-1 sm:mb-2">24/7</div>
+                <div className="text-xs sm:text-sm text-blue-100">Available</div>
               </div>
-              <div>
-                <div className="text-4xl font-bold mb-2">100+</div>
-                <div className="text-sm text-blue-100">Branches</div>
+              <div className="text-center xl:text-left">
+                <div className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-1 sm:mb-2">100+</div>
+                <div className="text-xs sm:text-sm text-blue-100">Branches</div>
               </div>
             </div>
           </div>
         </div>
 
         {/* Right Side - Portal Selection */}
-        <div className="lg:w-1/2 p-8 lg:p-12 flex flex-col justify-center bg-gray-50">
-          <div className="max-w-xl mx-auto w-full">
-            <div className="mb-8">
-              <h2 className="text-3xl font-bold text-gray-900 mb-2">Access Portal</h2>
-              <p className="text-gray-600">Select your role to continue</p>
+        <div className="xl:w-1/2 p-4 sm:p-6 lg:p-8 xl:p-12 flex flex-col justify-center bg-gray-50 min-h-[60vh] xl:min-h-screen">
+          <div className="max-w-2xl mx-auto w-full">
+            <div className="mb-6 sm:mb-8 text-center xl:text-left">
+              <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Access Portal</h2>
+              <p className="text-sm sm:text-base text-gray-600">Select your role to continue</p>
             </div>
 
             {/* Tab Navigation */}
-            <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100">
-              <div className="flex border-b border-gray-200">
+            <div className="bg-white rounded-xl sm:rounded-2xl shadow-xl overflow-hidden border border-gray-100">
+              <div className="flex flex-wrap sm:flex-nowrap border-b border-gray-200">
                 {[
                   { id: 'customer', label: 'Customer', icon: Users },
                   { id: 'officer', label: 'Officer', icon: UserCog },
@@ -123,13 +121,13 @@ function TabsLanding() {
                     <button
                       key={tab.id}
                       onClick={() => handleTabChange(tab.id)}
-                      className={`flex-1 flex items-center justify-center gap-2 px-4 py-4 font-semibold transition-all ${
+                      className={`flex-1 min-w-0 flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 px-2 sm:px-4 py-3 sm:py-4 font-medium sm:font-semibold transition-all text-xs sm:text-sm ${
                         activeTab === tab.id
                           ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50'
                           : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
                       }`}
                     >
-                      <Icon className="w-5 h-5" />
+                      <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
                       <span className="hidden sm:inline">{tab.label}</span>
                     </button>
                   )
@@ -137,41 +135,41 @@ function TabsLanding() {
               </div>
 
               {/* Tab Content */}
-              <div className="p-8">
+              <div className="p-4 sm:p-6 lg:p-8">
                 {/* Customer Tab */}
                 {activeTab === 'customer' && (
-                  <div className="space-y-6">
-                    <div>
-                      <h3 className="text-xl font-bold text-gray-900 mb-2">Customer Portal</h3>
+                  <div className="space-y-4 sm:space-y-6">
+                    <div className="text-center sm:text-left">
+                      <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-2">Customer Portal</h3>
                       <p className="text-gray-600 text-sm">Get a queue token or check your status</p>
                     </div>
 
                     <div className="space-y-4">
                       {/* Check Token Status */}
-                      <div className="p-5 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border border-blue-200">
+                      <div className="p-4 sm:p-5 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg sm:rounded-xl border border-blue-200">
                         <h4 className="font-semibold text-gray-900 mb-3">Check Token Status</h4>
                         <input
                           value={customerToken}
                           onChange={(e) => setCustomerToken(e.target.value)}
                           onKeyPress={(e) => e.key === 'Enter' && handleCustomerTokenLogin()}
                           placeholder="Enter your token ID"
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none mb-3"
+                          className="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none mb-3"
                         />
                         {customerLoginError && (
                           <p className="text-sm text-red-600 mb-3">{customerLoginError}</p>
                         )}
                         <button
                           onClick={handleCustomerTokenLogin}
-                          className="w-full px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2"
+                          className="w-full px-4 sm:px-6 py-2 sm:py-3 text-sm sm:text-base bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2"
                         >
                           Check Status <ArrowRight className="w-4 h-4" />
                         </button>
                       </div>
 
                       {/* New Registration (QR-gated notice) */}
-                        <div className="block p-4 rounded-lg border border-yellow-200 bg-yellow-50">
-                          <h3 className="text-lg font-semibold text-yellow-900">Customer Registration</h3>
-                          <p className="text-sm text-yellow-800">
+                        <div className="block p-3 sm:p-4 rounded-lg border border-yellow-200 bg-yellow-50">
+                          <h3 className="text-base sm:text-lg font-semibold text-yellow-900 mb-1">Customer Registration</h3>
+                          <p className="text-xs sm:text-sm text-yellow-800">
                             To register, please scan the QR code displayed at the branch counter. The registration form will open automatically with a secure token.
                           </p>
                         </div>

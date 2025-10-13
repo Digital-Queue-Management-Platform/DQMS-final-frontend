@@ -48,13 +48,11 @@ export default function ManagerTopBar({ manager, title = "Regional Manager" }: P
       <div className="flex items-center justify-between">
         {/* Logo and Page Title Section */}
         <div className="min-w-0 flex-1 mr-4 flex items-center gap-3">
-          <div className="w-10 h-10 bg-gray-50 rounded-lg hidden sm:flex items-center justify-center p-1">
-            <img 
-              src="/logo.jpg" 
-              alt="System Logo" 
-              className="w-full h-full object-contain"
-            />
-          </div>
+          <img 
+            src="/logo.jpg" 
+            alt="System Logo" 
+            className="w-10 h-10 rounded-lg object-contain hidden sm:block"
+          />
           <div>
             <h1 className="text-xl sm:text-2xl font-bold text-gray-900 truncate leading-tight">{title}</h1>
             <p className="text-sm text-gray-600 mt-0.5 truncate leading-tight">
@@ -64,16 +62,14 @@ export default function ManagerTopBar({ manager, title = "Regional Manager" }: P
         </div>
 
         {/* Header Actions */}
-        <div className="flex items-center space-x-1 sm:space-x-10 flex-shrink-0">
-          <div className="flex sm:flex-row sm:items-center sm:space-x-3">
-            {/* Region Badge */}
-            <div className="px-3 py-1.5 rounded-full text-xs sm:text-sm font-medium bg-green-100 text-green-700">
-              Regional Manager
-            </div>
+        <div className="flex items-center space-x-2 sm:space-x-4 lg:space-x-10 flex-shrink-0">
+          {/* Region Badge */}
+          <div className="hidden sm:block px-2 sm:px-3 py-1 sm:py-1.5 rounded-full text-xs sm:text-sm font-medium bg-green-100 text-green-700">
+            <span className="hidden md:inline">Regional </span>Manager
           </div>
 
           {/* Current Time */}
-          <div className="hidden lg:flex flex-col items-end text-sm text-gray-600 min-w-0">
+          <div className="hidden xl:flex flex-col items-end text-sm text-gray-600 min-w-0">
             <div className="font-medium text-xs leading-tight">
               {currentTime.toLocaleString('en-US', {
                 weekday: 'short',
@@ -97,7 +93,7 @@ export default function ManagerTopBar({ manager, title = "Regional Manager" }: P
                 {manager.name?.charAt(0)?.toUpperCase() || 'M'}
               </span>
             </div>
-            <div className="hidden md:flex flex-col justify-center min-w-0">
+            <div className="hidden lg:flex flex-col justify-center min-w-0">
               <p className="text-sm font-medium text-gray-900 truncate leading-tight">{manager.name}</p>
               <p className="text-xs text-gray-500 truncate leading-tight">{manager.email}</p>
             </div>

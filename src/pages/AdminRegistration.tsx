@@ -39,31 +39,31 @@ export default function AdminRegistration() {
   }
 
   return (
-    <div className="max-w-md mx-auto bg-white rounded-2xl shadow p-6">
-      <h2 className="text-xl font-bold mb-4">Admin / Region Registration</h2>
-      {message && <div className="mb-4 text-sm text-green-700">{message}</div>}
-      <form onSubmit={handleSubmit} className="space-y-4">
+    <div className="max-w-sm sm:max-w-md mx-auto bg-white rounded-xl sm:rounded-2xl shadow p-4 sm:p-6">
+      <h2 className="text-lg sm:text-xl font-bold mb-3 sm:mb-4">Admin / Region Registration</h2>
+      {message && <div className="mb-3 sm:mb-4 text-xs sm:text-sm text-green-700">{message}</div>}
+      <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
         <div>
           <label className="block text-sm font-medium text-gray-700">Region name</label>
-          <input value={regionName} onChange={(e) => setRegionName(e.target.value)} required className="w-full px-3 py-2 border rounded" />
+          <input value={regionName} onChange={(e) => setRegionName(e.target.value)} required className="w-full px-3 py-2 sm:py-2.5 border rounded-lg text-sm sm:text-base" />
         </div>
 
         <div>
           <label className="block text-sm font-medium text-gray-700">Manager name</label>
-          <input value={managerName} onChange={(e) => setManagerName(e.target.value)} className="w-full px-3 py-2 border rounded" />
+          <input value={managerName} onChange={(e) => setManagerName(e.target.value)} className="w-full px-3 py-2 sm:py-2.5 border rounded-lg text-sm sm:text-base" />
         </div>
 
         <div>
           <label className="block text-sm font-medium text-gray-700">Manager email</label>
-          <input value={managerEmail} onChange={(e) => setManagerEmail(e.target.value)} type="email" className="w-full px-3 py-2 border rounded" />
+          <input value={managerEmail} onChange={(e) => setManagerEmail(e.target.value)} type="email" className="w-full px-3 py-2 sm:py-2.5 border rounded-lg text-sm sm:text-base" />
         </div>
 
         <div>
           <label className="block text-sm font-medium text-gray-700">Manager mobile</label>
-          <input value={managerMobile} onChange={(e) => setManagerMobile(e.target.value)} className="w-full px-3 py-2 border rounded" />
+          <input value={managerMobile} onChange={(e) => setManagerMobile(e.target.value)} className="w-full px-3 py-2 sm:py-2.5 border rounded-lg text-sm sm:text-base" />
         </div>
 
-        <button type="submit" disabled={loading} className="w-full bg-blue-600 text-white py-2 rounded">
+        <button type="submit" disabled={loading} className="w-full bg-blue-600 text-white py-2 sm:py-2.5 rounded-lg text-sm sm:text-base font-medium">
           {loading ? "Creating..." : "Create Region"}
         </button>
       </form>
