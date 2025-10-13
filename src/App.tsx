@@ -71,11 +71,13 @@ function TabsLanding() {
             {/* Logo/Brand */}
             <div className="mb-16">
               <div className="flex items-center gap-4 mb-4">
-                <img 
-                  src="/logo.jpg" 
-                  alt="QueueFlow Logo" 
-                  className="w-16 h-16 rounded-xl object-cover shadow-lg"
-                />
+                <div className="w-16 h-16 bg-white rounded-xl shadow-lg flex items-center justify-center p-2">
+                  <img 
+                    src="/logo.jpg" 
+                    alt="QueueFlow Logo" 
+                    className="w-full h-full object-contain"
+                  />
+                </div>
                 <h1 className="text-5xl font-bold">QueueFlow</h1>
               </div>
               <p className="text-xl text-blue-100">Smart Queue Management</p>

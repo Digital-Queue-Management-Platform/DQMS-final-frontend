@@ -135,21 +135,25 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed, activePa
               onClick={toggleSidebar}
               className="flex flex-col items-center justify-center w-full cursor-pointer group"
             >
-              <img 
-                src="/logo.jpg" 
-                alt="System Logo" 
-                className="w-8 h-8 rounded-md object-cover mb-1"
-              />
+              <div className="w-8 h-8 bg-gray-50 rounded-md flex items-center justify-center p-1 mb-1">
+                <img 
+                  src="/logo.jpg" 
+                  alt="System Logo" 
+                  className="w-full h-full object-contain"
+                />
+              </div>
               <Menu className="h-4 w-4 text-gray-400 group-hover:text-gray-600" />
             </button>
           ) : (
             <>
               <div className="flex items-center gap-3">
-                <img 
-                  src="/logo.jpg" 
-                  alt="System Logo" 
-                  className="w-10 h-10 rounded-lg object-cover"
-                />
+                <div className="w-10 h-10 bg-gray-50 rounded-lg flex items-center justify-center p-1">
+                  <img 
+                    src="/logo.jpg" 
+                    alt="System Logo" 
+                    className="w-full h-full object-contain"
+                  />
+                </div>
                 <div>
                   <h2 className="text-lg font-semibold text-gray-800">QueueFlow</h2>
                   <p className="text-xs text-gray-500">Admin Panel</p>
