@@ -3,8 +3,10 @@
 import React, { useEffect, useMemo, useState } from "react"
 import api from "../config/api"
 import type { Outlet } from "../types"
+import { useUser } from "../contexts/UserContext"
 
 export default function ManagerOfficerRegistration() {
+  const { currentUser } = useUser()
   const [name, setName] = useState("")
   const [mobileNumber, setMobileNumber] = useState("")
   const [outlets, setOutlets] = useState<Outlet[]>([])
@@ -53,6 +55,7 @@ export default function ManagerOfficerRegistration() {
         name,
         mobileNumber,
         outletId: selectedOutlet,
+        managerEmail: currentUser?.email, // Add manager email for fallback authentication
       }
       if (counterNumber !== "") payload.counterNumber = Number(counterNumber)
       if (isTraining) payload.isTraining = true
