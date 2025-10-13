@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react'
 import api from '../../config/api'
 import SearchableSelect from '../../components/SearchableSelect'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
-import { Package, Scale3D } from 'lucide-react'
+import { Scale3D } from 'lucide-react'
 
 type TimeRange = 'daily' | 'weekly'
 type MetricKey =

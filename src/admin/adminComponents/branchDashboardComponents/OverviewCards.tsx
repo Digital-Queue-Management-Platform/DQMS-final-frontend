@@ -1,6 +1,5 @@
 import React from 'react'
 import { UsersIcon, ClockIcon, StarIcon, TimerIcon } from 'lucide-react'
-import type { LucideIcon } from 'lucide-react'
 
 interface OverviewData {
   totalCustomers: number

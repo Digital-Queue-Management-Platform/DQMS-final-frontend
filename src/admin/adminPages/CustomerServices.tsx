@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { Search, Bell, ChevronDown, User } from "lucide-react"
+import { Search } from "lucide-react"
 
 interface Service {
   id: string

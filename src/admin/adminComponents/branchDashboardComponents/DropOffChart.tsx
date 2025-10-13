@@ -178,7 +178,7 @@ const DropOffChart: React.FC<DropOffChartProps> = ({
                   `${props.name} Stars: ${(props.percent * 100).toFixed(0)}%`
                 }
               >
-                {ratingData.map((entry, index) => (
+                {ratingData.map((_, index) => (
                   <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                 ))}
               </Pie>
