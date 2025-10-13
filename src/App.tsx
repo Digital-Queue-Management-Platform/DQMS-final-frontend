@@ -298,11 +298,25 @@ function Layout({ children }: { children: React.ReactNode }) {
 
       if (isManagerPath && !isManagerLogin) {
         try {
-          const res = await api.get('/manager/me')
+          // Try to get manager info, include email as fallback
+          const storedManager = localStorage.getItem('manager')
+          const managerData = storedManager ? JSON.parse(storedManager) : null
+          
+          const params: any = {}
+          if (managerData?.email) {
+            params.email = managerData.email
+          }
+          
+          const res = await api.get('/manager/me', { params })
           if (!mounted) return
           setManager(res.data.manager)
         } catch (e) {
-          // If not authenticated, send to login
+          console.error('Manager authentication failed:', e)
+          // Clear invalid data and redirect to login
+          localStorage.removeItem('manager')
+          localStorage.removeItem('managerToken')
+          localStorage.removeItem('dq_role')
+          localStorage.removeItem('dq_user')
           navigate('/manager/login')
         }
       } else {

@@ -29,7 +29,12 @@ export default function ManagerCompare() {
   const fetchComparisonData = async () => {
     try {
   // Get only outlets in manager's region
-  const meRes = await api.get('/manager/me')
+  const storedManager = localStorage.getItem('manager')
+  const managerData = storedManager ? JSON.parse(storedManager) : null
+  const params: any = {}
+  if (managerData?.email) params.email = managerData.email
+  
+  const meRes = await api.get('/manager/me', { params })
   const outlets = (meRes.data?.manager?.outlets || [])
 
       // Calculate date range based on selection

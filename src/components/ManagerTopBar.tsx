@@ -36,6 +36,7 @@ export default function ManagerTopBar({ manager, title = "Regional Manager" }: P
     } finally {
       // Clear local storage and redirect regardless of API success
       localStorage.removeItem('manager')
+      localStorage.removeItem('managerToken')
       localStorage.removeItem('dq_role')
       localStorage.removeItem('dq_user')
       navigate('/manager/login')

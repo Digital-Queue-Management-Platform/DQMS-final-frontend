@@ -20,7 +20,12 @@ export default function ManagerOfficerRegistration() {
     let mounted = true
     ;(async () => {
       try {
-        const res = await api.get("/manager/me")
+        const storedManager = localStorage.getItem('manager')
+        const managerData = storedManager ? JSON.parse(storedManager) : null
+        const params: any = {}
+        if (managerData?.email) params.email = managerData.email
+        
+        const res = await api.get("/manager/me", { params })
   const all = (res.data?.manager?.outlets || []) as Outlet[]
   const active = all.filter((o: any) => o.isActive !== false)
   if (!mounted) return

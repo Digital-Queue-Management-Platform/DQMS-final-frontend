@@ -52,7 +52,12 @@ export default function ManagerDashboard() {
   const fetchRegionalData = async () => {
     try {
   // Fetch only this manager's region outlets
-  const meRes = await api.get('/manager/me')
+  const storedManager = localStorage.getItem('manager')
+  const managerData = storedManager ? JSON.parse(storedManager) : null
+  const params: any = {}
+  if (managerData?.email) params.email = managerData.email
+  
+  const meRes = await api.get('/manager/me', { params })
   const outlets = (meRes.data?.manager?.outlets || [])
 
       const branchMetrics = await Promise.all(
