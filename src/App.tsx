@@ -23,7 +23,7 @@ import ManagerCompare from "./pages/ManagerCompare"
 import ManagerOfficerRegistration from "./pages/ManagerOfficerRegistration.tsx"
 import ManagerOfficers from "./pages/ManagerOfficers"
 
-import { Users, Shield, UserCog, Clock, ArrowRight, Building2 } from "lucide-react"
+import { Users, Shield, UserCog, ArrowRight, Building2 } from "lucide-react"
 import OfficerTopBar from "./components/OfficerTopBar"
 import ManagerTopBar from "./components/ManagerTopBar"
 import api from "./config/api"
@@ -70,10 +70,12 @@ function TabsLanding() {
           <div className="relative z-10 max-w-xl mx-auto">
             {/* Logo/Brand */}
             <div className="mb-16">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-14 h-14 bg-white rounded-xl flex items-center justify-center">
-                  <Clock className="w-8 h-8 text-blue-600" />
-                </div>
+              <div className="flex items-center gap-4 mb-4">
+                <img 
+                  src="/logo.jpg" 
+                  alt="QueueFlow Logo" 
+                  className="w-16 h-16 rounded-xl object-cover shadow-lg"
+                />
                 <h1 className="text-5xl font-bold">QueueFlow</h1>
               </div>
               <p className="text-xl text-blue-100">Smart Queue Management</p>

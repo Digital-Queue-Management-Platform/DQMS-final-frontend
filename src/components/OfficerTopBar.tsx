@@ -43,12 +43,19 @@ export default function OfficerTopBar({ officer, onOfficerUpdate, onAfterStatusC
   return (
     <header className="bg-white border-b border-gray-200 px-4 sm:px-6 py-4 sticky top-0 z-10">
       <div className="flex items-center justify-between">
-        {/* Page Title Section */}
-        <div className="min-w-0 flex-1 mr-4">
-          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 truncate leading-tight">Service Officer</h1>
-          <p className="text-sm text-gray-600 mt-0.5 truncate leading-tight">
-            Counter {officer.counterNumber ?? '-'} • {officer.outlet?.name ?? ''}
-          </p>
+        {/* Logo and Page Title Section */}
+        <div className="min-w-0 flex-1 mr-4 flex items-center gap-3">
+          <img 
+            src="/logo.jpg" 
+            alt="System Logo" 
+            className="w-10 h-10 rounded-lg object-cover hidden sm:block"
+          />
+          <div>
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 truncate leading-tight">Service Officer</h1>
+            <p className="text-sm text-gray-600 mt-0.5 truncate leading-tight">
+              Counter {officer.counterNumber ?? '-'} • {officer.outlet?.name ?? ''}
+            </p>
+          </div>
         </div>
 
         {/* Header Actions */}

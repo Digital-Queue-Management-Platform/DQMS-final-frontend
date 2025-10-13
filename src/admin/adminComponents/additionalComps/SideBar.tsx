@@ -133,19 +133,27 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed, activePa
           {isCollapsed ? (
             <button
               onClick={toggleSidebar}
-              className="flex items-center justify-center w-full cursor-pointer"
+              className="flex flex-col items-center justify-center w-full cursor-pointer group"
             >
-              <Menu className="h-6 w-6 text-gray-600" />
+              <img 
+                src="/logo.jpg" 
+                alt="System Logo" 
+                className="w-8 h-8 rounded-md object-cover mb-1"
+              />
+              <Menu className="h-4 w-4 text-gray-400 group-hover:text-gray-600" />
             </button>
           ) : (
             <>
-              <div>
+              <div className="flex items-center gap-3">
                 <img 
-                  //src={SLTlogo} 
-                  alt='logo' 
-                  className='w-36 pr-2 p-1'
+                  src="/logo.jpg" 
+                  alt="System Logo" 
+                  className="w-10 h-10 rounded-lg object-cover"
                 />
-                {/*<p className="text-sm text-gray-600 mt-1">Admin Panel</p>*/}
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-800">QueueFlow</h2>
+                  <p className="text-xs text-gray-500">Admin Panel</p>
+                </div>
               </div>
               {/* Close button - inside header for expanded state */}
               <button

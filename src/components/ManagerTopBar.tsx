@@ -46,12 +46,19 @@ export default function ManagerTopBar({ manager, title = "Regional Manager" }: P
   return (
     <header className="bg-white border-b border-gray-200 px-4 sm:px-6 py-3.5 sticky top-0 z-10">
       <div className="flex items-center justify-between">
-        {/* Page Title Section */}
-        <div className="min-w-0 flex-1 mr-4">
-          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 truncate leading-tight">{title}</h1>
-          <p className="text-sm text-gray-600 mt-0.5 truncate leading-tight">
-            {manager.name} • {manager.outlets?.length || 0} branches
-          </p>
+        {/* Logo and Page Title Section */}
+        <div className="min-w-0 flex-1 mr-4 flex items-center gap-3">
+          <img 
+            src="/logo.jpg" 
+            alt="System Logo" 
+            className="w-10 h-10 rounded-lg object-cover hidden sm:block"
+          />
+          <div>
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 truncate leading-tight">{title}</h1>
+            <p className="text-sm text-gray-600 mt-0.5 truncate leading-tight">
+              {manager.name} • {manager.outlets?.length || 0} branches
+            </p>
+          </div>
         </div>
 
         {/* Header Actions */}
