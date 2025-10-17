@@ -73,13 +73,27 @@ const ServicesPage: React.FC = () => {
   }
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this service?')) return
+    if (!confirm('Are you sure you want to permanently delete this service? This action cannot be undone.')) return
     try {
       await api.delete(`/queue/services/${id}`)
-      setServices((prev) => prev.filter((s) => s.id !== id))
+      // Remove the service from local state (hard delete)
+      setServices((prev) => prev.filter(s => s.id !== id))
     } catch (err) {
       console.error(err)
       setError('Failed to delete service')
+    }
+  }
+
+  const handleStatusChange = async (id: string, isActive: boolean) => {
+    try {
+      await api.patch(`/queue/services/${id}`, { isActive })
+      // Update the service status in local state
+      setServices((prev) => prev.map(s => 
+        s.id === id ? { ...s, isActive } : s
+      ))
+    } catch (err) {
+      console.error(err)
+      setError(`Failed to ${isActive ? 'activate' : 'deactivate'} service`)
     }
   }
 
@@ -328,13 +342,18 @@ const ServicesPage: React.FC = () => {
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-center">
-                        <span className={`px-3 py-1 text-xs font-semibold rounded-full ${
-                          service.isActive !== false 
-                            ? 'bg-green-100 text-green-700' 
-                            : 'bg-red-100 text-red-700'
-                        }`}>
-                          {service.isActive !== false ? 'Active' : 'Inactive'}
-                        </span>
+                        <select
+                          value={service.isActive !== false ? 'active' : 'inactive'}
+                          onChange={(e) => handleStatusChange(service.id, e.target.value === 'active')}
+                          className={`px-3 py-1 text-xs font-semibold rounded-full border-0 focus:ring-2 focus:ring-blue-500 cursor-pointer transition-colors ${
+                            service.isActive !== false
+                              ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                              : 'bg-red-100 text-red-700 hover:bg-red-200'
+                          }`}
+                        >
+                          <option value="active" className="bg-white text-black">Active</option>
+                          <option value="inactive" className="bg-white text-black">Inactive</option>
+                        </select>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-center">
                         <div className="flex items-center justify-center gap-2">
