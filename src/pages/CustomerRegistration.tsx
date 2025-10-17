@@ -28,27 +28,18 @@ export default function CustomerRegistration() {
   const [services, setServices] = useState<Array<{ id: string; code: string; title: string; isActive?: boolean }>>([])
   const [preferredLanguages, setPreferredLanguages] = useState<string[]>([])
 
-  // Function to validate manager-generated QR tokens
+  // Function to validate manager-generated QR tokens (localStorage backup)
   const validateManagerQRToken = (token: string, currentOutletId: string): boolean => {
     try {
       const storedQRCodes = localStorage.getItem('managerQRCodes')
-      if (!storedQRCodes) {
-        console.log('No manager QR codes found in localStorage')
-        return false
-      }
+      if (!storedQRCodes) return false
 
       const qrCodes = JSON.parse(storedQRCodes)
       const qrData = qrCodes[currentOutletId]
       
-      if (!qrData) {
-        console.log('No QR data found for outlet:', currentOutletId)
-        return false
-      }
+      if (!qrData) return false
       
-      // Check if the token matches the current QR token for this outlet
-      const isValid = qrData.token === token
-      console.log('Manager QR validation:', { token, storedToken: qrData.token, isValid })
-      return isValid
+      return qrData.token === token
     } catch (error) {
       console.error('Error validating manager QR token:', error)
       return false
@@ -79,12 +70,29 @@ export default function CustomerRegistration() {
       }
 
       try {
-        // First check if this is a manager-generated QR token
+        // First check if this is a manager-generated QR token via backend
+        console.log('Trying manager QR validation via backend for token:', token)
+        try {
+          const managerRes = await api.get(`/customer/validate-manager-qr`, { params: { token } })
+          if (managerRes.data.valid) {
+            console.log('Valid manager QR token for outlet:', managerRes.data.outletId)
+            setQrValid(true)
+            setError("")
+            if (managerRes.data.outletId) {
+              setSelectedOutlet(managerRes.data.outletId)
+            }
+            return
+          }
+        } catch (managerError) {
+          console.log('Manager QR validation failed, trying legacy validation:', managerError)
+        }
+
+        // Also check localStorage as backup (for offline functionality)
         if (outletId) {
           const isManagerToken = validateManagerQRToken(token, outletId)
           
           if (isManagerToken) {
-            console.log('Valid manager QR token for outlet:', outletId)
+            console.log('Valid manager QR token from localStorage for outlet:', outletId)
             setQrValid(true)
             setError("")
             setSelectedOutlet(outletId)
@@ -93,7 +101,7 @@ export default function CustomerRegistration() {
         }
 
         // Fallback to backend validation for legacy QR tokens
-        console.log('Trying backend validation for token:', token)
+        console.log('Trying backend validation for legacy token:', token)
         const res = await api.get(`/customer/validate-qr`, { params: { token } })
         if (res.data.valid) {
           setQrValid(true)

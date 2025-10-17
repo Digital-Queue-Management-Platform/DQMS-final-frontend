@@ -153,10 +153,24 @@ export default function ManagerQRCodes() {
     try {
       // Generate new QR token
       const newToken = generateNewQRToken()
+      const generatedAt = new Date().toISOString()
       const newQRData: QRCodeData = {
         outletId: branchId,
         token: newToken,
-        generatedAt: new Date().toISOString()
+        generatedAt
+      }
+      
+      // Register the token with the backend
+      try {
+        await api.post('/customer/manager-qr-token', {
+          outletId: branchId,
+          token: newToken,
+          generatedAt
+        })
+        console.log('Manager QR token registered with backend:', newToken)
+      } catch (backendError) {
+        console.error('Failed to register QR token with backend:', backendError)
+        // Continue with local storage even if backend registration fails
       }
       
       const newQRMap = new Map(qrCodes)
