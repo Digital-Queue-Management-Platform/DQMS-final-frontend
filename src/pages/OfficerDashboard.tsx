@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
-import { Clock, Star, AlertCircle, Users, Coffee } from "lucide-react"
+import { Clock, Star, AlertCircle, Users, Coffee, RefreshCwIcon, DownloadIcon } from "lucide-react"
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from "recharts"
 // OfficerTopBar is provided by Layout for officer routes
 import api, { WS_URL } from "../config/api"
@@ -24,6 +24,25 @@ export default function OfficerDashboard() {
   const [feedbackSummary, setFeedbackSummary] = useState<{ total: number; avgRating: number; feedback: { tokenId: string; tokenNumber: number; rating: number; comment: string; customerName: string; createdAt: string }[] }|null>(null)
   const [feedbackView, setFeedbackView] = useState<'list'|'chart'>('list')
   const [breaksLimit, setBreaksLimit] = useState<number>(10)
+  const [currentDateTime, setCurrentDateTime] = useState(new Date())
+  
+  // Helper functions for date and time formatting
+  const formatDate = (date: Date) => {
+    return date.toLocaleDateString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    })
+  }
+
+  const formatTime = (date: Date) => {
+    return date.toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
+    })
+  }
   // confirm handled inside OfficerTopBar
 
   useEffect(() => {
@@ -33,12 +52,17 @@ export default function OfficerDashboard() {
       .get("/officer/me")
       .then((res) => {
         if (!mounted) return
-        setOfficer(res.data.officer)
-        fetchStats(res.data.officer.id)
-          fetchQueue(res.data.officer.outletId)
-            fetchServed(res.data.officer.id)
-            fetchBreaks(res.data.officer.id)
-            fetchFeedback(res.data.officer.id)
+        const officerData = res.data.officer
+        setOfficer(officerData)
+        
+        // Update localStorage with complete officer data for sidebar
+        localStorage.setItem('dq_user', JSON.stringify(officerData))
+        
+        fetchStats(officerData.id)
+          fetchQueue(officerData.outletId)
+            fetchServed(officerData.id)
+            fetchBreaks(officerData.id)
+            fetchFeedback(officerData.id)
 
         // WebSocket for real-time updates
         const ws = new WebSocket(WS_URL)
@@ -63,6 +87,15 @@ export default function OfficerDashboard() {
       if (ws) ws.close()
     }
   }, [navigate])
+
+  // Update time every second
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentDateTime(new Date())
+    }, 1000)
+
+    return () => clearInterval(interval)
+  }, [])
 
   // time managed in OfficerTopBar
 
@@ -125,6 +158,28 @@ export default function OfficerDashboard() {
 
   // queue interaction handlers removed; use dedicated queue page
 
+  // Handle status changes
+  const handleStatusChange = async (status: string) => {
+    if (!officer) return
+    
+    try {
+      await api.post('/officer/status', { officerId: officer.id, status })
+      setOfficer(prev => prev ? { ...prev, status } : prev)
+      
+      // Broadcast status change event
+      const evt: any = new CustomEvent('officer:status-changed', { detail: { status } })
+      window.dispatchEvent(evt)
+      
+      if (status === 'offline') {
+        try { await api.post('/officer/logout') } catch {}
+        navigate('/officer/login')
+      }
+    } catch (err) {
+      console.error('Failed to update status:', err)
+      alert('Failed to update status')
+    }
+  }
+
   // React to status changes broadcast by Layout's top bar
   useEffect(() => {
     const onStatus = async (e: any) => {
@@ -148,11 +203,103 @@ export default function OfficerDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Main Content */}
-      <main className="mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 lg:py-8">
-        {/* Confirm handled inside OfficerTopBar */}
-        
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-8">
+      <div className="mx-auto">
+        {/* Header Section in Body */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-2">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">Customer Service Officer Dashboard</h1>
+              <p className="text-sm text-gray-500">
+                {formatDate(currentDateTime)} | {formatTime(currentDateTime)}
+              </p>
+            </div>
+            <div className="flex items-center space-x-4">
+              {/* Status Controls */}
+              {officer && (
+                <div className="flex items-center space-x-2">
+                  {officer.status === 'available' && (
+                    <button
+                      onClick={() => handleStatusChange('on_break')}
+                      className="flex items-center gap-2 px-3 py-2 bg-yellow-100 text-yellow-700 rounded-lg hover:bg-yellow-200 transition-colors text-sm font-medium"
+                    >
+                      <Coffee className="w-4 h-4" />
+                      Break
+                    </button>
+                  )}
+
+                  {officer.status === 'on_break' && (
+                    <button
+                      onClick={() => handleStatusChange('available')}
+                      className="flex items-center gap-2 px-3 py-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors text-sm font-medium"
+                    >
+                      <RefreshCwIcon className="w-4 h-4" />
+                      Resume
+                    </button>
+                  )}
+                </div>
+              )}
+              
+              <button className="flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50">
+                <DownloadIcon className="w-4 h-4 mr-2" />
+                Export
+              </button>
+              <button 
+                onClick={() => window.location.reload()}
+                className="flex items-center px-4 py-2 bg-blue-600 rounded-md text-sm font-medium text-white hover:bg-blue-700"
+              >
+                <RefreshCwIcon className="w-4 h-4 mr-2" />
+                Refresh
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Main Content */}
+        <div className="space-y-6">
+          
+          {/* Counter Status Section */}
+          {officer && (
+            <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-4">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                      <span className="text-blue-600 font-semibold text-sm">
+                        {officer.counterNumber || 'N/A'}
+                      </span>
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900">
+                        Counter {officer.counterNumber || 'N/A'} • {officer.outlet?.name || 'Unknown Branch'}
+                      </h3>
+                      <p className="text-sm text-gray-600">
+                        {officer.outlet?.location || 'Unknown Location'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <div className="flex items-center space-x-2">
+                    <div className={`w-3 h-3 rounded-full ${
+                      officer.status === 'available' ? 'bg-green-400' :
+                      officer.status === 'on_break' ? 'bg-yellow-400' :
+                      officer.status === 'serving' ? 'bg-blue-400' :
+                      'bg-gray-400'
+                    }`}></div>
+                    <span className={`text-sm font-medium capitalize ${
+                      officer.status === 'available' ? 'text-green-700' :
+                      officer.status === 'on_break' ? 'text-yellow-700' :
+                      officer.status === 'serving' ? 'text-blue-700' :
+                      'text-gray-700'
+                    }`}>
+                      {officer.status.replace('_', ' ')}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
   
         {/* Stats Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4 lg:gap-6 mb-6 sm:mb-8">
@@ -258,7 +405,7 @@ export default function OfficerDashboard() {
                       </div>
                     </div>
                     <div className="text-sm text-gray-600">
-                      {new Date(t.completedAt!).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      {new Date(t.completedAt!).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                     </div>
                   </div>
                 ))}
@@ -282,7 +429,7 @@ export default function OfficerDashboard() {
                 {(breaksSummary.breaks.slice(0, breaksLimit)).map((b, idx) => (
                   <div key={b.id || idx} className="flex items-center justify-between p-4 border rounded-lg">
                     <div>
-                      <div className="font-medium text-gray-900">{new Date(b.startedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - {b.endedAt ? new Date(b.endedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'ongoing'}</div>
+                      <div className="font-medium text-gray-900">{new Date(b.startedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })} - {b.endedAt ? new Date(b.endedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : 'ongoing'}</div>
                       <div className="text-sm text-gray-600">Duration: {b.durationMinutes} min</div>
                     </div>
                   </div>
@@ -352,7 +499,7 @@ export default function OfficerDashboard() {
                         <div className="text-sm text-yellow-600 flex items-center gap-2">Rating: {f.rating} <Star className="w-4 h-4" /></div>
                         {f.comment && <div className="text-sm text-gray-700 mt-1">“{f.comment}”</div>}
                       </div>
-                      <div className="text-xs text-gray-500">{new Date(f.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                      <div className="text-xs text-gray-500">{new Date(f.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</div>
                     </div>
                   </div>
                 ))}
@@ -398,7 +545,8 @@ export default function OfficerDashboard() {
             </div>
           </div>
         )}
-      </main>
+        </div>
+      </div>
     </div>
   )
 }

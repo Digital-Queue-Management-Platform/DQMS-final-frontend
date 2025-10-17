@@ -135,20 +135,31 @@ export default function ManagerCompare() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Main Content */}
-      <div className="p-6">
-        {/* Time Range Selector */}
-        <div className="mb-6">
-          <select
-            value={timeRange}
-            onChange={(e) => setTimeRange(e.target.value as 'today' | 'week' | 'month')}
-            className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-transparent"
-          >
-            <option value="today">Today</option>
-            <option value="week">Last 7 Days</option>
-            <option value="month">Last 30 Days</option>
-          </select>
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-8">
+      <div className="mx-auto">
+        {/* Header Section in Body */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-2">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">Branch Comparison</h1>
+            </div>
+          </div>
+        </div>
+
+        {/* Main Content */}
+        <div className="space-y-6">
+          {/* Time Range Selector */}
+          <div className="flex justify-start">
+            <select
+              value={timeRange}
+              onChange={(e) => setTimeRange(e.target.value as 'today' | 'week' | 'month')}
+              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-transparent"
+            >
+              <option value="today">Today</option>
+              <option value="week">Last 7 Days</option>
+              <option value="month">Last 30 Days</option>
+            </select>
+          </div>{/* Existing content continues */}
         </div>
         {/* Top Performers Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">

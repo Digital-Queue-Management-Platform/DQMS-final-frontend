@@ -1,14 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import Header from '../adminComponents/dashboardComponents/header';
 import MetricCard from '../adminComponents/dashboardComponents/MetricCard';
 import {BranchComparisonChart} from '../adminComponents/dashboardComponents/BranchComparisonChart';
 import WaitingTimeChart from '../adminComponents/dashboardComponents/WaitingTimeChart';
 import { BranchTable } from '../adminComponents/dashboardComponents/BranchTable';
-import { AlertsPanel } from '../adminComponents/dashboardComponents/AlertsPanel';
 import SriLankaMap from '../adminComponents/dashboardComponents/SriLankaMap';
 import SystemHealthStatus from '../adminComponents/dashboardComponents/SystemHealthStatus';
 import BranchDashboardPage from './BranchDashboardPage';
-import { UsersIcon, ClockIcon, StarIcon, Ticket, AlertOctagon, ChevronRightIcon, ChevronLeftIcon, BellIcon } from 'lucide-react';
+import { UsersIcon, ClockIcon, StarIcon, Ticket, BellIcon, RefreshCwIcon, DownloadIcon, Eye, ArrowLeft } from 'lucide-react';
 import api, { WS_URL } from '../../config/api'
 
 interface BranchData {
@@ -43,31 +41,28 @@ const DashboardPage: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [sortColumn, setSortColumn] = useState<string>('name');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
-  const [alertsPanelOpen, setAlertsPanelOpen] = useState<boolean>(false);
   const [showBranchDashboard, setShowBranchDashboard] = useState<boolean>(false);
+  const [currentDateTime, setCurrentDateTime] = useState<Date>(new Date());
+  const [showNotifications, setShowNotifications] = useState<boolean>(false);
+  const [unreadNotifications, setUnreadNotifications] = useState<number>(3); // Example count
 
   // Admin data states
   // removed unused selectedOutlet and analytics state
   const [realtimeStats, setRealtimeStats] = useState<any | null>(null)
-  const [alerts, setAlerts] = useState<any[]>([])
-  const [alertFilter, _setAlertFilter] = useState({ type: '', severity: '', outletId: '', importantOnly: false })
   // removed unused loading state
   const [outlets, setOutlets] = useState<any[]>([])
 
   useEffect(() => {
     fetchOutlets()
     fetchRealtimeStats()
-    fetchAlerts()
 
     const interval = setInterval(fetchRealtimeStats, 30000)
 
     const ws = new WebSocket(WS_URL)
     ws.onmessage = (event) => {
       try {
-        const data = JSON.parse(event.data)
-        if (data.type === 'NEGATIVE_FEEDBACK' || data.type === 'LONG_WAIT') {
-          fetchAlerts()
-        }
+        JSON.parse(event.data)
+        // ignore specific data types, just refresh stats
       } catch (e) {
         // ignore
       }
@@ -79,6 +74,39 @@ const DashboardPage: React.FC = () => {
       try { ws.close() } catch (e) {}
     }
   }, [])
+
+  // Date/time update effect
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentDateTime(new Date());
+    }, 1000); // Update every second
+
+    return () => {
+      clearInterval(timer);
+    };
+  }, []);
+
+  // Date/time formatting functions
+  const formatDate = (date: Date): string => {
+    return date.toLocaleDateString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  };
+
+  const formatTime = (date: Date): string => {
+    return date.toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
+    });
+  };
+
+  const handleBranchDashboardToggle = (): void => {
+    setShowBranchDashboard(!showBranchDashboard);
+  };
 
   const fetchOutlets = async () => {
     try {
@@ -213,149 +241,183 @@ const DashboardPage: React.FC = () => {
     }
   }
 
-  const fetchAlerts = async () => {
-    try {
-      const params: any = { isRead: false, importantOnly: true }
-      if (alertFilter.type) params.type = alertFilter.type
-      if (alertFilter.severity) params.severity = alertFilter.severity
-      if (alertFilter.outletId) params.outletId = alertFilter.outletId
-      const res = await api.get('/admin/alerts', { params })
-      const all = res.data || []
-      // Exclude feedback-related alerts; keep only operational/critical
-      const filtered = all.filter((a: any) => {
-        const t = String(a.type || '').toLowerCase()
-        const msg = String(a.message || '').toLowerCase()
-        // remove any alert explicitly about feedback
-        if (t.includes('feedback') || msg.includes('feedback')) return false
-        return true
-      })
-      setAlerts(filtered)
-    } catch (err) {
-      console.error('Failed to fetch alerts', err)
-    }
-  }
-
-  // marking alerts handled in panel interactions (not implemented here)
   return (
-    <div className="flex flex-col h-screen">
-      <Header 
-        showBranchDashboard={showBranchDashboard} 
-        setShowBranchDashboard={setShowBranchDashboard} 
-      />
-      <div className="flex flex-1 overflow-hidden">
-        {/* Branch dashboard panel (shown when toggled) */}
-        <div className={`${showBranchDashboard ? 'block' : 'hidden'} flex-1 overflow-y-auto p-6 transition-all duration-300`}>
-          <BranchDashboardPage outlets={outlets} />
-        </div>
-
-        {/* Main admin content (hidden when branch dashboard is shown) */}
-        <div className={`${showBranchDashboard ? 'hidden' : 'block'} flex-1 overflow-y-auto p-6 transition-all duration-300 ${alertsPanelOpen ? 'mr-0' : 'mr-0'}`}>
-                        {/* filters removed per request */}
-
-                {/* Main content area */}
-              
-                  {/* Metrics row */}
-                <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-6">
-                  <MetricCard title="Total Customers Served Today" value={totalCustomers.toString()} icon={<UsersIcon className="h-7 w-7 text-blue-500" />} detail={branchData.length >= 3 ? `${branchData[0].name}: ${branchData[0].customersServed}, ${branchData[1].name}: ${branchData[1].customersServed}, ${branchData[2].name}: ${branchData[2].customersServed}` : undefined} />
-                  <MetricCard title="Average Waiting Time" value={`${avgWaitingTime} min`} icon={<ClockIcon className="h-7 w-7 text-blue-500" />} trend={Number(avgWaitingTime) < 15 ? 'down' : 'up'} trendLabel={Number(avgWaitingTime) < 15 ? 'Better than target' : 'Above target'} />
-                  <MetricCard title="Customer Satisfaction Rating" value={avgRating} icon={<StarIcon className="h-7 w-7 text-blue-500" />} trend={Number(avgRating) > 4.0 ? 'up' : 'down'} trendLabel={Number(avgRating) > 4.0 ? 'Above average' : 'Below average'} />
-                  <MetricCard title="Currently Active Queues" value={realtimeStats ? String(realtimeStats.activeTokens) : '0'} icon={<Ticket className="h-7 w-7 text-green-500"/>} trend={Number(avgRating) > 4.0 ? 'up' : 'down'} trendLabel={Number(avgRating) > 4.0 ? 'Above average' : 'Below average'}/>
-                  <MetricCard title="System Alerts" value={String(alerts.length)} icon={<AlertOctagon className="h-7 w-7 text-red-500"/>}/>
-                </div>
-                
-                {/* Charts section */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-                  <div className="bg-white p-4 rounded-lg shadow">
-                    <h3 className="text-lg font-medium mb-4">
-                      Customer Volume by Branch
-                    </h3>
-                    <BranchComparisonChart data={branchData} />
-                  </div>
-                  <div className="bg-white p-4 rounded-lg shadow">
-                    <h3 className="text-lg font-medium mb-4">
-                      Waiting Time Trends (Last 7 Days)
-                    </h3>
-                    <WaitingTimeChart data={waitingTimeData} />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-                  <div className="p-2 rounded-lg shadow mb-6">
-                    <SystemHealthStatus/>
-                  </div>
-                </div>
-                
-                {/* Map section */}
-                <div className="bg-white p-4 rounded-lg shadow mb-6">
-                  <h3 className="text-lg font-medium mb-4">
-                    Branch Locations & Performance
-                  </h3>
-                  <div className="h-135">
-                    <SriLankaMap branchData={branchData} />
-                  </div> 
-                </div>
-
-                {/* Table section */}
-                <div className="bg-white p-4 rounded-lg shadow">
-                  <h3 className="text-lg font-medium mb-4">
-                    Branch Performance Details
-                  </h3>
-                    <BranchTable 
-                      data={branchData} 
-                      currentPage={currentPage} 
-                      setCurrentPage={setCurrentPage} 
-                      sortColumn={sortColumn} 
-                      setSortColumn={setSortColumn} 
-                      sortDirection={sortDirection} 
-                      setSortDirection={setSortDirection} 
-                    />
-                </div>
-          
-        </div>
-        
-        
-        {/* Right sidebar for alerts */}
-        <div className={`hidden lg:flex flex-col bg-white border-l border-gray-200 overflow-hidden transition-all duration-300 ${alertsPanelOpen ? 'w-80' : 'w-12'}`}>
-          {/* Toggle button */}
-          <div className="flex justify-between items-center py-2 px-2 border-b border-gray-200">
-            <button
-              onClick={() => setAlertsPanelOpen(!alertsPanelOpen)}
-              className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
-              title={alertsPanelOpen ? 'Collapse alerts panel' : 'Expand alerts panel'}
-            >
-              {alertsPanelOpen ? (
-                <ChevronRightIcon className="h-5 w-5 text-gray-600" />
-              ) : (
-                <ChevronLeftIcon className="h-5 w-5 text-gray-600" />
-              )}
-            </button>
-            
-            {alertsPanelOpen && (
-              <div className='flex items-center'>
-                <BellIcon className="h-5 w-5 text-gray-400 mr-2" />
-                <span className="text-sm font-medium text-gray-700">Alerts & Notifications</span>
-              </div>
-            )}
-          </div>
-          
-          {/* Alerts panel content */}
-          {alertsPanelOpen && (
-            <div className="flex-1 overflow-y-auto">
-              <AlertsPanel alerts={alerts} />
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-8">
+      <div className="mx-auto">
+        {/* Header Section in Body */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-2">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">
+                {showBranchDashboard ? 'Branch Dashboard' : 'Admin Dashboard'}
+              </h1>
+              <p className="text-sm text-gray-500">
+                {formatDate(currentDateTime)} | {formatTime(currentDateTime)}
+              </p>
             </div>
-          )}
-          
-          {/* Collapsed state - show alert count */}
-          {!alertsPanelOpen && (
-            <div className="flex-1 flex flex-col items-center justify-center py-4">
+            <div className="flex items-center space-x-4">
+              {/* Notification Bell */}
               <div className="relative">
-                <AlertOctagon className="h-6 w-6 text-gray-400" />
-                <div className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
-                  {alerts.length}
-                </div>
+                <button
+                  onClick={() => setShowNotifications(!showNotifications)}
+                  className="relative flex items-center justify-center p-2 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+                >
+                  <BellIcon className="w-5 h-5 text-gray-600" />
+                  {unreadNotifications > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                      {unreadNotifications > 9 ? '9+' : unreadNotifications}
+                    </span>
+                  )}
+                </button>
+                
+                {/* Notification Dropdown */}
+                {showNotifications && (
+                  <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
+                    <div className="p-4 border-b border-gray-200">
+                      <h3 className="text-lg font-semibold text-gray-900">Notifications</h3>
+                    </div>
+                    <div className="max-h-64 overflow-y-auto">
+                      <div className="p-3 border-b border-gray-100 hover:bg-gray-50">
+                        <div className="flex items-start space-x-3">
+                          <div className="w-2 h-2 bg-red-500 rounded-full mt-2 flex-shrink-0"></div>
+                          <div className="flex-1">
+                            <p className="text-sm font-medium text-gray-900">High Wait Time Alert</p>
+                            <p className="text-xs text-gray-600">Colombo HQ - Average wait time exceeds 15 minutes</p>
+                            <p className="text-xs text-gray-400 mt-1">5 minutes ago</p>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="p-3 border-b border-gray-100 hover:bg-gray-50">
+                        <div className="flex items-start space-x-3">
+                          <div className="w-2 h-2 bg-yellow-500 rounded-full mt-2 flex-shrink-0"></div>
+                          <div className="flex-1">
+                            <p className="text-sm font-medium text-gray-900">System Update</p>
+                            <p className="text-xs text-gray-600">New features available in queue management</p>
+                            <p className="text-xs text-gray-400 mt-1">1 hour ago</p>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="p-3 hover:bg-gray-50">
+                        <div className="flex items-start space-x-3">
+                          <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
+                          <div className="flex-1">
+                            <p className="text-sm font-medium text-gray-900">Daily Report Ready</p>
+                            <p className="text-xs text-gray-600">Your daily analytics report is now available</p>
+                            <p className="text-xs text-gray-400 mt-1">2 hours ago</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="p-3 border-t border-gray-200">
+                      <button
+                        onClick={() => setUnreadNotifications(0)}
+                        className="w-full text-center text-sm text-blue-600 hover:text-blue-800"
+                      >
+                        Mark all as read
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
+
+              {showBranchDashboard ? (
+                <button 
+                  className="flex items-center px-4 py-2 bg-gray-900 border border-gray-300 rounded-md text-md font-medium text-white hover:text-black hover:bg-gray-50"
+                  onClick={handleBranchDashboardToggle}
+                >
+                  <ArrowLeft className="w-5 h-5 mr-2" />
+                  Back to Admin Dashboard
+                </button>
+              ) : (
+                <button 
+                  className="flex items-center px-4 py-2 bg-black border border-gray-300 rounded-md text-md font-medium text-white hover:text-black hover:bg-gray-50"
+                  onClick={handleBranchDashboardToggle}
+                >
+                  <Eye className="w-5 h-5 mr-2" />
+                  Location wise Dashboard
+                </button>
+              )}
+              <button className="flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50">
+                <DownloadIcon className="w-4 h-4 mr-2" />
+                Export
+              </button>
+              <button className="flex items-center px-4 py-2 bg-blue-600 rounded-md text-sm font-medium text-white hover:bg-blue-700">
+                <RefreshCwIcon className="w-4 h-4 mr-2" />
+                Refresh
+              </button>
             </div>
-          )}
+          </div>
+        </div>
+
+        <div className="flex flex-1 overflow-hidden">
+          {/* Branch dashboard panel (shown when toggled) */}
+          <div className={`${showBranchDashboard ? 'block' : 'hidden'} flex-1 overflow-y-auto transition-all duration-300`}>
+            <BranchDashboardPage outlets={outlets} />
+          </div>
+
+          {/* Main admin content (hidden when branch dashboard is shown) */}
+          <div className={`${showBranchDashboard ? 'hidden' : 'block'} flex-1 overflow-y-auto transition-all duration-300`}>
+                          {/* filters removed per request */}
+
+                  {/* Main content area */}
+                
+                    {/* Metrics row */}
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+                    <MetricCard title="Total Customers Served Today" value={totalCustomers.toString()} icon={<UsersIcon className="h-7 w-7 text-blue-500" />} detail={branchData.length >= 3 ? `${branchData[0].name}: ${branchData[0].customersServed}, ${branchData[1].name}: ${branchData[1].customersServed}, ${branchData[2].name}: ${branchData[2].customersServed}` : undefined} />
+                    <MetricCard title="Average Waiting Time" value={`${avgWaitingTime} min`} icon={<ClockIcon className="h-7 w-7 text-blue-500" />} trend={Number(avgWaitingTime) < 15 ? 'down' : 'up'} trendLabel={Number(avgWaitingTime) < 15 ? 'Better than target' : 'Above target'} />
+                    <MetricCard title="Customer Satisfaction Rating" value={avgRating} icon={<StarIcon className="h-7 w-7 text-blue-500" />} trend={Number(avgRating) > 4.0 ? 'up' : 'down'} trendLabel={Number(avgRating) > 4.0 ? 'Above average' : 'Below average'} />
+                    <MetricCard title="Currently Active Queues" value={realtimeStats ? String(realtimeStats.activeTokens) : '0'} icon={<Ticket className="h-7 w-7 text-green-500"/>} trend={Number(avgRating) > 4.0 ? 'up' : 'down'} trendLabel={Number(avgRating) > 4.0 ? 'Above average' : 'Below average'}/>
+                  </div>
+                  
+                  {/* Charts section */}
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                    <div className="bg-white p-4 rounded-lg shadow">
+                      <h3 className="text-lg font-medium mb-4">
+                        Customer Volume by Branch
+                      </h3>
+                      <BranchComparisonChart data={branchData} />
+                    </div>
+                    <div className="bg-white p-4 rounded-lg shadow">
+                      <h3 className="text-lg font-medium mb-4">
+                        Waiting Time Trends (Last 7 Days)
+                      </h3>
+                      <WaitingTimeChart data={waitingTimeData} />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                    <div className="p-2 rounded-lg shadow mb-6">
+                      <SystemHealthStatus/>
+                    </div>
+                  </div>
+                  
+                  {/* Map section */}
+                  <div className="bg-white p-4 rounded-lg shadow mb-6">
+                    <h3 className="text-lg font-medium mb-4">
+                      Branch Locations & Performance
+                    </h3>
+                    <div className="h-135">
+                      <SriLankaMap branchData={branchData} />
+                    </div> 
+                  </div>
+
+                  {/* Table section */}
+                  <div className="bg-white p-4 rounded-lg shadow">
+                    <h3 className="text-lg font-medium mb-4">
+                      Branch Performance Details
+                    </h3>
+                      <BranchTable 
+                        data={branchData} 
+                        currentPage={currentPage} 
+                        setCurrentPage={setCurrentPage} 
+                        sortColumn={sortColumn} 
+                        setSortColumn={setSortColumn} 
+                        sortDirection={sortDirection} 
+                        setSortDirection={setSortDirection} 
+                      />
+                  </div>
+            
+          </div>
         </div>
       </div>
     </div>

@@ -174,20 +174,29 @@ export default function ManagerBranches() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Main Content */}
-      <div className="p-6">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-semibold text-gray-900">Branches</h2>
-          <button
-            onClick={openAdd}
-            className="inline-flex items-center gap-2 px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg shadow-sm"
-          >
-            <Plus className="w-4 h-4" /> Add Outlet
-          </button>
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-8">
+      <div className="mx-auto">
+        {/* Header Section in Body */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-2">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">Branches Management</h1>
+            </div>
+            <div className="flex items-center space-x-4">
+              <button
+                onClick={openAdd}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-md shadow-sm"
+              >
+                <Plus className="w-4 h-4" /> Add Outlet
+              </button>
+            </div>
+          </div>
         </div>
-        {/* Branch Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+        {/* Main Content */}
+        <div className="space-y-6">
+          {/* Branch Cards Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">{/* Existing content continues */}
           {branches.map((branch) => (
             <div key={branch.id} className="bg-white rounded-xl shadow-sm p-6 hover:shadow-md transition-shadow">
               <div className="flex items-start justify-between mb-4">
@@ -373,6 +382,7 @@ export default function ManagerBranches() {
           </div>
         </div>
       )}
+      </div>
     </div>
   )
 }

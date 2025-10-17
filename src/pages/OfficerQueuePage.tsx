@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { User, Clock, Phone, FileText, Users } from "lucide-react"
+import { User, Clock, Phone, FileText, Users, RefreshCwIcon, DownloadIcon } from "lucide-react"
 // OfficerTopBar is provided globally from Layout for officer routes
 import api, { WS_URL } from "../config/api"
 import type { Officer, Token } from "../types"
@@ -14,6 +14,25 @@ export default function OfficerQueuePage() {
   const [queue, setQueue] = useState<{ waiting: Token[]; inService: Token[]; availableOfficers: number; totalWaiting: number } | null>(null)
   const [accountRef, setAccountRef] = useState("")
   const [loading, setLoading] = useState(false)
+  const [currentDateTime, setCurrentDateTime] = useState(new Date())
+  
+  // Helper functions for date and time formatting
+  const formatDate = (date: Date) => {
+    return date.toLocaleDateString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    })
+  }
+
+  const formatTime = (date: Date) => {
+    return date.toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
+    })
+  }
 
   useEffect(() => {
     // Fetch officer and initial queue
@@ -43,6 +62,16 @@ export default function OfficerQueuePage() {
       if (ws) ws.close()
     }
   }, [navigate])
+
+  // Update time every second
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentDateTime(new Date())
+    }, 1000)
+
+    return () => clearInterval(interval)
+  }, [])
+
 
   const fetchQueue = async (outletId?: string) => {
     if (!outletId) return
@@ -147,9 +176,37 @@ export default function OfficerQueuePage() {
   if (!officer) return null
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="grid grid-cols-1 lg:grid-cols-7 gap-6">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-8">
+      <div className="mx-auto">
+        {/* Header Section in Body */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-2">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">Queue Management</h1>
+              <p className="text-sm text-gray-500">
+                {formatDate(currentDateTime)} | {formatTime(currentDateTime)}
+              </p>
+            </div>
+            <div className="flex items-center space-x-4">
+              <button className="flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50">
+                <DownloadIcon className="w-4 h-4 mr-2" />
+                Export
+              </button>
+              <button 
+                onClick={() => window.location.reload()}
+                className="flex items-center px-4 py-2 bg-blue-600 rounded-md text-sm font-medium text-white hover:bg-blue-700"
+              >
+                <RefreshCwIcon className="w-4 h-4 mr-2" />
+                Refresh
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Main Content */}
+        <div className="space-y-6">
+
+          <div className="grid grid-cols-1 lg:grid-cols-7 gap-6">
         {/* Left Column: Current Customer */}
         <div className="lg:col-span-2">
           {!currentToken ? (
@@ -351,6 +408,7 @@ export default function OfficerQueuePage() {
         </div>
       </div>
       </div>
+    </div>
     </div>
   )
 }

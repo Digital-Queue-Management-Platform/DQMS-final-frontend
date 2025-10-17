@@ -191,7 +191,7 @@ export default function QueueStatus() {
             </div>
             <div>
               <p className="text-gray-600">Registered At</p>
-              <p className="font-semibold text-gray-900">{new Date(token.createdAt).toLocaleTimeString()}</p>
+              <p className="font-semibold text-gray-900">{new Date(token.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</p>
             </div>
           </div>
         </div>

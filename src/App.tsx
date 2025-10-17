@@ -2,6 +2,7 @@ import React from "react"
 import { Routes, Route, useLocation, useNavigate } from "react-router-dom"
 // MainNav removed per request - no top navbar
 import Sidebar from "./admin/adminComponents/additionalComps/SideBar"
+import Header from "./components/Header"
 import CustomerRegistration from "./pages/CustomerRegistration"
 import QueueStatus from "./pages/QueueStatus"
 import OfficerLogin from "./pages/OfficerLogin"
@@ -25,7 +26,6 @@ import ManagerOfficers from "./pages/ManagerOfficers"
 
 import { Users, Shield, UserCog, ArrowRight, Building2 } from "lucide-react"
 import OfficerTopBar from "./components/OfficerTopBar"
-import ManagerTopBar from "./components/ManagerTopBar"
 import api from "./config/api"
 import type { Officer } from "./types"
 
@@ -274,13 +274,10 @@ function Layout({ children }: { children: React.ReactNode }) {
   const isManagerLogin = location.pathname === '/manager/login'
   // Ensure sidebar is visible on admin, officer, and manager routes (but not on login pages)
   const showSidebar = isAdminPath || (isOfficerPath && !isOfficerLogin) || (isManagerPath && !isManagerLogin)
-  const [isCollapsed, setIsCollapsed] = React.useState<boolean>(false)
   const [activePage, setActivePage] = React.useState<string>('')
 
   // Central officer state for top bar when on officer pages (except login)
   const [officer, setOfficer] = React.useState<Officer | null>(null)
-  // Central manager state for top bar when on manager pages (except login)
-  const [manager, setManager] = React.useState<any | null>(null)
 
   React.useEffect(() => {
     let mounted = true
@@ -309,9 +306,9 @@ function Layout({ children }: { children: React.ReactNode }) {
             params.email = managerData.email
           }
           
-          const res = await api.get('/manager/me', { params })
+          await api.get('/manager/me', { params })
           if (!mounted) return
-          setManager(res.data.manager)
+          // Manager data loaded for authentication only
         } catch (e) {
           console.error('Manager authentication failed:', e)
           // Clear invalid data and redirect to login
@@ -321,8 +318,6 @@ function Layout({ children }: { children: React.ReactNode }) {
           localStorage.removeItem('dq_user')
           navigate('/manager/login')
         }
-      } else {
-        setManager(null)
       }
     }
     loadUser()
@@ -337,42 +332,25 @@ function Layout({ children }: { children: React.ReactNode }) {
     } catch {}
   }, [])
 
-  // Get page title for manager pages
-  const getManagerPageTitle = () => {
-    const path = location.pathname
-    if (path === '/manager/dashboard') return 'Regional Manager Dashboard'
-    if (path === '/manager/branches') return 'Regional Branches'
-    if (path === '/manager/compare') return 'Branch Comparison'
-    if (path === '/manager/register-officer') return 'Register Officer'
-    if (path === '/manager/officers') return 'Officers Management'
-    return 'Regional Manager'
-  }
-
   return (
     <div className="min-h-screen bg-gray-50">
       {showSidebar && (
         <Sidebar 
-          isCollapsed={isCollapsed} 
-          setIsCollapsed={setIsCollapsed} 
           activePage={activePage} 
           setActivePage={setActivePage} />
       )}
       <div 
-        className={`flex-1 transition-all duration-300 ${showSidebar ? 'ml-14' : 'ml-0'}`}
+        className={`flex-1 transition-all duration-300 ${showSidebar ? 'lg:ml-72 xl:ml-80' : 'ml-0'}`}
       >
-        {/* Shared Officer Top Bar for all officer pages except login */}
-        {isOfficerPath && !isOfficerLogin && officer && (
+        {/* Header for all dashboard pages */}
+        {showSidebar && <Header />}
+        
+        {/* Shared Officer Top Bar for all officer pages except login, dashboard, and queue */}
+        {isOfficerPath && !isOfficerLogin && officer && !location.pathname.includes('/officer/dashboard') && !location.pathname.includes('/officer/queue') && (
           <OfficerTopBar 
             officer={officer}
             onOfficerUpdate={setOfficer as any}
             onAfterStatusChange={handleAfterStatusChange}
-          />
-        )}
-        {/* Shared Manager Top Bar for all manager pages except login */}
-        {isManagerPath && !isManagerLogin && manager && (
-          <ManagerTopBar 
-            manager={manager}
-            title={getManagerPageTitle()}
           />
         )}
         {children}
