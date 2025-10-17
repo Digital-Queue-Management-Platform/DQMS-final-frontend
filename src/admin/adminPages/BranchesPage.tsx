@@ -33,6 +33,7 @@ const BranchesPage: React.FC = () => {
   const [managerEmail, setManagerEmail] = useState('')
   const [managerMobile, setManagerMobile] = useState('')
   const [regionLoading, setRegionLoading] = useState(false)
+  const [generatedCredentials, setGeneratedCredentials] = useState<{email: string, password: string} | null>(null)
 
   useEffect(() => {
     fetchOutlets()
@@ -120,21 +121,30 @@ const BranchesPage: React.FC = () => {
   const handleCreateRegion = async (e?: React.FormEvent) => {
     if (e) e.preventDefault()
     if (!regionName) return setError('Region name is required')
+    if (!managerEmail) return setError('Manager email is required')
     
     setRegionLoading(true)
     setError('')
     try {
-      await api.post('/admin/register-region', {
+      const response = await api.post('/admin/register-region', {
         name: regionName,
         managerName,
         managerEmail,
         managerMobile,
       })
       
+      // Show generated credentials to admin
+      if (response.data.credentials) {
+        setGeneratedCredentials({
+          email: response.data.credentials.email,
+          password: response.data.credentials.temporaryPassword
+        })
+      }
+      
       // Refresh regions list
       await fetchRegions()
       
-      // Reset form
+      // Reset form but keep credentials dialog open
       setRegionName('')
       setManagerName('')
       setManagerEmail('')
@@ -481,13 +491,14 @@ const BranchesPage: React.FC = () => {
 
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-2">
-                      Manager Email
+                      Manager Email *
                     </label>
                     <input 
                       type="email"
                       value={managerEmail} 
                       onChange={(e) => setManagerEmail(e.target.value)}
                       placeholder="Enter manager email"
+                      required
                       className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
                     />
                   </div>
@@ -521,6 +532,110 @@ const BranchesPage: React.FC = () => {
                     </button>
                   </div>
                 </form>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Manager Credentials Dialog */}
+      {generatedCredentials && (
+        <>
+          <div className="fixed inset-0 bg-black bg-opacity-50 z-50" onClick={() => setGeneratedCredentials(null)} />
+          <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4">
+              <div className="p-6">
+                <div className="flex items-center justify-center w-12 h-12 mx-auto bg-green-100 rounded-full mb-4">
+                  <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                
+                <h2 className="text-xl font-semibold text-slate-800 text-center mb-4">
+                  Regional Manager Account Created
+                </h2>
+                
+                <p className="text-slate-600 text-center mb-6">
+                  Please provide these login credentials to the regional manager:
+                </p>
+                
+                <div className="bg-slate-50 rounded-lg p-4 mb-6">
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">Email</label>
+                      <div className="flex items-center">
+                        <input 
+                          type="text" 
+                          value={generatedCredentials.email} 
+                          readOnly 
+                          className="flex-1 px-3 py-2 border border-slate-300 rounded-md bg-white text-slate-900"
+                        />
+                        <button
+                          onClick={() => navigator.clipboard.writeText(generatedCredentials.email)}
+                          className="ml-2 p-2 text-slate-500 hover:text-slate-700"
+                          title="Copy email"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">Temporary Password</label>
+                      <div className="flex items-center">
+                        <input 
+                          type="text" 
+                          value={generatedCredentials.password} 
+                          readOnly 
+                          className="flex-1 px-3 py-2 border border-slate-300 rounded-md bg-white text-slate-900 font-mono"
+                        />
+                        <button
+                          onClick={() => navigator.clipboard.writeText(generatedCredentials.password)}
+                          className="ml-2 p-2 text-slate-500 hover:text-slate-700"
+                          title="Copy password"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+                  <div className="flex">
+                    <svg className="w-5 h-5 text-yellow-400 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16c-.77.833.192 2.5 1.732 2.5z" />
+                    </svg>
+                    <div>
+                      <p className="text-sm font-medium text-yellow-800">Important:</p>
+                      <p className="text-sm text-yellow-700 mt-1">
+                        Ask the manager to change this password after their first login for security.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => {
+                      const text = `Login Credentials:\nEmail: ${generatedCredentials.email}\nPassword: ${generatedCredentials.password}`;
+                      navigator.clipboard.writeText(text);
+                    }}
+                    className="flex-1 px-4 py-2.5 border border-slate-300 text-slate-700 rounded-lg font-medium hover:bg-slate-50 transition-colors"
+                  >
+                    Copy Both
+                  </button>
+                  <button
+                    onClick={() => setGeneratedCredentials(null)}
+                    className="flex-1 bg-green-600 text-white px-4 py-2.5 rounded-lg font-medium hover:bg-green-700 transition-colors"
+                  >
+                    Done
+                  </button>
+                </div>
               </div>
             </div>
           </div>

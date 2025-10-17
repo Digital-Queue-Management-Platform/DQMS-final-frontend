@@ -15,6 +15,7 @@ import BranchesPage from "./admin/adminPages/BranchesPage"
 import ServicesPage from "./admin/adminPages/ServicesPage"
 import BranchComparePage from "./admin/adminPages/BranchComparePage"
 import AdminAllOfficers from "./admin/adminPages/AdminAllOfficers"
+import ManagerManagement from "./admin/adminPages/ManagerManagement"
 import FeedbackPage from "./pages/FeedbackPage"
 import QRDisplay from "./pages/QRDisplay"
 // import OfficerRegistration from "./pages/OfficerRegistration" // moved under manager portal
@@ -420,6 +421,10 @@ function App() {
       <Route
         element={<Layout><ProtectedAdminRoute><BranchesPage /></ProtectedAdminRoute></Layout>}
         path="/admin/branches"
+      />
+      <Route
+        element={<Layout><ProtectedAdminRoute><ManagerManagement /></ProtectedAdminRoute></Layout>}
+        path="/admin/managers"
       />
       <Route
         element={<Layout><ProtectedAdminRoute><BranchComparePage /></ProtectedAdminRoute></Layout>}
