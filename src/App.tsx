@@ -3,10 +3,12 @@ import { Routes, Route, useLocation, useNavigate } from "react-router-dom"
 // MainNav removed per request - no top navbar
 import Sidebar from "./admin/adminComponents/additionalComps/SideBar"
 import Header from "./components/Header"
+import ProtectedAdminRoute from "./components/ProtectedAdminRoute"
 import CustomerRegistration from "./pages/CustomerRegistration"
 import QueueStatus from "./pages/QueueStatus"
 import OfficerLogin from "./pages/OfficerLogin"
 import OfficerDashboard from "./pages/OfficerDashboard"
+import AdminLogin from "./pages/AdminLogin"
 import DashboardPage from "./admin/adminPages/DashboardPage"
 import AdminOfficers from "./admin/adminPages/AdminOfficers"
 import BranchesPage from "./admin/adminPages/BranchesPage"
@@ -396,27 +398,31 @@ function App() {
         path="/officer/queue"
       />
       <Route
-        element={<Layout><DashboardPage /></Layout>}
+        element={<AdminLogin />}
+        path="/admin/login"
+      />
+      <Route
+        element={<Layout><ProtectedAdminRoute><DashboardPage /></ProtectedAdminRoute></Layout>}
         path="/admin"
       />
       <Route
-        element={<Layout><AdminOfficers /></Layout>}
+        element={<Layout><ProtectedAdminRoute><AdminOfficers /></ProtectedAdminRoute></Layout>}
         path="/admin/officers"
       />
       <Route
-        element={<Layout><AdminAllOfficers /></Layout>}
+        element={<Layout><ProtectedAdminRoute><AdminAllOfficers /></ProtectedAdminRoute></Layout>}
         path="/admin/all-officers"
       />
       <Route
-        element={<Layout><ServicesPage /></Layout>}
+        element={<Layout><ProtectedAdminRoute><ServicesPage /></ProtectedAdminRoute></Layout>}
         path="/admin/services"
       />
       <Route
-        element={<Layout><BranchesPage /></Layout>}
+        element={<Layout><ProtectedAdminRoute><BranchesPage /></ProtectedAdminRoute></Layout>}
         path="/admin/branches"
       />
       <Route
-        element={<Layout><BranchComparePage /></Layout>}
+        element={<Layout><ProtectedAdminRoute><BranchComparePage /></ProtectedAdminRoute></Layout>}
         path="/admin/compare"
       />
       <Route

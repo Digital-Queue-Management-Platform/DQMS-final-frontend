@@ -13,6 +13,14 @@ export const api = axios.create({
 // Add request interceptor to include authentication tokens
 api.interceptors.request.use(
   (config) => {
+    // Check for admin token for admin routes
+    if (config.url?.startsWith('/admin/')) {
+      const adminToken = localStorage.getItem('adminToken')
+      if (adminToken) {
+        config.headers.Authorization = `Bearer ${adminToken}`
+      }
+    }
+    
     // Check for manager token for manager routes
     if (config.url?.startsWith('/manager/')) {
       const managerToken = localStorage.getItem('managerToken')
@@ -42,7 +50,10 @@ api.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       // Handle unauthorized errors by clearing tokens and redirecting
-      if (error.config?.url?.startsWith('/manager/')) {
+      if (error.config?.url?.startsWith('/admin/')) {
+        localStorage.removeItem('adminToken')
+        window.location.href = '/admin/login'
+      } else if (error.config?.url?.startsWith('/manager/')) {
         localStorage.removeItem('manager')
         localStorage.removeItem('managerToken')
         localStorage.removeItem('dq_role')
