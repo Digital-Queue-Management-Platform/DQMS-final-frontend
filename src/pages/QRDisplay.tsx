@@ -1,19 +1,44 @@
 "use client"
 
-import { useParams } from "react-router-dom"
+import { useParams, useSearchParams } from "react-router-dom"
 import { QRCodeSVG } from "qrcode.react"
 import { useEffect, useMemo, useState } from "react"
 import api from "../config/api"
 
+interface QRCodeData {
+  outletId: string;
+  token: string;
+  generatedAt: string;
+  expiresAt?: string;
+}
+
 export default function QRDisplay() {
   const { outletId } = useParams()
+  const [searchParams] = useSearchParams()
   const [qrToken, setQrToken] = useState<string>("")
   const [error, setError] = useState<string>("")
+
+  // Get manager token from URL parameter
+  const managerToken = searchParams.get('token')
 
   const registrationUrl = useMemo(() => {
     const base = `${window.location.origin}/register/${outletId}`
     return qrToken ? `${base}?qr=${encodeURIComponent(qrToken)}` : base
   }, [outletId, qrToken])
+
+  // Function to get manager QR codes from localStorage
+  const getManagerQRCode = (outletId: string): QRCodeData | null => {
+    try {
+      const storedQRCodes = localStorage.getItem('managerQRCodes')
+      if (storedQRCodes) {
+        const qrCodes = JSON.parse(storedQRCodes)
+        return qrCodes[outletId] || null
+      }
+    } catch (error) {
+      console.error('Error reading manager QR codes:', error)
+    }
+    return null
+  }
 
   useEffect(() => {
     let mounted = true
@@ -21,7 +46,26 @@ export default function QRDisplay() {
 
     const fetchToken = async () => {
       if (!outletId) return
+      
       try {
+        // First priority: Use manager token from URL parameter
+        if (managerToken) {
+          if (!mounted) return
+          setQrToken(managerToken)
+          setError("")
+          return
+        }
+
+        // Second priority: Check for manager-generated QR codes in localStorage
+        const managerQRCode = getManagerQRCode(outletId)
+        if (managerQRCode) {
+          if (!mounted) return
+          setQrToken(managerQRCode.token)
+          setError("")
+          return
+        }
+
+        // Fallback: Use backend API for legacy QR tokens
         const res = await api.get(`/customer/qr-token/${outletId}`)
         if (!mounted) return
         setQrToken(res.data.token)
@@ -33,37 +77,74 @@ export default function QRDisplay() {
       }
     }
 
-    // initial and periodic refresh before expiry (every 4 minutes)
+    // Initial fetch
     fetchToken()
-    timer = setInterval(fetchToken, 4 * 60 * 1000)
+    
+    // Set up periodic refresh for localStorage monitoring (check every 5 seconds)
+    timer = setInterval(() => {
+      // Only refresh if using manager-generated tokens or if we have an error
+      if (managerToken || error || (!managerToken && outletId)) {
+        fetchToken()
+      }
+    }, 5000)
 
     return () => {
       mounted = false
       if (timer) clearInterval(timer)
     }
-  }, [outletId])
+  }, [outletId, managerToken])
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center p-8">
-      <div className="bg-white rounded-3xl shadow-2xl p-12 text-center max-w-2xl">
-        <h1 className="text-4xl font-bold text-gray-900 mb-4">Welcome to SLTMobitel</h1>
-        <p className="text-xl text-gray-600 mb-8">Scan QR Code to Join the Queue</p>
+    <div className="min-h-screen w-full bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center p-2 sm:p-4 md:p-6 lg:p-8">
+      <div className="bg-white rounded-2xl sm:rounded-3xl shadow-2xl w-full max-w-xs sm:max-w-sm md:max-w-md lg:max-w-2xl xl:max-w-3xl mx-auto">
+        <div className="p-4 sm:p-6 md:p-8 lg:p-12 text-center">
+          {/* Header Section */}
+          <div className="mb-4 sm:mb-6 md:mb-8">
+            <h1 className="text-lg sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-bold text-gray-900 mb-2 sm:mb-3 md:mb-4 leading-tight">
+              Welcome to Queue Management Platform
+            </h1>
+            <p className="text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl text-gray-600 px-2 sm:px-4">
+              Scan QR Code to Join the Queue
+            </p>
+          </div>
 
-        <div className="bg-white p-8 rounded-2xl inline-block shadow-lg mb-8">
-          <QRCodeSVG value={registrationUrl} size={300} level="H" />
-        </div>
+          {/* QR Code Section - Responsive container */}
+          <div className="bg-white p-3 sm:p-4 md:p-6 lg:p-8 rounded-xl sm:rounded-2xl inline-block shadow-lg mb-4 sm:mb-6 md:mb-8 mx-auto">
+            <div className="flex items-center justify-center">
+              <div className="relative">
+                <QRCodeSVG 
+                  value={registrationUrl} 
+                  size={200}
+                  level="H" 
+                  className="w-32 h-32 xs:w-36 xs:h-36 sm:w-40 sm:h-40 md:w-48 md:h-48 lg:w-56 lg:h-56 xl:w-64 xl:h-64 2xl:w-72 2xl:h-72 max-w-[90vw] max-h-[40vh] object-contain"
+                />
+              </div>
+            </div>
+          </div>
 
-        {error && (
-          <div className="text-red-600 text-sm mb-4">{error}</div>
-        )}
+          {/* Error Message */}
+          {error && (
+            <div className="text-red-600 text-xs sm:text-sm md:text-base mb-4 sm:mb-6 p-2 sm:p-3 md:p-4 bg-red-50 rounded-lg border border-red-200 mx-2 sm:mx-4">
+              {error}
+            </div>
+          )}
 
-        <div className="space-y-4">
-          <p className="text-lg text-gray-700 font-medium">Scan with your mobile camera</p>
-          <p className="text-sm text-gray-500">Register online and track your queue position in real-time</p>
-        </div>
+          {/* Instructions Section */}
+          <div className="space-y-2 sm:space-y-3 md:space-y-4 mb-4 sm:mb-6 md:mb-8">
+            <p className="text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl text-gray-700 font-medium px-2 sm:px-4">
+              Scan with your mobile camera
+            </p>
+            <p className="text-xs sm:text-sm md:text-base lg:text-lg text-gray-500 px-2 sm:px-4 leading-relaxed">
+              Register online and track your queue position in real-time
+            </p>
+          </div>
 
-        <div className="mt-8 pt-8 border-t border-gray-200">
-          <p className="text-xs text-gray-400">Digital Queue Platform by SLTMobitel</p>
+          {/* Footer */}
+          <div className="pt-3 sm:pt-4 md:pt-6 lg:pt-8 border-t border-gray-200">
+            <p className="text-xs sm:text-sm md:text-base text-gray-400">
+              Digital Queue Management Platform
+            </p>
+          </div>
         </div>
       </div>
     </div>

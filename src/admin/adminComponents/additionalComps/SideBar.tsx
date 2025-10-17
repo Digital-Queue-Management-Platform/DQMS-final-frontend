@@ -16,6 +16,7 @@ import {
   ListOrdered,
   Building2,
   Briefcase,
+  QrCode,
   //X
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
@@ -56,6 +57,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activePage, setActivePage }) => {
     { name: 'Dashboard', icon: LayoutDashboard, to: '/manager/dashboard' },
     { name: 'Officers', icon: UserCog, to: '/manager/officers' },
     { name: 'Branches', icon: Building2, to: '/manager/branches' },
+    { name: 'QR Codes', icon: QrCode, to: '/manager/qr-codes' },
     { name: 'Compare', icon: Scale3D, to: '/manager/compare' },
     { name: 'Register Officer', icon: UserPlus, to: '/manager/register-officer' },
   ]

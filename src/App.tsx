@@ -23,6 +23,7 @@ import ManagerBranches from "./pages/ManagerBranches"
 import ManagerCompare from "./pages/ManagerCompare"
 import ManagerOfficerRegistration from "./pages/ManagerOfficerRegistration.tsx"
 import ManagerOfficers from "./pages/ManagerOfficers"
+import ManagerQRCodes from "./pages/ManagerQRCodes"
 
 import { Users, Shield, UserCog, ArrowRight, Building2 } from "lucide-react"
 import OfficerTopBar from "./components/OfficerTopBar"
@@ -429,6 +430,10 @@ function App() {
       <Route
         element={<Layout><ManagerBranches /></Layout>}
         path="/manager/branches"
+      />
+      <Route
+        element={<Layout><ManagerQRCodes /></Layout>}
+        path="/manager/qr-codes"
       />
       <Route
         element={<Layout><ManagerCompare /></Layout>}
