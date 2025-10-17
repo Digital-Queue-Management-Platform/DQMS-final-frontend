@@ -46,7 +46,7 @@ export default function ManagerQRCodes() {
   }, [navigate])
 
   const initializeQRCodes = () => {
-    // Only read existing QR codes, don't create new ones automatically
+    // Load existing QR codes from localStorage
     const storedQRCodes = localStorage.getItem('managerQRCodes')
     if (storedQRCodes) {
       const parsed = JSON.parse(storedQRCodes)

@@ -24,23 +24,12 @@ export default function ManagerOfficerRegistration() {
       try {
         const storedManager = localStorage.getItem('manager')
         const managerData = storedManager ? JSON.parse(storedManager) : null
-        console.log('=== MANAGER OFFICER REGISTRATION DEBUG ===')
-        console.log('Stored manager data:', managerData)
-        
         const params: any = {}
         if (managerData?.email) params.email = managerData.email
         
-        console.log('API call params:', params)
         const res = await api.get("/manager/me", { params })
-        console.log('API response:', res.data)
-        
         const all = (res.data?.manager?.outlets || []) as Outlet[]
-        console.log('All outlets from API:', all)
-        
         const active = all.filter((o: any) => o.isActive !== false)
-        console.log('Active outlets after filtering:', active)
-        console.log('=== END DEBUG ===')
-        
         if (!mounted) return
         setOutlets(active)
         if (active.length > 0) setSelectedOutlet(active[0].id)
