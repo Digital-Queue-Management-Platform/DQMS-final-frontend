@@ -69,16 +69,16 @@ function TabsLanding() {
           
           <div className="relative z-10 max-w-xl mx-auto w-full">
             {/* Logo/Brand */}
-            <div className="mb-8 sm:mb-12 lg:mb-16 text-center xl:text-left">
-              <div className="flex flex-col sm:flex-row items-center justify-center xl:justify-start gap-3 sm:gap-4 mb-4">
+            <div className="mb-8 sm:mb-12 lg:mb-16 text-center">
+              <div className="flex flex-col items-center justify-center mb-4">
                 <img 
-                  src="/logo.jpg" 
-                  alt="QueueFlow Logo" 
-                  className="w-12 h-12 sm:w-14 sm:h-14 lg:w-16 lg:h-16 rounded-xl object-contain"
+                  src="/logo_white.png" 
+                  alt="Queue Management Platform Logo" 
+                  className="w-24 h-24 sm:w-32 sm:h-32 lg:w-40 lg:h-40 rounded-xl object-contain mb-4"
                 />
-                <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold">QueueFlow</h1>
+                <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold whitespace-nowrap text-center">Queue Management Platform</h1>
               </div>
-              <p className="text-base sm:text-lg lg:text-xl text-blue-100">Smart Queue Management</p>
+              <p className="text-base sm:text-lg lg:text-xl text-blue-100 text-center">Streamlining Service, Minimizing Wait Times</p>
             </div>
 
             {/* Stats */}
