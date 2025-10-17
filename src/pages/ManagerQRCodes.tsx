@@ -41,12 +41,12 @@ export default function ManagerQRCodes() {
 
   useEffect(() => {
     fetchBranches()
-    // Initialize QR codes for branches
+    // Initialize QR codes for branches (read existing ones)
     initializeQRCodes()
   }, [navigate])
 
   const initializeQRCodes = () => {
-    // Initialize QR codes with default tokens if not already set
+    // Only read existing QR codes, don't create new ones automatically
     const storedQRCodes = localStorage.getItem('managerQRCodes')
     if (storedQRCodes) {
       const parsed = JSON.parse(storedQRCodes)
@@ -138,25 +138,9 @@ export default function ManagerQRCodes() {
 
       setBranches(branchData)
       
-      // Initialize QR codes for new branches
-      const newQRMap = new Map(qrCodes)
-      let hasChanges = false
+      // Don't automatically generate QR codes - let managers do it manually
+      // This prevents unwanted QR refreshes on page load
       
-      branchData.forEach(branch => {
-        if (!newQRMap.has(branch.id)) {
-          newQRMap.set(branch.id, {
-            outletId: branch.id,
-            token: generateNewQRToken(),
-            generatedAt: new Date().toISOString()
-          })
-          hasChanges = true
-        }
-      })
-      
-      if (hasChanges) {
-        setQrCodes(newQRMap)
-        saveQRCodesToStorage(newQRMap)
-      }
     } catch (error) {
       console.error('Failed to fetch branches:', error)
     } finally {
@@ -332,34 +316,50 @@ export default function ManagerQRCodes() {
 
               {/* QR Actions */}
               <div className="space-y-3">
-                {/* QR Status and Refresh */}
+                {/* QR Status and Actions */}
                 <div className="bg-gray-50 rounded-lg p-3">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs text-gray-600">QR Generated:</span>
-                    <button
-                      onClick={() => handleRefreshRequest(branch)}
-                      disabled={refreshingQR === branch.id}
-                      className="flex items-center gap-1 px-2 py-1 bg-orange-500 text-white rounded text-xs hover:bg-orange-600 transition-colors disabled:bg-gray-400"
-                      title="Generate new QR code"
-                    >
-                      <RefreshCw className={`w-3 h-3 ${refreshingQR === branch.id ? 'animate-spin' : ''}`} />
-                      {refreshingQR === branch.id ? 'Refreshing...' : 'Refresh'}
-                    </button>
+                    <span className="text-xs text-gray-600">QR Status:</span>
+                    {qrCodes.has(branch.id) ? (
+                      <button
+                        onClick={() => handleRefreshRequest(branch)}
+                        disabled={refreshingQR === branch.id}
+                        className="flex items-center gap-1 px-2 py-1 bg-orange-500 text-white rounded text-xs hover:bg-orange-600 transition-colors disabled:bg-gray-400"
+                        title="Generate new QR code"
+                      >
+                        <RefreshCw className={`w-3 h-3 ${refreshingQR === branch.id ? 'animate-spin' : ''}`} />
+                        {refreshingQR === branch.id ? 'Refreshing...' : 'Refresh'}
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => handleRefreshRequest(branch)}
+                        disabled={refreshingQR === branch.id}
+                        className="flex items-center gap-1 px-2 py-1 bg-green-500 text-white rounded text-xs hover:bg-green-600 transition-colors disabled:bg-gray-400"
+                        title="Generate first QR code"
+                      >
+                        <RefreshCw className={`w-3 h-3 ${refreshingQR === branch.id ? 'animate-spin' : ''}`} />
+                        {refreshingQR === branch.id ? 'Generating...' : 'Generate QR'}
+                      </button>
+                    )}
                   </div>
-                  <p className="text-xs font-mono text-gray-700">{getQRGeneratedTime(branch.id)}</p>
+                  <p className="text-xs font-mono text-gray-700">
+                    {qrCodes.has(branch.id) ? getQRGeneratedTime(branch.id) : 'No QR code generated yet'}
+                  </p>
                 </div>
 
                 <div className="flex gap-2">
                   <button
                     onClick={() => handleViewQR(branch)}
-                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
+                    disabled={!qrCodes.has(branch.id)}
+                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium disabled:bg-gray-400 disabled:cursor-not-allowed"
                   >
                     <Eye className="w-4 h-4" />
                     View QR
                   </button>
                   <button
                     onClick={() => handlePrintQR(branch.id)}
-                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+                    disabled={!qrCodes.has(branch.id)}
+                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium disabled:bg-gray-400 disabled:cursor-not-allowed"
                   >
                     <Printer className="w-4 h-4" />
                     Print
@@ -369,14 +369,16 @@ export default function ManagerQRCodes() {
                 <div className="flex gap-2">
                   <button
                     onClick={() => handleCopyUrl(generateQRUrl(branch.id), "QR Page")}
-                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors text-sm font-medium"
+                    disabled={!qrCodes.has(branch.id)}
+                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors text-sm font-medium disabled:bg-gray-400 disabled:cursor-not-allowed"
                   >
                     <Copy className="w-4 h-4" />
                     Copy QR URL
                   </button>
                   <button
                     onClick={() => handleCopyUrl(generateRegistrationUrl(branch.id), "Registration")}
-                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium"
+                    disabled={!qrCodes.has(branch.id)}
+                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium disabled:bg-gray-400 disabled:cursor-not-allowed"
                   >
                     <ExternalLink className="w-4 h-4" />
                     Copy Reg URL
