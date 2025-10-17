@@ -207,13 +207,13 @@ export default function ManagerQRCodes() {
   }
 
   const generateQRUrl = (branchId: string) => {
-    const qrData = qrCodes.get(branchId)
-    const token = qrData?.token || 'default'
-    return `${window.location.origin}/qr/${branchId}?token=${token}`
+    return `${window.location.origin}/qr/${branchId}`
   }
 
   const generateRegistrationUrl = (branchId: string) => {
-    return `${window.location.origin}/register/${branchId}`
+    const qrData = qrCodes.get(branchId)
+    const token = qrData?.token || 'default'
+    return `${window.location.origin}/register/${branchId}?qr=${token}`
   }
 
   const getQRGeneratedTime = (branchId: string): string => {

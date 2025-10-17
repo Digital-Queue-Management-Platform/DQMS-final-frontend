@@ -1,44 +1,19 @@
 "use client"
 
-import { useParams, useSearchParams } from "react-router-dom"
+import { useParams } from "react-router-dom"
 import { QRCodeSVG } from "qrcode.react"
 import { useEffect, useMemo, useState } from "react"
 import api from "../config/api"
 
-interface QRCodeData {
-  outletId: string;
-  token: string;
-  generatedAt: string;
-  expiresAt?: string;
-}
-
 export default function QRDisplay() {
   const { outletId } = useParams()
-  const [searchParams] = useSearchParams()
   const [qrToken, setQrToken] = useState<string>("")
   const [error, setError] = useState<string>("")
-
-  // Get manager token from URL parameter
-  const managerToken = searchParams.get('token')
 
   const registrationUrl = useMemo(() => {
     const base = `${window.location.origin}/register/${outletId}`
     return qrToken ? `${base}?qr=${encodeURIComponent(qrToken)}` : base
   }, [outletId, qrToken])
-
-  // Function to get manager QR codes from localStorage
-  const getManagerQRCode = (outletId: string): QRCodeData | null => {
-    try {
-      const storedQRCodes = localStorage.getItem('managerQRCodes')
-      if (storedQRCodes) {
-        const qrCodes = JSON.parse(storedQRCodes)
-        return qrCodes[outletId] || null
-      }
-    } catch (error) {
-      console.error('Error reading manager QR codes:', error)
-    }
-    return null
-  }
 
   useEffect(() => {
     let mounted = true
@@ -48,21 +23,22 @@ export default function QRDisplay() {
       if (!outletId) return
       
       try {
-        // First priority: Use manager token from URL parameter
-        if (managerToken) {
-          if (!mounted) return
-          setQrToken(managerToken)
-          setError("")
-          return
-        }
-
-        // Second priority: Check for manager-generated QR codes in localStorage
-        const managerQRCode = getManagerQRCode(outletId)
-        if (managerQRCode) {
-          if (!mounted) return
-          setQrToken(managerQRCode.token)
-          setError("")
-          return
+        // First priority: Check for manager-generated QR codes in localStorage
+        const storedQRCodes = localStorage.getItem('managerQRCodes')
+        if (storedQRCodes) {
+          try {
+            const parsed = JSON.parse(storedQRCodes)
+            const managerQRCode = parsed[outletId]
+            if (managerQRCode) {
+              if (!mounted) return
+              setQrToken(managerQRCode.token)
+              setError("")
+              console.log('Using manager QR token:', managerQRCode.token)
+              return
+            }
+          } catch (parseError) {
+            console.error('Error parsing stored QR codes:', parseError)
+          }
         }
 
         // Fallback: Use backend API for legacy QR tokens
@@ -70,6 +46,7 @@ export default function QRDisplay() {
         if (!mounted) return
         setQrToken(res.data.token)
         setError("")
+        console.log('Using backend QR token:', res.data.token)
       } catch (err) {
         console.error("Failed to get QR token", err)
         if (!mounted) return
@@ -82,17 +59,14 @@ export default function QRDisplay() {
     
     // Set up periodic refresh for localStorage monitoring (check every 5 seconds)
     timer = setInterval(() => {
-      // Only refresh if using manager-generated tokens or if we have an error
-      if (managerToken || error || (!managerToken && outletId)) {
-        fetchToken()
-      }
+      fetchToken()
     }, 5000)
 
     return () => {
       mounted = false
       if (timer) clearInterval(timer)
     }
-  }, [outletId, managerToken])
+  }, [outletId])
 
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center p-2 sm:p-4 md:p-6 lg:p-8">
