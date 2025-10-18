@@ -38,12 +38,19 @@ export default function ManagerQRCodes() {
   const [confirmationText, setConfirmationText] = useState("")
   const [confirmError, setConfirmError] = useState("")
   const [copySuccess, setCopySuccess] = useState<string>("")
+  const [qrCodesInitialized, setQrCodesInitialized] = useState(false)
 
   useEffect(() => {
-    fetchBranches()
-    // Initialize QR codes for branches (read existing ones)
+    // Initialize QR codes first, then fetch branches
     initializeQRCodes()
   }, [navigate])
+
+  useEffect(() => {
+    // Only fetch branches after QR codes are initialized
+    if (qrCodesInitialized) {
+      fetchBranches()
+    }
+  }, [qrCodesInitialized])
 
   const initializeQRCodes = () => {
     // Load existing QR codes from localStorage
@@ -56,6 +63,7 @@ export default function ManagerQRCodes() {
       })
       setQrCodes(qrMap)
     }
+    setQrCodesInitialized(true)
   }
 
   const generateNewQRToken = (): string => {
@@ -138,10 +146,9 @@ export default function ManagerQRCodes() {
 
       setBranches(branchData)
       
-      // Auto-generate QR codes for branches that don't have them yet
-      setTimeout(() => {
-        autoGenerateQRCodes(branchData)
-      }, 1000) // Small delay to let the page load completely
+      // Don't auto-generate QR codes on page load/refresh
+      // This prevents invalidating existing QR codes that customers might be using
+      // Managers can manually generate QR codes using the "Generate QR" button
       
     } catch (error) {
       console.error('Failed to fetch branches:', error)
@@ -150,47 +157,44 @@ export default function ManagerQRCodes() {
     }
   }
 
-  const autoGenerateQRCodes = async (branches: Branch[]) => {
+  const generateQRCodeOnDemand = async (branchId: string, branchName: string) => {
     try {
+      // Generate QR code for this branch if it doesn't exist
       const currentQRCodes = new Map(qrCodes)
-      let hasNewCodes = false
+      
+      if (!currentQRCodes.has(branchId)) {
+        const newToken = generateNewQRToken()
+        const generatedAt = new Date().toISOString()
+        const newQRData: QRCodeData = {
+          outletId: branchId,
+          token: newToken,
+          generatedAt
+        }
 
-      for (const branch of branches) {
-        if (!currentQRCodes.has(branch.id)) {
-          // Generate QR code for this branch
-          const newToken = generateNewQRToken()
-          const generatedAt = new Date().toISOString()
-          const newQRData: QRCodeData = {
-            outletId: branch.id,
+        // Register with backend
+        try {
+          await api.post('/customer/manager-qr-token', {
+            outletId: branchId,
             token: newToken,
             generatedAt
-          }
-
-          // Register with backend
-          try {
-            await api.post('/customer/manager-qr-token', {
-              outletId: branch.id,
-              token: newToken,
-              generatedAt
-            })
-            console.log(`Auto-generated QR code for outlet ${branch.name}:`, newToken)
-          } catch (backendError) {
-            console.error(`Failed to register auto-generated QR for ${branch.name}:`, backendError)
-            // Continue with local storage even if backend registration fails
-          }
-
-          currentQRCodes.set(branch.id, newQRData)
-          hasNewCodes = true
+          })
+          console.log(`Generated QR code for outlet ${branchName}:`, newToken)
+        } catch (backendError) {
+          console.error(`Failed to register QR for ${branchName}:`, backendError)
+          throw backendError
         }
-      }
 
-      if (hasNewCodes) {
+        currentQRCodes.set(branchId, newQRData)
         setQrCodes(currentQRCodes)
         saveQRCodesToStorage(currentQRCodes)
-        console.log('Auto-generated QR codes for outlets without existing codes')
+        
+        return newQRData
       }
+      
+      return currentQRCodes.get(branchId)!
     } catch (error) {
-      console.error('Failed to auto-generate QR codes:', error)
+      console.error('Failed to generate QR code:', error)
+      throw error
     }
   }
 
@@ -299,14 +303,48 @@ export default function ManagerQRCodes() {
     }
   }
 
-  const handleViewQR = (branch: Branch) => {
-    setSelectedBranch(branch)
-    setShowQRModal(true)
+  const handleViewQR = async (branch: Branch) => {
+    try {
+      // Generate QR code if it doesn't exist
+      await generateQRCodeOnDemand(branch.id, branch.name)
+      setSelectedBranch(branch)
+      setShowQRModal(true)
+    } catch (error) {
+      console.error('Failed to prepare QR code:', error)
+      setCopySuccess("Failed to prepare QR code")
+      setTimeout(() => setCopySuccess(""), 3000)
+    }
   }
 
-  const handlePrintQR = (branchId: string) => {
-    const qrUrl = generateQRUrl(branchId)
-    window.open(qrUrl, '_blank')
+  const handlePrintQR = async (branchId: string) => {
+    try {
+      const branch = branches.find(b => b.id === branchId)
+      if (branch) {
+        // Generate QR code if it doesn't exist
+        await generateQRCodeOnDemand(branchId, branch.name)
+      }
+      const qrUrl = generateQRUrl(branchId)
+      window.open(qrUrl, '_blank')
+    } catch (error) {
+      console.error('Failed to prepare QR code for printing:', error)
+      setCopySuccess("Failed to prepare QR code")
+      setTimeout(() => setCopySuccess(""), 3000)
+    }
+  }
+
+  const handleCopyQRUrl = async (branchId: string, branchName: string, type: string) => {
+    try {
+      // Generate QR code if it doesn't exist
+      await generateQRCodeOnDemand(branchId, branchName)
+      const url = type === "QR Page" ? generateQRUrl(branchId) : generateRegistrationUrl(branchId)
+      await navigator.clipboard.writeText(url)
+      setCopySuccess(`${type} URL copied!`)
+      setTimeout(() => setCopySuccess(""), 2000)
+    } catch (error) {
+      console.error('Failed to copy URL:', error)
+      setCopySuccess("Failed to copy URL")
+      setTimeout(() => setCopySuccess(""), 3000)
+    }
   }
 
   if (loading) {
@@ -410,16 +448,14 @@ export default function ManagerQRCodes() {
                 <div className="flex gap-2">
                   <button
                     onClick={() => handleViewQR(branch)}
-                    disabled={!qrCodes.has(branch.id)}
-                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium disabled:bg-gray-400 disabled:cursor-not-allowed"
+                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
                   >
                     <Eye className="w-4 h-4" />
                     View QR
                   </button>
                   <button
                     onClick={() => handlePrintQR(branch.id)}
-                    disabled={!qrCodes.has(branch.id)}
-                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium disabled:bg-gray-400 disabled:cursor-not-allowed"
+                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
                   >
                     <Printer className="w-4 h-4" />
                     Print
@@ -428,17 +464,15 @@ export default function ManagerQRCodes() {
 
                 <div className="flex gap-2">
                   <button
-                    onClick={() => handleCopyUrl(generateQRUrl(branch.id), "QR Page")}
-                    disabled={!qrCodes.has(branch.id)}
-                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors text-sm font-medium disabled:bg-gray-400 disabled:cursor-not-allowed"
+                    onClick={() => handleCopyQRUrl(branch.id, branch.name, "QR Page")}
+                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors text-sm font-medium"
                   >
                     <Copy className="w-4 h-4" />
                     Copy QR URL
                   </button>
                   <button
-                    onClick={() => handleCopyUrl(generateRegistrationUrl(branch.id), "Registration")}
-                    disabled={!qrCodes.has(branch.id)}
-                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium disabled:bg-gray-400 disabled:cursor-not-allowed"
+                    onClick={() => handleCopyQRUrl(branch.id, branch.name, "Registration")}
+                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium"
                   >
                     <ExternalLink className="w-4 h-4" />
                     Copy Reg URL
