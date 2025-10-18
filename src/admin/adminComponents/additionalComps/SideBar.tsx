@@ -7,7 +7,7 @@ import {
   //Users, 
   //UserCheck, 
   UserCog,
-  //Headphones,
+  Headphones,
   UserPlus,
   LogOut,
   Menu,
@@ -54,6 +54,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activePage, setActivePage }) => {
   const officerItems: NavigationItem[] = [
     { name: 'Officer Dashboard', icon: LayoutDashboard, to: '/officer/dashboard' },
     { name: 'Queue', icon: ListOrdered, to: '/officer/queue' },
+    { name: 'IP Speaker', icon: Headphones, to: '/officer/ip-speaker' },
   ]
   const regionManagerItems: NavigationItem[] = [
     //{ name: 'Home', icon: Home, to: '/' },

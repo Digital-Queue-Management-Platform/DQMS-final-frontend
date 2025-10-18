@@ -26,7 +26,7 @@ export default function CustomerRegistration() {
   const [qrToken, setQrToken] = useState<string>("")
   const [qrValid, setQrValid] = useState<boolean>(false)
   const [services, setServices] = useState<Array<{ id: string; code: string; title: string; isActive?: boolean }>>([])
-  const [preferredLanguages, setPreferredLanguages] = useState<string[]>([])
+  const [preferredLanguage, setPreferredLanguage] = useState<string>('en')
 
   // Function to validate manager-generated QR tokens (localStorage backup)
   const validateManagerQRToken = (token: string, currentOutletId: string): boolean => {
@@ -163,7 +163,7 @@ export default function CustomerRegistration() {
         serviceType,
         outletId: selectedOutlet,
         qrToken,
-        preferredLanguages: preferredLanguages.length ? preferredLanguages : undefined,
+        preferredLanguages: preferredLanguage ? [preferredLanguage] : undefined,
       })
 
       if (response.data.success) {
@@ -395,22 +395,24 @@ export default function CustomerRegistration() {
             </select>
           </div>
 
-          {/* Preferred Languages */}
+          {/* Preferred Language */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Preferred Language(s)</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Preferred Language</label>
             <div className="grid grid-cols-3 gap-3 text-sm">
               {[{ code: 'en', label: 'English' }, { code: 'si', label: 'Sinhala' }, { code: 'ta', label: 'Tamil' }].map(l => (
                 <label key={l.code} className="inline-flex items-center gap-2">
                   <input
-                    type="checkbox"
-                    checked={preferredLanguages.includes(l.code)}
-                    onChange={(e) => setPreferredLanguages(prev => e.target.checked ? [...prev, l.code] : prev.filter(c => c !== l.code))}
+                    type="radio"
+                    name="preferredLanguage"
+                    value={l.code}
+                    checked={preferredLanguage === l.code}
+                    onChange={(e) => setPreferredLanguage(e.target.value)}
                   />
                   <span>{l.label}</span>
                 </label>
               ))}
             </div>
-            <p className="text-xs text-gray-500 mt-1">Select language(s) you prefer to speak with the officer.</p>
+            <p className="text-xs text-gray-500 mt-1">Select your preferred language for announcements.</p>
           </div>
 
           {/* Submit Button */}

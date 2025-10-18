@@ -20,6 +20,7 @@ import FeedbackPage from "./pages/FeedbackPage"
 import QRDisplay from "./pages/QRDisplay"
 // import OfficerRegistration from "./pages/OfficerRegistration" // moved under manager portal
 import OfficerQueuePage from "./pages/OfficerQueuePage"
+import IPSpeakerPage from "./pages/IPSpeakerPage"
 import ManagerLogin from "./pages/ManagerLogin"
 import ManagerDashboard from "./pages/ManagerDashboard"
 import ManagerBranches from "./pages/ManagerBranches"
@@ -301,8 +302,8 @@ function Layout({ children }: { children: React.ReactNode }) {
         {/* Header for all dashboard pages */}
         {showSidebar && <Header />}
         
-        {/* Shared Officer Top Bar for all officer pages except login, dashboard, and queue */}
-        {isOfficerPath && !isOfficerLogin && officer && !location.pathname.includes('/officer/dashboard') && !location.pathname.includes('/officer/queue') && (
+        {/* Shared Officer Top Bar for all officer pages except login, dashboard, queue, and ip-speaker */}
+        {isOfficerPath && !isOfficerLogin && officer && !location.pathname.includes('/officer/dashboard') && !location.pathname.includes('/officer/queue') && !location.pathname.includes('/officer/ip-speaker') && (
           <OfficerTopBar 
             officer={officer}
             onOfficerUpdate={setOfficer as any}
@@ -349,6 +350,10 @@ function App() {
       <Route
         element={<Layout><OfficerQueuePage /></Layout>}
         path="/officer/queue"
+      />
+      <Route
+        element={<Layout><IPSpeakerPage /></Layout>}
+        path="/officer/ip-speaker"
       />
       <Route
         element={<AdminLogin />}

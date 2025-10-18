@@ -6,6 +6,7 @@ import { User, Clock, Phone, FileText, Users, RefreshCwIcon } from "lucide-react
 // OfficerTopBar is provided globally from Layout for officer routes
 import api, { WS_URL } from "../config/api"
 import type { Officer, Token } from "../types"
+import IPSpeaker from "../components/IPSpeaker"
 
 export default function OfficerQueuePage() {
   const navigate = useNavigate()
@@ -260,6 +261,14 @@ export default function OfficerQueuePage() {
                     Waiting for: {Math.floor((Date.now() - new Date(currentToken.createdAt).getTime()) / 60000)} min
                   </span>
                 </div>
+              </div>
+
+              {/* IP Speaker Component */}
+              <div className="mb-6">
+                <IPSpeaker 
+                  token={currentToken} 
+                  counterNumber={officer?.counterNumber}
+                />
               </div>
 
               {/* Notes Section */}
