@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
-import { Clock, Star, AlertCircle, Users, Coffee, RefreshCwIcon, DownloadIcon } from "lucide-react"
+import { Clock, Star, AlertCircle, Users, Coffee, RefreshCwIcon } from "lucide-react"
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from "recharts"
 // OfficerTopBar is provided by Layout for officer routes
 import api, { WS_URL } from "../config/api"
