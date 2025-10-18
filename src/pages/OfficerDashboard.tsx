@@ -20,11 +20,13 @@ export default function OfficerDashboard() {
   // time moved to OfficerTopBar
   const [activeTab, setActiveTab] = useState<'served'|'breaks'|'feedback'>('served')
   const [servedSummary, setServedSummary] = useState<{ total: number; avgHandleMinutes: number; tokens: Token[] }|null>(null)
-  const [breaksSummary, setBreaksSummary] = useState<{ totalBreaks: number; totalMinutes: number; breaks: any[] }|null>(null)
+  const [breaksSummary, setBreaksSummary] = useState<{ totalBreaks: number; totalMinutes: number; breaks: any[]; activeBreak?: any }|null>(null)
   const [feedbackSummary, setFeedbackSummary] = useState<{ total: number; avgRating: number; feedback: { tokenId: string; tokenNumber: number; rating: number; comment: string; customerName: string; createdAt: string }[] }|null>(null)
   const [feedbackView, setFeedbackView] = useState<'list'|'chart'>('list')
   const [breaksLimit, setBreaksLimit] = useState<number>(10)
   const [currentDateTime, setCurrentDateTime] = useState(new Date())
+  const [breakLoading, setBreakLoading] = useState(false)
+  const [breakError, setBreakError] = useState<string | null>(null)
   
   // Helper functions for date and time formatting
   const formatDate = (date: Date) => {
@@ -97,6 +99,17 @@ export default function OfficerDashboard() {
     return () => clearInterval(interval)
   }, [])
 
+  // Update break timer when officer is on break
+  useEffect(() => {
+    if (officer?.status === 'on_break' && officer?.id) {
+      const interval = setInterval(() => {
+        fetchBreaks(officer.id)
+      }, 30000) // Update every 30 seconds when on break
+
+      return () => clearInterval(interval)
+    }
+  }, [officer?.status, officer?.id])
+
   // time managed in OfficerTopBar
 
   const fetchStats = async (officerId: string) => {
@@ -158,13 +171,29 @@ export default function OfficerDashboard() {
 
   // queue interaction handlers removed; use dedicated queue page
 
-  // Handle status changes
+  // Handle status changes with improved break management
   const handleStatusChange = async (status: string) => {
     if (!officer) return
     
+    setBreakLoading(true)
+    setBreakError(null)
+    
     try {
-      await api.post('/officer/status', { officerId: officer.id, status })
+      if (status === 'on_break') {
+        // Use dedicated break start endpoint
+        await api.post('/officer/break/start', { officerId: officer.id })
+      } else if (status === 'available' && officer.status === 'on_break') {
+        // Use dedicated break end endpoint
+        await api.post('/officer/break/end', { officerId: officer.id })
+      } else {
+        // Use general status endpoint for other status changes
+        await api.post('/officer/status', { officerId: officer.id, status })
+      }
+      
       setOfficer(prev => prev ? { ...prev, status } : prev)
+      
+      // Refresh break data after status change
+      await fetchBreaks(officer.id)
       
       // Broadcast status change event
       const evt: any = new CustomEvent('officer:status-changed', { detail: { status } })
@@ -174,9 +203,13 @@ export default function OfficerDashboard() {
         try { await api.post('/officer/logout') } catch {}
         navigate('/officer/login')
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to update status:', err)
-      alert('Failed to update status')
+      const errorMessage = err.response?.data?.error || 'Failed to update status'
+      setBreakError(errorMessage)
+      alert(errorMessage)
+    } finally {
+      setBreakLoading(false)
     }
   }
 
@@ -215,27 +248,44 @@ export default function OfficerDashboard() {
               </p>
             </div>
             <div className="flex items-center space-x-4">
-              {/* Status Controls */}
+              {/* Enhanced Break Controls */}
               {officer && (
                 <div className="flex items-center space-x-2">
+                  {/* Break Error Display */}
+                  {breakError && (
+                    <div className="px-3 py-1 bg-red-100 text-red-700 rounded-lg text-xs">
+                      {breakError}
+                    </div>
+                  )}
+                  
                   {officer.status === 'available' && (
                     <button
                       onClick={() => handleStatusChange('on_break')}
-                      className="flex items-center gap-2 px-3 py-2 bg-yellow-100 text-yellow-700 rounded-lg hover:bg-yellow-200 transition-colors text-sm font-medium"
+                      disabled={breakLoading}
+                      className="flex items-center gap-2 px-3 py-2 bg-yellow-100 text-yellow-700 rounded-lg hover:bg-yellow-200 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <Coffee className="w-4 h-4" />
-                      Break
+                      {breakLoading ? 'Starting...' : 'Take Break'}
                     </button>
                   )}
 
                   {officer.status === 'on_break' && (
-                    <button
-                      onClick={() => handleStatusChange('available')}
-                      className="flex items-center gap-2 px-3 py-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors text-sm font-medium"
-                    >
-                      <RefreshCwIcon className="w-4 h-4" />
-                      Resume
-                    </button>
+                    <div className="flex items-center gap-2">
+                      {/* Active break timer */}
+                      {breaksSummary?.activeBreak && (
+                        <div className="px-3 py-1 bg-yellow-50 text-yellow-800 rounded-lg text-sm font-mono">
+                          Break: {Math.floor((Date.now() - new Date(breaksSummary.activeBreak.startedAt).getTime()) / (1000 * 60))}min
+                        </div>
+                      )}
+                      <button
+                        onClick={() => handleStatusChange('available')}
+                        disabled={breakLoading}
+                        className="flex items-center gap-2 px-3 py-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <RefreshCwIcon className="w-4 h-4" />
+                        {breakLoading ? 'Ending...' : 'End Break'}
+                      </button>
+                    </div>
                   )}
                 </div>
               )}
