@@ -138,13 +138,59 @@ export default function ManagerQRCodes() {
 
       setBranches(branchData)
       
-      // Don't automatically generate QR codes - let managers do it manually
-      // This prevents unwanted QR refreshes on page load
+      // Auto-generate QR codes for branches that don't have them yet
+      setTimeout(() => {
+        autoGenerateQRCodes(branchData)
+      }, 1000) // Small delay to let the page load completely
       
     } catch (error) {
       console.error('Failed to fetch branches:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const autoGenerateQRCodes = async (branches: Branch[]) => {
+    try {
+      const currentQRCodes = new Map(qrCodes)
+      let hasNewCodes = false
+
+      for (const branch of branches) {
+        if (!currentQRCodes.has(branch.id)) {
+          // Generate QR code for this branch
+          const newToken = generateNewQRToken()
+          const generatedAt = new Date().toISOString()
+          const newQRData: QRCodeData = {
+            outletId: branch.id,
+            token: newToken,
+            generatedAt
+          }
+
+          // Register with backend
+          try {
+            await api.post('/customer/manager-qr-token', {
+              outletId: branch.id,
+              token: newToken,
+              generatedAt
+            })
+            console.log(`Auto-generated QR code for outlet ${branch.name}:`, newToken)
+          } catch (backendError) {
+            console.error(`Failed to register auto-generated QR for ${branch.name}:`, backendError)
+            // Continue with local storage even if backend registration fails
+          }
+
+          currentQRCodes.set(branch.id, newQRData)
+          hasNewCodes = true
+        }
+      }
+
+      if (hasNewCodes) {
+        setQrCodes(currentQRCodes)
+        saveQRCodesToStorage(currentQRCodes)
+        console.log('Auto-generated QR codes for outlets without existing codes')
+      }
+    } catch (error) {
+      console.error('Failed to auto-generate QR codes:', error)
     }
   }
 
