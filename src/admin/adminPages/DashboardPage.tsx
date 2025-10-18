@@ -6,8 +6,9 @@ import { BranchTable } from '../adminComponents/dashboardComponents/BranchTable'
 import SriLankaMap from '../adminComponents/dashboardComponents/SriLankaMap';
 import SystemHealthStatus from '../adminComponents/dashboardComponents/SystemHealthStatus';
 import BranchDashboardPage from './BranchDashboardPage';
-import { UsersIcon, ClockIcon, StarIcon, Ticket, BellIcon, RefreshCwIcon, DownloadIcon, Eye, ArrowLeft } from 'lucide-react';
+import { UsersIcon, ClockIcon, StarIcon, Ticket, BellIcon, RefreshCwIcon, DownloadIcon, Eye, ArrowLeft, Trash2 } from 'lucide-react';
 import api, { WS_URL } from '../../config/api'
+import type { Alert } from '../../types'
 
 interface BranchData {
   id: number;
@@ -41,7 +42,7 @@ const DashboardPage: React.FC = () => {
   const [showBranchDashboard, setShowBranchDashboard] = useState<boolean>(false);
   const [currentDateTime, setCurrentDateTime] = useState<Date>(new Date());
   const [showNotifications, setShowNotifications] = useState<boolean>(false);
-  const [unreadNotifications, setUnreadNotifications] = useState<number>(3); // Example count
+  const [alerts, setAlerts] = useState<Alert[]>([]);
 
   // Admin data states
   // removed unused selectedOutlet and analytics state
@@ -49,16 +50,24 @@ const DashboardPage: React.FC = () => {
   // removed unused loading state
   const [outlets, setOutlets] = useState<any[]>([])
 
+  // Computed unread notifications count
+  const unreadNotifications = alerts.filter(alert => !alert.isRead).length;
+
   useEffect(() => {
     fetchOutlets()
     fetchRealtimeStats()
+    fetchAlerts()
 
     const interval = setInterval(fetchRealtimeStats, 30000)
 
     const ws = new WebSocket(WS_URL)
     ws.onmessage = (event) => {
       try {
-        JSON.parse(event.data)
+        const data = JSON.parse(event.data)
+        // Refresh alerts on certain types of events
+        if (data.type === "NEGATIVE_FEEDBACK" || data.type === "LONG_WAIT") {
+          fetchAlerts()
+        }
         // ignore specific data types, just refresh stats
       } catch (e) {
         // ignore
@@ -228,6 +237,49 @@ const DashboardPage: React.FC = () => {
     }
   }
 
+  const fetchAlerts = async () => {
+    try {
+      const response = await api.get('/admin/alerts', {
+        params: { isRead: false }
+      })
+      setAlerts(response.data)
+    } catch (err) {
+      console.error('Failed to fetch alerts:', err)
+    }
+  }
+
+  const markAlertAsRead = async (alertId: string) => {
+    try {
+      await api.patch(`/admin/alerts/${alertId}/read`)
+      fetchAlerts() // Refresh alerts after marking as read
+    } catch (err) {
+      console.error('Failed to mark alert as read:', err)
+    }
+  }
+
+  const markAllAlertsAsRead = async () => {
+    try {
+      // Mark all unread alerts as read
+      await Promise.all(
+        alerts
+          .filter(alert => !alert.isRead)
+          .map(alert => api.patch(`/admin/alerts/${alert.id}/read`))
+      )
+      fetchAlerts() // Refresh alerts after marking all as read
+    } catch (err) {
+      console.error('Failed to mark all alerts as read:', err)
+    }
+  }
+
+  const deleteAlert = async (alertId: string) => {
+    try {
+      await api.delete(`/admin/alerts/${alertId}`)
+      fetchAlerts() // Refresh alerts after deletion
+    } catch (err) {
+      console.error('Failed to delete alert:', err)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-8">
       <div className="mx-auto">
@@ -264,40 +316,50 @@ const DashboardPage: React.FC = () => {
                       <h3 className="text-lg font-semibold text-gray-900">Notifications</h3>
                     </div>
                     <div className="max-h-64 overflow-y-auto">
-                      <div className="p-3 border-b border-gray-100 hover:bg-gray-50">
-                        <div className="flex items-start space-x-3">
-                          <div className="w-2 h-2 bg-red-500 rounded-full mt-2 flex-shrink-0"></div>
-                          <div className="flex-1">
-                            <p className="text-sm font-medium text-gray-900">High Wait Time Alert</p>
-                            <p className="text-xs text-gray-600">Colombo HQ - Average wait time exceeds 15 minutes</p>
-                            <p className="text-xs text-gray-400 mt-1">5 minutes ago</p>
-                          </div>
+                      {alerts.length === 0 ? (
+                        <div className="p-6 text-center text-gray-500">
+                          <p>No new notifications</p>
                         </div>
-                      </div>
-                      <div className="p-3 border-b border-gray-100 hover:bg-gray-50">
-                        <div className="flex items-start space-x-3">
-                          <div className="w-2 h-2 bg-yellow-500 rounded-full mt-2 flex-shrink-0"></div>
-                          <div className="flex-1">
-                            <p className="text-sm font-medium text-gray-900">System Update</p>
-                            <p className="text-xs text-gray-600">New features available in queue management</p>
-                            <p className="text-xs text-gray-400 mt-1">1 hour ago</p>
+                      ) : (
+                        alerts.slice(0, 10).map((alert) => (
+                          <div key={alert.id} className="p-3 border-b border-gray-100 hover:bg-gray-50">
+                            <div className="flex items-start space-x-3">
+                              <div className={`w-2 h-2 rounded-full mt-2 flex-shrink-0 ${
+                                alert.severity === 'high' ? 'bg-red-500' :
+                                alert.severity === 'medium' ? 'bg-yellow-500' : 'bg-blue-500'
+                              }`}></div>
+                              <div className="flex-1">
+                                <p className="text-sm font-medium text-gray-900">{alert.message}</p>
+                                <p className="text-xs text-gray-400 mt-1">
+                                  {new Date(alert.createdAt).toLocaleString()}
+                                </p>
+                                <div className="flex items-center space-x-2 mt-1">
+                                  {!alert.isRead && (
+                                    <button
+                                      onClick={() => markAlertAsRead(alert.id)}
+                                      className="text-xs text-blue-600 hover:text-blue-700"
+                                    >
+                                      Mark as read
+                                    </button>
+                                  )}
+                                  <button
+                                    onClick={() => deleteAlert(alert.id)}
+                                    className="flex items-center text-xs text-red-600 hover:text-red-700"
+                                    title="Delete notification"
+                                  >
+                                    <Trash2 className="w-3 h-3 mr-1" />
+                                    Delete
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
                           </div>
-                        </div>
-                      </div>
-                      <div className="p-3 hover:bg-gray-50">
-                        <div className="flex items-start space-x-3">
-                          <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
-                          <div className="flex-1">
-                            <p className="text-sm font-medium text-gray-900">Daily Report Ready</p>
-                            <p className="text-xs text-gray-600">Your daily analytics report is now available</p>
-                            <p className="text-xs text-gray-400 mt-1">2 hours ago</p>
-                          </div>
-                        </div>
-                      </div>
+                        ))
+                      )}
                     </div>
                     <div className="p-3 border-t border-gray-200">
                       <button
-                        onClick={() => setUnreadNotifications(0)}
+                        onClick={markAllAlertsAsRead}
                         className="w-full text-center text-sm text-blue-600 hover:text-blue-800"
                       >
                         Mark all as read
