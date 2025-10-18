@@ -61,12 +61,34 @@ export default function ManagerBreakOversight() {
 
   const fetchBreakAnalytics = async () => {
     try {
-      const manager = JSON.parse(localStorage.getItem('dq_manager') || '{}')
-      if (!manager.regionId) {
+      // Try to get manager data from localStorage
+      let managerData = null
+      try {
+        const storedManager = localStorage.getItem('manager')
+        managerData = storedManager ? JSON.parse(storedManager) : null
+      } catch (e) {
+        console.error('Failed to parse manager data from localStorage:', e)
+      }
+
+      // If we don't have manager data with regionId, fetch it from the API
+      if (!managerData?.regionId) {
+        const params: any = {}
+        if (managerData?.email) params.email = managerData.email
+        
+        const meRes = await api.get('/manager/me', { params })
+        managerData = meRes.data?.manager
+        
+        if (managerData) {
+          // Update localStorage with complete manager data
+          localStorage.setItem('manager', JSON.stringify(managerData))
+        }
+      }
+
+      if (!managerData?.regionId) {
         throw new Error("Manager region not found")
       }
 
-      const response = await api.get(`/manager/analytics/breaks/${manager.regionId}?timeframe=${timeframe}`)
+      const response = await api.get(`/manager/analytics/breaks/${managerData.regionId}?timeframe=${timeframe}`)
       setAnalytics(response.data)
     } catch (error) {
       console.error("Failed to fetch break analytics:", error)
