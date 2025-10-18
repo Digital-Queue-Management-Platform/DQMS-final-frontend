@@ -1,51 +1,114 @@
-import React from 'react';
-import { CheckCircle, AlertTriangle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { CheckCircle, AlertTriangle, XCircle } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
+import api from '../../../config/api';
 
 interface Service {
   name: string;
   status: string;
   uptime: string;
-  icon: LucideIcon;
+  icon: string;
   statusColor: string;
   iconColor: string;
 }
 
 const SystemHealthStatus: React.FC = () => {
-  const services: Service[] = [
-    {
-      name: "Application Server",
-      status: "Healthy",
-      uptime: "99.9%",
-      icon: CheckCircle,
-      statusColor: "bg-[#dcfce7] text-[#166534]",
-      iconColor: "text-[#22c55e]",
-    },
-    {
-      name: "Database Connection",
-      status: "Healthy",
-      uptime: "99.7%",
-      icon: CheckCircle,
-      statusColor: "bg-[#dcfce7] text-[#166534]",
-      iconColor: "text-[#22c55e]",
-    },
-    {
-      name: "SMS Gateway",
-      status: "Warning",
-      uptime: "95.2%",
-      icon: AlertTriangle,
-      statusColor: "bg-[#fef9c3] text-[#854d0e]",
-      iconColor: "text-[#eab308]",
-    },
-    {
-      name: "Email Service",
-      status: "Healthy",
-      uptime: "99.8%",
-      icon: CheckCircle,
-      statusColor: "bg-[#dcfce7] text-[#166534]",
-      iconColor: "text-[#22c55e]",
-    },
-  ];
+  const [services, setServices] = useState<Service[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const getIconComponent = (iconName: string): LucideIcon => {
+    switch (iconName) {
+      case 'CheckCircle':
+        return CheckCircle;
+      case 'AlertTriangle':
+        return AlertTriangle;
+      case 'XCircle':
+        return XCircle;
+      default:
+        return CheckCircle;
+    }
+  };
+
+  const fetchSystemHealth = async () => {
+    try {
+      const response = await api.get('/admin/system-health');
+      setServices(response.data);
+    } catch (error) {
+      console.error('Failed to fetch system health:', error);
+      // Fallback to some default data in case of error
+      setServices([
+        {
+          name: "Application Server",
+          status: "Error",
+          uptime: "0%",
+          icon: "XCircle",
+          statusColor: "bg-[#fee2e2] text-[#991b1b]",
+          iconColor: "text-[#ef4444]",
+        },
+        {
+          name: "Database Connection", 
+          status: "Error",
+          uptime: "0%",
+          icon: "XCircle",
+          statusColor: "bg-[#fee2e2] text-[#991b1b]",
+          iconColor: "text-[#ef4444]",
+        },
+        {
+          name: "SMS Gateway",
+          status: "Error",
+          uptime: "0%",
+          icon: "XCircle",
+          statusColor: "bg-[#fee2e2] text-[#991b1b]",
+          iconColor: "text-[#ef4444]",
+        },
+        {
+          name: "Email Service",
+          status: "Error",
+          uptime: "0%",
+          icon: "XCircle",
+          statusColor: "bg-[#fee2e2] text-[#991b1b]",
+          iconColor: "text-[#ef4444]",
+        },
+      ]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchSystemHealth();
+    
+    // Refresh system health every 30 seconds
+    const interval = setInterval(fetchSystemHealth, 30000);
+    
+    return () => clearInterval(interval);
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="p-4">
+        <div className="max-w-lg">
+          <h1 className="text-lg font-semibold mb-6">
+            System Health Status
+          </h1>
+          <div className="space-y-3">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="flex items-center justify-between animate-pulse">
+                <div className="flex items-center gap-4">
+                  <div className="w-4 h-4 bg-gray-300 rounded"></div>
+                  <div className="h-4 bg-gray-300 rounded w-32"></div>
+                </div>
+                <div className="flex items-center gap-6">
+                  <div className="h-4 bg-gray-300 rounded w-16"></div>
+                  <div className="h-4 bg-gray-300 rounded w-20"></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-4">
@@ -56,7 +119,7 @@ const SystemHealthStatus: React.FC = () => {
 
         <div className="space-y-3">
           {services.map((service, index) => {
-            const IconComponent = service.icon;
+            const IconComponent = getIconComponent(service.icon);
             return (
               <div key={index} className="flex items-center justify-between">
                 <div className="flex items-center gap-4">

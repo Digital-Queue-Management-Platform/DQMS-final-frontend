@@ -29,7 +29,7 @@ import ManagerOfficers from "./pages/ManagerOfficers"
 import ManagerQRCodes from "./pages/ManagerQRCodes"
 import ManagerBreakOversight from "./pages/ManagerBreakOversight"
 
-import { Users, Shield, UserCog, ArrowRight, Building2 } from "lucide-react"
+import { Shield, UserCog, ArrowRight, Building2 } from "lucide-react"
 import OfficerTopBar from "./components/OfficerTopBar"
 import api from "./config/api"
 import type { Officer } from "./types"
@@ -37,9 +37,7 @@ import type { Officer } from "./types"
 function TabsLanding() {
   const location = useLocation()
   const navigate = useNavigate()
-  const [activeTab, setActiveTab] = React.useState<string>("customer")
-  const [customerToken, setCustomerToken] = React.useState<string>("")
-  const [customerLoginError, setCustomerLoginError] = React.useState<string>("")
+  const [activeTab, setActiveTab] = React.useState<string>("officer")
 
   React.useEffect(() => {
     const stateTab = new URLSearchParams(location.search).get("tab")
@@ -49,16 +47,6 @@ function TabsLanding() {
   const handleTabChange = (tab: string) => {
     setActiveTab(tab)
     navigate(`/?tab=${tab}`)
-  }
-
-  const handleCustomerTokenLogin = () => {
-    setCustomerLoginError("")
-    const token = customerToken.trim()
-    if (!token) {
-      setCustomerLoginError('Please enter your token ID')
-      return
-    }
-    navigate(`/queue/${token}`)
   }
 
   
@@ -116,7 +104,6 @@ function TabsLanding() {
             <div className="bg-white rounded-xl sm:rounded-2xl shadow-xl overflow-hidden border border-gray-100">
               <div className="flex flex-wrap sm:flex-nowrap border-b border-gray-200">
                 {[
-                  { id: 'customer', label: 'Customer', icon: Users },
                   { id: 'officer', label: 'Officer', icon: UserCog },
                   { id: 'manager', label: 'Manager', icon: Building2 },
                   { id: 'admin', label: 'Admin', icon: Shield }
@@ -141,48 +128,6 @@ function TabsLanding() {
 
               {/* Tab Content */}
               <div className="p-4 sm:p-6 lg:p-8">
-                {/* Customer Tab */}
-                {activeTab === 'customer' && (
-                  <div className="space-y-4 sm:space-y-6">
-                    <div className="text-center sm:text-left">
-                      <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-2">Customer Portal</h3>
-                      <p className="text-gray-600 text-sm">Get a queue token or check your status</p>
-                    </div>
-
-                    <div className="space-y-4">
-                      {/* Check Token Status */}
-                      <div className="p-4 sm:p-5 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg sm:rounded-xl border border-blue-200">
-                        <h4 className="font-semibold text-gray-900 mb-3">Check Token Status</h4>
-                        <input
-                          value={customerToken}
-                          onChange={(e) => setCustomerToken(e.target.value)}
-                          onKeyPress={(e) => e.key === 'Enter' && handleCustomerTokenLogin()}
-                          placeholder="Enter your token ID"
-                          className="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none mb-3"
-                        />
-                        {customerLoginError && (
-                          <p className="text-sm text-red-600 mb-3">{customerLoginError}</p>
-                        )}
-                        <button
-                          onClick={handleCustomerTokenLogin}
-                          className="w-full px-4 sm:px-6 py-2 sm:py-3 text-sm sm:text-base bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2"
-                        >
-                          Check Status <ArrowRight className="w-4 h-4" />
-                        </button>
-                      </div>
-
-                      {/* New Registration (QR-gated notice) */}
-                        <div className="block p-3 sm:p-4 rounded-lg border border-yellow-200 bg-yellow-50">
-                          <h3 className="text-base sm:text-lg font-semibold text-yellow-900 mb-1">Customer Registration</h3>
-                          <p className="text-xs sm:text-sm text-yellow-800">
-                            To register, please scan the QR code displayed at the branch counter. The registration form will open automatically with a secure token.
-                          </p>
-                        </div>
-                    </div>
-
-                  </div>
-                )}
-
                 {/* Officer Tab */}
                 {activeTab === 'officer' && (
                   <div className="space-y-6">

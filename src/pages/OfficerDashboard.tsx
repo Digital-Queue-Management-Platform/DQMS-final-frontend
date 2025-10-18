@@ -290,10 +290,6 @@ export default function OfficerDashboard() {
                 </div>
               )}
               
-              <button className="flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50">
-                <DownloadIcon className="w-4 h-4 mr-2" />
-                Export
-              </button>
               <button 
                 onClick={() => window.location.reload()}
                 className="flex items-center px-4 py-2 bg-blue-600 rounded-md text-sm font-medium text-white hover:bg-blue-700"
