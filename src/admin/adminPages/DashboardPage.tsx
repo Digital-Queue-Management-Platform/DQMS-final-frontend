@@ -21,10 +21,7 @@ interface BranchData {
 
 interface WaitingTimeData {
   day: string;
-  Colombo: number;
-  Kandy: number;
-  Galle: number;
-  Jaffna: number;
+  [outletName: string]: string | number;
 }
 
 
@@ -179,18 +176,8 @@ const DashboardPage: React.FC = () => {
   const buildWaitingTimeSeries = async (metrics: any[]) => {
     if (!metrics || metrics.length === 0) return
 
-    // pick up to 4 outlets; prefer common names if present
-    const preferred = ['Colombo', 'Kandy', 'Galle', 'Jaffna']
-    const names: string[] = []
-    for (const p of preferred) {
-      const m = metrics.find((x: any) => x.name.includes(p))
-      if (m) names.push(m.name)
-    }
-    // fill with first metrics if we still have fewer than 4
-    for (const m of metrics) {
-      if (names.length >= 4) break
-      if (!names.includes(m.name)) names.push(m.name)
-    }
+    // Use actual outlet names from the database (up to 4 outlets)
+    const names: string[] = metrics.slice(0, 4).map((m: any) => m.name)
 
     const days: WaitingTimeData[] = []
 
