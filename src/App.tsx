@@ -259,14 +259,20 @@ function Layout({ children }: { children: React.ReactNode }) {
           await api.get('/manager/me', { params })
           if (!mounted) return
           // Manager data loaded for authentication only
-        } catch (e) {
+        } catch (e: any) {
           console.error('Manager authentication failed:', e)
+          console.log('Error details:', e.response?.data?.error || e.message)
+          
           // Clear invalid data and redirect to login
           localStorage.removeItem('manager')
           localStorage.removeItem('managerToken')
           localStorage.removeItem('dq_role')
           localStorage.removeItem('dq_user')
-          navigate('/manager/login')
+          
+          // Add a small delay to ensure cleanup is complete
+          setTimeout(() => {
+            navigate('/manager/login')
+          }, 100)
         }
       }
     }

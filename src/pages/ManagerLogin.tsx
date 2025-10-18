@@ -36,7 +36,15 @@ export default function ManagerLogin() {
         navigate("/manager/dashboard")
       }
     } catch (err: any) {
-      setError(err.response?.data?.error || "Login failed")
+      const errorMessage = err.response?.data?.error || "Login failed"
+      console.error("Manager login error:", errorMessage)
+      
+      // Provide specific feedback for session expiration
+      if (errorMessage.includes("expired") || errorMessage.includes("Session")) {
+        setError("Your session has expired. Please login again with your credentials.")
+      } else {
+        setError(errorMessage)
+      }
     } finally {
       setLoading(false)
     }

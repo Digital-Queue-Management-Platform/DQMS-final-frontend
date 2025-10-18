@@ -50,19 +50,47 @@ api.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       // Handle unauthorized errors by clearing tokens and redirecting
-      if (error.config?.url?.startsWith('/admin/')) {
+      const currentPath = window.location.pathname
+      const requestUrl = error.config?.url || ''
+      
+      console.log('401 error on:', requestUrl, 'current path:', currentPath)
+      
+      // Check if this is an admin-related request or if user is on admin pages
+      if (requestUrl.startsWith('/admin/') || currentPath.startsWith('/admin')) {
         localStorage.removeItem('adminToken')
         window.location.href = '/admin/login'
-      } else if (error.config?.url?.startsWith('/manager/')) {
+      } 
+      // Check if this is a manager-related request or if user is on manager pages
+      else if (requestUrl.startsWith('/manager/') || currentPath.startsWith('/manager')) {
         localStorage.removeItem('manager')
         localStorage.removeItem('managerToken')
         localStorage.removeItem('dq_role')
         localStorage.removeItem('dq_user')
         window.location.href = '/manager/login'
-      } else if (error.config?.url?.startsWith('/officer/')) {
+      } 
+      // Check if this is an officer-related request or if user is on officer pages
+      else if (requestUrl.startsWith('/officer/') || currentPath.startsWith('/officer')) {
         localStorage.removeItem('officer')
         localStorage.removeItem('officerToken')
         window.location.href = '/officer/login'
+      }
+      // Default: check user role from localStorage
+      else {
+        const userRole = localStorage.getItem('dq_role')
+        if (userRole === 'admin') {
+          localStorage.removeItem('adminToken')
+          window.location.href = '/admin/login'
+        } else if (userRole === 'region_manager') {
+          localStorage.removeItem('manager')
+          localStorage.removeItem('managerToken')
+          localStorage.removeItem('dq_role')
+          localStorage.removeItem('dq_user')
+          window.location.href = '/manager/login'
+        } else if (userRole === 'officer') {
+          localStorage.removeItem('officer')
+          localStorage.removeItem('officerToken')
+          window.location.href = '/officer/login'
+        }
       }
     }
     return Promise.reject(error)
