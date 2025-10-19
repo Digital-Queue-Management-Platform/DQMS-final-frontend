@@ -203,114 +203,7 @@ export default function OfficerQueuePage() {
 
         {/* Main Content */}
         <div className="space-y-6">
-
-          <div className="grid grid-cols-1 lg:grid-cols-7 gap-6">
-        {/* Left Column: Current Customer */}
-        <div className="lg:col-span-2">
-          {!currentToken ? (
-            <div className="bg-white rounded-xl shadow-sm p-8">
-              <h2 className="text-lg font-bold text-gray-900 mb-8">Current Customer</h2>
-              <div className="text-center py-12">
-                <div className="w-20 h-20 flex items-center justify-center mx-auto mb-6">
-                  <Users className="w-10 h-10" />
-                </div>
-                <h3 className="text-2xl font-bold text-gray-900 mb-3">Ready to Serve</h3>
-                <p className="text-gray-600 mb-8 text-sm">Click the button below to call the next customer</p>
-                <button
-                  onClick={handleNextToken}
-                  disabled={loading || officer.status !== "available"}
-                  className="w-full px-8 py-4 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed text-lg"
-                >
-                  {loading ? "Loading..." : "Call Next Token"}
-                </button>
-                {officer.status !== "available" && (
-                  <p className="mt-4 text-sm text-yellow-600">You must be available to call next token</p>
-                )}
-              </div>
-            </div>
-          ) : (
-            <div className="bg-white rounded-xl shadow-sm p-8">
-              <h2 className="text-lg font-bold text-gray-900 mb-6">Current Customer</h2>
-
-              {/* Token Number */}
-              <div className="text-center mb-8">
-                <div className="text-6xl font-bold text-blue-600 mb-6">{currentToken.tokenNumber}</div>
-              </div>
-
-              {/* Customer Details */}
-              <div className="space-y-5 mb-8">
-                <div className="flex items-center gap-3">
-                  <User className="w-5 h-5 text-gray-400" />
-                  <span className="text-gray-900 font-medium">{currentToken.customer.name}</span>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <Phone className="w-5 h-5 text-gray-400" />
-                  <span className="text-gray-900 font-medium">{currentToken.customer.mobileNumber}</span>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <FileText className="w-5 h-5 text-gray-400" />
-                  <div className="flex items-center gap-2">
-                    <span className="text-gray-900 font-medium">Service:</span>
-                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${getServiceColor(currentToken.serviceType)}`}>
-                      {getServiceDisplayName(currentToken.serviceType)}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <Clock className="w-5 h-5 text-gray-400" />
-                  <span className="text-gray-900 font-medium">
-                    Waiting for: {Math.floor((Date.now() - new Date(currentToken.createdAt).getTime()) / 60000)} min
-                  </span>
-                </div>
-              </div>
-
-              {/* IP Speaker Component */}
-              <div className="mb-6">
-                <IPSpeaker 
-                  token={currentToken} 
-                  counterNumber={officer?.counterNumber}
-                />
-              </div>
-
-              {/* Notes Section */}
-              <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Notes:</label>
-                <textarea
-                  value={accountRef}
-                  onChange={(e) => setAccountRef(e.target.value)}
-                  rows={3}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none"
-                  placeholder="Add notes or account reference..."
-                />
-              </div>
-
-              {/* Action Buttons */}
-              <div className="grid grid-cols-2 gap-4">
-                <button
-                  onClick={handleSkip}
-                  disabled={loading}
-                  className="flex items-center justify-center gap-2 px-6 py-4 bg-orange-500 text-white rounded-lg font-semibold hover:bg-orange-600 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
-                >
-                  Skip Customer
-                </button>
-
-                <button
-                  onClick={handleCompleteService}
-                  disabled={loading}
-                  className="flex items-center justify-center gap-2 px-6 py-4 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
-                >
-                  Complete Service
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Right Column: Queue List */}
-        <div className="lg:col-span-5">
+          {/* Queue List Section - Now at the top */}
           <div className="bg-white rounded-xl shadow-sm p-6">
             <h2 className="text-lg font-bold text-gray-900 mb-6">Queue List</h2>
 
@@ -401,10 +294,120 @@ export default function OfficerQueuePage() {
               </>
             )}
           </div>
+
+          {/* Current Customer Section - Now at the bottom */}
+          <div className="bg-white rounded-xl shadow-sm p-8">
+            {!currentToken ? (
+              <>
+                <h2 className="text-lg font-bold text-gray-900 mb-8">Current Customer</h2>
+                <div className="text-center py-12">
+                  <div className="w-20 h-20 flex items-center justify-center mx-auto mb-6">
+                    <Users className="w-10 h-10" />
+                  </div>
+                  <h3 className="text-2xl font-bold text-gray-900 mb-3">Ready to Serve</h3>
+                  <p className="text-gray-600 mb-8 text-sm">Click the button below to call the next customer</p>
+                  <button
+                    onClick={handleNextToken}
+                    disabled={loading || officer.status !== "available"}
+                    className="w-full px-8 py-4 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed text-lg"
+                  >
+                    {loading ? "Loading..." : "Call Next Token"}
+                  </button>
+                  {officer.status !== "available" && (
+                    <p className="mt-4 text-sm text-yellow-600">You must be available to call next token</p>
+                  )}
+                </div>
+              </>
+            ) : (
+              <>
+                <h2 className="text-lg font-bold text-gray-900 mb-6">Current Customer</h2>
+
+              {/* Token Number */}
+              <div className="text-center mb-8">
+                <div className="text-6xl font-bold text-blue-600 mb-6">{currentToken.tokenNumber}</div>
+              </div>
+
+              {/* Customer Details */}
+              <div className="space-y-5 mb-8">
+                <div className="flex items-center gap-3">
+                  <User className="w-5 h-5 text-gray-400" />
+                  <span className="text-gray-900 font-medium">{currentToken.customer.name}</span>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <Phone className="w-5 h-5 text-gray-400" />
+                  <span className="text-gray-900 font-medium">{currentToken.customer.mobileNumber}</span>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <FileText className="w-5 h-5 text-gray-400" />
+                  <div className="flex items-center gap-2">
+                    <span className="text-gray-900 font-medium">Service:</span>
+                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${getServiceColor(currentToken.serviceType)}`}>
+                      {getServiceDisplayName(currentToken.serviceType)}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <Clock className="w-5 h-5 text-gray-400" />
+                  <span className="text-gray-900 font-medium">
+                    Waiting for: {Math.floor((Date.now() - new Date(currentToken.createdAt).getTime()) / 60000)} min
+                  </span>
+                </div>
+
+                {/* Preferred Languages */}
+                {Array.isArray((currentToken as any).preferredLanguages) && (currentToken as any).preferredLanguages.length > 0 && (
+                  <div className="flex items-center gap-3">
+                    <span className="text-gray-400 text-sm">Preferred:</span>
+                    <span className="text-gray-900 font-medium">[{(currentToken as any).preferredLanguages.join(", ")}]</span>
+                  </div>
+                )}
+              </div>
+
+              {/* IP Speaker Component */}
+              <div className="mb-6">
+                <IPSpeaker 
+                  token={currentToken} 
+                  counterNumber={officer?.counterNumber}
+                />
+              </div>
+
+              {/* Notes Section */}
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Notes:</label>
+                <textarea
+                  value={accountRef}
+                  onChange={(e) => setAccountRef(e.target.value)}
+                  rows={3}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none"
+                  placeholder="Add notes or account reference..."
+                />
+              </div>
+
+              {/* Action Buttons */}
+              <div className="grid grid-cols-2 gap-4">
+                <button
+                  onClick={handleSkip}
+                  disabled={loading}
+                  className="flex items-center justify-center gap-2 px-6 py-4 bg-orange-500 text-white rounded-lg font-semibold hover:bg-orange-600 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+                >
+                  Skip Customer
+                </button>
+
+                <button
+                  onClick={handleCompleteService}
+                  disabled={loading}
+                  className="flex items-center justify-center gap-2 px-6 py-4 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+                >
+                  Complete Service
+                </button>
+              </div>
+              </>
+            )}
+          </div>
         </div>
       </div>
-      </div>
-    </div>
     </div>
   )
 }
