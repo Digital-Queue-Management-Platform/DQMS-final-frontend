@@ -7,7 +7,8 @@ import { User, Clock, Phone, FileText, Users, RefreshCwIcon } from "lucide-react
 import api, { WS_URL } from "../config/api"
 import type { Officer, Token } from "../types"
 import IPSpeaker from "../components/IPSpeaker"
-import { getServiceDisplayName, getServiceColor } from "../utils/serviceUtils"
+import ServiceName from "../components/ServiceName"
+import { getServiceColor } from "../utils/serviceUtils"
 
 export default function OfficerQueuePage() {
   const navigate = useNavigate()
@@ -259,7 +260,7 @@ export default function OfficerQueuePage() {
                         </div>
                         <div className="col-span-2">
                           <span className={`px-2 py-1 rounded-full text-xs font-medium ${getServiceColor(t.serviceType)}`}>
-                            {getServiceDisplayName(t.serviceType)}
+                            <ServiceName serviceType={t.serviceType} />
                           </span>
                         </div>
                         <div className="col-span-2">
@@ -344,7 +345,7 @@ export default function OfficerQueuePage() {
                   <div className="flex items-center gap-2">
                     <span className="text-gray-900 font-medium">Service:</span>
                     <span className={`px-3 py-1 rounded-full text-sm font-medium ${getServiceColor(currentToken.serviceType)}`}>
-                      {getServiceDisplayName(currentToken.serviceType)}
+                      <ServiceName serviceType={currentToken.serviceType} />
                     </span>
                   </div>
                 </div>

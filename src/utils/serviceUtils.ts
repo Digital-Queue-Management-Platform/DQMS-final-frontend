@@ -1,32 +1,81 @@
 // Service type mapping utility
+import api from '../config/api'
+
+// Cache for dynamic services from API
+let cachedServices: { [key: string]: string } = {}
+let servicesLoaded = false
+
+// Static fallback mapping for hardcoded service types
+const staticServiceMap: { [key: string]: string } = {
+  'bill_payment': 'Bill Payment',
+  'new_connection': 'New Connection',
+  'technical_support': 'Technical Support',
+  'billing_inquiry': 'Billing Inquiry',
+  'service_upgrade': 'Service Upgrade',
+  'service_downgrade': 'Service Downgrade',
+  'account_closure': 'Account Closure',
+  'complaint': 'Complaint',
+  'other': 'Other Services',
+  'general_inquiry': 'General Inquiry',
+  'payment_plan': 'Payment Plan',
+  'reconnection': 'Reconnection',
+  'address_change': 'Address Change',
+  'ownership_transfer': 'Ownership Transfer',
+  'service_request': 'Service Request',
+  'maintenance': 'Maintenance Request',
+  'installation': 'Installation',
+  'repair': 'Repair Request'
+}
+
+// Load services from API and cache them
+const loadServices = async () => {
+  if (servicesLoaded) return
+  
+  try {
+    const response = await api.get('/queue/services')
+    const services = response.data || []
+    
+    // Create mapping from service code to title
+    services.forEach((service: any) => {
+      if (service.code && service.title) {
+        cachedServices[service.code] = service.title
+      }
+    })
+    
+    servicesLoaded = true
+  } catch (error) {
+    console.warn('Failed to load services for display names:', error)
+  }
+}
+
+// Initialize service loading
+loadServices()
+
+// Function to refresh services cache (useful for when services are updated)
+export const refreshServices = async () => {
+  servicesLoaded = false
+  cachedServices = {}
+  await loadServices()
+}
+
 export const getServiceDisplayName = (serviceType: string): string => {
-  const serviceMap: { [key: string]: string } = {
-    'bill_payment': 'Bill Payment',
-    'new_connection': 'New Connection',
-    'technical_support': 'Technical Support',
-    'billing_inquiry': 'Billing Inquiry',
-    'service_upgrade': 'Service Upgrade',
-    'service_downgrade': 'Service Downgrade',
-    'account_closure': 'Account Closure',
-    'complaint': 'Complaint',
-    'other': 'Other Services',
-    'general_inquiry': 'General Inquiry',
-    'payment_plan': 'Payment Plan',
-    'reconnection': 'Reconnection',
-    'address_change': 'Address Change',
-    'ownership_transfer': 'Ownership Transfer',
-    'service_request': 'Service Request',
-    'maintenance': 'Maintenance Request',
-    'installation': 'Installation',
-    'repair': 'Repair Request'
+  // Try dynamic services first (for database codes like SVC002)
+  if (cachedServices[serviceType]) {
+    return cachedServices[serviceType]
   }
   
-  // Return mapped name or format the serviceType if not found
-  return serviceMap[serviceType] || serviceType.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
+  // Fallback to static mapping (for hardcoded types like bill_payment)
+  if (staticServiceMap[serviceType]) {
+    return staticServiceMap[serviceType]
+  }
+  
+  // If not found, format the serviceType nicely
+  return serviceType.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
 }
 
 // Get service type color for UI consistency
 export const getServiceColor = (serviceType: string): string => {
+  // Static color mapping for known service types
   const colorMap: { [key: string]: string } = {
     'bill_payment': 'bg-green-100 text-green-800',
     'new_connection': 'bg-blue-100 text-blue-800',
@@ -44,5 +93,29 @@ export const getServiceColor = (serviceType: string): string => {
     'ownership_transfer': 'bg-pink-100 text-pink-800'
   }
   
-  return colorMap[serviceType] || 'bg-gray-100 text-gray-800'
+  // For static service types, use predefined colors
+  if (colorMap[serviceType]) {
+    return colorMap[serviceType]
+  }
+  
+  // For dynamic service codes (like SVC002), generate colors based on the code
+  const serviceColors = [
+    'bg-blue-100 text-blue-800',
+    'bg-green-100 text-green-800',
+    'bg-purple-100 text-purple-800',
+    'bg-orange-100 text-orange-800',
+    'bg-cyan-100 text-cyan-800',
+    'bg-indigo-100 text-indigo-800',
+    'bg-teal-100 text-teal-800',
+    'bg-emerald-100 text-emerald-800'
+  ]
+  
+  // Generate a consistent color based on service code hash
+  let hash = 0
+  for (let i = 0; i < serviceType.length; i++) {
+    hash = serviceType.charCodeAt(i) + ((hash << 5) - hash)
+  }
+  const colorIndex = Math.abs(hash) % serviceColors.length
+  
+  return serviceColors[colorIndex]
 }

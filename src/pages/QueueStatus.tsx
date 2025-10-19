@@ -5,7 +5,7 @@ import { useParams, useNavigate } from "react-router-dom"
 import { Clock, Users, CheckCircle, AlertTriangle } from "lucide-react"
 import api, { WS_URL } from "../config/api"
 import type { Token } from "../types"
-import { getServiceDisplayName } from "../utils/serviceUtils"
+import ServiceName from "../components/ServiceName"
 
 export default function QueueStatus() {
   const { tokenId } = useParams()
@@ -162,7 +162,9 @@ export default function QueueStatus() {
             </div>
             <div>
               <p className="text-gray-600">Service Type</p>
-              <p className="font-semibold text-gray-900">{getServiceDisplayName(token.serviceType)}</p>
+              <p className="font-semibold text-gray-900">
+                <ServiceName serviceType={token.serviceType} />
+              </p>
             </div>
             <div>
               <p className="text-gray-600">Registered At</p>
