@@ -57,9 +57,8 @@ export default function ManagerCompare() {
       const branchComparisons = await Promise.all(
         outlets.map(async (outlet: any) => {
           try {
-            const analyticsRes = await api.get('/admin/analytics', {
+            const analyticsRes = await api.get(`/manager/outlet/${outlet.id}/analytics`, {
               params: { 
-                outletId: outlet.id, 
                 startDate: start.toISOString(), 
                 endDate: end.toISOString() 
               }
