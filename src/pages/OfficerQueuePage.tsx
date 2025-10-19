@@ -288,29 +288,21 @@ export default function OfficerQueuePage() {
               </div>
 
               {/* Action Buttons */}
-              <div className="space-y-0 flex gap-2 text-md">
-                <button
-                  onClick={handleNextToken}
-                  disabled={loading || officer.status !== 'available'}
-                  className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
-                >
-                  Call
-                </button>
-
+              <div className="grid grid-cols-2 gap-4">
                 <button
                   onClick={handleSkip}
                   disabled={loading}
-                  className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-orange-500 text-white rounded-lg font-semibold hover:bg-orange-600 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+                  className="flex items-center justify-center gap-2 px-6 py-4 bg-orange-500 text-white rounded-lg font-semibold hover:bg-orange-600 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
                 >
-                  Skip
+                  Skip Customer
                 </button>
 
                 <button
                   onClick={handleCompleteService}
                   disabled={loading}
-                  className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+                  className="flex items-center justify-center gap-2 px-6 py-4 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
                 >
-                  Complete
+                  Complete Service
                 </button>
               </div>
             </div>
