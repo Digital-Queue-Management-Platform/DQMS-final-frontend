@@ -111,10 +111,11 @@ const Sidebar: React.FC<SidebarProps> = ({ activePage, setActivePage }) => {
       }
     } else if (onManagerPath) {
       const manager = storedManager ? JSON.parse(storedManager) : null
+      const managerName = manager?.name || manager?.id || 'Manager'
       return {
-        name: manager?.name || 'Manager',
+        name: managerName,
         role: 'Regional Manager',
-        initials: manager?.name ? manager.name.split(' ').map((n: string) => n[0]).join('').toUpperCase() : 'RM'
+        initials: managerName ? managerName.split(' ').map((n: string) => n[0]).join('').toUpperCase() : 'RM'
       }
     } else {
       // Admin path

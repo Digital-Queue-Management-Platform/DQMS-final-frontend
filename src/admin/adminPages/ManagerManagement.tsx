@@ -21,9 +21,8 @@ const ManagerManagement: React.FC = () => {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [selectedManager, setSelectedManager] = useState<Manager | null>(null)
-  const [showPasswordDialog, setShowPasswordDialog] = useState(false)
-  const [newPassword, setNewPassword] = useState('')
-  const [passwordLoading, setPasswordLoading] = useState(false)
+  const [showResetDialog, setShowResetDialog] = useState(false)
+  const [resetLoading, setResetLoading] = useState(false)
 
   useEffect(() => {
     fetchManagers()
@@ -42,47 +41,42 @@ const ManagerManagement: React.FC = () => {
     }
   }
 
-  const handleUpdatePassword = async () => {
-    if (!selectedManager || !newPassword) return
+  const handleResetPassword = async () => {
+    if (!selectedManager) return
     
-    if (newPassword.length < 6) {
-      setError('Password must be at least 6 characters long')
-      return
-    }
-
-    setPasswordLoading(true)
+    setResetLoading(true)
     setError('')
     
     try {
-      await api.put(`/admin/managers/${selectedManager.id}/password`, {
-        newPassword
-      })
+      const response = await api.post(`/admin/managers/${selectedManager.id}/reset-password`)
       
-      setShowPasswordDialog(false)
+      setShowResetDialog(false)
       setSelectedManager(null)
-      setNewPassword('')
       setError('')
-      // Show success message
-      alert('Manager password updated successfully!')
+      
+      // Show success message with email status
+      if (response.data.emailSent) {
+        alert('Password reset successfully! New password has been sent to the manager\'s email.')
+      } else {
+        alert(`Password reset successfully! ${response.data.message}\n\nNew password: ${response.data.temporaryPassword}\n\nPlease provide this password to the manager manually.`)
+      }
     } catch (err: any) {
-      console.error('Failed to update password:', err)
-      setError(err.response?.data?.error || 'Failed to update password')
+      console.error('Failed to reset password:', err)
+      setError(err.response?.data?.error || 'Failed to reset password')
     } finally {
-      setPasswordLoading(false)
+      setResetLoading(false)
     }
   }
 
-  const openPasswordDialog = (manager: Manager) => {
+  const openResetDialog = (manager: Manager) => {
     setSelectedManager(manager)
-    setShowPasswordDialog(true)
-    setNewPassword('')
+    setShowResetDialog(true)
     setError('')
   }
 
-  const closePasswordDialog = () => {
-    setShowPasswordDialog(false)
+  const closeResetDialog = () => {
+    setShowResetDialog(false)
     setSelectedManager(null)
-    setNewPassword('')
     setError('')
   }
 
@@ -154,7 +148,7 @@ const ManagerManagement: React.FC = () => {
                   </td>
                   <td className="py-4 px-6">
                     <button
-                      onClick={() => openPasswordDialog(manager)}
+                      onClick={() => openResetDialog(manager)}
                       className="bg-blue-600 text-white px-3 py-1.5 rounded-md text-sm hover:bg-blue-700 transition-colors"
                     >
                       Reset Password
@@ -176,20 +170,20 @@ const ManagerManagement: React.FC = () => {
         </div>
       </div>
 
-      {/* Password Update Dialog */}
-      {showPasswordDialog && selectedManager && (
+      {/* Password Reset Dialog */}
+      {showResetDialog && selectedManager && (
         <>
-          <div className="fixed inset-0 bg-black bg-opacity-50 z-50" onClick={closePasswordDialog} />
+          <div className="fixed inset-0 bg-black bg-opacity-50 z-50" onClick={closeResetDialog} />
           <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4">
               <div className="p-6">
                 <h2 className="text-xl font-semibold text-slate-800 mb-4">
-                  Update Manager Password
+                  Reset Manager Password
                 </h2>
                 
                 <div className="mb-4">
                   <p className="text-slate-600">
-                    Updating password for: <strong>{selectedManager.managerId}</strong>
+                    Reset password for: <strong>{selectedManager.managerId}</strong>
                   </p>
                   <p className="text-sm text-slate-500">{selectedManager.managerEmail}</p>
                 </div>
@@ -201,32 +195,24 @@ const ManagerManagement: React.FC = () => {
                 )}
                 
                 <div className="mb-6">
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
-                    New Password
-                  </label>
-                  <input
-                    type="password"
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    placeholder="Enter new password (min 6 characters)"
-                    className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    autoFocus
-                  />
+                  <p className="text-slate-600 text-sm">
+                    A new secure password will be automatically generated and sent to the manager's email address.
+                  </p>
                 </div>
                 
                 <div className="flex gap-3">
                   <button
-                    onClick={closePasswordDialog}
+                    onClick={closeResetDialog}
                     className="flex-1 px-4 py-2.5 border border-slate-300 text-slate-700 rounded-lg font-medium hover:bg-slate-50 transition-colors"
                   >
                     Cancel
                   </button>
                   <button
-                    onClick={handleUpdatePassword}
-                    disabled={passwordLoading || !newPassword}
+                    onClick={handleResetPassword}
+                    disabled={resetLoading}
                     className="flex-1 bg-blue-600 text-white px-4 py-2.5 rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {passwordLoading ? 'Updating...' : 'Update Password'}
+                    {resetLoading ? 'Resetting...' : 'Reset Password'}
                   </button>
                 </div>
               </div>
