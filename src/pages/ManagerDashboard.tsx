@@ -103,9 +103,8 @@ export default function ManagerDashboard() {
             const end = new Date()
             end.setHours(23,59,59,999)
 
-            const analyticsRes = await api.get('/admin/analytics', {
+            const analyticsRes = await api.get(`/manager/outlet/${outlet.id}/analytics`, {
               params: { 
-                outletId: outlet.id, 
                 startDate: start.toISOString(), 
                 endDate: end.toISOString() 
               }
