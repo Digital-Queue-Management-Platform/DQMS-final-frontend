@@ -188,7 +188,7 @@ export default function CustomerRegistration() {
       other: "Other Services",
       register: "Register",
       registering: "Registering...",
-      sltMobile: "SLT Mobile Number",
+      sltMobile: "Telephone Number",
       nic: "NIC Number",
       email: "Email (Optional)",
     },
@@ -203,8 +203,8 @@ export default function CustomerRegistration() {
       other: "වෙනත් සේවා",
       register: "ලියාපදිංචි වන්න",
       registering: "ලියාපදිංචි වෙමින්...",
-      sltMobile: "SLT ජංගම අංකය",
-      nic: "ජාතික කාර্ড අංකය",
+      sltMobile: "දුරකථන අංකය",
+      nic: "ජාතික කාර්ද අංකය",
       email: "ඊමේල් (විකල්ප)",
     },
     ta: {
@@ -218,7 +218,7 @@ export default function CustomerRegistration() {
       other: "பிற சேவைகள்",
       register: "பதிவு செய்யவும்",
       registering: "பதிவு செய்கிறது...",
-      sltMobile: "SLT கைபேசி எண்",
+      sltMobile: "தொலைபேசி எண்",
       nic: "NIC எண்",
       email: "மின்னஞ்சல் (விருப்பம்)",
     },
@@ -331,7 +331,7 @@ export default function CustomerRegistration() {
             </div>
           </div>
 
-          {/* SLT Mobile Number Input (optional) */}
+          {/* Telephone Number Input (optional) */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">{t.sltMobile}</label>
             <div className="relative">
@@ -341,8 +341,8 @@ export default function CustomerRegistration() {
                 value={sltMobileNumber}
                 onChange={(e) => setSltMobileNumber(e.target.value)}
                 className="w-full pl-9 sm:pl-10 pr-4 py-2.5 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
-                placeholder="0XXXXXXXXX"
-                pattern="0[0-9]{9}"
+                placeholder="0112345678"
+                pattern="[0-9]{10}"
               />
             </div>
           </div>

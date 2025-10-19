@@ -101,7 +101,8 @@ const Sidebar: React.FC<SidebarProps> = ({ activePage, setActivePage }) => {
     const storedManager = localStorage.getItem('manager')
     
     if (onOfficerPath) {
-      const officer = storedUser ? JSON.parse(storedUser) : null
+      const storedOfficer = localStorage.getItem('officer')
+      const officer = storedOfficer ? JSON.parse(storedOfficer) : null
       return {
         name: officer?.name || 'Officer',
         role: 'Customer Service Officer',

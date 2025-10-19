@@ -7,6 +7,7 @@ import { User, Clock, Phone, FileText, Users, RefreshCwIcon } from "lucide-react
 import api, { WS_URL } from "../config/api"
 import type { Officer, Token } from "../types"
 import IPSpeaker from "../components/IPSpeaker"
+import { getServiceDisplayName, getServiceColor } from "../utils/serviceUtils"
 
 export default function OfficerQueuePage() {
   const navigate = useNavigate()
@@ -250,9 +251,12 @@ export default function OfficerQueuePage() {
 
                 <div className="flex items-center gap-3">
                   <FileText className="w-5 h-5 text-gray-400" />
-                  <span className="text-gray-900 font-medium">
-                    {currentToken.serviceType === "bill_payment" ? "Bill Payment" : "Other Services"}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-gray-900 font-medium">Service:</span>
+                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${getServiceColor(currentToken.serviceType)}`}>
+                      {getServiceDisplayName(currentToken.serviceType)}
+                    </span>
+                  </div>
                 </div>
 
                 <div className="flex items-center gap-3">
@@ -369,13 +373,8 @@ export default function OfficerQueuePage() {
                           <span className={`${isSkipped ? 'text-gray-500' : 'text-gray-900'}`}>{t.customer.name}</span>
                         </div>
                         <div className="col-span-2">
-                          <span className="text-gray-600 text-sm">
-                            {t.serviceType === "bill_payment" ? "Bill Payments" : 
-                              t.serviceType === "technical_support" ? "Technical Support" :
-                              t.serviceType === "account_services" ? "Account Services" :
-                              t.serviceType === "new_connection" ? "New Connections" :
-                              t.serviceType === "device_sim_issues" ? "Device/SIM Issues" :
-                              t.serviceType || "Other Services"}
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${getServiceColor(t.serviceType)}`}>
+                            {getServiceDisplayName(t.serviceType)}
                           </span>
                         </div>
                         <div className="col-span-2">

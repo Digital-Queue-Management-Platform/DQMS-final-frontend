@@ -7,6 +7,7 @@ import { useParams, useNavigate } from "react-router-dom"
 import { Star, MessageSquare, CheckCircle, Send } from "lucide-react"
 import api from "../config/api"
 import type { Token } from "../types"
+import { getServiceDisplayName } from "../utils/serviceUtils"
 
 export default function FeedbackPage() {
   const { tokenId } = useParams()
@@ -127,7 +128,7 @@ export default function FeedbackPage() {
             <div>
               <p className="text-gray-600">Service Type</p>
               <p className="font-semibold text-gray-900">
-                {token.serviceType === "bill_payment" ? "Bill Payment" : "Other Services"}
+                {getServiceDisplayName(token.serviceType)}
               </p>
             </div>
             <div>
