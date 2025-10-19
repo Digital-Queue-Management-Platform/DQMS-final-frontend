@@ -22,6 +22,7 @@ export default function ManagerDashboard() {
   const navigate = useNavigate()
   const [branchData, setBranchData] = useState<BranchData[]>([])
   const [loading, setLoading] = useState(true)
+  const [currentDateTime, setCurrentDateTime] = useState<Date>(new Date())
   const [regionStats, setRegionStats] = useState({
     totalCustomersServed: 0,
     avgRegionalWaitTime: 0,
@@ -49,6 +50,35 @@ export default function ManagerDashboard() {
     }
   }, [navigate])
 
+  // Date/time update effect
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentDateTime(new Date());
+    }, 1000); // Update every second
+
+    return () => {
+      clearInterval(timer);
+    };
+  }, []);
+
+  // Date/time formatting functions
+  const formatDate = (date: Date): string => {
+    return date.toLocaleDateString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  };
+
+  const formatTime = (date: Date): string => {
+    return date.toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
+    });
+  };
+
   const fetchRegionalData = async () => {
     try {
   // Fetch only this manager's region outlets
@@ -73,9 +103,8 @@ export default function ManagerDashboard() {
             const end = new Date()
             end.setHours(23,59,59,999)
 
-            const analyticsRes = await api.get('/admin/analytics', {
+            const analyticsRes = await api.get(`/manager/outlet/${outlet.id}/analytics`, {
               params: { 
-                outletId: outlet.id, 
                 startDate: start.toISOString(), 
                 endDate: end.toISOString() 
               }
@@ -157,11 +186,24 @@ export default function ManagerDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Main Content */}
-      <div className="p-3 sm:p-4 lg:p-6">
-        {/* Regional Overview Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4 lg:gap-6 mb-6 sm:mb-8">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-8">
+      <div className="mx-auto">
+        {/* Header Section in Body */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-2">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">Regional Manager Dashboard</h1>
+              <p className="text-sm text-gray-500">
+                {formatDate(currentDateTime)} | {formatTime(currentDateTime)}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Main Content */}
+        <div className="space-y-6">
+          {/* Regional Overview Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4 lg:gap-6">{/* Existing card content */}
           <div className="bg-white rounded-lg sm:rounded-xl shadow-sm p-4 sm:p-6">
             <div className="flex items-center justify-between">
               <div className="min-w-0 flex-1">
@@ -302,6 +344,7 @@ export default function ManagerDashboard() {
               </tbody>
             </table>
           </div>
+        </div>
         </div>
       </div>
     </div>

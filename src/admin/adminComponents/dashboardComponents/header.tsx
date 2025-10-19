@@ -12,7 +12,7 @@ const Header: React.FC<HeaderProps> = ({ showBranchDashboard, setShowBranchDashb
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentDateTime(new Date());
-    }, 60000); // Update every minute
+    }, 1000); // Update every second
 
     return () => {
       clearInterval(timer);
@@ -31,7 +31,8 @@ const Header: React.FC<HeaderProps> = ({ showBranchDashboard, setShowBranchDashb
   const formatTime = (date: Date): string => {
     return date.toLocaleTimeString('en-US', {
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
+      second: '2-digit'
     });
   };
 

@@ -2,10 +2,13 @@
 
 import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { User, Clock, Phone, FileText, Users } from "lucide-react"
+import { User, Clock, Phone, FileText, Users, RefreshCwIcon } from "lucide-react"
 // OfficerTopBar is provided globally from Layout for officer routes
 import api, { WS_URL } from "../config/api"
 import type { Officer, Token } from "../types"
+import IPSpeaker from "../components/IPSpeaker"
+import ServiceName from "../components/ServiceName"
+import { getServiceColor } from "../utils/serviceUtils"
 
 export default function OfficerQueuePage() {
   const navigate = useNavigate()
@@ -14,6 +17,25 @@ export default function OfficerQueuePage() {
   const [queue, setQueue] = useState<{ waiting: Token[]; inService: Token[]; availableOfficers: number; totalWaiting: number } | null>(null)
   const [accountRef, setAccountRef] = useState("")
   const [loading, setLoading] = useState(false)
+  const [currentDateTime, setCurrentDateTime] = useState(new Date())
+  
+  // Helper functions for date and time formatting
+  const formatDate = (date: Date) => {
+    return date.toLocaleDateString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    })
+  }
+
+  const formatTime = (date: Date) => {
+    return date.toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
+    })
+  }
 
   useEffect(() => {
     // Fetch officer and initial queue
@@ -43,6 +65,16 @@ export default function OfficerQueuePage() {
       if (ws) ws.close()
     }
   }, [navigate])
+
+  // Update time every second
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentDateTime(new Date())
+    }, 1000)
+
+    return () => clearInterval(interval)
+  }, [])
+
 
   const fetchQueue = async (outletId?: string) => {
     if (!outletId) return
@@ -147,112 +179,32 @@ export default function OfficerQueuePage() {
   if (!officer) return null
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="grid grid-cols-1 lg:grid-cols-7 gap-6">
-        {/* Left Column: Current Customer */}
-        <div className="lg:col-span-2">
-          {!currentToken ? (
-            <div className="bg-white rounded-xl shadow-sm p-8">
-              <h2 className="text-lg font-bold text-gray-900 mb-8">Current Customer</h2>
-              <div className="text-center py-12">
-                <div className="w-20 h-20 flex items-center justify-center mx-auto mb-6">
-                  <Users className="w-10 h-10" />
-                </div>
-                <h3 className="text-2xl font-bold text-gray-900 mb-3">Ready to Serve</h3>
-                <p className="text-gray-600 mb-8 text-sm">Click the button below to call the next customer</p>
-                <button
-                  onClick={handleNextToken}
-                  disabled={loading || officer.status !== "available"}
-                  className="w-full px-8 py-4 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed text-lg"
-                >
-                  {loading ? "Loading..." : "Call Next Token"}
-                </button>
-                {officer.status !== "available" && (
-                  <p className="mt-4 text-sm text-yellow-600">You must be available to call next token</p>
-                )}
-              </div>
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-8">
+      <div className="mx-auto">
+        {/* Header Section in Body */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-2">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">Queue Management</h1>
+              <p className="text-sm text-gray-500">
+                {formatDate(currentDateTime)} | {formatTime(currentDateTime)}
+              </p>
             </div>
-          ) : (
-            <div className="bg-white rounded-xl shadow-sm p-8">
-              <h2 className="text-lg font-bold text-gray-900 mb-6">Current Customer</h2>
-
-              {/* Token Number */}
-              <div className="text-center mb-8">
-                <div className="text-6xl font-bold text-blue-600 mb-6">{currentToken.tokenNumber}</div>
-              </div>
-
-              {/* Customer Details */}
-              <div className="space-y-5 mb-8">
-                <div className="flex items-center gap-3">
-                  <User className="w-5 h-5 text-gray-400" />
-                  <span className="text-gray-900 font-medium">{currentToken.customer.name}</span>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <Phone className="w-5 h-5 text-gray-400" />
-                  <span className="text-gray-900 font-medium">{currentToken.customer.mobileNumber}</span>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <FileText className="w-5 h-5 text-gray-400" />
-                  <span className="text-gray-900 font-medium">
-                    {currentToken.serviceType === "bill_payment" ? "Bill Payment" : "Other Services"}
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <Clock className="w-5 h-5 text-gray-400" />
-                  <span className="text-gray-900 font-medium">
-                    Waiting for: {Math.floor((Date.now() - new Date(currentToken.createdAt).getTime()) / 60000)} min
-                  </span>
-                </div>
-              </div>
-
-              {/* Notes Section */}
-              <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Notes:</label>
-                <textarea
-                  value={accountRef}
-                  onChange={(e) => setAccountRef(e.target.value)}
-                  rows={3}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none"
-                  placeholder="Add notes or account reference..."
-                />
-              </div>
-
-              {/* Action Buttons */}
-              <div className="space-y-0 flex gap-2 text-md">
-                <button
-                  onClick={handleNextToken}
-                  disabled={loading || officer.status !== 'available'}
-                  className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
-                >
-                  Call
-                </button>
-
-                <button
-                  onClick={handleSkip}
-                  disabled={loading}
-                  className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-orange-500 text-white rounded-lg font-semibold hover:bg-orange-600 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
-                >
-                  Skip
-                </button>
-
-                <button
-                  onClick={handleCompleteService}
-                  disabled={loading}
-                  className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
-                >
-                  Complete
-                </button>
-              </div>
+            <div className="flex items-center space-x-4">
+              <button 
+                onClick={() => window.location.reload()}
+                className="flex items-center px-4 py-2 bg-blue-600 rounded-md text-sm font-medium text-white hover:bg-blue-700"
+              >
+                <RefreshCwIcon className="w-4 h-4 mr-2" />
+                Refresh
+              </button>
             </div>
-          )}
+          </div>
         </div>
 
-        {/* Right Column: Queue List */}
-        <div className="lg:col-span-5">
+        {/* Main Content */}
+        <div className="space-y-6">
+          {/* Queue List Section - Now at the top */}
           <div className="bg-white rounded-xl shadow-sm p-6">
             <h2 className="text-lg font-bold text-gray-900 mb-6">Queue List</h2>
 
@@ -307,13 +259,8 @@ export default function OfficerQueuePage() {
                           <span className={`${isSkipped ? 'text-gray-500' : 'text-gray-900'}`}>{t.customer.name}</span>
                         </div>
                         <div className="col-span-2">
-                          <span className="text-gray-600 text-sm">
-                            {t.serviceType === "bill_payment" ? "Bill Payments" : 
-                              t.serviceType === "technical_support" ? "Technical Support" :
-                              t.serviceType === "account_services" ? "Account Services" :
-                              t.serviceType === "new_connection" ? "New Connections" :
-                              t.serviceType === "device_sim_issues" ? "Device/SIM Issues" :
-                              t.serviceType || "Other Services"}
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${getServiceColor(t.serviceType)}`}>
+                            <ServiceName serviceType={t.serviceType} />
                           </span>
                         </div>
                         <div className="col-span-2">
@@ -348,8 +295,119 @@ export default function OfficerQueuePage() {
               </>
             )}
           </div>
+
+          {/* Current Customer Section - Now at the bottom */}
+          <div className="bg-white rounded-xl shadow-sm p-8">
+            {!currentToken ? (
+              <>
+                <h2 className="text-lg font-bold text-gray-900 mb-8">Current Customer</h2>
+                <div className="text-center py-12">
+                  <div className="w-20 h-20 flex items-center justify-center mx-auto mb-6">
+                    <Users className="w-10 h-10" />
+                  </div>
+                  <h3 className="text-2xl font-bold text-gray-900 mb-3">Ready to Serve</h3>
+                  <p className="text-gray-600 mb-8 text-sm">Click the button below to call the next customer</p>
+                  <button
+                    onClick={handleNextToken}
+                    disabled={loading || officer.status !== "available"}
+                    className="w-full px-8 py-4 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed text-lg"
+                  >
+                    {loading ? "Loading..." : "Call Next Token"}
+                  </button>
+                  {officer.status !== "available" && (
+                    <p className="mt-4 text-sm text-yellow-600">You must be available to call next token</p>
+                  )}
+                </div>
+              </>
+            ) : (
+              <>
+                <h2 className="text-lg font-bold text-gray-900 mb-6">Current Customer</h2>
+
+              {/* Token Number */}
+              <div className="text-center mb-8">
+                <div className="text-6xl font-bold text-blue-600 mb-6">{currentToken.tokenNumber}</div>
+              </div>
+
+              {/* Customer Details */}
+              <div className="space-y-5 mb-8">
+                <div className="flex items-center gap-3">
+                  <User className="w-5 h-5 text-gray-400" />
+                  <span className="text-gray-900 font-medium">{currentToken.customer.name}</span>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <Phone className="w-5 h-5 text-gray-400" />
+                  <span className="text-gray-900 font-medium">{currentToken.customer.mobileNumber}</span>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <FileText className="w-5 h-5 text-gray-400" />
+                  <div className="flex items-center gap-2">
+                    <span className="text-gray-900 font-medium">Service:</span>
+                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${getServiceColor(currentToken.serviceType)}`}>
+                      <ServiceName serviceType={currentToken.serviceType} />
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <Clock className="w-5 h-5 text-gray-400" />
+                  <span className="text-gray-900 font-medium">
+                    Waiting for: {Math.floor((Date.now() - new Date(currentToken.createdAt).getTime()) / 60000)} min
+                  </span>
+                </div>
+
+                {/* Preferred Languages */}
+                {Array.isArray((currentToken as any).preferredLanguages) && (currentToken as any).preferredLanguages.length > 0 && (
+                  <div className="flex items-center gap-3">
+                    <span className="text-gray-400 text-sm">Preferred:</span>
+                    <span className="text-gray-900 font-medium">[{(currentToken as any).preferredLanguages.join(", ")}]</span>
+                  </div>
+                )}
+              </div>
+
+              {/* IP Speaker Component */}
+              <div className="mb-6">
+                <IPSpeaker 
+                  token={currentToken} 
+                  counterNumber={officer?.counterNumber}
+                />
+              </div>
+
+              {/* Notes Section */}
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Notes:</label>
+                <textarea
+                  value={accountRef}
+                  onChange={(e) => setAccountRef(e.target.value)}
+                  rows={3}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none"
+                  placeholder="Add notes or account reference..."
+                />
+              </div>
+
+              {/* Action Buttons */}
+              <div className="grid grid-cols-2 gap-4">
+                <button
+                  onClick={handleSkip}
+                  disabled={loading}
+                  className="flex items-center justify-center gap-2 px-6 py-4 bg-orange-500 text-white rounded-lg font-semibold hover:bg-orange-600 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+                >
+                  Skip Customer
+                </button>
+
+                <button
+                  onClick={handleCompleteService}
+                  disabled={loading}
+                  className="flex items-center justify-center gap-2 px-6 py-4 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+                >
+                  Complete Service
+                </button>
+              </div>
+              </>
+            )}
+          </div>
         </div>
-      </div>
       </div>
     </div>
   )

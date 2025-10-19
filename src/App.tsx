@@ -2,39 +2,44 @@ import React from "react"
 import { Routes, Route, useLocation, useNavigate } from "react-router-dom"
 // MainNav removed per request - no top navbar
 import Sidebar from "./admin/adminComponents/additionalComps/SideBar"
+import Header from "./components/Header"
+import ProtectedAdminRoute from "./components/ProtectedAdminRoute"
+import ProtectedManagerRoute from "./components/ProtectedManagerRoute"
 import CustomerRegistration from "./pages/CustomerRegistration"
 import QueueStatus from "./pages/QueueStatus"
 import OfficerLogin from "./pages/OfficerLogin"
 import OfficerDashboard from "./pages/OfficerDashboard"
+import AdminLogin from "./pages/AdminLogin"
 import DashboardPage from "./admin/adminPages/DashboardPage"
 import AdminOfficers from "./admin/adminPages/AdminOfficers"
 import BranchesPage from "./admin/adminPages/BranchesPage"
 import ServicesPage from "./admin/adminPages/ServicesPage"
 import BranchComparePage from "./admin/adminPages/BranchComparePage"
 import AdminAllOfficers from "./admin/adminPages/AdminAllOfficers"
+import ManagerManagement from "./admin/adminPages/ManagerManagement"
 import FeedbackPage from "./pages/FeedbackPage"
 import QRDisplay from "./pages/QRDisplay"
 // import OfficerRegistration from "./pages/OfficerRegistration" // moved under manager portal
 import OfficerQueuePage from "./pages/OfficerQueuePage"
+import IPSpeakerPage from "./pages/IPSpeakerPage"
 import ManagerLogin from "./pages/ManagerLogin"
 import ManagerDashboard from "./pages/ManagerDashboard"
 import ManagerBranches from "./pages/ManagerBranches"
 import ManagerCompare from "./pages/ManagerCompare"
 import ManagerOfficerRegistration from "./pages/ManagerOfficerRegistration.tsx"
 import ManagerOfficers from "./pages/ManagerOfficers"
+import ManagerQRCodes from "./pages/ManagerQRCodes"
+import ManagerBreakOversight from "./pages/ManagerBreakOversight"
 
-import { Users, Shield, UserCog, ArrowRight, Building2 } from "lucide-react"
+import { Shield, UserCog, ArrowRight, Building2 } from "lucide-react"
 import OfficerTopBar from "./components/OfficerTopBar"
-import ManagerTopBar from "./components/ManagerTopBar"
 import api from "./config/api"
 import type { Officer } from "./types"
 
 function TabsLanding() {
   const location = useLocation()
   const navigate = useNavigate()
-  const [activeTab, setActiveTab] = React.useState<string>("customer")
-  const [customerToken, setCustomerToken] = React.useState<string>("")
-  const [customerLoginError, setCustomerLoginError] = React.useState<string>("")
+  const [activeTab, setActiveTab] = React.useState<string>("officer")
 
   React.useEffect(() => {
     const stateTab = new URLSearchParams(location.search).get("tab")
@@ -44,16 +49,6 @@ function TabsLanding() {
   const handleTabChange = (tab: string) => {
     setActiveTab(tab)
     navigate(`/?tab=${tab}`)
-  }
-
-  const handleCustomerTokenLogin = () => {
-    setCustomerLoginError("")
-    const token = customerToken.trim()
-    if (!token) {
-      setCustomerLoginError('Please enter your token ID')
-      return
-    }
-    navigate(`/queue/${token}`)
   }
 
   
@@ -69,16 +64,16 @@ function TabsLanding() {
           
           <div className="relative z-10 max-w-xl mx-auto w-full">
             {/* Logo/Brand */}
-            <div className="mb-8 sm:mb-12 lg:mb-16 text-center xl:text-left">
-              <div className="flex flex-col sm:flex-row items-center justify-center xl:justify-start gap-3 sm:gap-4 mb-4">
+            <div className="mb-8 sm:mb-12 lg:mb-16 text-center">
+              <div className="flex flex-col items-center justify-center mb-4">
                 <img 
-                  src="/logo.jpg" 
-                  alt="QueueFlow Logo" 
-                  className="w-12 h-12 sm:w-14 sm:h-14 lg:w-16 lg:h-16 rounded-xl object-contain"
+                  src="/logo_white.png" 
+                  alt="Queue Management Platform Logo" 
+                  className="w-24 h-24 sm:w-32 sm:h-32 lg:w-40 lg:h-40 rounded-xl object-contain mb-4"
                 />
-                <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold">QueueFlow</h1>
+                <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold whitespace-nowrap text-center">Queue Management Platform</h1>
               </div>
-              <p className="text-base sm:text-lg lg:text-xl text-blue-100">Smart Queue Management</p>
+              <p className="text-base sm:text-lg lg:text-xl text-blue-100 text-center">Streamlining Service, Minimizing Wait Times</p>
             </div>
 
             {/* Stats */}
@@ -111,7 +106,6 @@ function TabsLanding() {
             <div className="bg-white rounded-xl sm:rounded-2xl shadow-xl overflow-hidden border border-gray-100">
               <div className="flex flex-wrap sm:flex-nowrap border-b border-gray-200">
                 {[
-                  { id: 'customer', label: 'Customer', icon: Users },
                   { id: 'officer', label: 'Officer', icon: UserCog },
                   { id: 'manager', label: 'Manager', icon: Building2 },
                   { id: 'admin', label: 'Admin', icon: Shield }
@@ -136,48 +130,6 @@ function TabsLanding() {
 
               {/* Tab Content */}
               <div className="p-4 sm:p-6 lg:p-8">
-                {/* Customer Tab */}
-                {activeTab === 'customer' && (
-                  <div className="space-y-4 sm:space-y-6">
-                    <div className="text-center sm:text-left">
-                      <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-2">Customer Portal</h3>
-                      <p className="text-gray-600 text-sm">Get a queue token or check your status</p>
-                    </div>
-
-                    <div className="space-y-4">
-                      {/* Check Token Status */}
-                      <div className="p-4 sm:p-5 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg sm:rounded-xl border border-blue-200">
-                        <h4 className="font-semibold text-gray-900 mb-3">Check Token Status</h4>
-                        <input
-                          value={customerToken}
-                          onChange={(e) => setCustomerToken(e.target.value)}
-                          onKeyPress={(e) => e.key === 'Enter' && handleCustomerTokenLogin()}
-                          placeholder="Enter your token ID"
-                          className="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none mb-3"
-                        />
-                        {customerLoginError && (
-                          <p className="text-sm text-red-600 mb-3">{customerLoginError}</p>
-                        )}
-                        <button
-                          onClick={handleCustomerTokenLogin}
-                          className="w-full px-4 sm:px-6 py-2 sm:py-3 text-sm sm:text-base bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2"
-                        >
-                          Check Status <ArrowRight className="w-4 h-4" />
-                        </button>
-                      </div>
-
-                      {/* New Registration (QR-gated notice) */}
-                        <div className="block p-3 sm:p-4 rounded-lg border border-yellow-200 bg-yellow-50">
-                          <h3 className="text-base sm:text-lg font-semibold text-yellow-900 mb-1">Customer Registration</h3>
-                          <p className="text-xs sm:text-sm text-yellow-800">
-                            To register, please scan the QR code displayed at the branch counter. The registration form will open automatically with a secure token.
-                          </p>
-                        </div>
-                    </div>
-
-                  </div>
-                )}
-
                 {/* Officer Tab */}
                 {activeTab === 'officer' && (
                   <div className="space-y-6">
@@ -274,13 +226,10 @@ function Layout({ children }: { children: React.ReactNode }) {
   const isManagerLogin = location.pathname === '/manager/login'
   // Ensure sidebar is visible on admin, officer, and manager routes (but not on login pages)
   const showSidebar = isAdminPath || (isOfficerPath && !isOfficerLogin) || (isManagerPath && !isManagerLogin)
-  const [isCollapsed, setIsCollapsed] = React.useState<boolean>(false)
   const [activePage, setActivePage] = React.useState<string>('')
 
   // Central officer state for top bar when on officer pages (except login)
   const [officer, setOfficer] = React.useState<Officer | null>(null)
-  // Central manager state for top bar when on manager pages (except login)
-  const [manager, setManager] = React.useState<any | null>(null)
 
   React.useEffect(() => {
     let mounted = true
@@ -299,30 +248,21 @@ function Layout({ children }: { children: React.ReactNode }) {
       }
 
       if (isManagerPath && !isManagerLogin) {
+        // Manager authentication is now handled by ProtectedManagerRoute
+        // This is just for loading manager context data
         try {
-          // Try to get manager info, include email as fallback
           const storedManager = localStorage.getItem('manager')
           const managerData = storedManager ? JSON.parse(storedManager) : null
           
-          const params: any = {}
           if (managerData?.email) {
-            params.email = managerData.email
+            const params = { email: managerData.email }
+            await api.get('/manager/me', { params })
+            if (!mounted) return
           }
-          
-          const res = await api.get('/manager/me', { params })
-          if (!mounted) return
-          setManager(res.data.manager)
-        } catch (e) {
-          console.error('Manager authentication failed:', e)
-          // Clear invalid data and redirect to login
-          localStorage.removeItem('manager')
-          localStorage.removeItem('managerToken')
-          localStorage.removeItem('dq_role')
-          localStorage.removeItem('dq_user')
-          navigate('/manager/login')
+        } catch (e: any) {
+          console.error('Manager context loading failed:', e)
+          // Don't redirect here - ProtectedManagerRoute will handle authentication
         }
-      } else {
-        setManager(null)
       }
     }
     loadUser()
@@ -337,42 +277,25 @@ function Layout({ children }: { children: React.ReactNode }) {
     } catch {}
   }, [])
 
-  // Get page title for manager pages
-  const getManagerPageTitle = () => {
-    const path = location.pathname
-    if (path === '/manager/dashboard') return 'Regional Manager Dashboard'
-    if (path === '/manager/branches') return 'Regional Branches'
-    if (path === '/manager/compare') return 'Branch Comparison'
-    if (path === '/manager/register-officer') return 'Register Officer'
-    if (path === '/manager/officers') return 'Officers Management'
-    return 'Regional Manager'
-  }
-
   return (
     <div className="min-h-screen bg-gray-50">
       {showSidebar && (
         <Sidebar 
-          isCollapsed={isCollapsed} 
-          setIsCollapsed={setIsCollapsed} 
           activePage={activePage} 
           setActivePage={setActivePage} />
       )}
       <div 
-        className={`flex-1 transition-all duration-300 ${showSidebar ? 'ml-14' : 'ml-0'}`}
+        className={`flex-1 transition-all duration-300 ${showSidebar ? 'lg:ml-72 xl:ml-80' : 'ml-0'}`}
       >
-        {/* Shared Officer Top Bar for all officer pages except login */}
-        {isOfficerPath && !isOfficerLogin && officer && (
+        {/* Header for all dashboard pages */}
+        {showSidebar && <Header />}
+        
+        {/* Shared Officer Top Bar for all officer pages except login, dashboard, queue, and ip-speaker */}
+        {isOfficerPath && !isOfficerLogin && officer && !location.pathname.includes('/officer/dashboard') && !location.pathname.includes('/officer/queue') && !location.pathname.includes('/officer/ip-speaker') && (
           <OfficerTopBar 
             officer={officer}
             onOfficerUpdate={setOfficer as any}
             onAfterStatusChange={handleAfterStatusChange}
-          />
-        )}
-        {/* Shared Manager Top Bar for all manager pages except login */}
-        {isManagerPath && !isManagerLogin && manager && (
-          <ManagerTopBar 
-            manager={manager}
-            title={getManagerPageTitle()}
           />
         )}
         {children}
@@ -417,27 +340,39 @@ function App() {
         path="/officer/queue"
       />
       <Route
-        element={<Layout><DashboardPage /></Layout>}
+        element={<Layout><IPSpeakerPage /></Layout>}
+        path="/officer/ip-speaker"
+      />
+      <Route
+        element={<AdminLogin />}
+        path="/admin/login"
+      />
+      <Route
+        element={<Layout><ProtectedAdminRoute><DashboardPage /></ProtectedAdminRoute></Layout>}
         path="/admin"
       />
       <Route
-        element={<Layout><AdminOfficers /></Layout>}
+        element={<Layout><ProtectedAdminRoute><AdminOfficers /></ProtectedAdminRoute></Layout>}
         path="/admin/officers"
       />
       <Route
-        element={<Layout><AdminAllOfficers /></Layout>}
+        element={<Layout><ProtectedAdminRoute><AdminAllOfficers /></ProtectedAdminRoute></Layout>}
         path="/admin/all-officers"
       />
       <Route
-        element={<Layout><ServicesPage /></Layout>}
+        element={<Layout><ProtectedAdminRoute><ServicesPage /></ProtectedAdminRoute></Layout>}
         path="/admin/services"
       />
       <Route
-        element={<Layout><BranchesPage /></Layout>}
+        element={<Layout><ProtectedAdminRoute><BranchesPage /></ProtectedAdminRoute></Layout>}
         path="/admin/branches"
       />
       <Route
-        element={<Layout><BranchComparePage /></Layout>}
+        element={<Layout><ProtectedAdminRoute><ManagerManagement /></ProtectedAdminRoute></Layout>}
+        path="/admin/managers"
+      />
+      <Route
+        element={<Layout><ProtectedAdminRoute><BranchComparePage /></ProtectedAdminRoute></Layout>}
         path="/admin/compare"
       />
       <Route
@@ -445,24 +380,32 @@ function App() {
         path="/manager/login"
       />
       <Route
-        element={<Layout><ManagerDashboard /></Layout>}
+        element={<Layout><ProtectedManagerRoute><ManagerDashboard /></ProtectedManagerRoute></Layout>}
         path="/manager/dashboard"
       />
       <Route
-        element={<Layout><ManagerBranches /></Layout>}
+        element={<Layout><ProtectedManagerRoute><ManagerBranches /></ProtectedManagerRoute></Layout>}
         path="/manager/branches"
       />
       <Route
-        element={<Layout><ManagerCompare /></Layout>}
+        element={<Layout><ProtectedManagerRoute><ManagerQRCodes /></ProtectedManagerRoute></Layout>}
+        path="/manager/qr-codes"
+      />
+      <Route
+        element={<Layout><ProtectedManagerRoute><ManagerCompare /></ProtectedManagerRoute></Layout>}
         path="/manager/compare"
       />
       <Route
-        element={<Layout><ManagerOfficerRegistration /></Layout>}
+        element={<Layout><ProtectedManagerRoute><ManagerOfficerRegistration /></ProtectedManagerRoute></Layout>}
         path="/manager/register-officer"
       />
       <Route
-        element={<Layout><ManagerOfficers /></Layout>}
+        element={<Layout><ProtectedManagerRoute><ManagerOfficers /></ProtectedManagerRoute></Layout>}
         path="/manager/officers"
+      />
+      <Route
+        element={<Layout><ProtectedManagerRoute><ManagerBreakOversight /></ProtectedManagerRoute></Layout>}
+        path="/manager/breaks"
       />
     </Routes>
   )

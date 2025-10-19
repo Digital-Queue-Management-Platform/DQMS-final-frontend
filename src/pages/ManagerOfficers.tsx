@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import api from '../config/api'
-import { Users, Hash, CheckCircle2, XCircle, Edit3, X, Search, UserCog, Phone, MapPin, Save } from 'lucide-react'
+import { Users, Hash, CheckCircle2, XCircle, Edit3, X, Search, Phone, MapPin, Save } from 'lucide-react'
 
 interface Officer {
   id: string
@@ -90,21 +90,20 @@ export default function ManagerOfficers() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="mx-auto p-6 lg:p-8">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-8">
+      <div className="mx-auto">
+        {/* Header Section in Body */}
         <div className="mb-8">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center">
-               <UserCog className="w-6 h-6" />
-            </div>
+          <div className="flex items-center justify-between mb-2">
             <div>
               <h1 className="text-2xl font-bold text-gray-900">Officers Management</h1>
-              <p className="text-gray-600 text-sm">Manage officer assignments, counters, and services</p>
             </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+        {/* Main Content */}
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">{/* Existing content continues */}
           <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
             <div className="flex items-center justify-between">
               <div>
@@ -314,6 +313,7 @@ export default function ManagerOfficers() {
           </div>
         </>
       )}
+      </div>
     </div>
   )
 }

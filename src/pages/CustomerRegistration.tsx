@@ -26,13 +26,40 @@ export default function CustomerRegistration() {
   const [qrToken, setQrToken] = useState<string>("")
   const [qrValid, setQrValid] = useState<boolean>(false)
   const [services, setServices] = useState<Array<{ id: string; code: string; title: string; isActive?: boolean }>>([])
-  const [preferredLanguages, setPreferredLanguages] = useState<string[]>([])
+  const [preferredLanguage, setPreferredLanguage] = useState<string>('en')
+
+  // Function to validate manager-generated QR tokens (localStorage backup)
+  const validateManagerQRToken = (token: string, currentOutletId: string): boolean => {
+    try {
+      const storedQRCodes = localStorage.getItem('managerQRCodes')
+      if (!storedQRCodes) return false
+
+      const qrCodes = JSON.parse(storedQRCodes)
+      const qrData = qrCodes[currentOutletId]
+      
+      if (!qrData) return false
+      
+      return qrData.token === token
+    } catch (error) {
+      console.error('Error validating manager QR token:', error)
+      return false
+    }
+  }
 
   useEffect(() => {
+    // Always fetch outlets and services first
+    fetchOutlets()
+    fetchServices()
+    
     // Extract qr token from query param
     const q = new URLSearchParams(location.search)
     const token = q.get("qr") || ""
     setQrToken(token)
+
+    // If we have an outlet ID from URL params, set it
+    if (outletId) {
+      setSelectedOutlet(outletId)
+    }
 
     // Validate QR token before allowing registration
     const validate = async () => {
@@ -41,7 +68,40 @@ export default function CustomerRegistration() {
         setQrValid(false)
         return
       }
+
       try {
+        // First check if this is a manager-generated QR token via backend
+        console.log('Trying manager QR validation via backend for token:', token)
+        try {
+          const managerRes = await api.get(`/customer/validate-manager-qr`, { params: { token } })
+          if (managerRes.data.valid) {
+            console.log('Valid manager QR token for outlet:', managerRes.data.outletId)
+            setQrValid(true)
+            setError("")
+            if (managerRes.data.outletId) {
+              setSelectedOutlet(managerRes.data.outletId)
+            }
+            return
+          }
+        } catch (managerError) {
+          console.log('Manager QR validation failed, trying legacy validation:', managerError)
+        }
+
+        // Also check localStorage as backup (for offline functionality)
+        if (outletId) {
+          const isManagerToken = validateManagerQRToken(token, outletId)
+          
+          if (isManagerToken) {
+            console.log('Valid manager QR token from localStorage for outlet:', outletId)
+            setQrValid(true)
+            setError("")
+            setSelectedOutlet(outletId)
+            return
+          }
+        }
+
+        // Fallback to backend validation for legacy QR tokens
+        console.log('Trying backend validation for legacy token:', token)
         const res = await api.get(`/customer/validate-qr`, { params: { token } })
         if (res.data.valid) {
           setQrValid(true)
@@ -50,20 +110,19 @@ export default function CustomerRegistration() {
             setSelectedOutlet(res.data.outletId)
           }
           setError("")
-          fetchOutlets()
-          fetchServices()
         } else {
           setQrValid(false)
           setError(res.data.error || "Invalid QR token")
         }
       } catch (err: any) {
+        console.error('QR validation error:', err)
         setQrValid(false)
         setError(err?.response?.data?.error || "Invalid or expired QR token")
       }
     }
 
     validate()
-  }, [location.search])
+  }, [location.search, outletId])
 
   const fetchOutlets = async () => {
     try {
@@ -104,7 +163,7 @@ export default function CustomerRegistration() {
         serviceType,
         outletId: selectedOutlet,
         qrToken,
-        preferredLanguages: preferredLanguages.length ? preferredLanguages : undefined,
+        preferredLanguages: preferredLanguage ? [preferredLanguage] : undefined,
       })
 
       if (response.data.success) {
@@ -129,7 +188,7 @@ export default function CustomerRegistration() {
       other: "Other Services",
       register: "Register",
       registering: "Registering...",
-      sltMobile: "SLT Mobile Number",
+      sltMobile: "Telephone Number",
       nic: "NIC Number",
       email: "Email (Optional)",
     },
@@ -144,8 +203,8 @@ export default function CustomerRegistration() {
       other: "වෙනත් සේවා",
       register: "ලියාපදිංචි වන්න",
       registering: "ලියාපදිංචි වෙමින්...",
-      sltMobile: "SLT ජංගම අංකය",
-      nic: "ජාතික කාර্ড අංකය",
+      sltMobile: "දුරකථන අංකය",
+      nic: "ජාතික කාර්ද අංකය",
       email: "ඊමේල් (විකල්ප)",
     },
     ta: {
@@ -159,7 +218,7 @@ export default function CustomerRegistration() {
       other: "பிற சேவைகள்",
       register: "பதிவு செய்யவும்",
       registering: "பதிவு செய்கிறது...",
-      sltMobile: "SLT கைபேசி எண்",
+      sltMobile: "தொலைபேசி எண்",
       nic: "NIC எண்",
       email: "மின்னஞ்சல் (விருப்பம்)",
     },
@@ -272,7 +331,7 @@ export default function CustomerRegistration() {
             </div>
           </div>
 
-          {/* SLT Mobile Number Input (optional) */}
+          {/* Telephone Number Input (optional) */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">{t.sltMobile}</label>
             <div className="relative">
@@ -282,8 +341,8 @@ export default function CustomerRegistration() {
                 value={sltMobileNumber}
                 onChange={(e) => setSltMobileNumber(e.target.value)}
                 className="w-full pl-9 sm:pl-10 pr-4 py-2.5 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
-                placeholder="0XXXXXXXXX"
-                pattern="0[0-9]{9}"
+                placeholder="0112345678"
+                pattern="[0-9]{10}"
               />
             </div>
           </div>
@@ -336,22 +395,24 @@ export default function CustomerRegistration() {
             </select>
           </div>
 
-          {/* Preferred Languages */}
+          {/* Preferred Language */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Preferred Language(s)</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Preferred Language</label>
             <div className="grid grid-cols-3 gap-3 text-sm">
               {[{ code: 'en', label: 'English' }, { code: 'si', label: 'Sinhala' }, { code: 'ta', label: 'Tamil' }].map(l => (
                 <label key={l.code} className="inline-flex items-center gap-2">
                   <input
-                    type="checkbox"
-                    checked={preferredLanguages.includes(l.code)}
-                    onChange={(e) => setPreferredLanguages(prev => e.target.checked ? [...prev, l.code] : prev.filter(c => c !== l.code))}
+                    type="radio"
+                    name="preferredLanguage"
+                    value={l.code}
+                    checked={preferredLanguage === l.code}
+                    onChange={(e) => setPreferredLanguage(e.target.value)}
                   />
                   <span>{l.label}</span>
                 </label>
               ))}
             </div>
-            <p className="text-xs text-gray-500 mt-1">Select language(s) you prefer to speak with the officer.</p>
+            <p className="text-xs text-gray-500 mt-1">Select your preferred language for announcements.</p>
           </div>
 
           {/* Submit Button */}

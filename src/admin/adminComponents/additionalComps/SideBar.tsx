@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 //import SLTlogo from '../../../assets/logo.png';
 import { 
   LayoutDashboard, 
@@ -7,7 +7,7 @@ import {
   //Users, 
   //UserCheck, 
   UserCog,
-  //Headphones,
+  Headphones,
   UserPlus,
   LogOut,
   Menu,
@@ -16,6 +16,9 @@ import {
   ListOrdered,
   Building2,
   Briefcase,
+  QrCode,
+  Users,
+  Coffee,
   //X
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
@@ -28,16 +31,15 @@ interface NavigationItem {
 }
 
 interface SidebarProps {
-  isCollapsed: boolean;
-  setIsCollapsed: (value: boolean | ((prev: boolean) => boolean)) => void;
   activePage: string;
   setActivePage: (page: string) => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed, activePage, setActivePage }) => {
+const Sidebar: React.FC<SidebarProps> = ({ activePage, setActivePage }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState<boolean>(false);
   const { currentUser, loading } = useUser()
-  const loc = useLocation()
+  const location = useLocation()
+  const navigate = useNavigate()
 
   // Base nav items per role
   const adminItems: NavigationItem[] = [
@@ -45,26 +47,30 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed, activePa
     { name: 'Dashboard', icon: LayoutDashboard, to: '/admin' },
     { name: 'Services', icon: Briefcase, to: '/admin/services' },
     { name: 'Branches', icon: Building2, to: '/admin/branches' },
+    { name: 'Managers', icon: Users, to: '/admin/managers' },
     { name: 'Compare', icon: Scale3D, to: '/admin/compare' },
     { name: 'All Officers', icon: UserCog, to: '/admin/all-officers' },
   ]
   const officerItems: NavigationItem[] = [
     { name: 'Officer Dashboard', icon: LayoutDashboard, to: '/officer/dashboard' },
     { name: 'Queue', icon: ListOrdered, to: '/officer/queue' },
+    { name: 'IP Speaker', icon: Headphones, to: '/officer/ip-speaker' },
   ]
   const regionManagerItems: NavigationItem[] = [
     //{ name: 'Home', icon: Home, to: '/' },
     { name: 'Dashboard', icon: LayoutDashboard, to: '/manager/dashboard' },
     { name: 'Officers', icon: UserCog, to: '/manager/officers' },
     { name: 'Branches', icon: Building2, to: '/manager/branches' },
+    { name: 'Break Oversight', icon: Coffee, to: '/manager/breaks' },
+    { name: 'QR Codes', icon: QrCode, to: '/manager/qr-codes' },
     { name: 'Compare', icon: Scale3D, to: '/manager/compare' },
     { name: 'Register Officer', icon: UserPlus, to: '/manager/register-officer' },
   ]
 
   // Fix flickering: prioritize URL path over role, and handle loading state
-  const onOfficerPath = loc.pathname.startsWith('/officer')
-  const onAdminPath = loc.pathname.startsWith('/admin')
-  const onManagerPath = loc.pathname.startsWith('/manager')
+  const onOfficerPath = location.pathname.startsWith('/officer')
+  const onAdminPath = location.pathname.startsWith('/admin')
+  const onManagerPath = location.pathname.startsWith('/manager')
   const role = (currentUser?.role || '').toLowerCase()
   
   const navigationItems: NavigationItem[] = onOfficerPath
@@ -80,16 +86,6 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed, activePa
             : role === 'region_manager' || role === 'manager' || role === 'regionalmanager'
               ? regionManagerItems
               : adminItems // fallback
-  
-  const toggleSidebar = (): void => {
-    if (window.innerWidth < 1024) {
-      setIsMobileMenuOpen(prev => !prev);
-    } else {
-      setIsCollapsed(prev => !prev);
-    }
-  };
-
-  const location = useLocation();
 
   const handleNavClick = (itemName: string): void => {
     setActivePage(itemName);
@@ -98,9 +94,54 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed, activePa
     }
   };
 
+  // Get user display information based on role and context
+  const getUserDisplayInfo = () => {
+    // Get stored user data
+    const storedUser = localStorage.getItem('dq_user')
+    const storedManager = localStorage.getItem('manager')
+    
+    if (onOfficerPath) {
+      const storedOfficer = localStorage.getItem('officer')
+      const officer = storedOfficer ? JSON.parse(storedOfficer) : null
+      return {
+        name: officer?.name || 'Officer',
+        role: 'Customer Service Officer',
+        initials: officer?.name ? officer.name.split(' ').map((n: string) => n[0]).join('').toUpperCase() : 'CSO',
+        counterNumber: officer?.counterNumber,
+        outletName: officer?.outlet?.name || 'Unknown Branch'
+      }
+    } else if (onManagerPath) {
+      const manager = storedManager ? JSON.parse(storedManager) : null
+      const managerName = manager?.name || manager?.id || 'Manager'
+      return {
+        name: managerName,
+        role: 'Regional Manager',
+        initials: managerName ? managerName.split(' ').map((n: string) => n[0]).join('').toUpperCase() : 'RM'
+      }
+    } else {
+      // Admin path
+      const admin = storedUser ? JSON.parse(storedUser) : null
+      return {
+        name: admin?.name || 'Admin',
+        role: 'Administrator',
+        initials: admin?.name ? admin.name.split(' ').map((n: string) => n[0]).join('').toUpperCase() : 'AD'
+      }
+    }
+  }
+
+  const userInfo = getUserDisplayInfo()
+
   const handleLogout = (): void => {
-    console.log('Logout clicked');
-    // Add logout logic here
+    // Clear all stored user data
+    localStorage.removeItem('dq_user')
+    localStorage.removeItem('dq_role')
+    localStorage.removeItem('adminToken')
+    localStorage.removeItem('managerToken')
+    localStorage.removeItem('manager')
+    localStorage.removeItem('dq_jwt')
+    
+    // Navigate to home page
+    navigate('/')
   };
 
   return (
@@ -125,55 +166,27 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed, activePa
       <div className={`
         fixed left-0 top-0 bg-white shadow-xl border-r border-gray-200 h-full min-h-screen z-50 transition-all duration-300
         ${isMobileMenuOpen ? 'w-full sm:w-80 md:w-72' : 'hidden lg:block'}
-        ${isCollapsed ? 'lg:w-16 xl:w-20' : 'lg:w-72 xl:w-80'} 
+        lg:w-72 xl:w-80 
       `}>
         
         {/* Header */}
-        <div className="border-b border-gray-200 h-16 sm:h-20 flex items-center justify-between p-3 sm:p-5 relative">
-          {isCollapsed ? (
-            <button
-              onClick={toggleSidebar}
-              className="flex flex-col items-center justify-center w-full cursor-pointer group"
-            >
-              <img 
-                src="/logo.jpg" 
-                alt="System Logo" 
-                className="w-8 h-8 rounded-md object-contain mb-1"
-              />
-              <Menu className="h-4 w-4 text-gray-400 group-hover:text-gray-600" />
-            </button>
-          ) : (
-            <>
-              <div className="flex items-center gap-3">
-                <img 
-                  src="/logo.jpg" 
-                  alt="System Logo" 
-                  className="w-10 h-10 rounded-lg object-contain"
-                />
-                <div>
-                  <h2 className="text-lg font-semibold text-gray-800">QueueFlow</h2>
-                  <p className="text-xs text-gray-500">Admin Panel</p>
-                </div>
-              </div>
-              {/* Close button - inside header for expanded state */}
-              <button
-                onClick={() => {
-                  if (window.innerWidth < 1024) {
-                    setIsMobileMenuOpen(false);
-                  } else {
-                    setIsCollapsed(true);
-                  }
-                }}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
-              >
-                <SidebarIcon className="h-6 w-6 text-gray-600" />
-              </button>
-            </>
-          )}
+        <div className="border-b border-gray-200 h-16 flex items-center justify-center p-4 relative">
+          <img 
+            src="/logo.png" 
+            alt="System Logo" 
+            className="w-16 h-16 rounded-lg object-contain"
+          />
+          {/* Close button - only for mobile */}
+          <button
+            onClick={() => setIsMobileMenuOpen(false)}
+            className="absolute right-3 p-2 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer lg:hidden"
+          >
+            <SidebarIcon className="h-6 w-6 text-gray-600" />
+          </button>
         </div>
 
         {/* Navigation */}
-        <nav className={`${isCollapsed ? 'px-1 sm:px-2' : 'px-3 sm:px-6'} pt-4 sm:pt-6`}>
+        <nav className="px-3 sm:px-6 pt-4 sm:pt-6">
           <ul className="space-y-2 sm:space-y-3">
             {navigationItems.map((item) => (
               <li key={item.name}>
@@ -181,33 +194,26 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed, activePa
                   <Link
                     to={item.to}
                     onClick={() => handleNavClick(item.name)}
-                    className={`w-full flex items-center group ${isCollapsed ? 'px-2 sm:px-3 py-2 sm:py-3 justify-center' : 'px-3 sm:px-4 py-2 sm:py-3'} text-xs sm:text-sm font-medium sm:font-semibold rounded-lg transition-all duration-200 relative cursor-pointer ${
+                    className={`w-full flex items-center px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium sm:font-semibold rounded-lg transition-all duration-200 relative cursor-pointer ${
                       (location.pathname === item.to || activePage === item.name)
                         ? 'bg-blue-600 text-white shadow-lg'
                         : 'text-gray-600 hover:text-white hover:bg-blue-600'
                     }`}
                   >
                     <item.icon className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
-                    {!isCollapsed && <span className="ml-2 sm:ml-3 truncate">{item.name}</span>}
-
-                    {/* Tooltip for collapsed state */}
-                    {isCollapsed && (
-                      <div className="absolute left-full ml-2 sm:ml-3 px-2 sm:px-3 py-1 sm:py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50 hidden lg:block">
-                        {item.name}
-                      </div>
-                    )}
+                    <span className="ml-2 sm:ml-3 truncate">{item.name}</span>
                   </Link>
                 ) : (
                   <button
                     onClick={() => handleNavClick(item.name)}
-                    className={`w-full flex items-center ${isCollapsed ? 'px-3 py-3 justify-center' : 'px-4 py-3'} text-sm font-semibold rounded-lg transition-all duration-200 relative cursor-pointer ${
+                    className={`w-full flex items-center px-4 py-3 text-sm font-semibold rounded-lg transition-all duration-200 relative cursor-pointer ${
                       activePage === item.name
                         ? 'bg-blue-600 text-white shadow-lg'
                         : 'text-gray-600 hover:text-white hover:bg-blue-600'
                     }`}
                   >
-                    <item.icon className="h-5 w-5" />
-                    {!isCollapsed && <span className="ml-3">{item.name}</span>}
+                    <item.icon className="h-5 w-5 flex-shrink-0" />
+                    <span className="ml-3 truncate">{item.name}</span>
                   </button>
                 )}
               </li>
@@ -218,41 +224,27 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed, activePa
         {/* User info and logout */}
         <div className="absolute bottom-0 left-0 right-0 border-t border-gray-200 bg-white">
           <div className="p-6">
-            {isCollapsed ? (
-              <div className="flex flex-col items-center space-y-3">
-                <div className="h-10 w-10 bg-gray-800 rounded-lg flex items-center justify-center">
-                  <span className="text-white text-sm font-semibold">JD</span>
-                </div>
-                <button
-                  onClick={handleLogout}
-                  className="p-2 text-gray-600 hover:text-white hover:bg-red-500 rounded-lg group relative"
-                >
-                  <LogOut className="h-4 w-4" />
-                  <div className="absolute left-full ml-3 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50">
-                    Sign Out
-                  </div>
-                </button>
+            <div className="flex items-center mb-4">
+              <div className="h-10 w-10 bg-gray-800 rounded-lg flex items-center justify-center">
+                <span className="text-white text-sm font-semibold">{userInfo.initials}</span>
               </div>
-            ) : (
-              <>
-                <div className="flex items-center mb-4">
-                  <div className="h-10 w-10 bg-gray-800 rounded-lg flex items-center justify-center">
-                    <span className="text-white text-sm font-semibold">JD</span>
-                  </div>
-                  <div className="ml-3 min-w-0 flex-1">
-                    <p className="text-sm font-semibold text-gray-800 truncate">John Doe</p>
-                    <p className="text-xs text-gray-600 truncate">Administrator</p>
-                  </div>
-                </div>
-                <button
-                  onClick={handleLogout}
-                  className="flex items-center px-4 py-2 text-sm text-red-600 font-semibold rounded-lg transition-all duration-200 hover:bg-red-50"
-                >
-                  <LogOut className="mr-3 h-4 w-4" />
-                  <span>Sign Out</span>
-                </button>
-              </>
-            )}
+              <div className="ml-3 min-w-0 flex-1">
+                <p className="text-sm font-semibold text-gray-800 truncate">{userInfo.name}</p>
+                <p className="text-xs text-gray-600 truncate">{userInfo.role}</p>
+                {onOfficerPath && userInfo.counterNumber && (
+                  <p className="text-xs text-blue-600 font-medium truncate">
+                    Counter {userInfo.counterNumber} • {userInfo.outletName}
+                  </p>
+                )}
+              </div>
+            </div>
+            <button
+              onClick={handleLogout}
+              className="flex items-center px-4 py-2 text-sm text-red-600 font-semibold rounded-lg transition-all duration-200 hover:bg-red-50"
+            >
+              <LogOut className="mr-3 h-4 w-4" />
+              <span>Sign Out</span>
+            </button>
           </div>
         </div>
       </div>

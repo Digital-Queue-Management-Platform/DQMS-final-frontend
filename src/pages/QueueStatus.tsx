@@ -5,6 +5,7 @@ import { useParams, useNavigate } from "react-router-dom"
 import { Clock, Users, CheckCircle, AlertTriangle } from "lucide-react"
 import api, { WS_URL } from "../config/api"
 import type { Token } from "../types"
+import ServiceName from "../components/ServiceName"
 
 export default function QueueStatus() {
   const { tokenId } = useParams()
@@ -13,11 +14,9 @@ export default function QueueStatus() {
   const [position, setPosition] = useState(0)
   const [estimatedWait, setEstimatedWait] = useState(0)
   const [loading, setLoading] = useState(true)
-  const [services, setServices] = useState<Array<{ id: string; code: string; title: string; isActive?: boolean }>>([])
 
   useEffect(() => {
     fetchTokenStatus()
-    fetchServices()
     const interval = setInterval(fetchTokenStatus, 10000) // Update every 10 seconds
 
     // WebSocket connection for real-time updates
@@ -58,31 +57,7 @@ export default function QueueStatus() {
     }
   }
 
-  const fetchServices = async () => {
-    try {
-      const response = await api.get("/queue/services")
-      const list = Array.isArray(response.data) ? response.data : []
-      setServices(list.filter((s: any) => s?.isActive !== false))
-    } catch (err) {
-      // keep empty on failure
-      setServices([])
-    }
-  }
 
-  const formatService = (code: string) =>
-    code
-      ? code
-          .split("_")
-          .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-          .join(" ")
-      : ""
-
-  const getServiceTitle = () => {
-    const code = token?.serviceType
-    if (!code) return ""
-    const svc = services.find((s) => s.code === code)
-    return svc?.title || formatService(code)
-  }
 
   if (loading) {
     return (
@@ -187,11 +162,13 @@ export default function QueueStatus() {
             </div>
             <div>
               <p className="text-gray-600">Service Type</p>
-              <p className="font-semibold text-gray-900">{getServiceTitle()}</p>
+              <p className="font-semibold text-gray-900">
+                <ServiceName serviceType={token.serviceType} />
+              </p>
             </div>
             <div>
               <p className="text-gray-600">Registered At</p>
-              <p className="font-semibold text-gray-900">{new Date(token.createdAt).toLocaleTimeString()}</p>
+              <p className="font-semibold text-gray-900">{new Date(token.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</p>
             </div>
           </div>
         </div>

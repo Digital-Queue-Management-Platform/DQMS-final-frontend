@@ -4,14 +4,19 @@ import type React from "react"
 
 import { useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { Mail, LogIn } from "lucide-react"
+import { Mail, LogIn, Lock } from "lucide-react"
 import api from "../config/api"
 
 export default function ManagerLogin() {
   const navigate = useNavigate()
   const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
+
+  // Get return URL from query params
+  const urlParams = new URLSearchParams(window.location.search)
+  const returnTo = urlParams.get('returnTo') || '/manager/dashboard'
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -19,23 +24,36 @@ export default function ManagerLogin() {
     setLoading(true)
 
     try {
-      const response = await api.post("/manager/login", { email })
+      const response = await api.post("/manager/login", { email, password })
 
       if (response.data.success) {
         // Store manager data and JWT token in localStorage
         localStorage.setItem("manager", JSON.stringify(response.data.manager))
         localStorage.setItem("managerToken", response.data.token)
-        // Set role in UserContext
+        // Set role in UserContext - be consistent with role naming
         localStorage.setItem("dq_role", "region_manager")
         localStorage.setItem("dq_user", JSON.stringify({
           id: response.data.manager.id,
           email: response.data.manager.email,
+          name: response.data.manager.name || response.data.manager.id,
           role: "region_manager"
         }))
-        navigate("/manager/dashboard")
+        
+        // Add a small delay to ensure localStorage is fully written before navigation
+        setTimeout(() => {
+          navigate(returnTo)
+        }, 50)
       }
     } catch (err: any) {
-      setError(err.response?.data?.error || "Login failed")
+      const errorMessage = err.response?.data?.error || "Login failed"
+      console.error("Manager login error:", errorMessage)
+      
+      // Provide specific feedback for session expiration
+      if (errorMessage.includes("expired") || errorMessage.includes("Session")) {
+        setError("Your session has expired. Please login again with your credentials.")
+      } else {
+        setError(errorMessage)
+      }
     } finally {
       setLoading(false)
     }
@@ -69,6 +87,22 @@ export default function ManagerLogin() {
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full pl-9 sm:pl-10 pr-4 py-2.5 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm sm:text-base"
                 placeholder="manager@company.com"
+                required
+              />
+            </div>
+          </div>
+
+          {/* Password Input */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Password</label>
+            <div className="relative">
+              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full pl-9 sm:pl-10 pr-4 py-2.5 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm sm:text-base"
+                placeholder="Enter your password"
                 required
               />
             </div>

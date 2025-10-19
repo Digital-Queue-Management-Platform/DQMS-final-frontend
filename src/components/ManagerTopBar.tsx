@@ -56,7 +56,7 @@ export default function ManagerTopBar({ manager, title = "Regional Manager" }: P
           <div>
             <h1 className="text-xl sm:text-2xl font-bold text-gray-900 truncate leading-tight">{title}</h1>
             <p className="text-sm text-gray-600 mt-0.5 truncate leading-tight">
-              {manager.name} • {manager.outlets?.length || 0} branches
+              {manager.name || manager.id || 'Manager'} • {manager.outlets?.length || 0} branches
             </p>
           </div>
         </div>
@@ -90,11 +90,11 @@ export default function ManagerTopBar({ manager, title = "Regional Manager" }: P
           <div className="flex items-center space-x-2 sm:space-x-3">
             <div className="w-8 h-8 sm:w-9 sm:h-9 bg-green-600 rounded-full flex items-center justify-center flex-shrink-0">
               <span className="text-sm sm:text-base font-medium text-white">
-                {manager.name?.charAt(0)?.toUpperCase() || 'M'}
+                {(manager.name || manager.id || 'M')?.charAt(0)?.toUpperCase()}
               </span>
             </div>
             <div className="hidden lg:flex flex-col justify-center min-w-0">
-              <p className="text-sm font-medium text-gray-900 truncate leading-tight">{manager.name}</p>
+              <p className="text-sm font-medium text-gray-900 truncate leading-tight">{manager.name || manager.id || 'Manager'}</p>
               <p className="text-xs text-gray-500 truncate leading-tight">{manager.email}</p>
             </div>
           </div>

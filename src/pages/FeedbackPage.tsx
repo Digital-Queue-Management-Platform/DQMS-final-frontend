@@ -7,6 +7,7 @@ import { useParams, useNavigate } from "react-router-dom"
 import { Star, MessageSquare, CheckCircle, Send } from "lucide-react"
 import api from "../config/api"
 import type { Token } from "../types"
+import ServiceName from "../components/ServiceName"
 
 export default function FeedbackPage() {
   const { tokenId } = useParams()
@@ -71,20 +72,20 @@ export default function FeedbackPage() {
           <h1 className="text-3xl font-bold text-gray-900 mb-4">Thank You!</h1>
           <p className="text-gray-600 mb-8">Your feedback has been submitted successfully.</p>
 
-          <div className="space-y-3">
-            <button
-              onClick={() => navigate("/")}
-              className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors"
-            >
-              Register New Token
-            </button>
-            <button
-              onClick={() => window.close()}
-              className="w-full px-6 py-3 bg-gray-100 text-gray-700 rounded-lg font-semibold hover:bg-gray-200 transition-colors"
-            >
-              Close
-            </button>
-          </div>
+          <button
+            onClick={() => {
+              // Try to close the window/tab first
+              if (window.opener) {
+                window.close()
+              } else {
+                // If can't close, navigate to home page
+                navigate("/")
+              }
+            }}
+            className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+          >
+            Close
+          </button>
         </div>
       </div>
     )
@@ -127,7 +128,7 @@ export default function FeedbackPage() {
             <div>
               <p className="text-gray-600">Service Type</p>
               <p className="font-semibold text-gray-900">
-                {token.serviceType === "bill_payment" ? "Bill Payment" : "Other Services"}
+                <ServiceName serviceType={token.serviceType} />
               </p>
             </div>
             <div>

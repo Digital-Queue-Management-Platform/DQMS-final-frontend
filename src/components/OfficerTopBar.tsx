@@ -26,7 +26,17 @@ export default function OfficerTopBar({ officer, onOfficerUpdate, onAfterStatusC
 
   const handleStatusChange = async (status: string) => {
     try {
-      await api.post('/officer/status', { officerId: officer.id, status })
+      if (status === 'on_break') {
+        // Use dedicated break start endpoint
+        await api.post('/officer/break/start', { officerId: officer.id })
+      } else if (status === 'available' && officer.status === 'on_break') {
+        // Use dedicated break end endpoint
+        await api.post('/officer/break/end', { officerId: officer.id })
+      } else {
+        // Use general status endpoint for other status changes
+        await api.post('/officer/status', { officerId: officer.id, status })
+      }
+      
       const updated: Officer = { ...officer, status }
       onOfficerUpdate?.(updated)
       onAfterStatusChange?.(status)
@@ -34,9 +44,10 @@ export default function OfficerTopBar({ officer, onOfficerUpdate, onAfterStatusC
         try { await api.post('/officer/logout') } catch {}
         navigate('/officer/login')
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to update status:', err)
-      alert('Failed to update status')
+      const errorMessage = err.response?.data?.error || 'Failed to update status'
+      alert(errorMessage)
     }
   }
 

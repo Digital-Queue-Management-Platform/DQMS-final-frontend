@@ -13,6 +13,14 @@ export const api = axios.create({
 // Add request interceptor to include authentication tokens
 api.interceptors.request.use(
   (config) => {
+    // Check for admin token for admin routes
+    if (config.url?.startsWith('/admin/')) {
+      const adminToken = localStorage.getItem('adminToken')
+      if (adminToken) {
+        config.headers.Authorization = `Bearer ${adminToken}`
+      }
+    }
+    
     // Check for manager token for manager routes
     if (config.url?.startsWith('/manager/')) {
       const managerToken = localStorage.getItem('managerToken')
@@ -41,17 +49,40 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Handle unauthorized errors by clearing tokens and redirecting
-      if (error.config?.url?.startsWith('/manager/')) {
+      // Handle unauthorized errors by clearing tokens
+      const currentPath = window.location.pathname
+      const requestUrl = error.config?.url || ''
+      
+      console.log('401 error on:', requestUrl, 'current path:', currentPath)
+      
+      // Only clear tokens, don't redirect - let the app handle navigation
+      if (requestUrl.startsWith('/admin/') || currentPath.startsWith('/admin')) {
+        localStorage.removeItem('adminToken')
+      } 
+      else if (requestUrl.startsWith('/manager/') || currentPath.startsWith('/manager')) {
         localStorage.removeItem('manager')
         localStorage.removeItem('managerToken')
         localStorage.removeItem('dq_role')
         localStorage.removeItem('dq_user')
-        window.location.href = '/manager/login'
-      } else if (error.config?.url?.startsWith('/officer/')) {
+      } 
+      else if (requestUrl.startsWith('/officer/') || currentPath.startsWith('/officer')) {
         localStorage.removeItem('officer')
         localStorage.removeItem('officerToken')
-        window.location.href = '/officer/login'
+      }
+      else {
+        // Default: check user role from localStorage and clear appropriate tokens
+        const userRole = localStorage.getItem('dq_role')
+        if (userRole === 'admin') {
+          localStorage.removeItem('adminToken')
+        } else if (userRole === 'region_manager') {
+          localStorage.removeItem('manager')
+          localStorage.removeItem('managerToken')
+          localStorage.removeItem('dq_role')
+          localStorage.removeItem('dq_user')
+        } else if (userRole === 'officer') {
+          localStorage.removeItem('officer')
+          localStorage.removeItem('officerToken')
+        }
       }
     }
     return Promise.reject(error)

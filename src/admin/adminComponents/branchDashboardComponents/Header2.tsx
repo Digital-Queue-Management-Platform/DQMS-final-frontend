@@ -27,6 +27,7 @@ const Header2: React.FC<Header2Props> = ({
   const currentTime = new Date().toLocaleTimeString('en-US', {
     hour: '2-digit',
     minute: '2-digit',
+    second: '2-digit'
   })
 
   const options = branchOptions.map((name) => ({ _id: name, name }))

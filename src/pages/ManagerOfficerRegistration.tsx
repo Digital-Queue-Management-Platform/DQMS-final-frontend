@@ -28,11 +28,11 @@ export default function ManagerOfficerRegistration() {
         if (managerData?.email) params.email = managerData.email
         
         const res = await api.get("/manager/me", { params })
-  const all = (res.data?.manager?.outlets || []) as Outlet[]
-  const active = all.filter((o: any) => o.isActive !== false)
-  if (!mounted) return
-  setOutlets(active)
-  if (active.length > 0) setSelectedOutlet(active[0].id)
+        const all = (res.data?.manager?.outlets || []) as Outlet[]
+        const active = all.filter((o: any) => o.isActive !== false)
+        if (!mounted) return
+        setOutlets(active)
+        if (active.length > 0) setSelectedOutlet(active[0].id)
       } catch (e) {
         console.error("Failed to load manager outlets", e)
       }

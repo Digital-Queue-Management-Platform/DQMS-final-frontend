@@ -12,10 +12,7 @@ import {
 
 interface ChartDataPoint {
   day: string;
-  Colombo: number;
-  Kandy: number;
-  Galle: number;
-  Jaffna: number;
+  [outletName: string]: string | number;
 }
 
 interface WaitingTimeChartProps {
@@ -23,6 +20,12 @@ interface WaitingTimeChartProps {
 }
 
 const WaitingTimeChart: React.FC<WaitingTimeChartProps> = ({ data }) => {
+  // Extract outlet names from data (excluding 'day' key)
+  const outletNames = data.length > 0 ? Object.keys(data[0]).filter(key => key !== 'day') : [];
+  
+  // Define colors for up to 6 outlets
+  const colors = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#14b8a6'];
+
   return (
     <ResponsiveContainer width="100%" height={300}>
       <LineChart
@@ -50,10 +53,15 @@ const WaitingTimeChart: React.FC<WaitingTimeChartProps> = ({ data }) => {
           }}
         />
         <Legend verticalAlign="bottom" height={36} />
-        <Line type="monotone" dataKey="Colombo" stroke="#3b82f6" activeDot={{ r: 8 }} />
-        <Line type="monotone" dataKey="Kandy" stroke="#10b981" />
-        <Line type="monotone" dataKey="Galle" stroke="#f59e0b" />
-        <Line type="monotone" dataKey="Jaffna" stroke="#8b5cf6" />
+        {outletNames.map((outletName, index) => (
+          <Line 
+            key={outletName}
+            type="monotone" 
+            dataKey={outletName} 
+            stroke={colors[index % colors.length]} 
+            activeDot={{ r: 8 }} 
+          />
+        ))}
       </LineChart>
     </ResponsiveContainer>
   );
