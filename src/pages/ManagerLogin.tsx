@@ -14,6 +14,10 @@ export default function ManagerLogin() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
 
+  // Get return URL from query params
+  const urlParams = new URLSearchParams(window.location.search)
+  const returnTo = urlParams.get('returnTo') || '/manager/dashboard'
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
@@ -26,14 +30,19 @@ export default function ManagerLogin() {
         // Store manager data and JWT token in localStorage
         localStorage.setItem("manager", JSON.stringify(response.data.manager))
         localStorage.setItem("managerToken", response.data.token)
-        // Set role in UserContext
+        // Set role in UserContext - be consistent with role naming
         localStorage.setItem("dq_role", "region_manager")
         localStorage.setItem("dq_user", JSON.stringify({
           id: response.data.manager.id,
           email: response.data.manager.email,
+          name: response.data.manager.name || response.data.manager.id,
           role: "region_manager"
         }))
-        navigate("/manager/dashboard")
+        
+        // Add a small delay to ensure localStorage is fully written before navigation
+        setTimeout(() => {
+          navigate(returnTo)
+        }, 50)
       }
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || "Login failed"

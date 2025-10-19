@@ -4,6 +4,7 @@ import { Routes, Route, useLocation, useNavigate } from "react-router-dom"
 import Sidebar from "./admin/adminComponents/additionalComps/SideBar"
 import Header from "./components/Header"
 import ProtectedAdminRoute from "./components/ProtectedAdminRoute"
+import ProtectedManagerRoute from "./components/ProtectedManagerRoute"
 import CustomerRegistration from "./pages/CustomerRegistration"
 import QueueStatus from "./pages/QueueStatus"
 import OfficerLogin from "./pages/OfficerLogin"
@@ -247,33 +248,20 @@ function Layout({ children }: { children: React.ReactNode }) {
       }
 
       if (isManagerPath && !isManagerLogin) {
+        // Manager authentication is now handled by ProtectedManagerRoute
+        // This is just for loading manager context data
         try {
-          // Try to get manager info, include email as fallback
           const storedManager = localStorage.getItem('manager')
           const managerData = storedManager ? JSON.parse(storedManager) : null
           
-          const params: any = {}
           if (managerData?.email) {
-            params.email = managerData.email
+            const params = { email: managerData.email }
+            await api.get('/manager/me', { params })
+            if (!mounted) return
           }
-          
-          await api.get('/manager/me', { params })
-          if (!mounted) return
-          // Manager data loaded for authentication only
         } catch (e: any) {
-          console.error('Manager authentication failed:', e)
-          console.log('Error details:', e.response?.data?.error || e.message)
-          
-          // Clear invalid data and redirect to login
-          localStorage.removeItem('manager')
-          localStorage.removeItem('managerToken')
-          localStorage.removeItem('dq_role')
-          localStorage.removeItem('dq_user')
-          
-          // Add a small delay to ensure cleanup is complete
-          setTimeout(() => {
-            navigate('/manager/login')
-          }, 100)
+          console.error('Manager context loading failed:', e)
+          // Don't redirect here - ProtectedManagerRoute will handle authentication
         }
       }
     }
@@ -392,31 +380,31 @@ function App() {
         path="/manager/login"
       />
       <Route
-        element={<Layout><ManagerDashboard /></Layout>}
+        element={<Layout><ProtectedManagerRoute><ManagerDashboard /></ProtectedManagerRoute></Layout>}
         path="/manager/dashboard"
       />
       <Route
-        element={<Layout><ManagerBranches /></Layout>}
+        element={<Layout><ProtectedManagerRoute><ManagerBranches /></ProtectedManagerRoute></Layout>}
         path="/manager/branches"
       />
       <Route
-        element={<Layout><ManagerQRCodes /></Layout>}
+        element={<Layout><ProtectedManagerRoute><ManagerQRCodes /></ProtectedManagerRoute></Layout>}
         path="/manager/qr-codes"
       />
       <Route
-        element={<Layout><ManagerCompare /></Layout>}
+        element={<Layout><ProtectedManagerRoute><ManagerCompare /></ProtectedManagerRoute></Layout>}
         path="/manager/compare"
       />
       <Route
-        element={<Layout><ManagerOfficerRegistration /></Layout>}
+        element={<Layout><ProtectedManagerRoute><ManagerOfficerRegistration /></ProtectedManagerRoute></Layout>}
         path="/manager/register-officer"
       />
       <Route
-        element={<Layout><ManagerOfficers /></Layout>}
+        element={<Layout><ProtectedManagerRoute><ManagerOfficers /></ProtectedManagerRoute></Layout>}
         path="/manager/officers"
       />
       <Route
-        element={<Layout><ManagerBreakOversight /></Layout>}
+        element={<Layout><ProtectedManagerRoute><ManagerBreakOversight /></ProtectedManagerRoute></Layout>}
         path="/manager/breaks"
       />
     </Routes>
