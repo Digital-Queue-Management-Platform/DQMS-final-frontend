@@ -14,12 +14,15 @@ export default function CustomerRegistration() {
   const location = useLocation()
   const [outlets, setOutlets] = useState<Outlet[]>([])
   const [selectedOutlet, setSelectedOutlet] = useState(outletId || "")
+  
+  // Initialize all form fields to empty strings - NEVER use cached values
   const [name, setName] = useState("")
   const [mobileNumber, setMobileNumber] = useState("")
   const [serviceType, setServiceType] = useState("")
   const [sltMobileNumber, setSltMobileNumber] = useState("")
   const [nicNumber, setNicNumber] = useState("")
   const [email, setEmail] = useState("")
+  
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const [language, setLanguage] = useState<"en" | "si" | "ta">("en")
@@ -27,6 +30,23 @@ export default function CustomerRegistration() {
   const [qrValid, setQrValid] = useState<boolean>(false)
   const [services, setServices] = useState<Array<{ id: string; code: string; title: string; isActive?: boolean }>>([])
   const [preferredLanguage, setPreferredLanguage] = useState<string>('en')
+  
+  // Add a form key to force React re-render when needed
+  const [formKey, setFormKey] = useState(Date.now())
+
+  // Force clear all form fields whenever component mounts (every time page loads)
+  const clearAllFormData = () => {
+    setName("")
+    setMobileNumber("")
+    setServiceType("")
+    setSltMobileNumber("")
+    setNicNumber("")
+    setEmail("")
+    setPreferredLanguage('en')
+    setError("")
+    setLanguage("en")
+    setFormKey(Date.now()) // Force form re-render
+  }
 
   // Function to validate manager-generated QR tokens (localStorage backup)
   const validateManagerQRToken = (token: string, currentOutletId: string): boolean => {
@@ -47,6 +67,9 @@ export default function CustomerRegistration() {
   }
 
   useEffect(() => {
+    // IMMEDIATELY clear all form data when page loads - no matter what
+    clearAllFormData()
+    
     // Always fetch outlets and services first
     fetchOutlets()
     fetchServices()
@@ -64,6 +87,18 @@ export default function CustomerRegistration() {
         }
       }
     })
+    
+    // Also clear sessionStorage completely for customer data
+    try {
+      const sessionKeys = Object.keys(sessionStorage)
+      sessionKeys.forEach(key => {
+        if (key.includes('customer') || key.includes('registration') || key.includes('form')) {
+          sessionStorage.removeItem(key)
+        }
+      })
+    } catch (e) {
+      // Ignore sessionStorage errors
+    }
     
     // Extract qr token from query param
     const q = new URLSearchParams(location.search)
@@ -138,6 +173,11 @@ export default function CustomerRegistration() {
     validate()
   }, [location.search, outletId])
 
+  // Additional effect to clear form when URL changes (new QR scan)
+  useEffect(() => {
+    clearAllFormData()
+  }, [location.pathname, location.search])
+
   const fetchOutlets = async () => {
     try {
       const response = await api.get("/queue/outlets")
@@ -182,14 +222,15 @@ export default function CustomerRegistration() {
 
       if (response.data.success) {
         // Clear form state to prevent confusion for next user
-        setName("")
-        setMobileNumber("")
-        setSltMobileNumber("")
-        setNicNumber("")
-        setEmail("")
-        setServiceType("")
-        setPreferredLanguage('en')
-        setError("")
+        clearAllFormData()
+        
+        // Extra safety: Clear browser form cache
+        setTimeout(() => {
+          const form = document.querySelector('form')
+          if (form) {
+            form.reset()
+          }
+        }, 100)
         
         // Navigate to queue status
         navigate(`/queue/${response.data.token.id}`)
@@ -311,7 +352,16 @@ export default function CustomerRegistration() {
           <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">{error}</div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
+        {/* Important Notice for Shared Device */}
+        <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          <p className="text-blue-800 text-sm font-medium mb-2">📱 Using a shared device?</p>
+          <p className="text-blue-700 text-xs">
+            If you see someone else's details in the form, click "Clear Form" button before entering your information.
+            The form automatically clears after successful registration.
+          </p>
+        </div>
+
+        <form key={formKey} onSubmit={handleSubmit} className="space-y-4 sm:space-y-6" autoComplete="off" data-form-type="other">
           {/* Current Outlet (Read-only) */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">{t.outlet}</label>
@@ -345,6 +395,8 @@ export default function CustomerRegistration() {
                 onChange={(e) => setName(e.target.value)}
                 className="w-full pl-9 sm:pl-10 pr-4 py-2.5 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
                 placeholder={t.name}
+                autoComplete="off"
+                data-form-type="other"
                 required
               />
             </div>
@@ -362,6 +414,8 @@ export default function CustomerRegistration() {
                 className="w-full pl-9 sm:pl-10 pr-4 py-2.5 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
                 placeholder="07XXXXXXXX"
                 pattern="[0-9]{10}"
+                autoComplete="off"
+                data-form-type="other"
                 required
               />
             </div>
@@ -379,6 +433,8 @@ export default function CustomerRegistration() {
                 className="w-full pl-9 sm:pl-10 pr-4 py-2.5 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
                 placeholder="0112345678"
                 pattern="[0-9]{10}"
+                autoComplete="off"
+                data-form-type="other"
               />
             </div>
           </div>
@@ -394,6 +450,8 @@ export default function CustomerRegistration() {
                 onChange={(e) => setNicNumber(e.target.value.toUpperCase())}
                 className="w-full pl-9 sm:pl-10 pr-4 py-2.5 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
                 placeholder="NIC"
+                autoComplete="off"
+                data-form-type="other"
               />
             </div>
           </div>
@@ -409,6 +467,8 @@ export default function CustomerRegistration() {
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full pl-9 sm:pl-10 pr-4 py-2.5 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
                 placeholder="example@domain.com"
+                autoComplete="off"
+                data-form-type="other"
               />
             </div>
           </div>
@@ -464,15 +524,26 @@ export default function CustomerRegistration() {
             <button
               type="button"
               onClick={() => {
-                // Clear all form fields for next user
-                setName("")
-                setMobileNumber("")
-                setSltMobileNumber("")
-                setNicNumber("")
-                setEmail("")
-                setServiceType("")
-                setPreferredLanguage('en')
-                setError("")
+                // Aggressive form clearing
+                clearAllFormData()
+                
+                // Also clear any browser form data/autocomplete
+                const form = document.querySelector('form')
+                if (form) {
+                  form.reset()
+                }
+                
+                // Clear any stored form data in browser
+                try {
+                  // Clear autocomplete/autofill data for this page
+                  const inputs = document.querySelectorAll('input[type="text"], input[type="tel"], input[type="email"]')
+                  inputs.forEach((input: any) => {
+                    input.value = ''
+                    input.autocomplete = 'off'
+                  })
+                } catch (e) {
+                  // Ignore errors
+                }
               }}
               className="w-full bg-gray-500 text-white py-2 rounded-lg font-medium hover:bg-gray-600 transition-colors text-sm"
             >
