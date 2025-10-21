@@ -352,15 +352,6 @@ export default function CustomerRegistration() {
           <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">{error}</div>
         )}
 
-        {/* Important Notice for Shared Device */}
-        <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-          <p className="text-blue-800 text-sm font-medium mb-2">📱 Using a shared device?</p>
-          <p className="text-blue-700 text-xs">
-            If you see someone else's details in the form, click "Clear Form" button before entering your information.
-            The form automatically clears after successful registration.
-          </p>
-        </div>
-
         <form key={formKey} onSubmit={handleSubmit} className="space-y-4 sm:space-y-6" autoComplete="off" data-form-type="other">
           {/* Current Outlet (Read-only) */}
           <div>
