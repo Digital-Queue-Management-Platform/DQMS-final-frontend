@@ -51,6 +51,20 @@ export default function CustomerRegistration() {
     fetchOutlets()
     fetchServices()
     
+    // Clear any previous customer session data that might interfere
+    // Keep only QR-related data
+    const keysToPreserve = ['managerQRCodes', 'adminToken', 'officerToken', 'managerToken']
+    const allKeys = Object.keys(localStorage)
+    
+    allKeys.forEach(key => {
+      if (!keysToPreserve.includes(key) && !key.startsWith('dq_')) {
+        // Clear old customer-related data
+        if (key.includes('customer') || key.includes('token') || key.includes('feedback')) {
+          localStorage.removeItem(key)
+        }
+      }
+    })
+    
     // Extract qr token from query param
     const q = new URLSearchParams(location.search)
     const token = q.get("qr") || ""
@@ -167,6 +181,17 @@ export default function CustomerRegistration() {
       })
 
       if (response.data.success) {
+        // Clear form state to prevent confusion for next user
+        setName("")
+        setMobileNumber("")
+        setSltMobileNumber("")
+        setNicNumber("")
+        setEmail("")
+        setServiceType("")
+        setPreferredLanguage('en')
+        setError("")
+        
+        // Navigate to queue status
         navigate(`/queue/${response.data.token.id}`)
       }
     } catch (err: any) {
@@ -427,13 +452,33 @@ export default function CustomerRegistration() {
           </div>
 
           {/* Submit Button */}
-          <button
-            type="submit"
-            disabled={!qrValid || loading || !selectedOutlet || !serviceType}
-            className="w-full bg-blue-600 text-white py-2.5 sm:py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed text-sm sm:text-base"
-          >
-            {loading ? t.registering : t.register}
-          </button>
+          <div className="space-y-3">
+            <button
+              type="submit"
+              disabled={!qrValid || loading || !selectedOutlet || !serviceType}
+              className="w-full bg-blue-600 text-white py-2.5 sm:py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed text-sm sm:text-base"
+            >
+              {loading ? t.registering : t.register}
+            </button>
+            
+            <button
+              type="button"
+              onClick={() => {
+                // Clear all form fields for next user
+                setName("")
+                setMobileNumber("")
+                setSltMobileNumber("")
+                setNicNumber("")
+                setEmail("")
+                setServiceType("")
+                setPreferredLanguage('en')
+                setError("")
+              }}
+              className="w-full bg-gray-500 text-white py-2 rounded-lg font-medium hover:bg-gray-600 transition-colors text-sm"
+            >
+              Clear Form
+            </button>
+          </div>
         </form>
       </div>
     </div>

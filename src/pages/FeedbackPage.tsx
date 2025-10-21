@@ -94,44 +94,47 @@ export default function FeedbackPage() {
                 event.preventDefault()
                 event.stopPropagation()
                 
-                // Try multiple methods to close the window/tab
                 try {
-                  // Method 1: Try to close if opened by another window
-                  if (window.opener && !window.opener.closed) {
-                    window.close()
-                    return
-                  }
-                  
-                  // Method 2: Try to close the current window/tab
-                  window.close()
-                  
-                  // Method 3: If we're in a mobile app context, try app-specific close
+                  // Method 1: Check if we're in a mobile app context first
                   if (typeof (window as any).ReactNativeWebView !== 'undefined') {
                     (window as any).ReactNativeWebView.postMessage('close')
                     return
                   }
                   
-                  // Method 4: Check if we're in a PWA or standalone mode
+                  // Method 2: Check if we're in a PWA or standalone mode
                   const nav = window.navigator as any
                   if (nav.standalone || window.matchMedia('(display-mode: standalone)').matches) {
-                    // In PWA mode, we can't close, so show a message
-                    alert('Please close the app manually.')
+                    // In PWA mode, navigate to root instead of closing
+                    window.location.href = '/'
                     return
                   }
                   
-                  // Method 5: Try to go back in history if available
-                  if (window.history.length > 1) {
-                    window.history.back()
+                  // Method 3: For web browsers - try to close if opened by script
+                  if (window.opener) {
+                    window.close()
+                    // If still open after 100ms, fallback to navigation
+                    setTimeout(() => {
+                      if (!window.closed) {
+                        window.location.href = '/'
+                      }
+                    }, 100)
                     return
                   }
                   
-                  // Method 6: As last resort, show a helpful message without any navigation
-                  alert('Please close this tab/window manually.')
+                  // Method 4: Try closing current tab/window
+                  window.close()
+                  
+                  // Method 5: If close() didn't work, redirect to homepage
+                  setTimeout(() => {
+                    if (!window.closed) {
+                      window.location.href = '/'
+                    }
+                  }, 100)
                   
                 } catch (error) {
                   console.log('Close attempt failed:', error)
-                  // If all methods fail, show a helpful message
-                  alert('Please close this tab/window manually.')
+                  // Fallback: redirect to homepage
+                  window.location.href = '/'
                 }
               }}
               className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors"
@@ -140,7 +143,7 @@ export default function FeedbackPage() {
             </button>
             
             <p className="text-xs text-gray-500 text-center">
-              If the app doesn't close automatically, please close this window/tab manually
+              If the app doesn't close automatically, you can safely close this tab or navigate away
             </p>
           </div>
         </div>
