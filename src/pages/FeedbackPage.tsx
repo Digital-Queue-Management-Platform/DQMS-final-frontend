@@ -89,7 +89,7 @@ export default function FeedbackPage() {
           
           <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
             <p className="text-green-800 text-sm font-medium">
-              🎉 We appreciate your time and feedback!
+              We appreciate your time and feedback!
             </p>
             <p className="text-green-700 text-xs mt-2">
               Your input helps us improve our services for everyone.
