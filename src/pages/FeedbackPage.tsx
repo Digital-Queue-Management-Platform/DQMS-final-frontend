@@ -85,67 +85,20 @@ export default function FeedbackPage() {
           </div>
 
           <h1 className="text-3xl font-bold text-gray-900 mb-4">Thank You!</h1>
-          <p className="text-gray-600 mb-8">Your feedback has been submitted successfully.</p>
-
-          <div className="space-y-3">
-            <button
-              onClick={(event) => {
-                // Prevent any potential redirects by stopping event propagation
-                event.preventDefault()
-                event.stopPropagation()
-                
-                try {
-                  // Method 1: Check if we're in a mobile app context first
-                  if (typeof (window as any).ReactNativeWebView !== 'undefined') {
-                    (window as any).ReactNativeWebView.postMessage('close')
-                    return
-                  }
-                  
-                  // Method 2: Check if we're in a PWA or standalone mode
-                  const nav = window.navigator as any
-                  if (nav.standalone || window.matchMedia('(display-mode: standalone)').matches) {
-                    // In PWA mode, navigate to root instead of closing
-                    window.location.href = '/'
-                    return
-                  }
-                  
-                  // Method 3: For web browsers - try to close if opened by script
-                  if (window.opener) {
-                    window.close()
-                    // If still open after 100ms, fallback to navigation
-                    setTimeout(() => {
-                      if (!window.closed) {
-                        window.location.href = '/'
-                      }
-                    }, 100)
-                    return
-                  }
-                  
-                  // Method 4: Try closing current tab/window
-                  window.close()
-                  
-                  // Method 5: If close() didn't work, redirect to homepage
-                  setTimeout(() => {
-                    if (!window.closed) {
-                      window.location.href = '/'
-                    }
-                  }, 100)
-                  
-                } catch (error) {
-                  console.log('Close attempt failed:', error)
-                  // Fallback: redirect to homepage
-                  window.location.href = '/'
-                }
-              }}
-              className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors"
-            >
-              Close App
-            </button>
-            
-            <p className="text-xs text-gray-500 text-center">
-              If the app doesn't close automatically, you can safely close this tab or navigate away
+          <p className="text-gray-600 mb-4">Your feedback has been submitted successfully.</p>
+          
+          <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
+            <p className="text-green-800 text-sm font-medium">
+              🎉 We appreciate your time and feedback!
+            </p>
+            <p className="text-green-700 text-xs mt-2">
+              Your input helps us improve our services for everyone.
             </p>
           </div>
+
+          <p className="text-xs text-gray-500 text-center">
+            You can now close this window or navigate away from this page.
+          </p>
         </div>
       </div>
     )
