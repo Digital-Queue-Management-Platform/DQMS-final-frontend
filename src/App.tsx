@@ -33,6 +33,7 @@ import ManagerBreakOversight from "./pages/ManagerBreakOversight"
 
 import { Shield, UserCog, ArrowRight, Building2 } from "lucide-react"
 import OfficerTopBar from "./components/OfficerTopBar"
+import ManagerTopBar from "./components/ManagerTopBar"
 import api from "./config/api"
 import type { Officer } from "./types"
 
@@ -230,6 +231,9 @@ function Layout({ children }: { children: React.ReactNode }) {
 
   // Central officer state for top bar when on officer pages (except login)
   const [officer, setOfficer] = React.useState<Officer | null>(null)
+  
+  // Central manager state for top bar when on manager pages (except login)
+  const [manager, setManager] = React.useState<any | null>(null)
 
   React.useEffect(() => {
     let mounted = true
@@ -256,13 +260,16 @@ function Layout({ children }: { children: React.ReactNode }) {
           
           if (managerData?.email) {
             const params = { email: managerData.email }
-            await api.get('/manager/me', { params })
+            const res = await api.get('/manager/me', { params })
             if (!mounted) return
+            setManager(res.data.manager)
           }
         } catch (e: any) {
           console.error('Manager context loading failed:', e)
           // Don't redirect here - ProtectedManagerRoute will handle authentication
         }
+      } else {
+        setManager(null)
       }
     }
     loadUser()
@@ -296,6 +303,13 @@ function Layout({ children }: { children: React.ReactNode }) {
             officer={officer}
             onOfficerUpdate={setOfficer as any}
             onAfterStatusChange={handleAfterStatusChange}
+          />
+        )}
+        
+        {/* Shared Manager Top Bar for all manager pages except login */}
+        {isManagerPath && !isManagerLogin && manager && (
+          <ManagerTopBar 
+            manager={manager}
           />
         )}
         {children}

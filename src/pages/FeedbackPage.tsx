@@ -1,9 +1,25 @@
+/**
+ * FeedbackPage Component
+ * 
+ * Handles customer feedback submission after service completion.
+ * After feedback submission, provides a close button that attempts to close the app
+ * without redirecting to external URLs.
+ * 
+ * Close behavior:
+ * 1. Tries to close if opened by another window
+ * 2. Attempts to close current window/tab
+ * 3. Handles mobile app contexts
+ * 4. Detects PWA mode
+ * 5. Falls back to browser history
+ * 6. Shows manual close instruction as last resort
+ */
+
 "use client"
 
 import type React from "react"
 
 import { useState, useEffect } from "react"
-import { useParams, useNavigate } from "react-router-dom"
+import { useParams } from "react-router-dom"
 import { Star, MessageSquare, CheckCircle, Send } from "lucide-react"
 import api from "../config/api"
 import type { Token } from "../types"
@@ -11,7 +27,6 @@ import ServiceName from "../components/ServiceName"
 
 export default function FeedbackPage() {
   const { tokenId } = useParams()
-  const navigate = useNavigate()
   const [token, setToken] = useState<Token | null>(null)
   const [rating, setRating] = useState(0)
   const [hoveredRating, setHoveredRating] = useState(0)
@@ -72,20 +87,62 @@ export default function FeedbackPage() {
           <h1 className="text-3xl font-bold text-gray-900 mb-4">Thank You!</h1>
           <p className="text-gray-600 mb-8">Your feedback has been submitted successfully.</p>
 
-          <button
-            onClick={() => {
-              // Try to close the window/tab first
-              if (window.opener) {
-                window.close()
-              } else {
-                // If can't close, navigate to home page
-                navigate("/")
-              }
-            }}
-            className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors"
-          >
-            Close
-          </button>
+          <div className="space-y-3">
+            <button
+              onClick={(event) => {
+                // Prevent any potential redirects by stopping event propagation
+                event.preventDefault()
+                event.stopPropagation()
+                
+                // Try multiple methods to close the window/tab
+                try {
+                  // Method 1: Try to close if opened by another window
+                  if (window.opener && !window.opener.closed) {
+                    window.close()
+                    return
+                  }
+                  
+                  // Method 2: Try to close the current window/tab
+                  window.close()
+                  
+                  // Method 3: If we're in a mobile app context, try app-specific close
+                  if (typeof (window as any).ReactNativeWebView !== 'undefined') {
+                    (window as any).ReactNativeWebView.postMessage('close')
+                    return
+                  }
+                  
+                  // Method 4: Check if we're in a PWA or standalone mode
+                  const nav = window.navigator as any
+                  if (nav.standalone || window.matchMedia('(display-mode: standalone)').matches) {
+                    // In PWA mode, we can't close, so show a message
+                    alert('Please close the app manually.')
+                    return
+                  }
+                  
+                  // Method 5: Try to go back in history if available
+                  if (window.history.length > 1) {
+                    window.history.back()
+                    return
+                  }
+                  
+                  // Method 6: As last resort, show a helpful message without any navigation
+                  alert('Please close this tab/window manually.')
+                  
+                } catch (error) {
+                  console.log('Close attempt failed:', error)
+                  // If all methods fail, show a helpful message
+                  alert('Please close this tab/window manually.')
+                }
+              }}
+              className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+            >
+              Close App
+            </button>
+            
+            <p className="text-xs text-gray-500 text-center">
+              If the app doesn't close automatically, please close this window/tab manually
+            </p>
+          </div>
         </div>
       </div>
     )

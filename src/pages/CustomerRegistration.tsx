@@ -170,7 +170,18 @@ export default function CustomerRegistration() {
         navigate(`/queue/${response.data.token.id}`)
       }
     } catch (err: any) {
-      setError(err.response?.data?.error || "Registration failed")
+      console.error('Registration error:', err)
+      
+      // Handle specific error cases
+      if (err.response?.status === 409) {
+        setError(err.response?.data?.error || "You are already registered for this outlet")
+      } else if (err.response?.status === 403) {
+        setError(err.response?.data?.error || "QR code verification failed")
+      } else if (err.response?.status === 400) {
+        setError(err.response?.data?.error || "Please fill in all required fields")
+      } else {
+        setError(err.response?.data?.error || "Registration failed. Please try again.")
+      }
     } finally {
       setLoading(false)
     }

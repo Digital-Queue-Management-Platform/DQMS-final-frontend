@@ -11,6 +11,7 @@ type Manager = {
   email: string
   mobile?: string
   regionId: string
+  regionName?: string
   outlets?: any[]
 }
 
@@ -56,7 +57,7 @@ export default function ManagerTopBar({ manager, title = "Regional Manager" }: P
           <div>
             <h1 className="text-xl sm:text-2xl font-bold text-gray-900 truncate leading-tight">{title}</h1>
             <p className="text-sm text-gray-600 mt-0.5 truncate leading-tight">
-              {manager.name || manager.id || 'Manager'} • {manager.outlets?.length || 0} branches
+              {manager.name || manager.id || 'Manager'} • {manager.regionName ? `${manager.regionName} Region` : 'Unknown Region'} • {manager.outlets?.length || 0} branches
             </p>
           </div>
         </div>
@@ -65,7 +66,7 @@ export default function ManagerTopBar({ manager, title = "Regional Manager" }: P
         <div className="flex items-center space-x-2 sm:space-x-4 lg:space-x-10 flex-shrink-0">
           {/* Region Badge */}
           <div className="hidden sm:block px-2 sm:px-3 py-1 sm:py-1.5 rounded-full text-xs sm:text-sm font-medium bg-green-100 text-green-700">
-            <span className="hidden md:inline">Regional </span>Manager
+            <span className="hidden md:inline">{manager.regionName ? `${manager.regionName} ` : ''}</span>Manager
           </div>
 
           {/* Current Time */}

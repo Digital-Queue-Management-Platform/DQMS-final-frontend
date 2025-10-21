@@ -27,7 +27,7 @@ export default function OfficerLogin() {
         if (response.data.token) {
           localStorage.setItem("officerToken", response.data.token)
         }
-        navigate("/officer/dashboard")
+        navigate("/officer/queue")
       }
     } catch (err: any) {
       setError(err.response?.data?.error || "Login failed")
