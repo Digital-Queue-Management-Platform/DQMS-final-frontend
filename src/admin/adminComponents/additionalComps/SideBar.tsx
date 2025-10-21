@@ -51,9 +51,10 @@ const Sidebar: React.FC<SidebarProps> = ({ activePage, setActivePage }) => {
     { name: 'Compare', icon: Scale3D, to: '/admin/compare' },
     { name: 'All Officers', icon: UserCog, to: '/admin/all-officers' },
   ]
+  // Officer navigation items - Queue is now the primary page (first in order)
   const officerItems: NavigationItem[] = [
-    { name: 'Officer Dashboard', icon: LayoutDashboard, to: '/officer/dashboard' },
     { name: 'Queue', icon: ListOrdered, to: '/officer/queue' },
+    { name: 'Officer Dashboard', icon: LayoutDashboard, to: '/officer/dashboard' },
     { name: 'IP Speaker', icon: Headphones, to: '/officer/ip-speaker' },
   ]
   const regionManagerItems: NavigationItem[] = [
@@ -116,7 +117,9 @@ const Sidebar: React.FC<SidebarProps> = ({ activePage, setActivePage }) => {
       return {
         name: managerName,
         role: 'Regional Manager',
-        initials: managerName ? managerName.split(' ').map((n: string) => n[0]).join('').toUpperCase() : 'RM'
+        initials: managerName ? managerName.split(' ').map((n: string) => n[0]).join('').toUpperCase() : 'RM',
+        regionName: manager?.regionName,
+        outletCount: manager?.outlets?.length || 0
       }
     } else {
       // Admin path
@@ -234,6 +237,11 @@ const Sidebar: React.FC<SidebarProps> = ({ activePage, setActivePage }) => {
                 {onOfficerPath && userInfo.counterNumber && (
                   <p className="text-xs text-blue-600 font-medium truncate">
                     Counter {userInfo.counterNumber} • {userInfo.outletName}
+                  </p>
+                )}
+                {onManagerPath && userInfo.regionName && (
+                  <p className="text-xs text-green-600 font-medium truncate">
+                    {userInfo.regionName} Region • {userInfo.outletCount} {userInfo.outletCount === 1 ? 'Branch' : 'Branches'}
                   </p>
                 )}
               </div>

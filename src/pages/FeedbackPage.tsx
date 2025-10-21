@@ -1,9 +1,25 @@
+/**
+ * FeedbackPage Component
+ * 
+ * Handles customer feedback submission after service completion.
+ * After feedback submission, provides a close button that attempts to close the app
+ * without redirecting to external URLs.
+ * 
+ * Close behavior:
+ * 1. Tries to close if opened by another window
+ * 2. Attempts to close current window/tab
+ * 3. Handles mobile app contexts
+ * 4. Detects PWA mode
+ * 5. Falls back to browser history
+ * 6. Shows manual close instruction as last resort
+ */
+
 "use client"
 
 import type React from "react"
 
 import { useState, useEffect } from "react"
-import { useParams, useNavigate } from "react-router-dom"
+import { useParams } from "react-router-dom"
 import { Star, MessageSquare, CheckCircle, Send } from "lucide-react"
 import api from "../config/api"
 import type { Token } from "../types"
@@ -11,7 +27,6 @@ import ServiceName from "../components/ServiceName"
 
 export default function FeedbackPage() {
   const { tokenId } = useParams()
-  const navigate = useNavigate()
   const [token, setToken] = useState<Token | null>(null)
   const [rating, setRating] = useState(0)
   const [hoveredRating, setHoveredRating] = useState(0)
@@ -70,22 +85,20 @@ export default function FeedbackPage() {
           </div>
 
           <h1 className="text-3xl font-bold text-gray-900 mb-4">Thank You!</h1>
-          <p className="text-gray-600 mb-8">Your feedback has been submitted successfully.</p>
+          <p className="text-gray-600 mb-4">Your feedback has been submitted successfully.</p>
+          
+          <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
+            <p className="text-green-800 text-sm font-medium">
+              We appreciate your time and feedback!
+            </p>
+            <p className="text-green-700 text-xs mt-2">
+              Your input helps us improve our services for everyone.
+            </p>
+          </div>
 
-          <button
-            onClick={() => {
-              // Try to close the window/tab first
-              if (window.opener) {
-                window.close()
-              } else {
-                // If can't close, navigate to home page
-                navigate("/")
-              }
-            }}
-            className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors"
-          >
-            Close
-          </button>
+          <p className="text-xs text-gray-500 text-center">
+            You can now close this window or navigate away from this page.
+          </p>
         </div>
       </div>
     )

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Volume2, VolumeX, Play, Square, Wifi, WifiOff, TestTube, Save, RefreshCw } from 'lucide-react'
+import { Volume2, VolumeX, Play, Square, Wifi, WifiOff, TestTube, Save, RefreshCw, Eye, EyeOff } from 'lucide-react'
 import api from '../config/api'
 import type { Token } from '../types'
 
@@ -93,6 +93,7 @@ export default function IPSpeakerPage() {
   const [customMessage, setCustomMessage] = useState('')
   const [currentToken, setCurrentToken] = useState<Token | null>(null)
   const [saving, setSaving] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
   const [testing, setTesting] = useState(false)
 
   useEffect(() => {
@@ -534,13 +535,26 @@ export default function IPSpeakerPage() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
-                    <input
-                      type="password"
-                      value={ipSpeakerConfig.password}
-                      onChange={(e) => setIpSpeakerConfig(prev => ({ ...prev, password: e.target.value }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="admin123"
-                    />
+                    <div className="relative">
+                      <input
+                        type={showPassword ? "text" : "password"}
+                        value={ipSpeakerConfig.password}
+                        onChange={(e) => setIpSpeakerConfig(prev => ({ ...prev, password: e.target.value }))}
+                        className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="admin123"
+                      />
+                      <button
+                        type="button"
+                        className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                        onClick={() => setShowPassword(!showPassword)}
+                      >
+                        {showPassword ? (
+                          <EyeOff className="h-4 w-4 text-gray-400 hover:text-gray-600" />
+                        ) : (
+                          <Eye className="h-4 w-4 text-gray-400 hover:text-gray-600" />
+                        )}
+                      </button>
+                    </div>
                   </div>
                 </div>
 

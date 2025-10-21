@@ -50,11 +50,32 @@ export default function OfficerQueuePage() {
       // WebSocket updates
       const ws = new WebSocket(WS_URL)
       ws.onmessage = (event) => {
-        const data = JSON.parse(event.data)
-        if (data.type === "NEW_TOKEN" || data.type === "TOKEN_COMPLETED" || data.type === 'TOKEN_SKIPPED' || data.type === 'TOKEN_CALLED' || data.type === 'TOKEN_RECALLED') {
-          fetchQueue(me.outletId)
-          fetchCurrentToken(me.id)
+        try {
+          const data = JSON.parse(event.data)
+          console.log('WebSocket message received:', data)
+          
+          if (data.type === "NEW_TOKEN" || data.type === "TOKEN_COMPLETED" || data.type === 'TOKEN_SKIPPED' || data.type === 'TOKEN_CALLED' || data.type === 'TOKEN_RECALLED') {
+            // Add a small delay to ensure database consistency
+            setTimeout(() => {
+              fetchQueue(me.outletId)
+              fetchCurrentToken(me.id)
+            }, 100)
+          }
+        } catch (error) {
+          console.error('Error parsing WebSocket message:', error)
         }
+      }
+      
+      ws.onopen = () => {
+        console.log('WebSocket connected')
+      }
+      
+      ws.onerror = (error) => {
+        console.error('WebSocket error:', error)
+      }
+      
+      ws.onclose = () => {
+        console.log('WebSocket disconnected')
       }
       ;(window as any).__dq_ws_queue = ws
     }).catch(() => navigate('/officer/login'))
@@ -161,6 +182,14 @@ export default function OfficerQueuePage() {
     }
   }
 
+  const handleRefresh = async () => {
+    if (officer?.outletId) {
+      console.log('Manual refresh triggered')
+      await fetchQueue(officer.outletId)
+      await fetchCurrentToken(officer.id)
+    }
+  }
+
   // React to status changes broadcast by Layout's top bar
   useEffect(() => {
     const onStatus = async (e: any) => {
@@ -192,8 +221,9 @@ export default function OfficerQueuePage() {
             </div>
             <div className="flex items-center space-x-4">
               <button 
-                onClick={() => window.location.reload()}
-                className="flex items-center px-4 py-2 bg-blue-600 rounded-md text-sm font-medium text-white hover:bg-blue-700"
+                onClick={handleRefresh}
+                disabled={loading}
+                className="flex items-center px-4 py-2 bg-blue-600 rounded-md text-sm font-medium text-white hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
               >
                 <RefreshCwIcon className="w-4 h-4 mr-2" />
                 Refresh

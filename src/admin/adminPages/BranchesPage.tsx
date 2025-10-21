@@ -16,6 +16,7 @@ const BranchesPage: React.FC = () => {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [searchTerm, setSearchTerm] = useState('')
+  const [viewMode, setViewMode] = useState<'outlets' | 'regions'>('outlets')
 
   // form state
   const [name, setName] = useState('')
@@ -168,10 +169,29 @@ const BranchesPage: React.FC = () => {
     setError('')
   }
 
+  const handleDeleteRegion = async (regionId: string, regionName: string) => {
+    if (!confirm(`Are you sure you want to delete "${regionName}" region? This will also affect all outlets in this region.`)) return
+    try {
+      await api.delete(`/admin/regions/${regionId}`)
+      // Refresh both regions and outlets lists
+      await Promise.all([fetchRegions(), fetchOutlets()])
+    } catch (err: any) {
+      console.error('Failed to delete region', err)
+      const msg = err?.response?.data?.error || err.message || 'Unknown error'
+      setError('Failed to delete region: ' + msg)
+    }
+  }
+
   const filteredOutlets = outlets.filter(o => 
     o.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     o.location.toLowerCase().includes(searchTerm.toLowerCase()) ||
     o.region?.name.toLowerCase().includes(searchTerm.toLowerCase())
+  )
+
+  const filteredRegions = regions.filter(r => 
+    r.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    r.managerEmail?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    r.managerId?.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
   return (
@@ -324,7 +344,19 @@ const BranchesPage: React.FC = () => {
               {/* Search Header */}
               <div className="p-6 border-b border-slate-200">
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-xl font-semibold text-slate-800">All Outlets</h2>
+                  <div className="flex items-center gap-4">
+                    <h2 className="text-xl font-semibold text-slate-800">
+                      {viewMode === 'outlets' ? 'All Outlets' : 'All Regions'}
+                    </h2>
+                    <select
+                      value={viewMode}
+                      onChange={(e) => setViewMode(e.target.value as 'outlets' | 'regions')}
+                      className="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white"
+                    >
+                      <option value="outlets">View Outlets</option>
+                      <option value="regions">View Regions</option>
+                    </select>
+                  </div>
                   {!showForm && (
                     <div className="flex gap-2">
                       <button 
@@ -349,7 +381,7 @@ const BranchesPage: React.FC = () => {
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" />
                   <input
                     type="text"
-                    placeholder="Search outlets by name, location, or region..."
+                    placeholder={viewMode === 'outlets' ? "Search outlets by name, location, or region..." : "Search regions by name, manager email..."}
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="w-full pl-10 pr-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
@@ -357,74 +389,163 @@ const BranchesPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Outlets List */}
+              {/* Content List */}
               <div className="p-6">
                 {loading ? (
                   <div className="text-center py-12">
                     <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
-                    <p className="text-slate-600 mt-3">Loading outlets...</p>
+                    <p className="text-slate-600 mt-3">Loading {viewMode}...</p>
                   </div>
-                ) : filteredOutlets.length === 0 ? (
-                  <div className="text-center py-12">
-                    <Building2 className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-                    <p className="text-slate-600">
-                      {searchTerm ? 'No outlets found matching your search' : 'No outlets yet'}
-                    </p>
-                    {!searchTerm && !showForm && (
-                      <button 
-                        onClick={() => setShowForm(true)}
-                        className="mt-4 text-indigo-600 hover:text-indigo-700 font-medium"
-                      >
-                        Create your first outlet
-                      </button>
-                    )}
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                    {filteredOutlets.map((o) => (
-                      <div 
-                        key={o.id} 
-                        className="group bg-slate-50 border border-slate-200 rounded-lg p-5 hover:shadow-md hover:border-indigo-300 transition-all"
-                      >
-                        <div className="flex items-start justify-between mb-3">
-                          <div className="flex-1">
-                            <h3 className="font-semibold text-slate-800 text-lg mb-1">
-                              {o.name}
-                            </h3>
-                            <div className="flex items-center gap-1.5 text-sm text-slate-600 mb-1">
-                              <MapPin className="w-4 h-4 text-slate-400" />
-                              {o.location}
-                            </div>
-                            {o.region && (
-                              <span className="inline-block px-2.5 py-1 bg-indigo-100 text-indigo-700 text-xs font-medium rounded-full">
-                                {o.region.name}
-                              </span>
-                            )}
-                            <div className="text-sm text-slate-600 mt-2">
-                              Counters: <span className="font-medium text-slate-800">{(o as any).counterCount ?? 0}</span>
+                ) : viewMode === 'outlets' ? (
+                  // Outlets View
+                  filteredOutlets.length === 0 ? (
+                    <div className="text-center py-12">
+                      <Building2 className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+                      <p className="text-slate-600">
+                        {searchTerm ? 'No outlets found matching your search' : 'No outlets yet'}
+                      </p>
+                      {!searchTerm && !showForm && (
+                        <button 
+                          onClick={() => setShowForm(true)}
+                          className="mt-4 text-indigo-600 hover:text-indigo-700 font-medium"
+                        >
+                          Create your first outlet
+                        </button>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                      {filteredOutlets.map((o) => (
+                        <div 
+                          key={o.id} 
+                          className="group bg-slate-50 border border-slate-200 rounded-lg p-5 hover:shadow-md hover:border-indigo-300 transition-all"
+                        >
+                          <div className="flex items-start justify-between mb-3">
+                            <div className="flex-1">
+                              <h3 className="font-semibold text-slate-800 text-lg mb-1">
+                                {o.name}
+                              </h3>
+                              <div className="flex items-center gap-1.5 text-sm text-slate-600 mb-1">
+                                <MapPin className="w-4 h-4 text-slate-400" />
+                                {o.location}
+                              </div>
+                              {o.region && (
+                                <span className="inline-block px-2.5 py-1 bg-indigo-100 text-indigo-700 text-xs font-medium rounded-full">
+                                  {o.region.name}
+                                </span>
+                              )}
+                              <div className="text-sm text-slate-600 mt-2">
+                                Counters: <span className="font-medium text-slate-800">{(o as any).counterCount ?? 0}</span>
+                              </div>
                             </div>
                           </div>
-                        </div>
 
-                        <div className="flex gap-2 mt-4 pt-4 border-t border-slate-200">
-                          <button 
-                            onClick={() => handleEdit(o)}
-                            className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-white border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors text-sm font-medium"
-                          >
-                            <Edit2 className="w-4 h-4" />
-                            Edit
-                          </button>
-                          <button 
-                            onClick={() => handleDelete(o.id)}
-                            className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-red-50 border border-red-200 text-red-600 rounded-lg hover:bg-red-100 transition-colors text-sm font-medium"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                            Delete
-                          </button>
+                          <div className="flex gap-2 mt-4 pt-4 border-t border-slate-200">
+                            <button 
+                              onClick={() => handleEdit(o)}
+                              className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-white border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors text-sm font-medium"
+                            >
+                              <Edit2 className="w-4 h-4" />
+                              Edit
+                            </button>
+                            <button 
+                              onClick={() => handleDelete(o.id)}
+                              className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-red-50 border border-red-200 text-red-600 rounded-lg hover:bg-red-100 transition-colors text-sm font-medium"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                              Delete
+                            </button>
+                          </div>
                         </div>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  )
+                ) : (
+                  // Regions View
+                  filteredRegions.length === 0 ? (
+                    <div className="text-center py-12">
+                      <MapPin className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+                      <p className="text-slate-600">
+                        {searchTerm ? 'No regions found matching your search' : 'No regions yet'}
+                      </p>
+                      {!searchTerm && (
+                        <button 
+                          onClick={() => setShowRegionForm(true)}
+                          className="mt-4 text-green-600 hover:text-green-700 font-medium"
+                        >
+                          Create your first region
+                        </button>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                      {filteredRegions.map((r) => (
+                        <div 
+                          key={r.id} 
+                          className="group bg-slate-50 border border-slate-200 rounded-lg p-5 hover:shadow-md hover:border-green-300 transition-all"
+                        >
+                          <div className="flex items-start justify-between mb-3">
+                            <div className="flex-1">
+                              <h3 className="font-semibold text-slate-800 text-lg mb-1">
+                                {r.name}
+                                {r.managerEmail ? (
+                                  <span className="ml-2 inline-block px-2 py-1 bg-green-100 text-green-700 text-xs font-medium rounded-full">
+                                    Manager Assigned
+                                  </span>
+                                ) : (
+                                  <span className="ml-2 inline-block px-2 py-1 bg-orange-100 text-orange-700 text-xs font-medium rounded-full">
+                                    No Manager
+                                  </span>
+                                )}
+                              </h3>
+                              <div className="text-sm text-slate-600 mb-2">
+                                <div className="flex items-center gap-1.5 mb-1">
+                                  <span className="font-medium">Manager:</span> {r.managerId || 'Not assigned'}
+                                </div>
+                                {r.managerEmail && (
+                                  <div className="flex items-center gap-1.5 mb-1">
+                                    <span className="font-medium">Email:</span> {r.managerEmail}
+                                  </div>
+                                )}
+                                {r.managerMobile && (
+                                  <div className="flex items-center gap-1.5 mb-1">
+                                    <span className="font-medium">Mobile:</span> {r.managerMobile}
+                                  </div>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-4 text-sm text-slate-600">
+                                <span>
+                                  <span className="font-medium text-slate-800">
+                                    {outlets.filter(o => o.region?.id === r.id).length}
+                                  </span> outlets
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex gap-2 mt-4 pt-4 border-t border-slate-200">
+                            <button 
+                              onClick={() => {
+                                // Filter outlets for this region and switch to outlets view
+                                setSearchTerm(r.name)
+                                setViewMode('outlets')
+                              }}
+                              className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-white border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors text-sm font-medium"
+                            >
+                              <Building2 className="w-4 h-4" />
+                              View Outlets
+                            </button>
+                            <button 
+                              onClick={() => handleDeleteRegion(r.id, r.name)}
+                              className="px-3 py-2 bg-red-50 border border-red-200 text-red-600 rounded-lg hover:bg-red-100 transition-colors text-sm font-medium"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )
                 )}
               </div>
             </div>

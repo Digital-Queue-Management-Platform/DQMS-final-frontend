@@ -249,20 +249,9 @@ function Layout({ children }: { children: React.ReactNode }) {
 
       if (isManagerPath && !isManagerLogin) {
         // Manager authentication is now handled by ProtectedManagerRoute
-        // This is just for loading manager context data
-        try {
-          const storedManager = localStorage.getItem('manager')
-          const managerData = storedManager ? JSON.parse(storedManager) : null
-          
-          if (managerData?.email) {
-            const params = { email: managerData.email }
-            await api.get('/manager/me', { params })
-            if (!mounted) return
-          }
-        } catch (e: any) {
-          console.error('Manager context loading failed:', e)
-          // Don't redirect here - ProtectedManagerRoute will handle authentication
-        }
+        // No need to load manager state for top bar since we're not using it
+      } else {
+        // Clear any manager-related state if needed
       }
     }
     loadUser()
