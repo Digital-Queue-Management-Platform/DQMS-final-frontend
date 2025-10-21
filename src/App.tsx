@@ -33,7 +33,6 @@ import ManagerBreakOversight from "./pages/ManagerBreakOversight"
 
 import { Shield, UserCog, ArrowRight, Building2 } from "lucide-react"
 import OfficerTopBar from "./components/OfficerTopBar"
-import ManagerTopBar from "./components/ManagerTopBar"
 import api from "./config/api"
 import type { Officer } from "./types"
 
@@ -231,9 +230,6 @@ function Layout({ children }: { children: React.ReactNode }) {
 
   // Central officer state for top bar when on officer pages (except login)
   const [officer, setOfficer] = React.useState<Officer | null>(null)
-  
-  // Central manager state for top bar when on manager pages (except login)
-  const [manager, setManager] = React.useState<any | null>(null)
 
   React.useEffect(() => {
     let mounted = true
@@ -253,23 +249,9 @@ function Layout({ children }: { children: React.ReactNode }) {
 
       if (isManagerPath && !isManagerLogin) {
         // Manager authentication is now handled by ProtectedManagerRoute
-        // This is just for loading manager context data
-        try {
-          const storedManager = localStorage.getItem('manager')
-          const managerData = storedManager ? JSON.parse(storedManager) : null
-          
-          if (managerData?.email) {
-            const params = { email: managerData.email }
-            const res = await api.get('/manager/me', { params })
-            if (!mounted) return
-            setManager(res.data.manager)
-          }
-        } catch (e: any) {
-          console.error('Manager context loading failed:', e)
-          // Don't redirect here - ProtectedManagerRoute will handle authentication
-        }
+        // No need to load manager state for top bar since we're not using it
       } else {
-        setManager(null)
+        // Clear any manager-related state if needed
       }
     }
     loadUser()
@@ -303,13 +285,6 @@ function Layout({ children }: { children: React.ReactNode }) {
             officer={officer}
             onOfficerUpdate={setOfficer as any}
             onAfterStatusChange={handleAfterStatusChange}
-          />
-        )}
-        
-        {/* Shared Manager Top Bar for all manager pages except login */}
-        {isManagerPath && !isManagerLogin && manager && (
-          <ManagerTopBar 
-            manager={manager}
           />
         )}
         {children}
