@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Volume2, VolumeX, Play, Square, Settings, Wifi, WifiOff } from 'lucide-react'
+import { Volume2, VolumeX, Play, Square, Settings, Wifi, WifiOff, Eye, EyeOff } from 'lucide-react'
 import type { Token } from '../types'
 
 interface IPSpeakerProps {
@@ -68,6 +68,7 @@ export default function IPSpeaker({ token, counterNumber, onCall }: IPSpeakerPro
     model: 'hikvision'
   })
   const [connectionStatus, setConnectionStatus] = useState<'disconnected' | 'connecting' | 'connected' | 'error'>('disconnected')
+  const [showPassword, setShowPassword] = useState(false)
 
   useEffect(() => {
     // Initialize speech synthesis
@@ -399,13 +400,26 @@ export default function IPSpeaker({ token, counterNumber, onCall }: IPSpeakerPro
                     onChange={(e) => setIpSpeakerConfig(prev => ({ ...prev, username: e.target.value }))}
                     className="text-xs px-2 py-1 border rounded"
                   />
-                  <input
-                    type="password"
-                    placeholder="Password"
-                    value={ipSpeakerConfig.password}
-                    onChange={(e) => setIpSpeakerConfig(prev => ({ ...prev, password: e.target.value }))}
-                    className="text-xs px-2 py-1 border rounded"
-                  />
+                  <div className="relative">
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      placeholder="Password"
+                      value={ipSpeakerConfig.password}
+                      onChange={(e) => setIpSpeakerConfig(prev => ({ ...prev, password: e.target.value }))}
+                      className="text-xs px-2 py-1 border rounded w-full"
+                    />
+                    <button
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute inset-y-0 right-0 flex items-center pr-3"
+                      type="button"
+                    >
+                      {showPassword ? (
+                        <EyeOff className="h-4 w-4 text-gray-400 hover:text-gray-600" />
+                      ) : (
+                        <Eye className="h-4 w-4 text-gray-400 hover:text-gray-600" />
+                      )}
+                    </button>
+                  </div>
                 </div>
                 <select
                   value={ipSpeakerConfig.model}
