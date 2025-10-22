@@ -38,7 +38,7 @@ export default function CustomerRegistration() {
   const clearAllFormData = () => {
     setName("")
     setMobileNumber("")
-  setServiceTypes([])
+    setServiceTypes([])
     setSltMobileNumber("")
     setNicNumber("")
     setEmail("")
@@ -46,6 +46,18 @@ export default function CustomerRegistration() {
     setError("")
     setLanguage("en")
     setFormKey(Date.now()) // Force form re-render
+    
+    // Additional browser form clearing
+    setTimeout(() => {
+      const inputs = document.querySelectorAll('input[type="text"], input[type="tel"], input[type="email"]')
+      inputs.forEach((input: any) => {
+        if (input) {
+          input.value = ''
+          input.autocomplete = 'off'
+          input.setAttribute('autocomplete', 'off')
+        }
+      })
+    }, 50)
   }
 
   // Function to validate manager-generated QR tokens (localStorage backup)
@@ -69,6 +81,22 @@ export default function CustomerRegistration() {
   useEffect(() => {
     // IMMEDIATELY clear all form data when page loads - no matter what
     clearAllFormData()
+    
+    // Additional aggressive clearing for browser autocomplete
+    setTimeout(() => {
+      clearAllFormData()
+      // Force clear any browser-cached form data
+      const form = document.querySelector('form')
+      if (form) {
+        form.reset()
+        // Clear all input values manually
+        const inputs = form.querySelectorAll('input')
+        inputs.forEach((input: any) => {
+          input.value = ''
+          input.checked = false
+        })
+      }
+    }, 100)
     
     // Always fetch outlets and services first
     fetchOutlets()
@@ -206,6 +234,18 @@ export default function CustomerRegistration() {
   // Additional effect to clear form when URL changes (new QR scan)
   useEffect(() => {
     clearAllFormData()
+    // Force clear browser form cache when URL changes
+    setTimeout(() => {
+      const form = document.querySelector('form')
+      if (form) {
+        form.reset()
+        const inputs = form.querySelectorAll('input')
+        inputs.forEach((input: any) => {
+          input.value = ''
+          input.checked = false
+        })
+      }
+    }, 50)
   }, [location.pathname, location.search])
 
   const fetchOutlets = async () => {
@@ -382,7 +422,7 @@ export default function CustomerRegistration() {
           <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">{error}</div>
         )}
 
-        <form key={formKey} onSubmit={handleSubmit} className="space-y-4 sm:space-y-6" autoComplete="off" data-form-type="other">
+        <form key={formKey} onSubmit={handleSubmit} className="space-y-4 sm:space-y-6" autoComplete="off" data-form-type="other" data-1p-ignore="true" data-bwignore="true" noValidate>
           {/* Current Outlet (Read-only) */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">{t.outlet}</label>
@@ -418,6 +458,9 @@ export default function CustomerRegistration() {
                 placeholder={t.name}
                 autoComplete="off"
                 data-form-type="other"
+                data-lpignore="true"
+                data-1p-ignore="true"
+                data-bwignore="true"
                 required
               />
             </div>
@@ -437,6 +480,9 @@ export default function CustomerRegistration() {
                 pattern="[0-9]{10}"
                 autoComplete="off"
                 data-form-type="other"
+                data-lpignore="true"
+                data-1p-ignore="true"
+                data-bwignore="true"
                 required
               />
             </div>
