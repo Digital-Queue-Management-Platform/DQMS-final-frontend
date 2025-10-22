@@ -2,9 +2,9 @@
 
 import type React from "react"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useParams, useNavigate, useLocation } from "react-router-dom"
-import { User, Phone, FileText } from "lucide-react"
+import { User, Phone, FileText, ChevronDown, X } from "lucide-react"
 import api from "../config/api"
 import type { Outlet } from "../types"
 
@@ -18,7 +18,7 @@ export default function CustomerRegistration() {
   // Initialize all form fields to empty strings - NEVER use cached values
   const [name, setName] = useState("")
   const [mobileNumber, setMobileNumber] = useState("")
-  const [serviceType, setServiceType] = useState("")
+  const [serviceTypes, setServiceTypes] = useState<string[]>([])
   const [sltMobileNumber, setSltMobileNumber] = useState("")
   const [nicNumber, setNicNumber] = useState("")
   const [email, setEmail] = useState("")
@@ -31,21 +31,39 @@ export default function CustomerRegistration() {
   const [services, setServices] = useState<Array<{ id: string; code: string; title: string; isActive?: boolean }>>([])
   const [preferredLanguage, setPreferredLanguage] = useState<string>('en')
   
+  // Service dropdown states
+  const [isServiceDropdownOpen, setIsServiceDropdownOpen] = useState(false)
+  const serviceDropdownRef = useRef<HTMLDivElement>(null)
+  
   // Add a form key to force React re-render when needed
   const [formKey, setFormKey] = useState(Date.now())
 
   // Force clear all form fields whenever component mounts (every time page loads)
   const clearAllFormData = () => {
+    console.log('clearAllFormData called - clearing serviceTypes from:', serviceTypes)
     setName("")
     setMobileNumber("")
-    setServiceType("")
+    setServiceTypes([])
     setSltMobileNumber("")
     setNicNumber("")
     setEmail("")
     setPreferredLanguage('en')
     setError("")
     setLanguage("en")
+    setIsServiceDropdownOpen(false)
     setFormKey(Date.now()) // Force form re-render
+    
+    // Additional browser form clearing
+    setTimeout(() => {
+      const inputs = document.querySelectorAll('input[type="text"], input[type="tel"], input[type="email"]')
+      inputs.forEach((input: any) => {
+        if (input) {
+          input.value = ''
+          input.autocomplete = 'off'
+          input.setAttribute('autocomplete', 'off')
+        }
+      })
+    }, 50)
   }
 
   // Function to validate manager-generated QR tokens (localStorage backup)
@@ -67,8 +85,36 @@ export default function CustomerRegistration() {
   }
 
   useEffect(() => {
+    console.log('CustomerRegistration useEffect - Initial serviceTypes:', serviceTypes)
     // IMMEDIATELY clear all form data when page loads - no matter what
     clearAllFormData()
+    
+    // Additional aggressive clearing for browser autocomplete
+    setTimeout(() => {
+      clearAllFormData()
+      // Force clear any browser-cached form data
+      const form = document.querySelector('form')
+      if (form) {
+        form.reset()
+        // Clear all input values manually
+        const inputs = form.querySelectorAll('input')
+        inputs.forEach((input: any) => {
+          input.value = ''
+          input.checked = false
+        })
+      }
+    }, 100)
+    
+    // Extra aggressive clearing for service types specifically
+    setTimeout(() => {
+      setServiceTypes([])
+      setIsServiceDropdownOpen(false)
+    }, 150)
+    
+    // Final safety clear
+    setTimeout(() => {
+      setServiceTypes([])
+    }, 200)
     
     // Always fetch outlets and services first
     fetchOutlets()
@@ -112,6 +158,15 @@ export default function CustomerRegistration() {
 
     // Validate QR token before allowing registration
     const validate = async () => {
+      // If no QR token provided but we have an outlet ID, allow registration
+      if (!token && outletId) {
+        console.log('No QR token provided, but outlet ID available:', outletId)
+        setQrValid(true)
+        setError("")
+        setSelectedOutlet(outletId)
+        return
+      }
+
       if (!token) {
         setError("Please scan the QR code at the branch to register.")
         setQrValid(false)
@@ -151,22 +206,43 @@ export default function CustomerRegistration() {
 
         // Fallback to backend validation for legacy QR tokens
         console.log('Trying backend validation for legacy token:', token)
-        const res = await api.get(`/customer/validate-qr`, { params: { token } })
-        if (res.data.valid) {
-          setQrValid(true)
-          // enforce outlet from token if available
-          if (res.data.outletId) {
-            setSelectedOutlet(res.data.outletId)
+        try {
+          const res = await api.get(`/customer/validate-qr`, { params: { token } })
+          if (res.data.valid) {
+            setQrValid(true)
+            // enforce outlet from token if available
+            if (res.data.outletId) {
+              setSelectedOutlet(res.data.outletId)
+            }
+            setError("")
+            return
           }
+        } catch (legacyError) {
+          console.log('Legacy QR validation failed:', legacyError)
+        }
+
+        // If we have an outlet ID but QR validation failed, still allow registration
+        if (outletId) {
+          console.log('QR validation failed, but outlet ID available - allowing registration')
+          setQrValid(true)
           setError("")
+          setSelectedOutlet(outletId)
         } else {
+          setError("Invalid QR code. Please scan the QR code at the branch.")
           setQrValid(false)
-          setError(res.data.error || "Invalid QR token")
         }
       } catch (err: any) {
         console.error('QR validation error:', err)
-        setQrValid(false)
-        setError(err?.response?.data?.error || "Invalid or expired QR token")
+        // If we have an outlet ID but QR validation failed, still allow registration
+        if (outletId) {
+          console.log('QR validation error, but outlet ID available - allowing registration')
+          setQrValid(true)
+          setError("")
+          setSelectedOutlet(outletId)
+        } else {
+          setQrValid(false)
+          setError(err?.response?.data?.error || "Invalid or expired QR token")
+        }
       }
     }
 
@@ -176,6 +252,24 @@ export default function CustomerRegistration() {
   // Additional effect to clear form when URL changes (new QR scan)
   useEffect(() => {
     clearAllFormData()
+    // Force clear browser form cache when URL changes
+    setTimeout(() => {
+      const form = document.querySelector('form')
+      if (form) {
+        form.reset()
+        const inputs = form.querySelectorAll('input')
+        inputs.forEach((input: any) => {
+          input.value = ''
+          input.checked = false
+        })
+      }
+    }, 50)
+    
+    // Additional aggressive clearing for service types specifically
+    setTimeout(() => {
+      setServiceTypes([])
+      setIsServiceDropdownOpen(false)
+    }, 100)
   }, [location.pathname, location.search])
 
   const fetchOutlets = async () => {
@@ -202,6 +296,45 @@ export default function CustomerRegistration() {
     }
   }
 
+
+  // Handle service selection
+  const handleServiceToggle = (serviceCode: string) => {
+    if (serviceTypes.includes(serviceCode)) {
+      const newTypes = serviceTypes.filter(code => code !== serviceCode)
+      console.log('Removing service:', serviceCode, 'New types:', newTypes)
+      setServiceTypes(newTypes)
+    } else {
+      const newTypes = [...serviceTypes, serviceCode]
+      console.log('Adding service:', serviceCode, 'New types:', newTypes)
+      setServiceTypes(newTypes)
+    }
+  }
+
+  // Remove service from selection
+  const removeService = (serviceCode: string) => {
+    setServiceTypes(prev => prev.filter(code => code !== serviceCode))
+  }
+
+  // Get service title by code
+  const getServiceTitle = (code: string) => {
+    const service = services.find(s => s.code === code)
+    return service?.title || code
+  }
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (serviceDropdownRef.current && !serviceDropdownRef.current.contains(event.target as Node)) {
+        setIsServiceDropdownOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [])
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
@@ -214,7 +347,7 @@ export default function CustomerRegistration() {
         sltMobileNumber: sltMobileNumber || undefined,
         nicNumber: nicNumber || undefined,
         email: email || undefined,
-        serviceType,
+        serviceTypes,
         outletId: selectedOutlet,
         qrToken,
         preferredLanguages: preferredLanguage ? [preferredLanguage] : undefined,
@@ -352,7 +485,7 @@ export default function CustomerRegistration() {
           <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">{error}</div>
         )}
 
-        <form key={formKey} onSubmit={handleSubmit} className="space-y-4 sm:space-y-6" autoComplete="off" data-form-type="other">
+        <form key={formKey} onSubmit={handleSubmit} className="space-y-4 sm:space-y-6" autoComplete="off" data-form-type="other" data-1p-ignore="true" data-bwignore="true" noValidate>
           {/* Current Outlet (Read-only) */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">{t.outlet}</label>
@@ -388,6 +521,9 @@ export default function CustomerRegistration() {
                 placeholder={t.name}
                 autoComplete="off"
                 data-form-type="other"
+                data-lpignore="true"
+                data-1p-ignore="true"
+                data-bwignore="true"
                 required
               />
             </div>
@@ -407,6 +543,9 @@ export default function CustomerRegistration() {
                 pattern="[0-9]{10}"
                 autoComplete="off"
                 data-form-type="other"
+                data-lpignore="true"
+                data-1p-ignore="true"
+                data-bwignore="true"
                 required
               />
             </div>
@@ -464,22 +603,83 @@ export default function CustomerRegistration() {
             </div>
           </div>
 
-          {/* Service Type */}
+          {/* Service Types (Dropdown with Checkboxes) */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">{t.serviceType}</label>
-            <select
-              value={serviceType}
-              onChange={(e) => setServiceType(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
-              required
-            >
-              <option value="" disabled>
-                {services.length === 0 ? "No services available" : "Select a service"}
-              </option>
-              {services.map((s) => (
-                <option key={s.id} value={s.code}>{s.title || s.code}</option>
-              ))}
-            </select>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              {t.serviceType} 
+              <span className="ml-2 text-xs text-gray-500">
+                ({serviceTypes.length}/{services.length})
+              </span>
+            </label>
+            
+            {/* Selected Services Tags */}
+            {serviceTypes.length > 0 && (
+              <div className="mb-3 flex flex-wrap gap-2">
+                {serviceTypes.map((serviceCode) => (
+                  <div
+                    key={serviceCode}
+                    className="inline-flex items-center gap-1 bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm"
+                  >
+                    <span>{getServiceTitle(serviceCode)}</span>
+                    <button
+                      type="button"
+                      onClick={() => removeService(serviceCode)}
+                      className="ml-1 hover:bg-blue-200 rounded-full p-0.5 transition-colors"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Service Dropdown */}
+            <div className="relative" ref={serviceDropdownRef}>
+              <button
+                type="button"
+                onClick={() => setIsServiceDropdownOpen(!isServiceDropdownOpen)}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white text-left focus:ring-2 focus:ring-blue-500 focus:border-transparent flex items-center justify-between"
+              >
+                <span className="text-gray-500">
+                  {serviceTypes.length === 0 
+                    ? "Select service types..." 
+                    : `${serviceTypes.length} service${serviceTypes.length === 1 ? '' : 's'} selected`
+                  }
+                </span>
+                <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${isServiceDropdownOpen ? 'rotate-180' : ''}`} />
+              </button>
+
+              {isServiceDropdownOpen && (
+                <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-hidden">
+                  {/* Services List */}
+                  <div className="max-h-60 overflow-y-auto">
+                    {services.length === 0 ? (
+                      <div className="p-3 text-gray-500 text-sm text-center">
+                        No services available
+                      </div>
+                    ) : (
+                      services.map((service) => (
+                        <label
+                          key={service.id}
+                          className="flex items-center gap-3 p-3 hover:bg-gray-50 cursor-pointer"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={serviceTypes.includes(service.code)}
+                            onChange={() => handleServiceToggle(service.code)}
+                            className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                          />
+                          <span className="text-sm text-gray-700 flex-1">
+                            {service.title || service.code}
+                          </span>
+                        </label>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+            <p className="text-xs text-gray-500 mt-1">Select one or more services.</p>
           </div>
 
           {/* Preferred Language */}
@@ -506,7 +706,7 @@ export default function CustomerRegistration() {
           <div className="space-y-3">
             <button
               type="submit"
-              disabled={!qrValid || loading || !selectedOutlet || !serviceType}
+              disabled={!qrValid || loading || !selectedOutlet || serviceTypes.length === 0}
               className="w-full bg-blue-600 text-white py-2.5 sm:py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed text-sm sm:text-base"
             >
               {loading ? t.registering : t.register}

@@ -1,6 +1,10 @@
 import axios from "axios"
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || "https://dqms-final-backend.onrender.com/api"
+const isLocal = typeof window !== 'undefined' && (/localhost|127\.0\.0\.1/).test(window.location.hostname)
+
+const API_BASE_URL = isLocal
+  ? "http://localhost:3001/api"
+  : (import.meta.env.VITE_API_URL || "https://dqms-final-backend.onrender.com/api")
 
 export const api = axios.create({
   baseURL: API_BASE_URL,
@@ -90,6 +94,8 @@ api.interceptors.response.use(
 )
 
 // WebSocket connection
-export const WS_URL = import.meta.env.VITE_WS_URL || "wss://dqms-final-backend.onrender.com"
+export const WS_URL = isLocal
+  ? "ws://localhost:3001"
+  : (import.meta.env.VITE_WS_URL || "wss://dqms-final-backend.onrender.com")
 
 export default api

@@ -13,7 +13,7 @@ export interface Token {
   tokenNumber: number
   customerId: string
   customer: Customer
-  serviceType: string
+  serviceTypes: string[]
   preferredLanguages?: string[]
   accountRef?: string
   status: string

@@ -122,7 +122,18 @@ export default function OfficerQueuePage() {
     setLoading(true)
     try {
       const response = await api.post('/officer/next-token', { officerId: officer.id })
-      if (response.data.token) {
+      if (response.data.fallbackAllowed && !response.data.token) {
+        const confirmed = confirm('No online/available relevant officers for this service. Do you want to call the next customer cross-service?')
+        if (!confirmed) return
+        const confirmRes = await api.post('/officer/next-token', { officerId: officer.id, allowFallback: true })
+        if (confirmRes.data.token) {
+          setCurrentToken(confirmRes.data.token)
+          setAccountRef("")
+          fetchQueue(officer.outletId)
+        }
+      } else if (response.data.token) {
+        console.log('Received token data:', response.data.token)
+        console.log('Customer name:', response.data.token.customer?.name)
         setCurrentToken(response.data.token)
         setAccountRef("")
         fetchQueue(officer.outletId)
@@ -149,13 +160,17 @@ export default function OfficerQueuePage() {
     }
   }
 
-  const handleSkip = async () => {
-    if (!officer || !currentToken) return
+  const handleSkip = async (tokenId?: string) => {
+    if (!officer) return
+    const targetTokenId = tokenId || currentToken?.id
+    if (!targetTokenId) return
     if (!confirm('Are you sure you want to skip this customer?')) return
     setLoading(true)
     try {
-      await api.post('/officer/skip-token', { officerId: officer.id, tokenId: currentToken.id })
-      setCurrentToken(null)
+      await api.post('/officer/skip-token', { officerId: officer.id, tokenId: targetTokenId })
+      if (!tokenId) {
+        setCurrentToken(null)
+      }
       fetchQueue(officer.outletId)
     } catch (err) {
       console.error('failed to skip token', err)
@@ -289,9 +304,17 @@ export default function OfficerQueuePage() {
                           <span className={`${isSkipped ? 'text-gray-500' : 'text-gray-900'}`}>{t.customer.name}</span>
                         </div>
                         <div className="col-span-2">
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${getServiceColor(t.serviceType)}`}>
-                            <ServiceName serviceType={t.serviceType} />
-                          </span>
+                          {Array.isArray(t.serviceTypes) && t.serviceTypes.length > 0 ? (
+                            <div className="flex flex-col gap-1">
+                              {t.serviceTypes.map((stype: string) => (
+                                <span key={stype} className={`px-2 py-1 rounded-full text-xs font-medium ${getServiceColor(stype)}`}>
+                                  <ServiceName serviceType={stype} />
+                                </span>
+                              ))}
+                            </div>
+                          ) : (
+                            <span className="px-2 py-1 rounded-full text-xs font-medium bg-gray-200 text-gray-600">No service types</span>
+                          )}
                         </div>
                         <div className="col-span-2">
                           <span className="text-gray-900 font-medium">{waitTime} min</span>
@@ -315,7 +338,13 @@ export default function OfficerQueuePage() {
                               Recall
                             </button>
                           ) : (
-                            <span className="text-gray-400 text-xs">-</span>
+                            <button
+                              onClick={() => handleSkip(t.id)}
+                              disabled={loading || currentToken !== null}
+                              className="px-3 py-1 bg-orange-500 text-white text-xs rounded hover:bg-orange-600 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+                            >
+                              Skip
+                            </button>
                           )}
                         </div>
                       </div>
@@ -374,9 +403,15 @@ export default function OfficerQueuePage() {
                   <FileText className="w-5 h-5 text-gray-400" />
                   <div className="flex items-center gap-2">
                     <span className="text-gray-900 font-medium">Service:</span>
-                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${getServiceColor(currentToken.serviceType)}`}>
-                      <ServiceName serviceType={currentToken.serviceType} />
-                    </span>
+                    {Array.isArray(currentToken.serviceTypes) && currentToken.serviceTypes.length > 0 ? (
+                      currentToken.serviceTypes.map((stype: string) => (
+                        <span key={stype} className={`px-3 py-1 rounded-full text-sm font-medium ${getServiceColor(stype)}`}>
+                          <ServiceName serviceType={stype} />
+                        </span>
+                      ))
+                    ) : (
+                      <span className="px-3 py-1 rounded-full text-sm font-medium bg-gray-200 text-gray-600">No service types</span>
+                    )}
                   </div>
                 </div>
 
@@ -418,8 +453,8 @@ export default function OfficerQueuePage() {
 
               {/* Action Buttons */}
               <div className="grid grid-cols-2 gap-4">
-                <button
-                  onClick={handleSkip}
+                            <button
+                              onClick={() => handleSkip()}
                   disabled={loading}
                   className="flex items-center justify-center gap-2 px-6 py-4 bg-orange-500 text-white rounded-lg font-semibold hover:bg-orange-600 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
                 >

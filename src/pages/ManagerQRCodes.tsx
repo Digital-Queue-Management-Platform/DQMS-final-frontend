@@ -304,7 +304,16 @@ export default function ManagerQRCodes() {
 
   const handleViewQR = async (branch: Branch) => {
     try {
-      // Generate QR code if it doesn't exist
+      // Check if QR code already exists
+      const existingQR = qrCodes.get(branch.id)
+      if (existingQR) {
+        // QR code exists, show it directly
+        setSelectedBranch(branch)
+        setShowQRModal(true)
+        return
+      }
+      
+      // Generate QR code only if it doesn't exist
       await generateQRCodeOnDemand(branch.id, branch.name)
       setSelectedBranch(branch)
       setShowQRModal(true)
@@ -319,8 +328,12 @@ export default function ManagerQRCodes() {
     try {
       const branch = branches.find(b => b.id === branchId)
       if (branch) {
-        // Generate QR code if it doesn't exist
-        await generateQRCodeOnDemand(branchId, branch.name)
+        // Check if QR code already exists
+        const existingQR = qrCodes.get(branchId)
+        if (!existingQR) {
+          // Generate QR code only if it doesn't exist
+          await generateQRCodeOnDemand(branchId, branch.name)
+        }
       }
       const qrUrl = generateQRUrl(branchId)
       window.open(qrUrl, '_blank')
@@ -333,8 +346,12 @@ export default function ManagerQRCodes() {
 
   const handleCopyQRUrl = async (branchId: string, branchName: string, type: string) => {
     try {
-      // Generate QR code if it doesn't exist
-      await generateQRCodeOnDemand(branchId, branchName)
+      // Check if QR code already exists
+      const existingQR = qrCodes.get(branchId)
+      if (!existingQR) {
+        // Generate QR code only if it doesn't exist
+        await generateQRCodeOnDemand(branchId, branchName)
+      }
       const url = type === "QR Page" ? generateQRUrl(branchId) : generateRegistrationUrl(branchId)
       await navigator.clipboard.writeText(url)
       setCopySuccess(`${type} URL copied!`)
