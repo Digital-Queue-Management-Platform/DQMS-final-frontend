@@ -161,10 +161,18 @@ export default function QueueStatus() {
               <p className="font-semibold text-gray-900">{token.customer.mobileNumber}</p>
             </div>
             <div>
-              <p className="text-gray-600">Service Type</p>
-              <p className="font-semibold text-gray-900">
-                <ServiceName serviceType={token.serviceType} />
-              </p>
+              <p className="text-gray-600">Service Types</p>
+              <div className="flex flex-wrap gap-2">
+                {Array.isArray(token.serviceTypes) && token.serviceTypes.length > 0 ? (
+                  token.serviceTypes.map((stype: string) => (
+                    <span key={stype} className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                      <ServiceName serviceType={stype} />
+                    </span>
+                  ))
+                ) : (
+                  <span className="px-2 py-1 rounded-full text-xs font-medium bg-gray-200 text-gray-600">No service types</span>
+                )}
+              </div>
             </div>
             <div>
               <p className="text-gray-600">Registered At</p>

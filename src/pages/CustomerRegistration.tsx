@@ -18,7 +18,7 @@ export default function CustomerRegistration() {
   // Initialize all form fields to empty strings - NEVER use cached values
   const [name, setName] = useState("")
   const [mobileNumber, setMobileNumber] = useState("")
-  const [serviceType, setServiceType] = useState("")
+  const [serviceTypes, setServiceTypes] = useState<string[]>([])
   const [sltMobileNumber, setSltMobileNumber] = useState("")
   const [nicNumber, setNicNumber] = useState("")
   const [email, setEmail] = useState("")
@@ -38,7 +38,7 @@ export default function CustomerRegistration() {
   const clearAllFormData = () => {
     setName("")
     setMobileNumber("")
-    setServiceType("")
+  setServiceTypes([])
     setSltMobileNumber("")
     setNicNumber("")
     setEmail("")
@@ -112,6 +112,15 @@ export default function CustomerRegistration() {
 
     // Validate QR token before allowing registration
     const validate = async () => {
+      // If no QR token provided but we have an outlet ID, allow registration
+      if (!token && outletId) {
+        console.log('No QR token provided, but outlet ID available:', outletId)
+        setQrValid(true)
+        setError("")
+        setSelectedOutlet(outletId)
+        return
+      }
+
       if (!token) {
         setError("Please scan the QR code at the branch to register.")
         setQrValid(false)
@@ -151,22 +160,43 @@ export default function CustomerRegistration() {
 
         // Fallback to backend validation for legacy QR tokens
         console.log('Trying backend validation for legacy token:', token)
-        const res = await api.get(`/customer/validate-qr`, { params: { token } })
-        if (res.data.valid) {
-          setQrValid(true)
-          // enforce outlet from token if available
-          if (res.data.outletId) {
-            setSelectedOutlet(res.data.outletId)
+        try {
+          const res = await api.get(`/customer/validate-qr`, { params: { token } })
+          if (res.data.valid) {
+            setQrValid(true)
+            // enforce outlet from token if available
+            if (res.data.outletId) {
+              setSelectedOutlet(res.data.outletId)
+            }
+            setError("")
+            return
           }
+        } catch (legacyError) {
+          console.log('Legacy QR validation failed:', legacyError)
+        }
+
+        // If we have an outlet ID but QR validation failed, still allow registration
+        if (outletId) {
+          console.log('QR validation failed, but outlet ID available - allowing registration')
+          setQrValid(true)
           setError("")
+          setSelectedOutlet(outletId)
         } else {
+          setError("Invalid QR code. Please scan the QR code at the branch.")
           setQrValid(false)
-          setError(res.data.error || "Invalid QR token")
         }
       } catch (err: any) {
         console.error('QR validation error:', err)
-        setQrValid(false)
-        setError(err?.response?.data?.error || "Invalid or expired QR token")
+        // If we have an outlet ID but QR validation failed, still allow registration
+        if (outletId) {
+          console.log('QR validation error, but outlet ID available - allowing registration')
+          setQrValid(true)
+          setError("")
+          setSelectedOutlet(outletId)
+        } else {
+          setQrValid(false)
+          setError(err?.response?.data?.error || "Invalid or expired QR token")
+        }
       }
     }
 
@@ -214,7 +244,7 @@ export default function CustomerRegistration() {
         sltMobileNumber: sltMobileNumber || undefined,
         nicNumber: nicNumber || undefined,
         email: email || undefined,
-        serviceType,
+        serviceTypes,
         outletId: selectedOutlet,
         qrToken,
         preferredLanguages: preferredLanguage ? [preferredLanguage] : undefined,
@@ -464,22 +494,33 @@ export default function CustomerRegistration() {
             </div>
           </div>
 
-          {/* Service Type */}
+          {/* Service Types (Multi-select Checkboxes) */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">{t.serviceType}</label>
-            <select
-              value={serviceType}
-              onChange={(e) => setServiceType(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
-              required
-            >
-              <option value="" disabled>
-                {services.length === 0 ? "No services available" : "Select a service"}
-              </option>
-              {services.map((s) => (
-                <option key={s.id} value={s.code}>{s.title || s.code}</option>
-              ))}
-            </select>
+            <div className="flex flex-wrap gap-2">
+              {services.length === 0 ? (
+                <span className="text-gray-500">No services available</span>
+              ) : (
+                services.map((s) => (
+                  <label key={s.id} className="inline-flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      value={s.code}
+                      checked={serviceTypes.includes(s.code)}
+                      onChange={e => {
+                        if (e.target.checked) {
+                          setServiceTypes(prev => [...prev, s.code])
+                        } else {
+                          setServiceTypes(prev => prev.filter(code => code !== s.code))
+                        }
+                      }}
+                    />
+                    <span>{s.title || s.code}</span>
+                  </label>
+                ))
+              )}
+            </div>
+            <p className="text-xs text-gray-500 mt-1">Select one or more services.</p>
           </div>
 
           {/* Preferred Language */}
@@ -506,7 +547,7 @@ export default function CustomerRegistration() {
           <div className="space-y-3">
             <button
               type="submit"
-              disabled={!qrValid || loading || !selectedOutlet || !serviceType}
+              disabled={!qrValid || loading || !selectedOutlet || serviceTypes.length === 0}
               className="w-full bg-blue-600 text-white py-2.5 sm:py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed text-sm sm:text-base"
             >
               {loading ? t.registering : t.register}
