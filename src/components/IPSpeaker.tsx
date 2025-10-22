@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Volume2, VolumeX, Play, Square, Settings } from 'lucide-react'
+import { Volume2, VolumeX, Play, Square, Settings, Wifi, WifiOff } from 'lucide-react'
 import type { Token } from '../types'
 
 interface IPSpeakerProps {
@@ -48,6 +48,11 @@ export default function IPSpeaker({ token, counterNumber, onCall }: IPSpeakerPro
   const [showSettings, setShowSettings] = useState(false)
   const [speechSynthesis, setSpeechSynthesis] = useState<SpeechSynthesis | null>(null)
   const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([])
+  
+  // Central server integration states
+  const [branchId, setBranchId] = useState<string>('')
+  const [centralServerStatus, setCentralServerStatus] = useState<'connected' | 'disconnected' | 'connecting' | 'error'>('disconnected')
+  const [connectionMethod, setConnectionMethod] = useState<'central' | 'legacy' | 'fallback'>('central')
 
   useEffect(() => {
     // Initialize speech synthesis
@@ -71,7 +76,56 @@ export default function IPSpeaker({ token, counterNumber, onCall }: IPSpeakerPro
         setSelectedLanguage(firstLang)
       }
     }
+
+    // Initialize branch configuration
+    initializeBranchConfig()
   }, [token.preferredLanguages])
+
+  const initializeBranchConfig = async () => {
+    // Get branch ID from environment, localStorage, or default
+    const currentBranchId = 
+      import.meta.env.VITE_BRANCH_ID || 
+      localStorage.getItem('branchId') || 
+      'default-branch'
+    
+    setBranchId(currentBranchId)
+    
+    // Test central server connection
+    await testCentralServerConnection(currentBranchId)
+  }
+
+  const testCentralServerConnection = async (branchId: string) => {
+    setCentralServerStatus('connecting')
+    
+    try {
+      const response = await fetch(`/api/ip-speaker/test`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ branchId })
+      })
+
+      if (response.ok) {
+        const result = await response.json()
+        
+        if (result.method === 'central') {
+          setCentralServerStatus(result.branchInfo?.isActive ? 'connected' : 'disconnected')
+          setConnectionMethod('central')
+        } else if (result.method === 'legacy') {
+          setCentralServerStatus('connected')
+          setConnectionMethod('legacy')
+        }
+      } else {
+        setCentralServerStatus('error')
+        setConnectionMethod('fallback')
+      }
+    } catch (error) {
+      console.error('Connection test failed:', error)
+      setCentralServerStatus('error')
+      setConnectionMethod('fallback')
+    }
+  }
 
   const findBestVoice = (language: string): SpeechSynthesisVoice | null => {
     // Try to find a voice that matches the language
@@ -159,7 +213,7 @@ export default function IPSpeaker({ token, counterNumber, onCall }: IPSpeakerPro
     }, 100)
   }
 
-  const callCustomer = () => {
+  const callCustomer = async () => {
     // Cancel any ongoing speech synthesis globally
     if (window.speechSynthesis) {
       window.speechSynthesis.cancel()
@@ -169,7 +223,15 @@ export default function IPSpeaker({ token, counterNumber, onCall }: IPSpeakerPro
     const announcement = template.call(token.tokenNumber, counterNumber || token.counterNumber || undefined)
     
     console.log(`Calling customer in ${selectedLanguage}: ${announcement}`)
-    speak(announcement, selectedLanguage)
+    
+    // Try central server first, then fallback to browser speech
+    try {
+      setIsPlaying(true)
+      await sendToCentralServer(announcement, selectedLanguage)
+    } catch (error) {
+      console.error('Central server failed, using browser speech:', error)
+      speak(announcement, selectedLanguage)
+    }
     
     // Call parent callback if provided
     if (onCall) {
@@ -177,7 +239,65 @@ export default function IPSpeaker({ token, counterNumber, onCall }: IPSpeakerPro
     }
   }
 
-  const stopSpeech = () => {
+  const sendToCentralServer = async (text: string, language: 'en' | 'si' | 'ta') => {
+    try {
+      const response = await fetch(`/api/ip-speaker/announce`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          branchId,
+          counterId: counterNumber?.toString() || 'main',
+          text,
+          language,
+          volume: volume * 100,
+          tokenNumber: token.tokenNumber
+        })
+      })
+
+      if (response.ok) {
+        const result = await response.json()
+        console.log('Announcement sent via:', result.method || 'central server')
+        
+        // Update connection method based on response
+        if (result.method) {
+          setConnectionMethod(result.method)
+        }
+        
+        // Simulate announcement duration for UI feedback
+        setTimeout(() => {
+          setIsPlaying(false)
+        }, Math.max(3000, text.length * 100))
+        
+      } else {
+        throw new Error(`Server responded with ${response.status}`)
+      }
+
+    } catch (error) {
+      console.error('Central server announcement failed:', error)
+      setIsPlaying(false)
+      throw error
+    }
+  }
+
+  const stopSpeech = async () => {
+    // Try to stop via central server first
+    if (connectionMethod !== 'fallback') {
+      try {
+        await fetch(`/api/ip-speaker/stop`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ branchId })
+        })
+      } catch (error) {
+        console.error('Failed to stop via central server:', error)
+      }
+    }
+    
+    // Also stop local speech synthesis
     if (speechSynthesis) {
       speechSynthesis.cancel()
       setIsPlaying(false)
@@ -188,6 +308,34 @@ export default function IPSpeaker({ token, counterNumber, onCall }: IPSpeakerPro
     setIsMuted(!isMuted)
     if (!isMuted) {
       stopSpeech()
+    }
+  }
+
+  const getConnectionStatusIcon = () => {
+    switch (centralServerStatus) {
+      case 'connected':
+        return connectionMethod === 'central' ? 
+          <div className="w-2 h-2 bg-green-500 rounded-full" title="Connected to Central Server" /> :
+          <div className="w-2 h-2 bg-blue-500 rounded-full" title="Legacy IP Speaker" />
+      case 'connecting':
+        return <div className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse" title="Connecting..." />
+      case 'error':
+        return <div className="w-2 h-2 bg-red-500 rounded-full" title="Connection Error" />
+      default:
+        return <div className="w-2 h-2 bg-gray-400 rounded-full" title="Disconnected" />
+    }
+  }
+
+  const getConnectionStatusText = () => {
+    switch (connectionMethod) {
+      case 'central':
+        return 'Central Server'
+      case 'legacy':
+        return 'Legacy IP Speaker'
+      case 'fallback':
+        return 'Browser Only'
+      default:
+        return 'Unknown'
     }
   }
 
@@ -204,6 +352,8 @@ export default function IPSpeaker({ token, counterNumber, onCall }: IPSpeakerPro
         <div className="flex items-center space-x-2">
           <Volume2 className="w-5 h-5 text-blue-600" />
           <h3 className="font-medium text-gray-900">Call Customer</h3>
+          {/* Connection status indicator */}
+          {getConnectionStatusIcon()}
         </div>
         <button
           onClick={() => setShowSettings(!showSettings)}
@@ -211,6 +361,11 @@ export default function IPSpeaker({ token, counterNumber, onCall }: IPSpeakerPro
         >
           <Settings className="w-4 h-4 text-gray-500" />
         </button>
+      </div>
+
+      {/* Branch and connection info */}
+      <div className="mb-2 text-xs text-gray-600">
+        Branch: {branchId || 'default'} | Mode: {getConnectionStatusText()}
       </div>
 
       {/* Customer Info */}
@@ -267,6 +422,15 @@ export default function IPSpeaker({ token, counterNumber, onCall }: IPSpeakerPro
               className="w-full"
             />
           </div>
+
+          <div className="text-xs text-gray-600">
+            <div>Connection: {getConnectionStatusText()}</div>
+            {centralServerStatus === 'error' && (
+              <div className="text-red-600 mt-1">
+                ⚠️ Server connection failed. Using browser fallback.
+              </div>
+            )}
+          </div>
         </div>
       )}
 
@@ -313,7 +477,7 @@ export default function IPSpeaker({ token, counterNumber, onCall }: IPSpeakerPro
         <div className="mt-2 text-center">
           <div className="inline-flex items-center space-x-2 text-sm text-blue-600">
             <div className="w-2 h-2 bg-blue-600 rounded-full animate-pulse"></div>
-            <span>Calling customer...</span>
+            <span>Calling customer via {getConnectionStatusText()}...</span>
           </div>
         </div>
       )}
