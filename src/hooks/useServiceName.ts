@@ -22,8 +22,5 @@ export const useServiceName = (serviceCode: string): string => {
   return serviceName || getServiceDisplayNameSync(serviceCode)
 }
 
-// Function to get service name synchronously (may return code initially)
-export const getServiceDisplayName = getServiceDisplayNameSync
-
 // Re-export for backward compatibility
-export { getServiceDisplayNameSync }
+export { getServiceDisplayName, getServiceDisplayNameSync }
