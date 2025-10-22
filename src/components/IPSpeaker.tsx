@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Volume2, VolumeX, Play, Square, Settings, Wifi, WifiOff } from 'lucide-react'
+import { Volume2, VolumeX, Play, Square, Settings } from 'lucide-react'
 import type { Token } from '../types'
 
 interface IPSpeakerProps {
