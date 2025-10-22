@@ -132,6 +132,8 @@ export default function OfficerQueuePage() {
           fetchQueue(officer.outletId)
         }
       } else if (response.data.token) {
+        console.log('Received token data:', response.data.token)
+        console.log('Customer name:', response.data.token.customer?.name)
         setCurrentToken(response.data.token)
         setAccountRef("")
         fetchQueue(officer.outletId)
