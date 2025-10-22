@@ -162,7 +162,7 @@ export default function QueueStatus() {
             </div>
             <div>
               <p className="text-gray-600">Service Types</p>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-col gap-1">
                 {Array.isArray(token.serviceTypes) && token.serviceTypes.length > 0 ? (
                   token.serviceTypes.map((stype: string) => (
                     <span key={stype} className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">

@@ -305,11 +305,13 @@ export default function OfficerQueuePage() {
                         </div>
                         <div className="col-span-2">
                           {Array.isArray(t.serviceTypes) && t.serviceTypes.length > 0 ? (
-                            t.serviceTypes.map((stype: string) => (
-                              <span key={stype} className={`px-2 py-1 rounded-full text-xs font-medium ${getServiceColor(stype)}`}>
-                                <ServiceName serviceType={stype} />
-                              </span>
-                            ))
+                            <div className="flex flex-col gap-1">
+                              {t.serviceTypes.map((stype: string) => (
+                                <span key={stype} className={`px-2 py-1 rounded-full text-xs font-medium ${getServiceColor(stype)}`}>
+                                  <ServiceName serviceType={stype} />
+                                </span>
+                              ))}
+                            </div>
                           ) : (
                             <span className="px-2 py-1 rounded-full text-xs font-medium bg-gray-200 text-gray-600">No service types</span>
                           )}

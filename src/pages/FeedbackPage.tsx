@@ -141,17 +141,19 @@ export default function FeedbackPage() {
             </div>
             <div>
               <p className="text-gray-600">Service Type</p>
-              <p className="font-semibold text-gray-900">
+              <div className="font-semibold text-gray-900">
                 {Array.isArray(token.serviceTypes) && token.serviceTypes.length > 0 ? (
-                  token.serviceTypes.map((stype: string) => (
-                    <span key={stype} className="px-2 py-1 rounded bg-blue-100 text-blue-800 text-xs font-semibold">
-                      <ServiceName serviceType={stype} />
-                    </span>
-                  ))
+                  <div className="flex flex-col gap-1">
+                    {token.serviceTypes.map((stype: string) => (
+                      <span key={stype} className="px-2 py-1 rounded bg-blue-100 text-blue-800 text-xs font-semibold">
+                        <ServiceName serviceType={stype} />
+                      </span>
+                    ))}
+                  </div>
                 ) : (
                   <span className="text-gray-500">No service types</span>
                 )}
-              </p>
+              </div>
             </div>
             <div>
               <p className="text-gray-600">Served By</p>
