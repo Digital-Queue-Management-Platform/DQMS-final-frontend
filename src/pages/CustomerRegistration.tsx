@@ -2,9 +2,9 @@
 
 import type React from "react"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useParams, useNavigate, useLocation } from "react-router-dom"
-import { User, Phone, FileText } from "lucide-react"
+import { User, Phone, FileText, ChevronDown, X } from "lucide-react"
 import api from "../config/api"
 import type { Outlet } from "../types"
 
@@ -31,11 +31,16 @@ export default function CustomerRegistration() {
   const [services, setServices] = useState<Array<{ id: string; code: string; title: string; isActive?: boolean }>>([])
   const [preferredLanguage, setPreferredLanguage] = useState<string>('en')
   
+  // Service dropdown states
+  const [isServiceDropdownOpen, setIsServiceDropdownOpen] = useState(false)
+  const serviceDropdownRef = useRef<HTMLDivElement>(null)
+  
   // Add a form key to force React re-render when needed
   const [formKey, setFormKey] = useState(Date.now())
 
   // Force clear all form fields whenever component mounts (every time page loads)
   const clearAllFormData = () => {
+    console.log('clearAllFormData called - clearing serviceTypes from:', serviceTypes)
     setName("")
     setMobileNumber("")
     setServiceTypes([])
@@ -45,6 +50,7 @@ export default function CustomerRegistration() {
     setPreferredLanguage('en')
     setError("")
     setLanguage("en")
+    setIsServiceDropdownOpen(false)
     setFormKey(Date.now()) // Force form re-render
     
     // Additional browser form clearing
@@ -79,6 +85,7 @@ export default function CustomerRegistration() {
   }
 
   useEffect(() => {
+    console.log('CustomerRegistration useEffect - Initial serviceTypes:', serviceTypes)
     // IMMEDIATELY clear all form data when page loads - no matter what
     clearAllFormData()
     
@@ -97,6 +104,17 @@ export default function CustomerRegistration() {
         })
       }
     }, 100)
+    
+    // Extra aggressive clearing for service types specifically
+    setTimeout(() => {
+      setServiceTypes([])
+      setIsServiceDropdownOpen(false)
+    }, 150)
+    
+    // Final safety clear
+    setTimeout(() => {
+      setServiceTypes([])
+    }, 200)
     
     // Always fetch outlets and services first
     fetchOutlets()
@@ -246,6 +264,12 @@ export default function CustomerRegistration() {
         })
       }
     }, 50)
+    
+    // Additional aggressive clearing for service types specifically
+    setTimeout(() => {
+      setServiceTypes([])
+      setIsServiceDropdownOpen(false)
+    }, 100)
   }, [location.pathname, location.search])
 
   const fetchOutlets = async () => {
@@ -271,6 +295,45 @@ export default function CustomerRegistration() {
       setServices([])
     }
   }
+
+
+  // Handle service selection
+  const handleServiceToggle = (serviceCode: string) => {
+    if (serviceTypes.includes(serviceCode)) {
+      const newTypes = serviceTypes.filter(code => code !== serviceCode)
+      console.log('Removing service:', serviceCode, 'New types:', newTypes)
+      setServiceTypes(newTypes)
+    } else {
+      const newTypes = [...serviceTypes, serviceCode]
+      console.log('Adding service:', serviceCode, 'New types:', newTypes)
+      setServiceTypes(newTypes)
+    }
+  }
+
+  // Remove service from selection
+  const removeService = (serviceCode: string) => {
+    setServiceTypes(prev => prev.filter(code => code !== serviceCode))
+  }
+
+  // Get service title by code
+  const getServiceTitle = (code: string) => {
+    const service = services.find(s => s.code === code)
+    return service?.title || code
+  }
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (serviceDropdownRef.current && !serviceDropdownRef.current.contains(event.target as Node)) {
+        setIsServiceDropdownOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -540,30 +603,80 @@ export default function CustomerRegistration() {
             </div>
           </div>
 
-          {/* Service Types (Multi-select Checkboxes) */}
+          {/* Service Types (Dropdown with Checkboxes) */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">{t.serviceType}</label>
-            <div className="flex flex-wrap gap-2">
-              {services.length === 0 ? (
-                <span className="text-gray-500">No services available</span>
-              ) : (
-                services.map((s) => (
-                  <label key={s.id} className="inline-flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      value={s.code}
-                      checked={serviceTypes.includes(s.code)}
-                      onChange={e => {
-                        if (e.target.checked) {
-                          setServiceTypes(prev => [...prev, s.code])
-                        } else {
-                          setServiceTypes(prev => prev.filter(code => code !== s.code))
-                        }
-                      }}
-                    />
-                    <span>{s.title || s.code}</span>
-                  </label>
-                ))
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              {t.serviceType} 
+              <span className="ml-2 text-xs text-gray-500">
+                ({serviceTypes.length}/{services.length})
+              </span>
+            </label>
+            
+            {/* Selected Services Tags */}
+            {serviceTypes.length > 0 && (
+              <div className="mb-3 flex flex-wrap gap-2">
+                {serviceTypes.map((serviceCode) => (
+                  <div
+                    key={serviceCode}
+                    className="inline-flex items-center gap-1 bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm"
+                  >
+                    <span>{getServiceTitle(serviceCode)}</span>
+                    <button
+                      type="button"
+                      onClick={() => removeService(serviceCode)}
+                      className="ml-1 hover:bg-blue-200 rounded-full p-0.5 transition-colors"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Service Dropdown */}
+            <div className="relative" ref={serviceDropdownRef}>
+              <button
+                type="button"
+                onClick={() => setIsServiceDropdownOpen(!isServiceDropdownOpen)}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white text-left focus:ring-2 focus:ring-blue-500 focus:border-transparent flex items-center justify-between"
+              >
+                <span className="text-gray-500">
+                  {serviceTypes.length === 0 
+                    ? "Select service types..." 
+                    : `${serviceTypes.length} service${serviceTypes.length === 1 ? '' : 's'} selected`
+                  }
+                </span>
+                <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${isServiceDropdownOpen ? 'rotate-180' : ''}`} />
+              </button>
+
+              {isServiceDropdownOpen && (
+                <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-hidden">
+                  {/* Services List */}
+                  <div className="max-h-60 overflow-y-auto">
+                    {services.length === 0 ? (
+                      <div className="p-3 text-gray-500 text-sm text-center">
+                        No services available
+                      </div>
+                    ) : (
+                      services.map((service) => (
+                        <label
+                          key={service.id}
+                          className="flex items-center gap-3 p-3 hover:bg-gray-50 cursor-pointer"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={serviceTypes.includes(service.code)}
+                            onChange={() => handleServiceToggle(service.code)}
+                            className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                          />
+                          <span className="text-sm text-gray-700 flex-1">
+                            {service.title || service.code}
+                          </span>
+                        </label>
+                      ))
+                    )}
+                  </div>
+                </div>
               )}
             </div>
             <p className="text-xs text-gray-500 mt-1">Select one or more services.</p>
