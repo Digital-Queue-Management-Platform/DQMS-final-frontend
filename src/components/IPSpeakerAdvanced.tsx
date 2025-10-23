@@ -46,7 +46,7 @@ interface IPSpeakerConfig {
   port: number
   username?: string
   password?: string
-  model: 'hikvision' | 'dahua' | 'axis' | 'generic'
+  model: 'hikvision' | 'dahua' | 'axis' | 'generic' | 'vlc_http' | 'vlc_udp' | 'vlc_rtsp'
 }
 
 export default function IPSpeaker({ token, counterNumber, onCall }: IPSpeakerProps) {

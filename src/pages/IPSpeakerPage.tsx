@@ -45,7 +45,7 @@ interface IPSpeakerConfig {
   username?: string
   password?: string
   apiToken?: string
-  model: 'hikvision' | 'dahua' | 'axis' | 'onvif' | 'rtsp' | 'generic' | 'restful' | 'webhook' | 'custom'
+  model: 'hikvision' | 'dahua' | 'axis' | 'onvif' | 'rtsp' | 'generic' | 'restful' | 'webhook' | 'vlc_http' | 'vlc_udp' | 'vlc_rtsp' | 'custom'
   customEndpoints?: {
     testEndpoint?: string
     announceEndpoint?: string
@@ -62,7 +62,10 @@ const IP_SPEAKER_MODELS = [
   { id: 'generic', name: 'Generic REST', description: 'Standard REST API speakers' },
   { id: 'restful', name: 'RESTful API', description: 'Modern REST API with Bearer auth' },
   { id: 'webhook', name: 'Webhook', description: 'Webhook-based speakers' },
-  { id: 'custom', name: 'Custom', description: 'Custom API endpoints' }
+  { id: 'vlc_http', name: 'VLC HTTP Stream', description: 'VLC Media Player HTTP streaming (port 8080)' },
+  { id: 'vlc_udp', name: 'VLC UDP Stream', description: 'VLC Media Player UDP streaming (multicast/unicast)' },
+  { id: 'vlc_rtsp', name: 'VLC RTSP Stream', description: 'VLC Media Player RTSP streaming' },
+  { id: 'custom', name: 'Custom', description: 'Custom configuration with manual endpoints' }
 ]
 
 export default function IPSpeakerPage() {
@@ -77,7 +80,7 @@ export default function IPSpeakerPage() {
   const [useIPSpeaker, setUseIPSpeaker] = useState(false)
   const [ipSpeakerConfig, setIpSpeakerConfig] = useState<IPSpeakerConfig>({
     ip: '192.168.1.100',
-    port: 80,
+    port: 8080,
     username: 'admin',
     password: 'admin123',
     apiToken: '',
@@ -95,6 +98,11 @@ export default function IPSpeakerPage() {
   const [saving, setSaving] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [testing, setTesting] = useState(false)
+  const [streamingSession, setStreamingSession] = useState<{
+    sessionId?: string
+    streamUrl?: string
+    protocol?: string
+  } | null>(null)
 
   useEffect(() => {
     // Initialize speech synthesis
@@ -263,6 +271,17 @@ export default function IPSpeakerPage() {
 
       if (response.data.success) {
         setTestMessage('Announcement sent successfully')
+        
+        // Handle VLC streaming response
+        if (response.data.sessionId && response.data.streamUrl) {
+          setStreamingSession({
+            sessionId: response.data.sessionId,
+            streamUrl: response.data.streamUrl,
+            protocol: ipSpeakerConfig.model.replace('vlc_', '').toUpperCase()
+          })
+          setTestMessage(`${response.data.message} - Stream available at: ${response.data.streamUrl}`)
+        }
+        
         // Simulate announcement duration
         setTimeout(() => {
           setIsPlaying(false)
@@ -562,7 +581,18 @@ export default function IPSpeakerPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Speaker Model</label>
                   <select
                     value={ipSpeakerConfig.model}
-                    onChange={(e) => setIpSpeakerConfig(prev => ({ ...prev, model: e.target.value as any }))}
+                    onChange={(e) => {
+                      const model = e.target.value as any
+                      setIpSpeakerConfig(prev => ({ 
+                        ...prev, 
+                        model,
+                        // Set default ports for VLC models
+                        port: model === 'vlc_http' ? 8080 :
+                              model === 'vlc_udp' ? 1234 :
+                              model === 'vlc_rtsp' ? 8554 :
+                              prev.port
+                      }))
+                    }}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
                     {IP_SPEAKER_MODELS.map(model => (
@@ -572,6 +602,64 @@ export default function IPSpeakerPage() {
                     ))}
                   </select>
                 </div>
+
+                {/* VLC-specific configuration */}
+                {ipSpeakerConfig.model.startsWith('vlc_') && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-4">
+                    <div className="flex items-center space-x-2">
+                      <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                      <h4 className="text-sm font-semibold text-blue-900">VLC Media Player Setup</h4>
+                    </div>
+                    
+                    <div className="text-sm text-blue-800 space-y-2">
+                      <p><strong>Step 1:</strong> Open VLC Media Player</p>
+                      <p><strong>Step 2:</strong> Go to Media → Stream...</p>
+                      <p><strong>Step 3:</strong> Add your audio file and click Stream</p>
+                      <p><strong>Step 4:</strong> Configure destination:</p>
+                      
+                      {ipSpeakerConfig.model === 'vlc_http' && (
+                        <div className="ml-4 bg-white p-3 rounded border">
+                          <p><strong>HTTP Streaming:</strong></p>
+                          <p>• Choose HTTP destination</p>
+                          <p>• Path: <code>/</code></p>
+                          <p>• Port: <code>{ipSpeakerConfig.port}</code></p>
+                          <p>• Stream will be available at: <code>http://{ipSpeakerConfig.ip}:{ipSpeakerConfig.port}/</code></p>
+                        </div>
+                      )}
+                      
+                      {ipSpeakerConfig.model === 'vlc_udp' && (
+                        <div className="ml-4 bg-white p-3 rounded border">
+                          <p><strong>UDP Streaming:</strong></p>
+                          <p>• Choose UDP destination</p>
+                          <p>• IP: <code>{ipSpeakerConfig.ip}</code> (or 192.168.1.255 for multicast)</p>
+                          <p>• Port: <code>{ipSpeakerConfig.port}</code></p>
+                        </div>
+                      )}
+                      
+                      {ipSpeakerConfig.model === 'vlc_rtsp' && (
+                        <div className="ml-4 bg-white p-3 rounded border">
+                          <p><strong>RTSP Streaming:</strong></p>
+                          <p>• Choose RTSP destination</p>
+                          <p>• Path: <code>/audio</code></p>
+                          <p>• Port: <code>{ipSpeakerConfig.port}</code></p>
+                          <p>• Stream will be available at: <code>rtsp://{ipSpeakerConfig.ip}:{ipSpeakerConfig.port}/audio</code></p>
+                        </div>
+                      )}
+                      
+                      <p><strong>Step 5:</strong> Choose Audio - MP3 transcoding profile</p>
+                      <p><strong>Step 6:</strong> Click Stream to start</p>
+                    </div>
+                    
+                    {streamingSession && (
+                      <div className="bg-green-100 border border-green-300 rounded p-3">
+                        <p className="text-sm font-medium text-green-900">Active Stream:</p>
+                        <p className="text-sm text-green-800">
+                          Protocol: {streamingSession.protocol} | URL: <code className="bg-white px-1 rounded">{streamingSession.streamUrl}</code>
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* Auto-detect and test buttons */}
                 <div className="flex gap-3 mt-4">
