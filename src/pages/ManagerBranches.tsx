@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
-import { Building2, Users, Clock, Star, AlertCircle, Plus, Pencil, Trash2, X } from "lucide-react"
+import { Building2, Users, Clock, Star, AlertCircle, Plus, Pencil, Trash2, X, Archive } from "lucide-react"
 // ManagerTopBar is provided globally from Layout for manager routes
 import api from "../config/api"
+import ConfirmDialog from "../components/ConfirmDialog"
 
 interface Branch {
   id: string;
@@ -26,6 +27,10 @@ export default function ManagerBranches() {
   const [showModal, setShowModal] = useState<null | { mode: 'add' } | { mode: 'edit', branch: Branch }>(null)
   const [form, setForm] = useState({ name: '', location: '', counterCount: 0, isActive: true })
   const [saving, setSaving] = useState(false)
+  const [confirmSoftOpen, setConfirmSoftOpen] = useState(false)
+  const [confirmHardOpen, setConfirmHardOpen] = useState(false)
+  const [targetBranch, setTargetBranch] = useState<Branch | null>(null)
+  const [deleting, setDeleting] = useState(false)
 
   useEffect(() => {
     // Manager authentication is handled globally by Layout
@@ -129,13 +134,13 @@ export default function ManagerBranches() {
         await api.post('/manager/outlets', {
           name: form.name.trim(),
           location: form.location.trim(),
-          counterCount: form.counterCount,
+          counters: form.counterCount,
         })
       } else if (showModal?.mode === 'edit') {
-        await api.patch(`/manager/outlets/${showModal.branch.id}`, {
+        await api.put(`/manager/outlets/${showModal.branch.id}`, {
           name: form.name.trim(),
           location: form.location.trim(),
-          counterCount: form.counterCount,
+          counters: form.counterCount,
           isActive: form.isActive,
         })
       }
@@ -149,14 +154,14 @@ export default function ManagerBranches() {
     }
   }
 
-  const confirmDelete = async (branch: Branch) => {
-    if (!window.confirm(`Delete (soft) outlet "${branch.name}"?`)) return
-    try {
-      await api.delete(`/manager/outlets/${branch.id}`)
-      await fetchBranches()
-    } catch (e) {
-      console.error('Failed to delete outlet', e)
-    }
+  const openSoftDelete = (branch: Branch) => {
+    setTargetBranch(branch)
+    setConfirmSoftOpen(true)
+  }
+
+  const openHardDelete = (branch: Branch) => {
+    setTargetBranch(branch)
+    setConfirmHardOpen(true)
   }
 
   // handleLogout moved to ManagerTopBar
@@ -195,20 +200,20 @@ export default function ManagerBranches() {
         {/* Main Content */}
         <div className="space-y-6">
           {/* Branch Cards Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">{/* Existing content continues */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">{/* Existing content continues */}
           {branches.map((branch) => (
-            <div key={branch.id} className="bg-white rounded-xl shadow-sm p-6 hover:shadow-md transition-shadow">
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex items-center">
-                  <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mr-3">
+            <div key={branch.id} className="relative bg-white rounded-xl shadow-sm p-6 hover:shadow-md transition-shadow">
+              <div className="flex items-start justify-between mb-4 gap-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
                     <Building2 className="w-6 h-6 text-green-600" />
                   </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900">{branch.name}</h3>
-                    <p className="text-sm text-gray-600">{branch.location}</p>
+                  <div className="min-w-0">
+                    <h3 className="text-lg font-semibold text-gray-900 truncate" title={branch.name}>{branch.name}</h3>
+                    <p className="text-sm text-gray-600 truncate" title={branch.location}>{branch.location}</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 shrink-0">
                   {branch.isActive ? (
                     <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
                       Active
@@ -226,9 +231,16 @@ export default function ManagerBranches() {
                     <Pencil className="w-4 h-4" />
                   </button>
                   <button
-                    onClick={() => confirmDelete(branch)}
-                    title="Delete"
-                    className="p-2 rounded-md hover:bg-red-50 text-red-600"
+                    onClick={() => openSoftDelete(branch)}
+                    title="Soft Delete (Deactivate)"
+                    className="p-2 rounded-md hover:bg-yellow-50 text-yellow-500"
+                  >
+                    <Archive className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => openHardDelete(branch)}
+                    title="Hard Delete"
+                    className="p-2 rounded-md hover:bg-red-100 text-red-500 border border-red-200"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -381,6 +393,70 @@ export default function ManagerBranches() {
           </div>
         </div>
       )}
+      {/* Confirm soft delete */}
+      <ConfirmDialog
+        open={confirmSoftOpen}
+        title="Delete branch (soft)?"
+        description={<>
+          <p className="mb-2">This will deactivate the branch and hide it from lists.</p>
+          <p className="text-sm text-gray-500">You can re-activate it later from Edit.</p>
+        </>}
+        confirmText="Delete"
+        cancelText="Cancel"
+        danger
+        loading={deleting}
+        onCancel={() => { if (!deleting) { setConfirmSoftOpen(false); setTargetBranch(null); } }}
+        onConfirm={async () => {
+          if (!targetBranch) return
+          try {
+            setDeleting(true)
+            await api.delete(`/manager/outlets/${targetBranch.id}`)
+            setConfirmSoftOpen(false)
+            setTargetBranch(null)
+            await fetchBranches()
+          } catch (e) {
+            console.error('Failed to delete outlet', e)
+          } finally {
+            setDeleting(false)
+          }
+        }}
+      />
+
+      {/* Confirm hard delete */}
+      <ConfirmDialog
+        open={confirmHardOpen}
+        title="Permanently delete branch?"
+        description={<>
+          <p className="mb-2">This will permanently remove the branch and all related data:</p>
+          <ul className="list-disc pl-5 text-sm text-gray-600">
+            <li>Officers and their break logs</li>
+            <li>Tokens and feedback</li>
+            <li>Alerts linked to tokens</li>
+            <li>Manager QR tokens</li>
+          </ul>
+          <p className="mt-2 text-sm text-red-700">This action cannot be undone.</p>
+        </>}
+        confirmText="Delete permanently"
+        cancelText="Cancel"
+        danger
+        loading={deleting}
+        onCancel={() => { if (!deleting) { setConfirmHardOpen(false); setTargetBranch(null); } }}
+        onConfirm={async () => {
+          if (!targetBranch) return
+          try {
+            setDeleting(true)
+            await api.delete(`/manager/outlets/${targetBranch.id}/hard`)
+            setConfirmHardOpen(false)
+            setTargetBranch(null)
+            await fetchBranches()
+          } catch (e: any) {
+            console.error('Failed to hard delete outlet', e)
+            alert(e?.response?.data?.error || 'Failed to hard delete outlet')
+          } finally {
+            setDeleting(false)
+          }
+        }}
+      />
       </div>
     </div>
   )
