@@ -5,7 +5,7 @@ import AnalyticsCharts from '../adminComponents/branchDashboardComponents/Analyt
 import AgentPerformance from '../adminComponents/branchDashboardComponents/AgentPerformance'
 import api from '../../config/api'
 import { AlertsPanel } from '../adminComponents/dashboardComponents/AlertsPanel'
-import ConfirmDialog from '../../components/ConfirmDialog'
+// Removed manager email verification flow
 
 // real data is fetched from API
 
@@ -35,27 +35,16 @@ const BranchDashboardPage: React.FC<BranchDashboardPageProps> = ({ outlets = [] 
   const [tokenFlow, setTokenFlow] = useState<any[]>([])
   const [agents, setAgents] = useState<any[]>([])
   const [branchAlerts, setBranchAlerts] = useState<any[]>([])
-  const [verifiedOutletIds, setVerifiedOutletIds] = useState<Set<string>>(new Set())
-  const [verifyOpen, setVerifyOpen] = useState(false)
-  const [pendingOutletId, setPendingOutletId] = useState<string | null>(null)
-  const [managerEmail, setManagerEmail] = useState('')
-  const [verifying, setVerifying] = useState(false)
+  // Verification removed: selecting a branch loads data immediately
 
   // No auto-selection on load; user must pick a branch explicitly
 
   useEffect(() => {
     if (!selectedBranchId) return
-    // If already verified, fetch data silently
-    if (verifiedOutletIds.has(selectedBranchId)) {
-      fetchBranchData(selectedBranchId)
-      return
-    }
-    // Only prompt verification after explicit user selection
     if (hasUserSelectedBranch) {
-      setPendingOutletId(selectedBranchId)
-      setVerifyOpen(true)
+      fetchBranchData(selectedBranchId)
     }
-  }, [selectedBranchId, verifiedOutletIds, hasUserSelectedBranch])
+  }, [selectedBranchId, hasUserSelectedBranch])
 
   const fetchBranchData = async (outletId: string) => {
     try {
@@ -159,46 +148,7 @@ const BranchDashboardPage: React.FC<BranchDashboardPageProps> = ({ outlets = [] 
 
   return (
     <div className="px-0">
-      {/* Verify Branch Manager dialog */}
-      <ConfirmDialog
-        open={verifyOpen}
-        title="Verify Branch Manager"
-        description={
-          <div className="space-y-3">
-            <p>Please enter the branch manager's email to access this branch dashboard.</p>
-            <input
-              type="email"
-              value={managerEmail}
-              onChange={(e) => setManagerEmail(e.target.value)}
-              placeholder="manager@example.com"
-              className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-          </div>
-        }
-        confirmText="Verify"
-        cancelText="Cancel"
-        loading={verifying}
-        onCancel={() => {
-          setVerifyOpen(false)
-          setManagerEmail('')
-        }}
-        onConfirm={async () => {
-          if (!pendingOutletId) return
-          setVerifying(true)
-          try {
-            await api.post('/admin/verify-branch-manager', { outletId: pendingOutletId, email: managerEmail })
-            setVerifiedOutletIds((prev) => new Set(prev).add(pendingOutletId))
-            setVerifyOpen(false)
-            setManagerEmail('')
-            // proceed to fetch data now that verified
-            fetchBranchData(pendingOutletId)
-          } catch (e: any) {
-            alert(e?.response?.data?.error || 'Verification failed')
-          } finally {
-            setVerifying(false)
-          }
-        }}
-      />
+      {/* Manager verification removed: content loads immediately after branch selection */}
       <Header2
         selectedBranch={branchName}
         setSelectedBranch={(name: string) => {
@@ -207,9 +157,6 @@ const BranchDashboardPage: React.FC<BranchDashboardPageProps> = ({ outlets = [] 
             // Reset selection state
             setSelectedBranchId(null)
             setBranchName(NOT_SELECTED_LABEL)
-            setVerifyOpen(false)
-            setPendingOutletId(null)
-            setManagerEmail('')
             // Optional: clear data panels
             setOverview({
               totalCustomers: 0,
@@ -230,7 +177,7 @@ const BranchDashboardPage: React.FC<BranchDashboardPageProps> = ({ outlets = [] 
         branchOptions={[NOT_SELECTED_LABEL, ...outlets.map((branch) => branch.name)]}
       />
 
-      {selectedBranchId && verifiedOutletIds.has(selectedBranchId) ? (
+      {selectedBranchId ? (
         <>
           <OverviewCards data={overview} />
           <div className="mt-6">
@@ -252,10 +199,6 @@ const BranchDashboardPage: React.FC<BranchDashboardPageProps> = ({ outlets = [] 
             </div>
           </div>
         </>
-      ) : hasUserSelectedBranch && selectedBranchId ? (
-        <div className="mt-10 p-6 bg-yellow-50 border border-yellow-200 rounded-lg text-yellow-800">
-          Please verify the branch manager's email to view analytics for this branch.
-        </div>
       ) : null}
     </div>
   )
