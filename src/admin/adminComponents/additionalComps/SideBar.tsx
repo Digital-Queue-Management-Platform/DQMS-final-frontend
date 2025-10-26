@@ -12,6 +12,7 @@ import {
   LogOut,
   Menu,
   SidebarIcon,
+  ChevronLeft,
   Scale3D,
   ListOrdered,
   Building2,
@@ -19,7 +20,6 @@ import {
   QrCode,
   Users,
   Coffee,
-  //X
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useUser } from '../../../contexts/UserContext'
@@ -31,11 +31,13 @@ interface NavigationItem {
 }
 
 interface SidebarProps {
+  isCollapsed: boolean;
+  setIsCollapsed: (value: boolean | ((prev: boolean) => boolean)) => void;
   activePage: string;
   setActivePage: (page: string) => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ activePage, setActivePage }) => {
+const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed, activePage, setActivePage }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState<boolean>(false);
   const { currentUser, loading } = useUser()
   const location = useLocation()
@@ -94,6 +96,14 @@ const Sidebar: React.FC<SidebarProps> = ({ activePage, setActivePage }) => {
       setIsMobileMenuOpen(false);
     }
   };
+
+  const toggleSidebar = (): void => {
+    if (window.innerWidth < 1024) {
+      setIsMobileMenuOpen(prev => !prev)
+    } else {
+      setIsCollapsed((prev) => !prev)
+    }
+  }
 
   // Get user display information based on role and context
   const getUserDisplayInfo = () => {
@@ -167,56 +177,85 @@ const Sidebar: React.FC<SidebarProps> = ({ activePage, setActivePage }) => {
       
       {/* Sidebar */}
       <div className={`
-        fixed left-0 top-0 bg-white shadow-xl border-r border-gray-200 h-full min-h-screen z-50 transition-all duration-300
-        ${isMobileMenuOpen ? 'w-full sm:w-80 md:w-72' : 'hidden lg:block'}
-        lg:w-72 xl:w-80 
+        fixed left-0 top-0 bg-white shadow-xl border-r border-gray-200 h-full min-h-screen z-50 transition-all duration-300 overflow-x-hidden
+        ${isMobileMenuOpen ? 'w-72' : 'hidden lg:block'}
+        ${isCollapsed ? 'lg:w-16' : 'lg:w-72'}
       `}>
         
         {/* Header */}
-        <div className="border-b border-gray-200 h-16 flex items-center justify-center p-4 relative">
-          <img 
-            src="/logo.png" 
-            alt="System Logo" 
-            className="w-16 h-16 rounded-lg object-contain"
-          />
-          {/* Close button - only for mobile */}
-          <button
-            onClick={() => setIsMobileMenuOpen(false)}
-            className="absolute right-3 p-2 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer lg:hidden"
-          >
-            <SidebarIcon className="h-6 w-6 text-gray-600" />
-          </button>
+        <div className="border-b border-gray-200 h-20 flex items-center justify-between p-5 relative">
+          {isCollapsed ? (
+            <button
+              onClick={toggleSidebar}
+              className="flex items-center justify-center w-full cursor-pointer"
+            >
+              <Menu className="h-6 w-6 text-gray-600" />
+            </button>
+          ) : (
+            <>
+              <div>
+                <img 
+                  src='/logo.png'
+                  alt='logo' 
+                  className='w-36 pr-2 p-1'
+                />
+              </div>
+              {/* Close button - inside header for expanded state */}
+              <button
+                onClick={() => {
+                  if (window.innerWidth < 1024) {
+                    setIsMobileMenuOpen(false);
+                  } else {
+                    setIsCollapsed(true);
+                  }
+                }}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
+              >
+                <SidebarIcon className="h-6 w-6 text-gray-600" />
+              </button>
+            </>
+          )}
         </div>
 
         {/* Navigation */}
-        <nav className="px-3 sm:px-6 pt-4 sm:pt-6">
-          <ul className="space-y-2 sm:space-y-3">
+        <nav className={`${isCollapsed ? 'px-2' : 'px-6'} pt-6`}>
+          <ul className="space-y-3">
             {navigationItems.map((item) => (
               <li key={item.name}>
                 {item.to ? (
                   <Link
                     to={item.to}
                     onClick={() => handleNavClick(item.name)}
-                    className={`w-full flex items-center px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium sm:font-semibold rounded-lg transition-all duration-200 relative cursor-pointer ${
+                    className={`group w-full flex items-center ${isCollapsed ? 'px-3 py-3 justify-center' : 'px-4 py-3'} text-sm font-semibold rounded-lg transition-all duration-200 relative cursor-pointer ${
                       (location.pathname === item.to || activePage === item.name)
                         ? 'bg-blue-600 text-white shadow-lg'
                         : 'text-gray-600 hover:text-white hover:bg-blue-600'
                     }`}
                   >
-                    <item.icon className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
-                    <span className="ml-2 sm:ml-3 truncate">{item.name}</span>
+                    <item.icon className="h-5 w-5 flex-shrink-0" />
+                    {!isCollapsed && <span className="ml-3 truncate">{item.name}</span>}
+                    {isCollapsed && (
+                      <div className="absolute left-full ml-3 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50">
+                        {item.name}
+                      </div>
+                    )}
                   </Link>
                 ) : (
                   <button
                     onClick={() => handleNavClick(item.name)}
-                    className={`w-full flex items-center px-4 py-3 text-sm font-semibold rounded-lg transition-all duration-200 relative cursor-pointer ${
+                    className={`group w-full flex items-center ${isCollapsed ? 'px-3 py-3 justify-center' : 'px-4 py-3'} text-sm font-semibold rounded-lg transition-all duration-200 relative cursor-pointer ${
                       activePage === item.name
                         ? 'bg-blue-600 text-white shadow-lg'
                         : 'text-gray-600 hover:text-white hover:bg-blue-600'
                     }`}
                   >
                     <item.icon className="h-5 w-5 flex-shrink-0" />
-                    <span className="ml-3 truncate">{item.name}</span>
+                    {!isCollapsed && <span className="ml-3 truncate">{item.name}</span>}
+                    {isCollapsed && (
+                      <div className="absolute left-full ml-3 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50">
+                        {item.name}
+                      </div>
+                    )}
                   </button>
                 )}
               </li>
@@ -227,32 +266,51 @@ const Sidebar: React.FC<SidebarProps> = ({ activePage, setActivePage }) => {
         {/* User info and logout */}
         <div className="absolute bottom-0 left-0 right-0 border-t border-gray-200 bg-white">
           <div className="p-6">
-            <div className="flex items-center mb-4">
-              <div className="h-10 w-10 bg-gray-800 rounded-lg flex items-center justify-center">
-                <span className="text-white text-sm font-semibold">{userInfo.initials}</span>
+            {isCollapsed ? (
+              <div className="flex flex-col items-center space-y-3">
+                <div className="h-10 w-10 bg-gray-800 rounded-lg flex items-center justify-center">
+                  <span className="text-white text-sm font-semibold">{userInfo.initials}</span>
+                </div>
+                <button
+                  onClick={handleLogout}
+                  className="p-2 text-gray-600 hover:text-white hover:bg-red-500 rounded-lg group relative"
+                >
+                  <LogOut className="h-4 w-4" />
+                  <div className="absolute left-full ml-3 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50">
+                    Sign Out
+                  </div>
+                </button>
               </div>
-              <div className="ml-3 min-w-0 flex-1">
-                <p className="text-sm font-semibold text-gray-800 truncate">{userInfo.name}</p>
-                <p className="text-xs text-gray-600 truncate">{userInfo.role}</p>
-                {onOfficerPath && userInfo.counterNumber && (
-                  <p className="text-xs text-blue-600 font-medium truncate">
-                    Counter {userInfo.counterNumber} • {userInfo.outletName}
-                  </p>
-                )}
-                {onManagerPath && userInfo.regionName && (
-                  <p className="text-xs text-green-600 font-medium truncate">
-                    {userInfo.regionName} Region • {userInfo.outletCount} {userInfo.outletCount === 1 ? 'Branch' : 'Branches'}
-                  </p>
-                )}
-              </div>
-            </div>
-            <button
-              onClick={handleLogout}
-              className="flex items-center px-4 py-2 text-sm text-red-600 font-semibold rounded-lg transition-all duration-200 hover:bg-red-50"
-            >
-              <LogOut className="mr-3 h-4 w-4" />
-              <span>Sign Out</span>
-            </button>
+            ) : (
+              <>
+                <div className="flex items-center mb-4">
+                  <div className="h-10 w-10 bg-gray-800 rounded-lg flex items-center justify-center">
+                    <span className="text-white text-sm font-semibold">{userInfo.initials}</span>
+                  </div>
+                  <div className="ml-3 min-w-0 flex-1">
+                    <p className="text-sm font-semibold text-gray-800 truncate">{userInfo.name}</p>
+                    <p className="text-xs text-gray-600 truncate">{userInfo.role}</p>
+                    {onOfficerPath && userInfo.counterNumber && (
+                      <p className="text-xs text-blue-600 font-medium truncate">
+                        Counter {userInfo.counterNumber} • {userInfo.outletName}
+                      </p>
+                    )}
+                    {onManagerPath && userInfo.regionName && (
+                      <p className="text-xs text-green-600 font-medium truncate">
+                        {userInfo.regionName} Region • {userInfo.outletCount} {userInfo.outletCount === 1 ? 'Branch' : 'Branches'}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <button
+                  onClick={handleLogout}
+                  className="flex items-center px-4 py-2 text-sm text-red-600 font-semibold rounded-lg transition-all duration-200 hover:bg-red-50"
+                >
+                  <LogOut className="mr-3 h-4 w-4" />
+                  <span>Sign Out</span>
+                </button>
+              </>
+            )}
           </div>
         </div>
       </div>

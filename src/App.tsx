@@ -227,9 +227,16 @@ function Layout({ children }: { children: React.ReactNode }) {
   // Ensure sidebar is visible on admin, officer, and manager routes (but not on login pages)
   const showSidebar = isAdminPath || (isOfficerPath && !isOfficerLogin) || (isManagerPath && !isManagerLogin)
   const [activePage, setActivePage] = React.useState<string>('')
+  const [isCollapsed, setIsCollapsed] = React.useState<boolean>(() => {
+    try { return localStorage.getItem('sidebar_collapsed') === '1' } catch { return false }
+  })
 
   // Central officer state for top bar when on officer pages (except login)
   const [officer, setOfficer] = React.useState<Officer | null>(null)
+
+  React.useEffect(() => {
+    try { localStorage.setItem('sidebar_collapsed', isCollapsed ? '1' : '0') } catch {}
+  }, [isCollapsed])
 
   React.useEffect(() => {
     let mounted = true
@@ -270,11 +277,13 @@ function Layout({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen bg-gray-50">
       {showSidebar && (
         <Sidebar 
+          isCollapsed={isCollapsed}
+          setIsCollapsed={setIsCollapsed}
           activePage={activePage} 
           setActivePage={setActivePage} />
       )}
       <div 
-        className={`flex-1 transition-all duration-300 ${showSidebar ? 'lg:ml-72 xl:ml-80' : 'ml-0'}`}
+        className={`flex-1 transition-all duration-300 ${showSidebar ? (isCollapsed ? 'lg:ml-16' : 'lg:ml-72') : 'ml-0'}`}
       >
         {/* Header for all dashboard pages */}
         {showSidebar && <Header />}
