@@ -12,7 +12,6 @@ import {
   LogOut,
   Menu,
   SidebarIcon,
-  ChevronLeft,
   Scale3D,
   ListOrdered,
   Building2,

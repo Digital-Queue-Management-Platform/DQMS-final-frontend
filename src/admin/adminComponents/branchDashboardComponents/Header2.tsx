@@ -1,9 +1,5 @@
 import React from 'react'
-import {
-  RefreshCw,
-  Download,
-  Clock,
-} from 'lucide-react'
+
 import SearchableSelect from '../../../components/SearchableSelect'
 
 interface Header2Props {
@@ -17,7 +13,7 @@ const Header2: React.FC<Header2Props> = ({
   setSelectedBranch, 
   branchOptions 
 }) => {
-  const currentDate = new Date().toLocaleDateString('en-US', {
+  /*const currentDate = new Date().toLocaleDateString('en-US', {
     weekday: 'long',
     year: 'numeric',
     month: 'long',
@@ -28,7 +24,7 @@ const Header2: React.FC<Header2Props> = ({
     hour: '2-digit',
     minute: '2-digit',
     second: '2-digit'
-  })
+  })*/
 
   const options = branchOptions.map((name) => ({ _id: name, name }))
 
