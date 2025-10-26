@@ -6,7 +6,7 @@ import { BranchTable } from '../adminComponents/dashboardComponents/BranchTable'
 import SriLankaMap from '../adminComponents/dashboardComponents/SriLankaMap';
 import SystemHealthStatus from '../adminComponents/dashboardComponents/SystemHealthStatus';
 import BranchDashboardPage from './BranchDashboardPage';
-import { UsersIcon, ClockIcon, StarIcon, Ticket, BellIcon, RefreshCwIcon, DownloadIcon, Eye, ArrowLeft, Trash2 } from 'lucide-react';
+import { UsersIcon, ClockIcon, StarIcon, Ticket, BellIcon, Eye, ArrowLeft, Trash2, Clock } from 'lucide-react';
 import api, { WS_URL } from '../../config/api'
 import type { Alert } from '../../types'
 
@@ -290,9 +290,12 @@ const DashboardPage: React.FC = () => {
               <h1 className="text-2xl font-bold text-gray-900">
                 {showBranchDashboard ? 'Branch Dashboard' : 'Admin Dashboard'}
               </h1>
-              <p className="text-sm text-gray-500">
-                {formatDate(currentDateTime)} | {formatTime(currentDateTime)}
-              </p>
+              <div className="flex text-sm items-center text-gray-500 mt-1">
+                <Clock size={16} className="mr-1" />
+                <span>
+                  {formatDate(currentDateTime)} | {formatTime(currentDateTime)}
+                </span>
+              </div>
             </div>
             <div className="flex items-center space-x-4">
               {/* Notification Bell */}
@@ -386,14 +389,14 @@ const DashboardPage: React.FC = () => {
                   Location wise Dashboard
                 </button>
               )}
-              <button className="flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50">
+              {/*<button className="flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50">
                 <DownloadIcon className="w-4 h-4 mr-2" />
                 Export
               </button>
               <button className="flex items-center px-4 py-2 bg-blue-600 rounded-md text-sm font-medium text-white hover:bg-blue-700">
                 <RefreshCwIcon className="w-4 h-4 mr-2" />
                 Refresh
-              </button>
+              </button>*/}
             </div>
           </div>
         </div>
@@ -408,64 +411,63 @@ const DashboardPage: React.FC = () => {
           <div className={`${showBranchDashboard ? 'hidden' : 'block'} flex-1 overflow-y-auto transition-all duration-300`}>
                           {/* filters removed per request */}
 
-                  {/* Main content area */}
-                
-                    {/* Metrics row */}
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-                    <MetricCard title="Total Customers Served Today" value={totalCustomers.toString()} icon={<UsersIcon className="h-7 w-7 text-blue-500" />} detail={branchData.length >= 3 ? `${branchData[0].name}: ${branchData[0].customersServed}, ${branchData[1].name}: ${branchData[1].customersServed}, ${branchData[2].name}: ${branchData[2].customersServed}` : undefined} />
-                    <MetricCard title="Average Waiting Time" value={`${avgWaitingTime} min`} icon={<ClockIcon className="h-7 w-7 text-blue-500" />} trend={Number(avgWaitingTime) < 15 ? 'down' : 'up'} trendLabel={Number(avgWaitingTime) < 15 ? 'Better than target' : 'Above target'} />
-                    <MetricCard title="Customer Satisfaction Rating" value={avgRating} icon={<StarIcon className="h-7 w-7 text-blue-500" />} trend={Number(avgRating) > 4.0 ? 'up' : 'down'} trendLabel={Number(avgRating) > 4.0 ? 'Above average' : 'Below average'} />
-                    <MetricCard title="Currently Active Queues" value={realtimeStats ? String(realtimeStats.activeTokens) : '0'} icon={<Ticket className="h-7 w-7 text-green-500"/>} trend={Number(avgRating) > 4.0 ? 'up' : 'down'} trendLabel={Number(avgRating) > 4.0 ? 'Above average' : 'Below average'}/>
-                  </div>
-                  
-                  {/* Charts section */}
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-                    <div className="bg-white p-4 rounded-lg shadow">
-                      <h3 className="text-lg font-medium mb-4">
-                        Customer Volume by Branch
-                      </h3>
-                      <BranchComparisonChart data={branchData} />
-                    </div>
-                    <div className="bg-white p-4 rounded-lg shadow">
-                      <h3 className="text-lg font-medium mb-4">
-                        Waiting Time Trends (Last 7 Days)
-                      </h3>
-                      <WaitingTimeChart data={waitingTimeData} />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-                    <div className="p-2 rounded-lg shadow mb-6">
-                      <SystemHealthStatus/>
-                    </div>
-                  </div>
-                  
-                  {/* Map section */}
-                  <div className="bg-white p-4 rounded-lg shadow mb-6">
-                    <h3 className="text-lg font-medium mb-4">
-                      Branch Locations & Performance
-                    </h3>
-                    <div className="h-135">
-                      <SriLankaMap branchData={branchData} />
-                    </div> 
-                  </div>
-
-                  {/* Table section */}
-                  <div className="bg-white p-4 rounded-lg shadow">
-                    <h3 className="text-lg font-medium mb-4">
-                      Branch Performance Details
-                    </h3>
-                      <BranchTable 
-                        data={branchData} 
-                        currentPage={currentPage} 
-                        setCurrentPage={setCurrentPage} 
-                        sortColumn={sortColumn} 
-                        setSortColumn={setSortColumn} 
-                        sortDirection={sortDirection} 
-                        setSortDirection={setSortDirection} 
-                      />
-                  </div>
+            {/* Main content area */}
+          
+              {/* Metrics row */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+              <MetricCard title="Total Customers Served Today" value={totalCustomers.toString()} icon={<UsersIcon className="h-7 w-7 text-blue-500" />} detail={branchData.length >= 3 ? `${branchData[0].name}: ${branchData[0].customersServed}, ${branchData[1].name}: ${branchData[1].customersServed}, ${branchData[2].name}: ${branchData[2].customersServed}` : undefined} />
+              <MetricCard title="Average Waiting Time" value={`${avgWaitingTime} min`} icon={<ClockIcon className="h-7 w-7 text-blue-500" />} trend={Number(avgWaitingTime) < 15 ? 'down' : 'up'} trendLabel={Number(avgWaitingTime) < 15 ? 'Better than target' : 'Above target'} />
+              <MetricCard title="Customer Satisfaction Rating" value={avgRating} icon={<StarIcon className="h-7 w-7 text-blue-500" />} trend={Number(avgRating) > 4.0 ? 'up' : 'down'} trendLabel={Number(avgRating) > 4.0 ? 'Above average' : 'Below average'} />
+              <MetricCard title="Currently Active Queues" value={realtimeStats ? String(realtimeStats.activeTokens) : '0'} icon={<Ticket className="h-7 w-7 text-green-500"/>} trend={Number(avgRating) > 4.0 ? 'up' : 'down'} trendLabel={Number(avgRating) > 4.0 ? 'Above average' : 'Below average'}/>
+            </div>
             
+            {/* Charts section */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+              <div className="bg-white p-4 rounded-lg shadow">
+                <h3 className="text-lg font-medium mb-4">
+                  Customer Volume by Branch
+                </h3>
+                <BranchComparisonChart data={branchData} />
+              </div>
+              <div className="bg-white p-4 rounded-lg shadow">
+                <h3 className="text-lg font-medium mb-4">
+                  Waiting Time Trends (Last 7 Days)
+                </h3>
+                <WaitingTimeChart data={waitingTimeData} />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+              <div className="p-2 rounded-lg shadow mb-6">
+                <SystemHealthStatus/>
+              </div>
+            </div>
+            
+            {/* Map section */}
+            <div className="bg-white p-4 rounded-lg shadow mb-6">
+              <h3 className="text-lg font-medium mb-4">
+                Branch Locations & Performance
+              </h3>
+              <div className="h-135">
+                <SriLankaMap branchData={branchData} />
+              </div> 
+            </div>
+
+            {/* Table section */}
+            <div className="bg-white p-4 rounded-lg shadow">
+              <h3 className="text-lg font-medium mb-4">
+                Branch Performance Details
+              </h3>
+                <BranchTable 
+                  data={branchData} 
+                  currentPage={currentPage} 
+                  setCurrentPage={setCurrentPage} 
+                  sortColumn={sortColumn} 
+                  setSortColumn={setSortColumn} 
+                  sortDirection={sortDirection} 
+                  setSortDirection={setSortDirection} 
+                />
+            </div>           
           </div>
         </div>
       </div>

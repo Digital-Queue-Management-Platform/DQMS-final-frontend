@@ -1,9 +1,5 @@
 import React from 'react'
-import {
-  RefreshCw,
-  Download,
-  Clock,
-} from 'lucide-react'
+
 import SearchableSelect from '../../../components/SearchableSelect'
 
 interface Header2Props {
@@ -17,7 +13,7 @@ const Header2: React.FC<Header2Props> = ({
   setSelectedBranch, 
   branchOptions 
 }) => {
-  const currentDate = new Date().toLocaleDateString('en-US', {
+  /*const currentDate = new Date().toLocaleDateString('en-US', {
     weekday: 'long',
     year: 'numeric',
     month: 'long',
@@ -28,7 +24,7 @@ const Header2: React.FC<Header2Props> = ({
     hour: '2-digit',
     minute: '2-digit',
     second: '2-digit'
-  })
+  })*/
 
   const options = branchOptions.map((name) => ({ _id: name, name }))
 
@@ -40,18 +36,18 @@ const Header2: React.FC<Header2Props> = ({
           <h1 className="text-lg font-semibold text-gray-800">
             {selectedBranch}
           </h1>
-          <div className="flex text-sm items-center text-gray-500 mt-1">
+          {/*<div className="flex text-sm items-center text-gray-500 mt-1">
             <Clock size={16} className="mr-1" />
             <span>
               {currentDate} | {currentTime}
             </span>
-          </div>
+          </div>*/}
         </div>
 
         {/* Controls */}
         <div className="flex flex-col md:flex-row gap-3 mt-4 md:mt-0">
           {/* Branch Select */}
-          <div className="min-w-64">
+          <div className="min-w-[300px]">
             <SearchableSelect
               options={options}
               value={selectedBranch}
@@ -62,17 +58,17 @@ const Header2: React.FC<Header2Props> = ({
             />
           </div>
 
-          {/* Refresh Button */}
+          {/* Refresh Button
           <button className="flex items-center bg-white border border-gray-300 rounded-md px-4 py-2 text-gray-700 hover:bg-gray-50">
             <RefreshCw size={16} className="mr-2" />
             Refresh
           </button>
 
-          {/* Export Button */}
+          {/* Export Button 
           <button className="flex items-center bg-blue-600 text-white rounded-md px-4 py-2 hover:bg-blue-700">
             <Download size={16} className="mr-2" />
             Export
-          </button>
+          </button> */}
         </div>
       </div>
     </div>

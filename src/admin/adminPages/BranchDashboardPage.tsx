@@ -5,9 +5,6 @@ import AnalyticsCharts from '../adminComponents/branchDashboardComponents/Analyt
 import AgentPerformance from '../adminComponents/branchDashboardComponents/AgentPerformance'
 import api from '../../config/api'
 import { AlertsPanel } from '../adminComponents/dashboardComponents/AlertsPanel'
-// Removed manager email verification flow
-
-// real data is fetched from API
 
 interface BranchDashboardPageProps {
   outlets?: any[]
@@ -147,7 +144,7 @@ const BranchDashboardPage: React.FC<BranchDashboardPageProps> = ({ outlets = [] 
   }
 
   return (
-    <div className="px-0">
+    <div className="">
       {/* Manager verification removed: content loads immediately after branch selection */}
       <Header2
         selectedBranch={branchName}
