@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useUser } from '../../../contexts/UserContext'
+import api from '../../../config/api'
 
 interface NavigationItem {
   name: string;
@@ -143,17 +144,48 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed, activePa
 
   const userInfo = getUserDisplayInfo()
 
-  const handleLogout = (): void => {
+  const handleLogout = async (): Promise<void> => {
+    try {
+      // Call appropriate backend logout to clear httpOnly cookies
+      if (onOfficerPath) {
+        await api.post('/officer/logout')
+        // Set officer offline proactively (best-effort)
+        try {
+          const storedOfficer = localStorage.getItem('officer')
+          if (storedOfficer) {
+            const o = JSON.parse(storedOfficer)
+            if (o?.id) {
+              await api.post('/officer/status', { officerId: o.id, status: 'offline' })
+            }
+          }
+        } catch {}
+      } else if (onManagerPath) {
+        await api.post('/manager/logout')
+      } else if (onAdminPath) {
+        // No server cookie for admin in this app, just clear tokens
+      }
+    } catch (e) {
+      // ignore logout errors; proceed to clear client state
+    }
+
     // Clear all stored user data
-    localStorage.removeItem('dq_user')
-    localStorage.removeItem('dq_role')
-    localStorage.removeItem('adminToken')
-    localStorage.removeItem('managerToken')
-    localStorage.removeItem('manager')
-    localStorage.removeItem('dq_jwt')
-    
-    // Navigate to home page
-    navigate('/')
+    try {
+      localStorage.removeItem('dq_user')
+      localStorage.removeItem('dq_role')
+      localStorage.removeItem('adminToken')
+      localStorage.removeItem('managerToken')
+      localStorage.removeItem('manager')
+      localStorage.removeItem('dq_jwt')
+      // Officer-specific
+      localStorage.removeItem('officer')
+      localStorage.removeItem('officerToken')
+    } catch {}
+
+    // Navigate to login page based on context
+    if (onOfficerPath) navigate('/officer/login', { replace: true })
+    else if (onManagerPath) navigate('/manager/login', { replace: true })
+    else if (onAdminPath) navigate('/admin/login', { replace: true })
+    else navigate('/', { replace: true })
   };
 
   return (
