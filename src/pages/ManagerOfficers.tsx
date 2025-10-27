@@ -20,6 +20,11 @@ export default function ManagerOfficers() {
   const [services, setServices] = useState<any[]>([])
   const [saving, setSaving] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
+  const LANG_OPTIONS = [
+    { code: 'en', label: 'English' },
+    { code: 'si', label: 'Sinhala' },
+    { code: 'ta', label: 'Tamil' },
+  ]
 
   useEffect(() => {
     fetchOfficers()
@@ -46,7 +51,19 @@ export default function ManagerOfficers() {
   }
 
   const openEditor = (officer: Officer) => {
-    setSelectedOfficer({ ...officer })
+    // Normalize languages into a string[] for editing UI
+    let langs: string[] = []
+    try {
+      if (Array.isArray(officer.languages)) {
+        langs = officer.languages as string[]
+      } else if (typeof officer.languages === 'string') {
+        langs = JSON.parse(officer.languages)
+      } else if (officer.languages && typeof officer.languages === 'object') {
+        langs = Object.values(officer.languages).filter((v) => typeof v === 'string') as string[]
+      }
+    } catch {}
+
+    setSelectedOfficer({ ...officer, languages: langs })
   }
 
   const toggleService = (serviceId: string) => {
@@ -57,14 +74,23 @@ export default function ManagerOfficers() {
     setSelectedOfficer({ ...selectedOfficer, assignedServices: next })
   }
 
+  const toggleLanguage = (code: string) => {
+    if (!selectedOfficer) return
+    const current = Array.isArray(selectedOfficer.languages) ? (selectedOfficer.languages as string[]) : []
+    const exists = current.includes(code)
+    const next = exists ? current.filter((c) => c !== code) : [...current, code]
+    setSelectedOfficer({ ...selectedOfficer, languages: next })
+  }
+
   const saveOfficer = async () => {
     if (!selectedOfficer) return
     setSaving(true)
     try {
       await api.patch(`/manager/officer/${selectedOfficer.id}`, {
-        name: selectedOfficer.name,
+        // name intentionally omitted (read-only in this view)
         counterNumber: selectedOfficer.counterNumber,
         assignedServices: selectedOfficer.assignedServices || [],
+        languages: Array.isArray(selectedOfficer.languages) ? selectedOfficer.languages : [],
       })
       await fetchOfficers()
       setSelectedOfficer(null)
@@ -265,8 +291,11 @@ export default function ManagerOfficers() {
 
             <div className="p-6 space-y-6">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">Officer Name</label>
-                <input value={selectedOfficer.name} onChange={(e) => setSelectedOfficer({ ...selectedOfficer, name: e.target.value })} className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent" placeholder="Enter officer name" />
+                <label className="block text-sm font-medium text-slate-700 mb-1">Officer Name</label>
+                <div className="w-full px-4 py-2.5 border border-slate-200 bg-slate-50 text-slate-700 rounded-lg">
+                  {selectedOfficer.name}
+                </div>
+                <p className="mt-1 text-xs text-slate-500">Name is managed elsewhere and not editable here.</p>
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2">Counter Number</label>
@@ -297,6 +326,30 @@ export default function ManagerOfficers() {
                       })}
                     </div>
                   )}
+                </div>
+              </div>
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <label className="block text-sm font-medium text-slate-700">Languages</label>
+                  <span className="text-xs text-slate-500">{Array.isArray(selectedOfficer.languages) ? selectedOfficer.languages.length : 0} selected</span>
+                </div>
+                <div className="bg-slate-50 rounded-lg border border-slate-200 p-4">
+                  <div className="grid grid-cols-3 gap-2">
+                    {LANG_OPTIONS.map((opt) => {
+                      const selected = Array.isArray(selectedOfficer.languages) && selectedOfficer.languages.includes(opt.code)
+                      return (
+                        <label key={opt.code} className={`flex items-center gap-2 p-2 rounded-lg border ${selected ? 'bg-white border-purple-300' : 'bg-white border-slate-200'} hover:border-purple-300 cursor-pointer transition-colors`}>
+                          <input
+                            type="checkbox"
+                            checked={selected}
+                            onChange={() => toggleLanguage(opt.code)}
+                            className="w-4 h-4 text-purple-600 rounded focus:ring-2 focus:ring-purple-500"
+                          />
+                          <span className="text-sm text-slate-700">{opt.label}</span>
+                        </label>
+                      )
+                    })}
+                  </div>
                 </div>
               </div>
             </div>

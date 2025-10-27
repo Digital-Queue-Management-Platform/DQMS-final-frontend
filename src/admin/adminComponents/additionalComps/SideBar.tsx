@@ -214,7 +214,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed, activePa
       `}>
         
         {/* Header */}
-        <div className="border-b border-gray-200 h-20 flex items-center justify-between p-5 relative">
+        {/*<div className="border-b border-gray-200 h-20 flex items-center justify-between p-5 relative">*/}
+        <div className="h-20 flex items-center justify-between p-5 relative">
           {isCollapsed ? (
             <button
               onClick={toggleSidebar}
