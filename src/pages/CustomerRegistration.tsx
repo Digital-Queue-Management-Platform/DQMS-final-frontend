@@ -4,9 +4,10 @@ import type React from "react"
 
 import { useState, useEffect, useRef } from "react"
 import { useParams, useNavigate, useLocation } from "react-router-dom"
-import { User, Phone, FileText, ChevronDown, X } from "lucide-react"
+import { User, Phone, ChevronDown, X, Eye, EyeOff } from "lucide-react"
 import api from "../config/api"
 import type { Outlet } from "../types"
+import OTPInput from "../components/OTPInput"
 
 export default function CustomerRegistration() {
   const { outletId } = useParams()
@@ -19,7 +20,8 @@ export default function CustomerRegistration() {
   const [name, setName] = useState("")
   const [mobileNumber, setMobileNumber] = useState("")
   const [serviceTypes, setServiceTypes] = useState<string[]>([])
-  const [sltMobileNumber, setSltMobileNumber] = useState("")
+  // Optional fields section toggle
+  const [showOptional, setShowOptional] = useState(false)
   const [nicNumber, setNicNumber] = useState("")
   const [email, setEmail] = useState("")
   
@@ -30,6 +32,12 @@ export default function CustomerRegistration() {
   const [qrValid, setQrValid] = useState<boolean>(false)
   const [services, setServices] = useState<Array<{ id: string; code: string; title: string; isActive?: boolean }>>([])
   const [preferredLanguage, setPreferredLanguage] = useState<string>('en')
+  // OTP verification states
+  const [otpStep, setOtpStep] = useState<'idle' | 'sent' | 'verified'>("idle")
+  const [otpCode, setOtpCode] = useState("")
+  const [otpToken, setOtpToken] = useState<string>("")
+  const [otpError, setOtpError] = useState("")
+  const [otpSending, setOtpSending] = useState(false)
   
   // Service dropdown states
   const [isServiceDropdownOpen, setIsServiceDropdownOpen] = useState(false)
@@ -43,8 +51,7 @@ export default function CustomerRegistration() {
     console.log('clearAllFormData called - clearing serviceTypes from:', serviceTypes)
     setName("")
     setMobileNumber("")
-    setServiceTypes([])
-    setSltMobileNumber("")
+  setServiceTypes([])
     setNicNumber("")
     setEmail("")
     setPreferredLanguage('en')
@@ -52,6 +59,12 @@ export default function CustomerRegistration() {
     setLanguage("en")
     setIsServiceDropdownOpen(false)
     setFormKey(Date.now()) // Force form re-render
+  // Reset OTP state
+  setOtpStep('idle')
+  setOtpCode("")
+  setOtpToken("")
+  setOtpError("")
+  setOtpSending(false)
     
     // Additional browser form clearing
     setTimeout(() => {
@@ -283,17 +296,14 @@ export default function CustomerRegistration() {
     }
   }
 
+  // Limit Services to exactly two options: Bill Payment and Others
   const fetchServices = async () => {
-    try {
-      const response = await api.get("/queue/services")
-      const list = Array.isArray(response.data) ? response.data : []
-      // Show only active services (or those without explicit isActive=false)
-      setServices(list.filter((s: any) => s?.isActive !== false))
-    } catch (err) {
-      console.error("Failed to fetch services:", err)
-      // keep services empty; allow UI to reflect no options
-      setServices([])
-    }
+    // Instead of calling API, we constrain to two static options as per requirement
+    const STATIC_SERVICES = [
+      { id: 'BILL_PAYMENT', code: 'BILL_PAYMENT', title: 'Bill Payment', isActive: true },
+      { id: 'OTHERS', code: 'OTHERS', title: 'Others', isActive: true },
+    ]
+    setServices(STATIC_SERVICES)
   }
 
 
@@ -315,8 +325,21 @@ export default function CustomerRegistration() {
     setServiceTypes(prev => prev.filter(code => code !== serviceCode))
   }
 
-  // Get service title by code
+  // Get service title by code (localized for the two allowed services)
   const getServiceTitle = (code: string) => {
+    // Localize fixed options
+    if (code === 'BILL_PAYMENT') {
+      // Use translations object later in render cycle via `t`
+      // We can't reference `t` here directly before it's defined at call site, so
+      // we return a key that will be resolved in render by reading `t`.
+      // However since this runs during render (after `t` is defined), accessing `t` is safe.
+      // eslint-disable-next-line @typescript-eslint/no-use-before-define
+      return t.billPayment
+    }
+    if (code === 'OTHERS') {
+      // eslint-disable-next-line @typescript-eslint/no-use-before-define
+      return t.other
+    }
     const service = services.find(s => s.code === code)
     return service?.title || code
   }
@@ -335,21 +358,66 @@ export default function CustomerRegistration() {
     }
   }, [])
 
+  const sendOtp = async (): Promise<boolean> => {
+    setOtpError("")
+    setOtpSending(true)
+    try {
+      await api.post("/customer/otp/start", { mobileNumber })
+      setOtpStep('sent')
+      return true
+    } catch (err: any) {
+      const msg = err?.response?.data?.error || 'Failed to send OTP'
+      setOtpError(msg)
+      return false
+    } finally {
+      setOtpSending(false)
+    }
+  }
+
+  const verifyOtp = async (): Promise<string | null> => {
+    setOtpError("")
+    setOtpSending(true)
+    try {
+      const res = await api.post("/customer/otp/verify", { mobileNumber, code: otpCode })
+      if (res.data?.verifiedMobileToken) {
+        setOtpToken(res.data.verifiedMobileToken)
+        setOtpStep('verified')
+        return res.data.verifiedMobileToken as string
+      }
+      setOtpError('OTP verification failed')
+      return null
+    } catch (err: any) {
+      const msg = err?.response?.data?.error || 'OTP verification failed'
+      setOtpError(msg)
+      return null
+    } finally {
+      setOtpSending(false)
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
     setLoading(true)
 
     try {
+      // On Register: verify OTP if not already verified and ensure we submit the fresh token
+      let tokenForSubmit = otpToken
+      if (otpStep !== 'verified' || !tokenForSubmit) {
+        const vt = await verifyOtp()
+        if (!vt) return
+        tokenForSubmit = vt
+      }
+
       const response = await api.post("/customer/register", {
         name,
         mobileNumber,
-        sltMobileNumber: sltMobileNumber || undefined,
         nicNumber: nicNumber || undefined,
         email: email || undefined,
         serviceTypes,
         outletId: selectedOutlet,
         qrToken,
+  verifiedMobileToken: tokenForSubmit,
         preferredLanguages: preferredLanguage ? [preferredLanguage] : undefined,
       })
 
@@ -388,7 +456,7 @@ export default function CustomerRegistration() {
 
   const translations = {
     en: {
-      title: "Digital Queue Registration",
+      title: "Digital Queue Platform",
       subtitle: "Register to join the queue",
       name: "Full Name",
       mobile: "Mobile Number",
@@ -403,7 +471,7 @@ export default function CustomerRegistration() {
       email: "Email (Optional)",
     },
     si: {
-      title: "ඩිජිටල් පෝලිම ලියාපදිංචිය",
+      title: "ඩිජිටල් පෝලිම වේදිකාව",
       subtitle: "පෝලිමට එක්වීමට ලියාපදිංචි වන්න",
       name: "සම්පූර්ණ නම",
       mobile: "ජංගම දුරකථන අංකය",
@@ -418,7 +486,7 @@ export default function CustomerRegistration() {
       email: "ඊමේල් (විකල්ප)",
     },
     ta: {
-      title: "டிஜிட்டல் வரிசை பதிவு",
+      title: "டிஜிட்டல் வரிசை மேடை",
       subtitle: "வரிசையில் சேர பதிவு செய்யவும்",
       name: "முழு பெயர்",
       mobile: "கைபேசி எண்",
@@ -439,6 +507,17 @@ export default function CustomerRegistration() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-3 sm:p-4 lg:p-6">
       <div className="bg-white rounded-xl sm:rounded-2xl shadow-xl w-full max-w-sm sm:max-w-md lg:max-w-lg p-4 sm:p-6 lg:p-8">
+        {loading ? (
+          <div className="py-14 sm:py-16 flex flex-col items-center justify-center text-center">
+            <svg className="animate-spin h-8 w-8 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+            </svg>
+            <p className="mt-3 text-sm text-gray-700 font-medium">Verifying code and registering your token…</p>
+            <p className="mt-1 text-xs text-gray-500">This usually takes just a moment.</p>
+          </div>
+        ) : (
+        <>
         {!qrValid && (
           <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg text-yellow-800 text-sm">
             {error || "Please scan the QR code displayed at the branch to proceed."}
@@ -473,40 +552,34 @@ export default function CustomerRegistration() {
         </div>
 
         {/* Header */}
-  <div className="text-center mb-6 sm:mb-8">
-          <div className="inline-flex items-center justify-center w-12 h-12 sm:w-16 sm:h-16 bg-blue-100 rounded-full mb-3 sm:mb-4">
-            <FileText className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600" />
-          </div>
+        <div className="text-center mb-6 sm:mb-8">
+          
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1 sm:mb-2">{t.title}</h1>
           <p className="text-sm sm:text-base text-gray-600">{t.subtitle}</p>
+          {/* Show current outlet just under the headers */}
+          {selectedOutlet && (
+            <div className="mt-2 text-sm text-gray-700">
+              {/*<span className="font-medium">{t.outlet}:</span>{" "}*/}
+              {(() => {
+                const current = outlets.find((o) => o.id === selectedOutlet)
+                const display = current
+                  ? `${current.name} - ${current.location}`
+                  : "Loading branch..."
+                return <span>{display}</span>
+              })()}
+            </div>
+          )}
         </div>
 
         {error && (
           <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">{error}</div>
         )}
 
-        <form key={formKey} onSubmit={handleSubmit} className="space-y-4 sm:space-y-6" autoComplete="off" data-form-type="other" data-1p-ignore="true" data-bwignore="true" noValidate>
-          {/* Current Outlet (Read-only) */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">{t.outlet}</label>
-            {(() => {
-              const current = outlets.find((o) => o.id === selectedOutlet)
-              const display = current
-                ? `${current.name} - ${current.location}`
-                : selectedOutlet
-                ? "Loading branch..."
-                : ""
-            
-              return (
-                <input
-                  type="text"
-                  value={display}
-                  readOnly
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50 text-gray-700"
-                />
-              )
-            })()}
-          </div>
+  <form key={formKey} onSubmit={handleSubmit} className="space-y-4 sm:space-y-6" autoComplete="off" data-form-type="other" data-1p-ignore="true" data-bwignore="true" noValidate>
+          {/* When OTP is being entered, hide the rest of the form and show only the OTP UI */}
+          {otpStep !== 'sent' && (
+          <>
+          {/* Outlet is shown under the headers; field removed from form */}
 
           {/* Name Input */}
           <div>
@@ -551,57 +624,55 @@ export default function CustomerRegistration() {
             </div>
           </div>
 
-          {/* Telephone Number Input (optional) */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">{t.sltMobile}</label>
-            <div className="relative">
-              <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
-              <input
-                type="tel"
-                value={sltMobileNumber}
-                onChange={(e) => setSltMobileNumber(e.target.value)}
-                className="w-full pl-9 sm:pl-10 pr-4 py-2.5 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
-                placeholder="0112345678"
-                pattern="[0-9]{10}"
-                autoComplete="off"
-                data-form-type="other"
-              />
-            </div>
+          {/* Optional details toggle */}
+          <div className="flex items-center justify-between mt-1">
+            <span className="text-sm font-medium text-gray-700">Optional details</span>
+            <button
+              type="button"
+              onClick={() => setShowOptional((v) => !v)}
+              className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900"
+            >
+              {showOptional ? (<><EyeOff className="w-4 h-4" /> Hide</>) : (<><Eye className="w-4 h-4" /> Show</>)}
+            </button>
           </div>
 
-          {/* NIC Number Input (optional) */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">{t.nic}</label>
-            <div className="relative">
-              <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
-              <input
-                type="text"
-                value={nicNumber}
-                onChange={(e) => setNicNumber(e.target.value.toUpperCase())}
-                className="w-full pl-9 sm:pl-10 pr-4 py-2.5 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
-                placeholder="NIC"
-                autoComplete="off"
-                data-form-type="other"
-              />
-            </div>
-          </div>
+          {showOptional && (
+            <>
+              {/* NIC Number Input (optional) */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t.nic} <span className="text-gray-500">(Optional)</span></label>
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
+                  <input
+                    type="text"
+                    value={nicNumber}
+                    onChange={(e) => setNicNumber(e.target.value.toUpperCase())}
+                    className="w-full pl-9 sm:pl-10 pr-4 py-2.5 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
+                    placeholder="NIC"
+                    autoComplete="off"
+                    data-form-type="other"
+                  />
+                </div>
+              </div>
 
-          {/* Email Input (optional) */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">{t.email}</label>
-            <div className="relative">
-              <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full pl-9 sm:pl-10 pr-4 py-2.5 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
-                placeholder="example@domain.com"
-                autoComplete="off"
-                data-form-type="other"
-              />
-            </div>
-          </div>
+              {/* Email Input (optional) */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t.email} <span className="text-gray-500">(Optional)</span></label>
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="w-full pl-9 sm:pl-10 pr-4 py-2.5 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
+                    placeholder="example@domain.com"
+                    autoComplete="off"
+                    data-form-type="other"
+                  />
+                </div>
+              </div>
+            </>
+          )}
 
           {/* Service Types (Dropdown with Checkboxes) */}
           <div>
@@ -670,7 +741,7 @@ export default function CustomerRegistration() {
                             className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                           />
                           <span className="text-sm text-gray-700 flex-1">
-                            {service.title || service.code}
+                            {getServiceTitle(service.code)}
                           </span>
                         </label>
                       ))
@@ -701,16 +772,54 @@ export default function CustomerRegistration() {
             </div>
             <p className="text-xs text-gray-500 mt-1">Select your preferred language for announcements.</p>
           </div>
+          </>
+          )}
 
-          {/* Submit Button */}
+          {/* Submit / Verify Section */}
           <div className="space-y-3">
-            <button
-              type="submit"
-              disabled={!qrValid || loading || !selectedOutlet || serviceTypes.length === 0}
-              className="w-full bg-blue-600 text-white py-2.5 sm:py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed text-sm sm:text-base"
-            >
-              {loading ? t.registering : t.register}
-            </button>
+            {/* Step 1: Verify button only */}
+            {otpStep === 'idle' && (
+              <button
+                type="button"
+                onClick={() => sendOtp()}
+                disabled={!qrValid || otpSending || !mobileNumber || !selectedOutlet || serviceTypes.length === 0}
+                className="w-full bg-indigo-600 text-white py-2.5 sm:py-3 rounded-lg font-semibold hover:bg-indigo-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed text-sm sm:text-base"
+              >
+                {otpSending ? 'Sending OTP…' : 'Verify'}
+              </button>
+            )}
+
+            {/* Step 2: Show OTP input UI and Register button */}
+            {otpStep === 'sent' && (
+              <div className="space-y-3">
+                <div className="p-3 border rounded-lg bg-gray-50">
+                  <OTPInput
+                    value={otpCode}
+                    onChange={setOtpCode}
+                    error={otpError}
+                    onResend={() => sendOtp()}
+                    resendDisabled={otpSending}
+                  />
+                  <div className="mt-3 text-xs text-gray-600 text-center">
+                    <button
+                      type="button"
+                      onClick={() => { setOtpStep('idle'); setOtpCode(''); setOtpError('') }}
+                      className="text-gray-500 hover:underline"
+                    >
+                      Change number
+                    </button>
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={!qrValid || loading || !selectedOutlet || serviceTypes.length === 0 || otpCode.length !== 6}
+                  className="w-full bg-blue-600 text-white py-2.5 sm:py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed text-sm sm:text-base"
+                >
+                  {loading ? t.registering : t.register}
+                </button>
+              </div>
+            )}
             
             <button
               type="button"
@@ -742,6 +851,8 @@ export default function CustomerRegistration() {
             </button>
           </div>
         </form>
+        </>
+        )}
       </div>
     </div>
   )

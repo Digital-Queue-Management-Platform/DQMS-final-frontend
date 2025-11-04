@@ -1,0 +1,102 @@
+import React, { useEffect, useRef } from 'react'
+
+interface OTPInputProps {
+  length?: number
+  value: string
+  onChange: (value: string) => void
+  onComplete?: (value: string) => void
+  disabled?: boolean
+  error?: string
+  onResend?: () => void
+  resendDisabled?: boolean
+}
+
+const OTPInput: React.FC<OTPInputProps> = ({
+  length = 6,
+  value,
+  onChange,
+  onComplete,
+  disabled,
+  error,
+  onResend,
+  resendDisabled,
+}) => {
+  const inputsRef = useRef<Array<HTMLInputElement | null>>([])
+
+  useEffect(() => {
+    // focus first empty on mount
+    const idx = Math.min(value.length, length - 1)
+    inputsRef.current[idx]?.focus()
+  }, [])
+
+  const setChar = (i: number, v: string) => {
+    const next = value.split('')
+    next[i] = v
+    const joined = next.join('').slice(0, length)
+    onChange(joined)
+    if (joined.length === length && onComplete) onComplete(joined)
+  }
+
+  return (
+    <div className="">
+      <div className="text-sm font-medium text-gray-800 mb-1">Enter the {length}-digit code</div>
+      <div className="text-xs text-gray-500 mb-3">We sent a verification code to your mobile number.</div>
+      {error && <div className="mb-2 text-sm text-red-600">{error}</div>}
+      <div className="flex justify-between gap-2 sm:gap-3 select-none">
+        {Array.from({ length }).map((_, i) => {
+          const char = value[i] || ''
+          return (
+            <input
+              key={i}
+              ref={(el) => (inputsRef.current[i] = el)}
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              maxLength={1}
+              disabled={disabled}
+              value={char}
+              onChange={(e) => {
+                const v = e.target.value.replace(/\D/g, '').slice(0, 1)
+                setChar(i, v)
+                if (v && i < length - 1) inputsRef.current[i + 1]?.focus()
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Backspace') {
+                  if (!value[i] && i > 0) inputsRef.current[i - 1]?.focus()
+                }
+              }}
+              onPaste={(e) => {
+                const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, length)
+                if (pasted) {
+                  e.preventDefault()
+                  onChange(pasted)
+                  const idx = Math.min(pasted.length, length) - 1
+                  inputsRef.current[idx]?.focus()
+                  if (pasted.length === length && onComplete) onComplete(pasted)
+                }
+              }}
+              className="w-10 h-12 sm:w-12 sm:h-14 text-center text-lg sm:text-2xl font-semibold border-2 rounded-xl bg-white shadow-sm
+                         border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500
+                         transition-transform focus:scale-105"
+            />
+          )
+        })}
+      </div>
+      <div className="mt-3 text-xs text-gray-600 text-center">
+        Didn’t receive the code?
+        {onResend && (
+          <button
+            type="button"
+            onClick={onResend}
+            disabled={!!resendDisabled}
+            className="ml-2 text-indigo-600 hover:underline disabled:text-gray-400"
+          >
+            Resend
+          </button>
+        )}
+      </div>
+    </div>
+  )
+}
+
+export default OTPInput
