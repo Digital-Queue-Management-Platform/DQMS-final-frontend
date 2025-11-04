@@ -22,7 +22,7 @@ const ManagerManagement: React.FC = () => {
   const [error, setError] = useState('')
   const [selectedManager, setSelectedManager] = useState<Manager | null>(null)
   const [showResetDialog, setShowResetDialog] = useState(false)
-  const [resetLoading, setResetLoading] = useState(false)
+
 
   useEffect(() => {
     fetchManagers()
@@ -35,37 +35,18 @@ const ManagerManagement: React.FC = () => {
       setManagers(response.data.managers || [])
     } catch (err: any) {
       console.error('Failed to fetch managers:', err)
-      setError('Failed to load regional managers')
+      setError('Failed to load RTOMs')
     } finally {
       setLoading(false)
     }
   }
 
-  const handleResetPassword = async () => {
-    if (!selectedManager) return
-    
-    setResetLoading(true)
+  const handleResetPassword = () => {
+    // Since RTOMs login with mobile number only, this is just an info dialog
+    // Simply close the dialog
+    setShowResetDialog(false)
+    setSelectedManager(null)
     setError('')
-    
-    try {
-      const response = await api.post(`/admin/managers/${selectedManager.id}/reset-password`)
-      
-      setShowResetDialog(false)
-      setSelectedManager(null)
-      setError('')
-      
-      // Show success message with email status
-      if (response.data.emailSent) {
-        alert('Password reset successfully! New password has been sent to the manager\'s email.')
-      } else {
-        alert(`Password reset successfully! ${response.data.message}\n\nNew password: ${response.data.temporaryPassword}\n\nPlease provide this password to the manager manually.`)
-      }
-    } catch (err: any) {
-      console.error('Failed to reset password:', err)
-      setError(err.response?.data?.error || 'Failed to reset password')
-    } finally {
-      setResetLoading(false)
-    }
   }
 
   const openResetDialog = (manager: Manager) => {
@@ -83,7 +64,7 @@ const ManagerManagement: React.FC = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-slate-600">Loading regional managers...</div>
+        <div className="text-slate-600">Loading RTOMs...</div>
       </div>
     )
   }
@@ -91,8 +72,8 @@ const ManagerManagement: React.FC = () => {
   return (
     <div className="p-6">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-800">Regional Manager Management</h1>
-        <p className="text-slate-600 mt-2">View and manage regional manager accounts</p>
+        <h1 className="text-2xl font-bold text-slate-800">RTOM Management</h1>
+        <p className="text-slate-600 mt-2">View and manage RTOM (Regional Telecommunication Office Manager) accounts</p>
       </div>
 
       {error && (
@@ -151,7 +132,7 @@ const ManagerManagement: React.FC = () => {
                       onClick={() => openResetDialog(manager)}
                       className="bg-blue-600 text-white px-3 py-1.5 rounded-md text-sm hover:bg-blue-700 transition-colors"
                     >
-                      Reset Password
+                      View Info
                     </button>
                   </td>
                 </tr>
@@ -161,9 +142,9 @@ const ManagerManagement: React.FC = () => {
 
           {managers.length === 0 && (
             <div className="text-center py-12">
-              <div className="text-slate-500">No regional managers found</div>
+              <div className="text-slate-500">No RTOMs found</div>
               <div className="text-sm text-slate-400 mt-1">
-                Create regions with managers in the Branches section
+                Create regions with RTOMs in the Branches section
               </div>
             </div>
           )}
@@ -178,12 +159,12 @@ const ManagerManagement: React.FC = () => {
             <div className="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4">
               <div className="p-6">
                 <h2 className="text-xl font-semibold text-slate-800 mb-4">
-                  Reset Manager Password
+                  RTOM Login Information
                 </h2>
                 
                 <div className="mb-4">
                   <p className="text-slate-600">
-                    Reset password for: <strong>{selectedManager.managerId}</strong>
+                    RTOM: <strong>{selectedManager.managerId}</strong>
                   </p>
                   <p className="text-sm text-slate-500">{selectedManager.managerEmail}</p>
                 </div>
@@ -194,9 +175,12 @@ const ManagerManagement: React.FC = () => {
                   </div>
                 )}
                 
-                <div className="mb-6">
+                <div className="mb-6 bg-blue-50 p-4 rounded-lg">
+                  <p className="text-slate-600 text-sm mb-2 font-medium">
+                    Login Method: Mobile Number Only
+                  </p>
                   <p className="text-slate-600 text-sm">
-                    A new secure password will be automatically generated and sent to the manager's email address.
+                    RTOMs login using their mobile number - no password required. Mobile: <strong>{selectedManager.managerMobile || 'Not set'}</strong>
                   </p>
                 </div>
                 
@@ -209,10 +193,9 @@ const ManagerManagement: React.FC = () => {
                   </button>
                   <button
                     onClick={handleResetPassword}
-                    disabled={resetLoading}
-                    className="flex-1 bg-blue-600 text-white px-4 py-2.5 rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex-1 bg-blue-600 text-white px-4 py-2.5 rounded-lg font-medium hover:bg-blue-700 transition-colors"
                   >
-                    {resetLoading ? 'Resetting...' : 'Reset Password'}
+                    Got it
                   </button>
                 </div>
               </div>

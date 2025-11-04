@@ -26,12 +26,19 @@ import ManagerLogin from "./pages/ManagerLogin"
 import ManagerDashboard from "./pages/ManagerDashboard"
 import ManagerBranches from "./pages/ManagerBranches"
 import ManagerCompare from "./pages/ManagerCompare"
-import ManagerOfficerRegistration from "./pages/ManagerOfficerRegistration.tsx"
-import ManagerOfficers from "./pages/ManagerOfficers"
 import ManagerQRCodes from "./pages/ManagerQRCodes"
 import ManagerBreakOversight from "./pages/ManagerBreakOversight"
+import TeleshopManagerLogin from "./pages/TeleshopManagerLogin"
+import TeleshopManagerDashboard from "./pages/TeleshopManagerDashboard"
+import TeleshopManagerOfficerRegistration from "./pages/TeleshopManagerOfficerRegistration"
+import TeleshopManagerOfficers from "./pages/TeleshopManagerOfficers"
+import TeleshopManagerEditOfficer from "./pages/TeleshopManagerEditOfficer"
+import TeleshopManagerCompletedServices from "./pages/TeleshopManagerCompletedServices"
+import TeleshopManagerFeedback from "./pages/TeleshopManagerFeedback"
+import ManagerTeleshopManagers from "./pages/ManagerTeleshopManagers"
+import ProtectedTeleshopManagerRoute from "./components/ProtectedTeleshopManagerRoute"
 
-import { Shield, UserCog, ArrowRight, Building2 } from "lucide-react"
+import { Shield, UserCog, ArrowRight, Building2, Phone } from "lucide-react"
 import OfficerTopBar from "./components/OfficerTopBar"
 import api from "./config/api"
 import type { Officer } from "./types"
@@ -39,7 +46,7 @@ import type { Officer } from "./types"
 function TabsLanding() {
   const location = useLocation()
   const navigate = useNavigate()
-  const [activeTab, setActiveTab] = React.useState<string>("officer")
+  const [activeTab, setActiveTab] = React.useState<string>("admin")
 
   React.useEffect(() => {
     const stateTab = new URLSearchParams(location.search).get("tab")
@@ -106,9 +113,10 @@ function TabsLanding() {
             <div className="bg-white rounded-xl sm:rounded-2xl shadow-xl overflow-hidden border border-gray-100">
               <div className="flex flex-wrap sm:flex-nowrap border-b border-gray-200">
                 {[
-                  { id: 'officer', label: 'Officer', icon: UserCog },
-                  { id: 'manager', label: 'Manager', icon: Building2 },
-                  { id: 'admin', label: 'Admin', icon: Shield }
+                  { id: 'admin', label: 'Admin', icon: Shield },
+                  { id: 'manager', label: 'RTOM', icon: Building2 },
+                  { id: 'teleshop', label: 'Teleshop Manager', icon: Phone },
+                  { id: 'officer', label: 'Customer Service Officer', icon: UserCog }
                 ].map((tab) => {
                   const Icon = tab.icon
                   return (
@@ -134,14 +142,14 @@ function TabsLanding() {
                 {activeTab === 'officer' && (
                   <div className="space-y-6">
                     <div>
-                      <h3 className="text-xl font-bold text-gray-900 mb-2">Officer Portal</h3>
+                      <h3 className="text-xl font-bold text-gray-900 mb-2">Customer Service Officer Portal</h3>
                       <p className="text-gray-600 text-sm">Manage counters and serve customers</p>
                     </div>
 
                     <div className="space-y-4">
                       {/* Officer Login */}
                       <div className="p-5 bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl border border-indigo-200">
-                        <h4 className="font-semibold text-gray-900 mb-2">Officer Login</h4>
+                        <h4 className="font-semibold text-gray-900 mb-2">Customer Service Officer Login</h4>
                         <p className="text-sm text-gray-600 mb-4">Access your counter dashboard</p>
                         <button
                           onClick={() => navigate('/officer/login')}
@@ -165,11 +173,35 @@ function TabsLanding() {
                     <div className="space-y-4">
                       {/* Manager Login */}
                       <div className="p-5 bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl border border-green-200">
-                        <h4 className="font-semibold text-gray-900 mb-2">Manager Login</h4>
+                        <h4 className="font-semibold text-gray-900 mb-2">RTOM Login</h4>
                         <p className="text-sm text-gray-600 mb-4">Access regional dashboard and analytics</p>
                         <button
                           onClick={() => navigate('/manager/login')}
                           className="w-full px-6 py-3 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2"
+                        >
+                          Login <ArrowRight className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Teleshop Tab */}
+                {activeTab === 'teleshop' && (
+                  <div className="space-y-6">
+                    <div>
+                      <h3 className="text-xl font-bold text-gray-900 mb-2">Teleshop Manager Portal</h3>
+                      <p className="text-gray-600 text-sm">Manage officers and monitor breaks</p>
+                    </div>
+
+                    <div className="space-y-4">
+                      {/* Teleshop Manager Login */}
+                      <div className="p-5 bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl border border-purple-200">
+                        <h4 className="font-semibold text-gray-900 mb-2">RTOM Login</h4>
+                        <p className="text-sm text-gray-600 mb-4">Access officer management dashboard</p>
+                        <button
+                          onClick={() => navigate('/teleshop-manager/login')}
+                          className="w-full px-6 py-3 bg-purple-600 text-white font-semibold rounded-lg hover:bg-purple-700 transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2"
                         >
                           Login <ArrowRight className="w-4 h-4" />
                         </button>
@@ -222,10 +254,12 @@ function Layout({ children }: { children: React.ReactNode }) {
   const isAdminPath = location.pathname.startsWith('/admin')
   const isOfficerPath = location.pathname.startsWith('/officer')
   const isManagerPath = location.pathname.startsWith('/manager')
+  const isTeleshopManagerPath = location.pathname.startsWith('/teleshop-manager')
   const isOfficerLogin = location.pathname === '/officer/login'
   const isManagerLogin = location.pathname === '/manager/login'
-  // Ensure sidebar is visible on admin, officer, and manager routes (but not on login pages)
-  const showSidebar = isAdminPath || (isOfficerPath && !isOfficerLogin) || (isManagerPath && !isManagerLogin)
+  const isTeleshopManagerLogin = location.pathname === '/teleshop-manager/login'
+  // Ensure sidebar is visible on admin, officer, manager, and teleshop manager routes (but not on login pages)
+  const showSidebar = isAdminPath || (isOfficerPath && !isOfficerLogin) || (isManagerPath && !isManagerLogin) || (isTeleshopManagerPath && !isTeleshopManagerLogin)
   const [activePage, setActivePage] = React.useState<string>('')
   const [isCollapsed, setIsCollapsed] = React.useState<boolean>(() => {
     try { return localStorage.getItem('sidebar_collapsed') === '1' } catch { return false }
@@ -394,16 +428,40 @@ function App() {
         path="/manager/compare"
       />
       <Route
-        element={<Layout><ProtectedManagerRoute><ManagerOfficerRegistration /></ProtectedManagerRoute></Layout>}
-        path="/manager/register-officer"
-      />
-      <Route
-        element={<Layout><ProtectedManagerRoute><ManagerOfficers /></ProtectedManagerRoute></Layout>}
-        path="/manager/officers"
-      />
-      <Route
         element={<Layout><ProtectedManagerRoute><ManagerBreakOversight /></ProtectedManagerRoute></Layout>}
         path="/manager/breaks"
+      />
+      <Route
+        element={<Layout><ProtectedManagerRoute><ManagerTeleshopManagers /></ProtectedManagerRoute></Layout>}
+        path="/manager/teleshop-managers"
+      />
+      <Route
+        element={<Layout><TeleshopManagerLogin /></Layout>}
+        path="/teleshop-manager/login"
+      />
+      <Route
+        element={<Layout><ProtectedTeleshopManagerRoute><TeleshopManagerDashboard /></ProtectedTeleshopManagerRoute></Layout>}
+        path="/teleshop-manager/dashboard"
+      />
+      <Route
+        element={<Layout><ProtectedTeleshopManagerRoute><TeleshopManagerOfficers /></ProtectedTeleshopManagerRoute></Layout>}
+        path="/teleshop-manager/officers"
+      />
+      <Route
+        element={<Layout><ProtectedTeleshopManagerRoute><TeleshopManagerEditOfficer /></ProtectedTeleshopManagerRoute></Layout>}
+        path="/teleshop-manager/officers/:officerId/edit"
+      />
+      <Route
+        element={<Layout><ProtectedTeleshopManagerRoute><TeleshopManagerOfficerRegistration /></ProtectedTeleshopManagerRoute></Layout>}
+        path="/teleshop-manager/officers/add"
+      />
+      <Route
+        element={<Layout><ProtectedTeleshopManagerRoute><TeleshopManagerCompletedServices /></ProtectedTeleshopManagerRoute></Layout>}
+        path="/teleshop-manager/completed-services"
+      />
+      <Route
+        element={<Layout><ProtectedTeleshopManagerRoute><TeleshopManagerFeedback /></ProtectedTeleshopManagerRoute></Layout>}
+        path="/teleshop-manager/feedback"
       />
     </Routes>
   )

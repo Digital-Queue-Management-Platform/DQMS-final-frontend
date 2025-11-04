@@ -2,25 +2,23 @@
 
 import React from "react"
 import { useNavigate } from "react-router-dom"
-import { LogOut } from "lucide-react"
+import { LogOut, Phone } from "lucide-react"
 import api from "../config/api"
 
-type Manager = {
+type TeleshopManager = {
   id: string
   name: string
-  email: string
-  mobile?: string
-  regionId: string
+  mobileNumber: string
   regionName?: string
-  outlets?: any[]
+  officers?: any[]
 }
 
 type Props = {
-  manager: Manager
+  teleshopManager: TeleshopManager
   title?: string
 }
 
-export default function ManagerTopBar({ manager, title = "RTOM" }: Props) {
+export default function TeleshopManagerTopBar({ teleshopManager, title = "Teleshop Manager" }: Props) {
   const navigate = useNavigate()
   const [currentTime, setCurrentTime] = React.useState(new Date())
 
@@ -31,16 +29,21 @@ export default function ManagerTopBar({ manager, title = "RTOM" }: Props) {
 
   const handleLogout = async () => {
     try {
-      await api.post('/manager/logout')
+      const token = localStorage.getItem("teleshopManagerToken")
+      if (token) {
+        await api.post("/teleshop-manager/logout", {}, {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+      }
     } catch (error) {
-      console.error('Logout error:', error)
+      console.error("Logout error:", error)
     } finally {
       // Clear local storage and redirect regardless of API success
-      localStorage.removeItem('manager')
-      localStorage.removeItem('managerToken')
-      localStorage.removeItem('dq_role')
-      localStorage.removeItem('dq_user')
-      navigate('/manager/login')
+      localStorage.removeItem("teleshopManager")
+      localStorage.removeItem("teleshopManagerToken")
+      localStorage.removeItem("dq_role")
+      localStorage.removeItem("dq_user")
+      navigate("/teleshop-manager/login")
     }
   }
 
@@ -57,16 +60,16 @@ export default function ManagerTopBar({ manager, title = "RTOM" }: Props) {
           <div>
             <h1 className="text-xl sm:text-2xl font-bold text-gray-900 truncate leading-tight">{title}</h1>
             <p className="text-sm text-gray-600 mt-0.5 truncate leading-tight">
-              {manager.name || manager.id || 'RTOM'} • {manager.regionName ? `${manager.regionName} Region` : 'Unknown Region'} • {manager.outlets?.length || 0} branches
+              {teleshopManager.name} • {teleshopManager.regionName ? `${teleshopManager.regionName} Region` : 'Unknown Region'} • {teleshopManager.officers?.length || 0} officers
             </p>
           </div>
         </div>
 
         {/* Header Actions */}
         <div className="flex items-center space-x-2 sm:space-x-4 lg:space-x-10 flex-shrink-0">
-          {/* Region Badge */}
-          <div className="hidden sm:block px-2 sm:px-3 py-1 sm:py-1.5 rounded-full text-xs sm:text-sm font-medium bg-green-100 text-green-700">
-            <span className="hidden md:inline">{manager.regionName ? `${manager.regionName} ` : ''}</span>RTOM
+          {/* Role Badge */}
+          <div className="hidden sm:block px-2 sm:px-3 py-1 sm:py-1.5 rounded-full text-xs sm:text-sm font-medium bg-purple-100 text-purple-700">
+            <span className="hidden md:inline">Teleshop </span>Manager
           </div>
 
           {/* Current Time */}
@@ -89,14 +92,17 @@ export default function ManagerTopBar({ manager, title = "RTOM" }: Props) {
 
           {/* Manager Profile */}
           <div className="flex items-center space-x-2 sm:space-x-3">
-            <div className="w-8 h-8 sm:w-9 sm:h-9 bg-green-600 rounded-full flex items-center justify-center flex-shrink-0">
+            <div className="w-8 h-8 sm:w-9 sm:h-9 bg-purple-600 rounded-full flex items-center justify-center flex-shrink-0">
               <span className="text-sm sm:text-base font-medium text-white">
-                {(manager.name || manager.id || 'M')?.charAt(0)?.toUpperCase()}
+                {teleshopManager.name?.charAt(0)?.toUpperCase() || 'T'}
               </span>
             </div>
             <div className="hidden lg:flex flex-col justify-center min-w-0">
-              <p className="text-sm font-medium text-gray-900 truncate leading-tight">{manager.name || manager.id || 'Manager'}</p>
-              <p className="text-xs text-gray-500 truncate leading-tight">{manager.email}</p>
+              <p className="text-sm font-medium text-gray-900 truncate leading-tight">{teleshopManager.name}</p>
+              <p className="text-xs text-gray-500 truncate leading-tight flex items-center">
+                <Phone className="w-3 h-3 mr-1" />
+                {teleshopManager.mobileNumber}
+              </p>
             </div>
           </div>
 

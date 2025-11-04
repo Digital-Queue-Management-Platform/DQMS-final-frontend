@@ -19,6 +19,8 @@ import {
   QrCode,
   Users,
   Coffee,
+  Phone,
+  MessageSquare,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useUser } from '../../../contexts/UserContext'
@@ -49,7 +51,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed, activePa
     { name: 'Dashboard', icon: LayoutDashboard, to: '/admin' },
     { name: 'Services', icon: Briefcase, to: '/admin/services' },
     { name: 'Branches', icon: Building2, to: '/admin/branches' },
-    { name: 'Managers', icon: Users, to: '/admin/managers' },
+    { name: 'RTOMs', icon: Users, to: '/admin/managers' },
     { name: 'Compare', icon: Scale3D, to: '/admin/compare' },
     { name: 'All Officers', icon: UserCog, to: '/admin/all-officers' },
   ]
@@ -62,18 +64,26 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed, activePa
   const regionManagerItems: NavigationItem[] = [
     //{ name: 'Home', icon: Home, to: '/' },
     { name: 'Dashboard', icon: LayoutDashboard, to: '/manager/dashboard' },
-    { name: 'Officers', icon: UserCog, to: '/manager/officers' },
+    { name: 'Teleshop Managers', icon: Phone, to: '/manager/teleshop-managers' },
     { name: 'Branches', icon: Building2, to: '/manager/branches' },
     { name: 'Break Oversight', icon: Coffee, to: '/manager/breaks' },
     { name: 'QR Codes', icon: QrCode, to: '/manager/qr-codes' },
     { name: 'Compare', icon: Scale3D, to: '/manager/compare' },
-    { name: 'Register Officer', icon: UserPlus, to: '/manager/register-officer' },
+  ]
+
+  const teleshopManagerItems: NavigationItem[] = [
+    { name: 'Dashboard', icon: LayoutDashboard, to: '/teleshop-manager/dashboard' },
+    { name: 'Completed Services', icon: ListOrdered, to: '/teleshop-manager/completed-services' },
+    { name: 'Feedback Management', icon: MessageSquare, to: '/teleshop-manager/feedback' },
+    { name: 'Manage Officers', icon: Users, to: '/teleshop-manager/officers' },
+    { name: 'Register Officer', icon: UserPlus, to: '/teleshop-manager/officers/add' },
   ]
 
   // Fix flickering: prioritize URL path over role, and handle loading state
   const onOfficerPath = location.pathname.startsWith('/officer')
   const onAdminPath = location.pathname.startsWith('/admin')
   const onManagerPath = location.pathname.startsWith('/manager')
+  const onTeleshopManagerPath = location.pathname.startsWith('/teleshop-manager')
   const role = (currentUser?.role || '').toLowerCase()
   
   const navigationItems: NavigationItem[] = onOfficerPath
@@ -82,10 +92,12 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed, activePa
       ? adminItems // Always show admin items on admin paths
       : onManagerPath
         ? regionManagerItems // Always show manager items on manager paths
-        : role === 'admin' || role === '' || loading
-          ? adminItems // Default to admin while loading or for admin role
-          : role === 'officer'
-            ? officerItems
+        : onTeleshopManagerPath
+          ? teleshopManagerItems // Always show teleshop manager items on teleshop manager paths
+          : role === 'admin' || role === '' || loading
+            ? adminItems // Default to admin while loading or for admin role
+            : role === 'officer'
+              ? officerItems
             : role === 'region_manager' || role === 'manager' || role === 'regionalmanager'
               ? regionManagerItems
               : adminItems // fallback
@@ -126,10 +138,21 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed, activePa
       const managerName = manager?.name || manager?.id || 'Manager'
       return {
         name: managerName,
-        role: 'Regional Manager',
-        initials: managerName ? managerName.split(' ').map((n: string) => n[0]).join('').toUpperCase() : 'RM',
+        role: 'RTOM (Regional Telecommunication Office Manager)',
+        initials: managerName ? managerName.split(' ').map((n: string) => n[0]).join('').toUpperCase() : 'RTOM',
         regionName: manager?.regionName,
         outletCount: manager?.outlets?.length || 0
+      }
+    } else if (onTeleshopManagerPath) {
+      const storedTeleshopManager = localStorage.getItem('teleshopManager')
+      const teleshopManager = storedTeleshopManager ? JSON.parse(storedTeleshopManager) : null
+      const teleshopManagerName = teleshopManager?.name || 'Teleshop Manager'
+      return {
+        name: teleshopManagerName,
+        role: 'Teleshop Manager',
+        initials: teleshopManagerName ? teleshopManagerName.split(' ').map((n: string) => n[0]).join('').toUpperCase() : 'TM',
+        regionName: teleshopManager?.regionName,
+        officerCount: teleshopManager?.officers?.length || 0
       }
     } else {
       // Admin path
@@ -161,6 +184,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed, activePa
         } catch {}
       } else if (onManagerPath) {
         await api.post('/manager/logout')
+      } else if (onTeleshopManagerPath) {
+        await api.post('/teleshop-manager/logout')
       } else if (onAdminPath) {
         // No server cookie for admin in this app, just clear tokens
       }
@@ -179,11 +204,15 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed, activePa
       // Officer-specific
       localStorage.removeItem('officer')
       localStorage.removeItem('officerToken')
+      // Teleshop manager-specific
+      localStorage.removeItem('teleshopManager')
+      localStorage.removeItem('teleshopManagerToken')
     } catch {}
 
     // Navigate to login page based on context
     if (onOfficerPath) navigate('/officer/login', { replace: true })
     else if (onManagerPath) navigate('/manager/login', { replace: true })
+    else if (onTeleshopManagerPath) navigate('/teleshop-manager/login', { replace: true })
     else if (onAdminPath) navigate('/admin/login', { replace: true })
     else navigate('/', { replace: true })
   };

@@ -34,7 +34,7 @@ const BranchesPage: React.FC = () => {
   const [managerEmail, setManagerEmail] = useState('')
   const [managerMobile, setManagerMobile] = useState('')
   const [regionLoading, setRegionLoading] = useState(false)
-  const [generatedCredentials, setGeneratedCredentials] = useState<{email: string, password: string} | null>(null)
+  const [generatedCredentials, setGeneratedCredentials] = useState<{email: string, mobileNumber?: string} | null>(null)
 
   useEffect(() => {
     fetchOutlets()
@@ -122,7 +122,7 @@ const BranchesPage: React.FC = () => {
   const handleCreateRegion = async (e?: React.FormEvent) => {
     if (e) e.preventDefault()
     if (!regionName) return setError('Region name is required')
-    if (!managerEmail) return setError('Manager email is required')
+    if (!managerEmail) return setError('RTOM email is required')
     
     setRegionLoading(true)
     setError('')
@@ -138,7 +138,7 @@ const BranchesPage: React.FC = () => {
       if (response.data.credentials) {
         setGeneratedCredentials({
           email: response.data.credentials.email,
-          password: response.data.credentials.temporaryPassword
+          mobileNumber: response.data.credentials.mobileNumber
         })
       }
       
@@ -381,7 +381,7 @@ const BranchesPage: React.FC = () => {
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" />
                   <input
                     type="text"
-                    placeholder={viewMode === 'outlets' ? "Search outlets by name, location, or region..." : "Search regions by name, manager email..."}
+                    placeholder={viewMode === 'outlets' ? "Search outlets by name, location, or region..." : "Search regions by name, RTOM email..."}
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="w-full pl-10 pr-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
@@ -500,7 +500,7 @@ const BranchesPage: React.FC = () => {
                               </h3>
                               <div className="text-sm text-slate-600 mb-2">
                                 <div className="flex items-center gap-1.5 mb-1">
-                                  <span className="font-medium">Manager:</span> {r.managerId || 'Not assigned'}
+                                  <span className="font-medium">RTOM:</span> {r.managerId || 'Not assigned'}
                                 </div>
                                 {r.managerEmail && (
                                   <div className="flex items-center gap-1.5 mb-1">
@@ -600,25 +600,25 @@ const BranchesPage: React.FC = () => {
 
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-2">
-                      Manager Name
+                      RTOM Name
                     </label>
                     <input 
                       value={managerName} 
                       onChange={(e) => setManagerName(e.target.value)}
-                      placeholder="Enter manager name"
+                      placeholder="Enter RTOM name"
                       className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
                     />
                   </div>
 
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-2">
-                      Manager Email *
+                      RTOM Email *
                     </label>
                     <input 
                       type="email"
                       value={managerEmail} 
                       onChange={(e) => setManagerEmail(e.target.value)}
-                      placeholder="Enter manager email"
+                      placeholder="Enter RTOM email"
                       required
                       className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
                     />
@@ -626,12 +626,12 @@ const BranchesPage: React.FC = () => {
 
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-2">
-                      Manager Mobile
+                      RTOM Mobile
                     </label>
                     <input 
                       value={managerMobile} 
                       onChange={(e) => setManagerMobile(e.target.value)}
-                      placeholder="Enter manager mobile"
+                      placeholder="Enter RTOM mobile"
                       className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
                     />
                   </div>
@@ -673,17 +673,38 @@ const BranchesPage: React.FC = () => {
                 </div>
                 
                 <h2 className="text-xl font-semibold text-slate-800 text-center mb-4">
-                  Regional Manager Account Created
+                  RTOM Account Created Successfully!
                 </h2>
                 
                 <p className="text-slate-600 text-center mb-6">
-                  Please provide these login credentials to the regional manager:
+                  Login credentials have been emailed to the RTOM. They can login using their mobile number.
                 </p>
                 
                 <div className="bg-slate-50 rounded-lg p-4 mb-6">
                   <div className="space-y-3">
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">Email</label>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">RTOM Registered Mobile Number</label>
+                      <div className="flex items-center">
+                        <input 
+                          type="text" 
+                          value={generatedCredentials.mobileNumber || 'Not provided'} 
+                          readOnly 
+                          className="flex-1 px-3 py-2 border border-slate-300 rounded-md bg-white text-slate-900 font-mono"
+                        />
+                        <button
+                          onClick={() => navigator.clipboard.writeText(generatedCredentials.mobileNumber || '')}
+                          className="ml-2 p-2 text-slate-500 hover:text-slate-700"
+                          title="Copy mobile number"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">Email (For Notifications)</label>
                       <div className="flex items-center">
                         <input 
                           type="text" 
@@ -702,39 +723,18 @@ const BranchesPage: React.FC = () => {
                         </button>
                       </div>
                     </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">Temporary Password</label>
-                      <div className="flex items-center">
-                        <input 
-                          type="text" 
-                          value={generatedCredentials.password} 
-                          readOnly 
-                          className="flex-1 px-3 py-2 border border-slate-300 rounded-md bg-white text-slate-900 font-mono"
-                        />
-                        <button
-                          onClick={() => navigator.clipboard.writeText(generatedCredentials.password)}
-                          className="ml-2 p-2 text-slate-500 hover:text-slate-700"
-                          title="Copy password"
-                        >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                          </svg>
-                        </button>
-                      </div>
-                    </div>
                   </div>
                 </div>
                 
-                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
                   <div className="flex">
-                    <svg className="w-5 h-5 text-yellow-400 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16c-.77.833.192 2.5 1.732 2.5z" />
+                    <svg className="w-5 h-5 text-blue-400 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                     <div>
-                      <p className="text-sm font-medium text-yellow-800">Important:</p>
-                      <p className="text-sm text-yellow-700 mt-1">
-                        Ask the manager to change this password after their first login for security.
+                      <p className="text-sm font-medium text-blue-800">Login Instructions:</p>
+                      <p className="text-sm text-blue-700 mt-1">
+                        The RTOM can login directly using their mobile number - no password required. A welcome email has been sent with complete instructions.
                       </p>
                     </div>
                   </div>
@@ -743,12 +743,12 @@ const BranchesPage: React.FC = () => {
                 <div className="flex gap-3">
                   <button
                     onClick={() => {
-                      const text = `Login Credentials:\nEmail: ${generatedCredentials.email}\nPassword: ${generatedCredentials.password}`;
+                      const text = `RTOM Login Info:\nMobile Number: ${generatedCredentials.mobileNumber || 'Not provided'}\nEmail: ${generatedCredentials.email}\nLogin Method: Mobile number only - no password required`;
                       navigator.clipboard.writeText(text);
                     }}
                     className="flex-1 px-4 py-2.5 border border-slate-300 text-slate-700 rounded-lg font-medium hover:bg-slate-50 transition-colors"
                   >
-                    Copy Both
+                    Copy Info
                   </button>
                   <button
                     onClick={() => setGeneratedCredentials(null)}

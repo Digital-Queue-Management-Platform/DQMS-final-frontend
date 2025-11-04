@@ -49,17 +49,17 @@ export default function AdminRegistration() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700">Manager name</label>
+          <label className="block text-sm font-medium text-gray-700">RTOM name</label>
           <input value={managerName} onChange={(e) => setManagerName(e.target.value)} className="w-full px-3 py-2 sm:py-2.5 border rounded-lg text-sm sm:text-base" />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700">Manager email</label>
+          <label className="block text-sm font-medium text-gray-700">RTOM email</label>
           <input value={managerEmail} onChange={(e) => setManagerEmail(e.target.value)} type="email" className="w-full px-3 py-2 sm:py-2.5 border rounded-lg text-sm sm:text-base" />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700">Manager mobile</label>
+          <label className="block text-sm font-medium text-gray-700">RTOM mobile</label>
           <input value={managerMobile} onChange={(e) => setManagerMobile(e.target.value)} className="w-full px-3 py-2 sm:py-2.5 border rounded-lg text-sm sm:text-base" />
         </div>
 
