@@ -472,14 +472,24 @@ export default function OfficerDashboard() {
               <div className="text-center py-12 text-gray-500">No breaks recorded today.</div>
             ) : (
               <div className="space-y-3">
-                {(breaksSummary.breaks.slice(0, breaksLimit)).map((b, idx) => (
-                  <div key={b.id || idx} className="flex items-center justify-between p-4 border rounded-lg">
-                    <div>
-                      <div className="font-medium text-gray-900">{new Date(b.startedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })} - {b.endedAt ? new Date(b.endedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : 'ongoing'}</div>
-                      <div className="text-sm text-gray-600">Duration: {b.durationMinutes} min</div>
+                {(breaksSummary.breaks.slice(0, breaksLimit)).map((b, idx) => {
+                  const started = new Date(b.startedAt)
+                  const backendActive = !!breaksSummary?.activeBreak && (b.id === breaksSummary.activeBreak.id)
+                  const inferredActive = !b.endedAt || (!breaksSummary?.activeBreak && officer.status === 'on_break' && idx === 0)
+                  const isActive = backendActive || inferredActive
+                  const endLabel = isActive ? 'ongoing' : (b.endedAt ? new Date(b.endedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : 'ongoing')
+                  const duration = isActive
+                    ? Math.floor((currentDateTime.getTime() - started.getTime()) / (1000 * 60))
+                    : (b.durationMinutes ?? 0)
+                  return (
+                    <div key={b.id || idx} className="flex items-center justify-between p-4 border rounded-lg">
+                      <div>
+                        <div className="font-medium text-gray-900">{started.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })} - {endLabel}</div>
+                        <div className="text-sm text-gray-600">Duration: {duration} min</div>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  )
+                })}
                 {/* Controls */}
                 {breaksSummary.breaks.length > breaksLimit && (
                   <div className="flex justify-center pt-2">
