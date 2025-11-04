@@ -19,13 +19,10 @@ const availableLanguages = [
   { code: "tamil", name: "Tamil" },
   { code: "english", name: "English" }
 ]
-
-const availableServices = [
-  { code: "bill_payment", title: "Bill Payments" },
-  { code: "technical_support", title: "Technical Support" },
-  { code: "account_services", title: "Account Services" },
-  { code: "new_connection", title: "New Connections" },
-  { code: "device_sim_issues", title: "Device/SIM Issues" }
+// Use only these static services for assignment
+const STATIC_SERVICES = [
+  { id: 'BILL_PAYMENT', code: 'BILL_PAYMENT', title: 'Bill Payment', isActive: true },
+  { id: 'OTHERS', code: 'OTHERS', title: 'Others', isActive: true },
 ]
 
 export default function TeleshopManagerOfficerRegistration() {
@@ -34,6 +31,7 @@ export default function TeleshopManagerOfficerRegistration() {
   const [loading, setLoading] = useState(false)
   const [loadingOutlets, setLoadingOutlets] = useState(true)
   const [error, setError] = useState("")
+  
   
   const [formData, setFormData] = useState({
     name: "",
@@ -121,12 +119,13 @@ export default function TeleshopManagerOfficerRegistration() {
     }))
   }
 
-  const toggleService = (serviceCode: string) => {
+  const toggleService = (serviceId: string) => {
     setFormData(prev => ({
       ...prev,
-      assignedServices: prev.assignedServices.includes(serviceCode)
-        ? prev.assignedServices.filter(s => s !== serviceCode)
-        : [...prev.assignedServices, serviceCode]
+      // Store service IDs to align with Manager flows and backend usage
+      assignedServices: prev.assignedServices.includes(serviceId)
+        ? prev.assignedServices.filter(s => s !== serviceId)
+        : [...prev.assignedServices, serviceId]
     }))
   }
 
@@ -307,12 +306,12 @@ export default function TeleshopManagerOfficerRegistration() {
             </h2>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {availableServices.map((service) => (
-                <label key={service.code} className="flex items-center">
+              {STATIC_SERVICES.map((service) => (
+                <label key={service.id} className="flex items-center">
                   <input
                     type="checkbox"
-                    checked={formData.assignedServices.includes(service.code)}
-                    onChange={() => toggleService(service.code)}
+                    checked={formData.assignedServices.includes(service.id)}
+                    onChange={() => toggleService(service.id)}
                     className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                   />
                   <span className="ml-2 text-sm text-gray-700">{service.title}</span>
