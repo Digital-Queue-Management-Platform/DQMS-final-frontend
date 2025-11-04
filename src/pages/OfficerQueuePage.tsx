@@ -251,7 +251,15 @@ export default function OfficerQueuePage() {
         <div className="space-y-6">
           {/* Queue List Section - Now at the top */}
           <div className="bg-white rounded-xl shadow-sm p-6">
-            <h2 className="text-lg font-bold text-gray-900 mb-6">Queue List</h2>
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-lg font-bold text-gray-900">Queue List</h2>
+              {queue && (
+                <div className="text-sm text-gray-500">
+                  Total waiting: {queue.waiting.length} | 
+                  Officer Languages: {Array.isArray((officer as any)?.languages) ? ((officer as any).languages as string[]).join(', ') : 'None'}
+                </div>
+              )}
+            </div>
 
             {!queue ? (
               <div className="text-center py-12">
@@ -279,11 +287,19 @@ export default function OfficerQueuePage() {
                 {/* Queue Items */}
                 <div className="divide-y divide-gray-100">
                   {queue.waiting
-                    .filter((t) => {
-                      const prefs = Array.isArray((t as any).preferredLanguages) ? (t as any).preferredLanguages as string[] : []
-                      const langs = Array.isArray((officer as any)?.languages) ? ((officer as any).languages as string[]) : []
-                      return prefs.length === 0 || langs.length === 0 || prefs.some(p => langs.includes(p))
-                    })
+                    // Temporarily disabled language filtering for debugging
+                    // .filter((t) => {
+                    //   const prefs = Array.isArray((t as any).preferredLanguages) ? (t as any).preferredLanguages as string[] : []
+                    //   const langs = Array.isArray((officer as any)?.languages) ? ((officer as any).languages as string[]) : []
+                    //   const shouldShow = prefs.length === 0 || langs.length === 0 || prefs.some(p => langs.includes(p))
+                    //   
+                    //   // Debug logging - remove this after testing
+                    //   if (!shouldShow) {
+                    //     console.log(`Token ${t.tokenNumber} filtered out - Customer prefs:`, prefs, 'Officer langs:', langs)
+                    //   }
+                    //   
+                    //   return shouldShow
+                    // })
                     .map((t) => {
                     const waitTime = Math.floor((Date.now() - new Date(t.createdAt).getTime()) / 60000)
                     const isPriority = String(t.tokenNumber)?.startsWith('P')
