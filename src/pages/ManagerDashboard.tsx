@@ -192,7 +192,7 @@ export default function ManagerDashboard() {
         <div className="mb-8">
           <div className="flex items-center justify-between mb-2">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Regional Manager Dashboard</h1>
+              <h1 className="text-2xl font-bold text-gray-900">RTOM Dashboard</h1>
               <p className="text-sm text-gray-500">
                 {formatDate(currentDateTime)} | {formatTime(currentDateTime)}
               </p>

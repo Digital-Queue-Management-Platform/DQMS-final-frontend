@@ -41,6 +41,14 @@ api.interceptors.request.use(
       }
     }
     
+    // Check for teleshop manager token for teleshop-manager routes
+    if (config.url?.startsWith('/teleshop-manager/')) {
+      const teleshopManagerToken = localStorage.getItem('teleshopManagerToken')
+      if (teleshopManagerToken) {
+        config.headers.Authorization = `Bearer ${teleshopManagerToken}`
+      }
+    }
+    
     return config
   },
   (error) => {
@@ -73,6 +81,12 @@ api.interceptors.response.use(
         localStorage.removeItem('officer')
         localStorage.removeItem('officerToken')
       }
+      else if (requestUrl.startsWith('/teleshop-manager/') || currentPath.startsWith('/teleshop-manager')) {
+        localStorage.removeItem('teleshopManager')
+        localStorage.removeItem('teleshopManagerToken')
+        localStorage.removeItem('dq_role')
+        localStorage.removeItem('dq_user')
+      }
       else {
         // Default: check user role from localStorage and clear appropriate tokens
         const userRole = localStorage.getItem('dq_role')
@@ -81,6 +95,11 @@ api.interceptors.response.use(
         } else if (userRole === 'region_manager') {
           localStorage.removeItem('manager')
           localStorage.removeItem('managerToken')
+          localStorage.removeItem('dq_role')
+          localStorage.removeItem('dq_user')
+        } else if (userRole === 'teleshop_manager') {
+          localStorage.removeItem('teleshopManager')
+          localStorage.removeItem('teleshopManagerToken')
           localStorage.removeItem('dq_role')
           localStorage.removeItem('dq_user')
         } else if (userRole === 'officer') {
