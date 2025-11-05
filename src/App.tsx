@@ -28,6 +28,7 @@ import ManagerBranches from "./pages/ManagerBranches"
 import ManagerCompare from "./pages/ManagerCompare"
 import ManagerQRCodes from "./pages/ManagerQRCodes"
 import ManagerBreakOversight from "./pages/ManagerBreakOversight"
+import ManagerAppointments from "./pages/ManagerAppointments"
 import TeleshopManagerLogin from "./pages/TeleshopManagerLogin"
 import TeleshopManagerDashboard from "./pages/TeleshopManagerDashboard"
 import TeleshopManagerOfficerRegistration from "./pages/TeleshopManagerOfficerRegistration"
@@ -35,8 +36,12 @@ import TeleshopManagerOfficers from "./pages/TeleshopManagerOfficers"
 import TeleshopManagerEditOfficer from "./pages/TeleshopManagerEditOfficer"
 import TeleshopManagerCompletedServices from "./pages/TeleshopManagerCompletedServices"
 import TeleshopManagerFeedback from "./pages/TeleshopManagerFeedback"
+import TeleshopManagerAppointments from "./pages/TeleshopManagerAppointments"
 import ManagerTeleshopManagers from "./pages/ManagerTeleshopManagers"
 import ProtectedTeleshopManagerRoute from "./components/ProtectedTeleshopManagerRoute"
+import AppointmentBooking from "./pages/AppointmentBooking"
+import AppointmentMy from "./pages/AppointmentMy"
+import AdminAppointments from "./admin/adminPages/AdminAppointments"
 
 import { Shield, UserCog, ArrowRight, Building2, Phone } from "lucide-react"
 import OfficerTopBar from "./components/OfficerTopBar"
@@ -241,6 +246,25 @@ function TabsLanding() {
             <div className="mt-8 text-center">
               <p className="text-sm text-gray-500">Need help? Contact system support</p>
             </div>
+
+            {/* Quick access to Appointments */}
+            <div className="mt-6 text-center">
+              <div className="inline-flex flex-wrap gap-3">
+                <button
+                  onClick={() => navigate('/appointment/book')}
+                  className="px-5 py-2.5 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 transition-all shadow-sm"
+                >
+                  Book Appointment
+                </button>
+                <button
+                  onClick={() => navigate('/appointment/my')}
+                  className="px-5 py-2.5 bg-white text-indigo-700 font-semibold rounded-lg border border-indigo-200 hover:bg-indigo-50 transition-all"
+                >
+                  My Appointments
+                </button>
+              </div>
+              <p className="mt-2 text-xs text-gray-500">Use your mobile number on “My Appointments” to view bookings.</p>
+            </div>
           </div>
         </div>
       </div>
@@ -348,6 +372,14 @@ function App() {
         path="/register/:outletId"
       />
       <Route
+        element={<Layout><AppointmentBooking /></Layout>}
+        path="/appointment/book"
+      />
+      <Route
+        element={<Layout><AppointmentMy /></Layout>}
+        path="/appointment/my"
+      />
+      <Route
         element={<Layout><QueueStatus /></Layout>}
         path="/queue/:tokenId"
       />
@@ -384,6 +416,10 @@ function App() {
         path="/admin"
       />
       <Route
+        element={<Layout><ProtectedAdminRoute><AdminAppointments /></ProtectedAdminRoute></Layout>}
+        path="/admin/appointments"
+      />
+      <Route
         element={<Layout><ProtectedAdminRoute><AdminOfficers /></ProtectedAdminRoute></Layout>}
         path="/admin/officers"
       />
@@ -416,6 +452,10 @@ function App() {
         path="/manager/dashboard"
       />
       <Route
+        element={<Layout><ProtectedManagerRoute><ManagerAppointments /></ProtectedManagerRoute></Layout>}
+        path="/manager/appointments"
+      />
+      <Route
         element={<Layout><ProtectedManagerRoute><ManagerBranches /></ProtectedManagerRoute></Layout>}
         path="/manager/branches"
       />
@@ -442,6 +482,10 @@ function App() {
       <Route
         element={<Layout><ProtectedTeleshopManagerRoute><TeleshopManagerDashboard /></ProtectedTeleshopManagerRoute></Layout>}
         path="/teleshop-manager/dashboard"
+      />
+      <Route
+        element={<Layout><ProtectedTeleshopManagerRoute><TeleshopManagerAppointments /></ProtectedTeleshopManagerRoute></Layout>}
+        path="/teleshop-manager/appointments"
       />
       <Route
         element={<Layout><ProtectedTeleshopManagerRoute><TeleshopManagerOfficers /></ProtectedTeleshopManagerRoute></Layout>}
