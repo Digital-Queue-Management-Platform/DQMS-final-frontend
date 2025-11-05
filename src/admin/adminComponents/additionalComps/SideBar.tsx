@@ -21,6 +21,7 @@ import {
   Coffee,
   Phone,
   MessageSquare,
+  Calendar,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useUser } from '../../../contexts/UserContext'
@@ -49,6 +50,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed, activePa
   const adminItems: NavigationItem[] = [
     //{ name: 'Home', icon: Home, to: '/' },
     { name: 'Dashboard', icon: LayoutDashboard, to: '/admin' },
+    { name: 'Appointments', icon: Calendar, to: '/admin/appointments' },
     { name: 'Services', icon: Briefcase, to: '/admin/services' },
     { name: 'Branches', icon: Building2, to: '/admin/branches' },
     { name: 'RTOMs', icon: Users, to: '/admin/managers' },
@@ -64,6 +66,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed, activePa
   const regionManagerItems: NavigationItem[] = [
     //{ name: 'Home', icon: Home, to: '/' },
     { name: 'Dashboard', icon: LayoutDashboard, to: '/manager/dashboard' },
+    { name: 'Appointments', icon: Calendar, to: '/manager/appointments' },
     { name: 'Teleshop Managers', icon: Phone, to: '/manager/teleshop-managers' },
     { name: 'Branches', icon: Building2, to: '/manager/branches' },
     { name: 'Break Oversight', icon: Coffee, to: '/manager/breaks' },
@@ -73,6 +76,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed, activePa
 
   const teleshopManagerItems: NavigationItem[] = [
     { name: 'Dashboard', icon: LayoutDashboard, to: '/teleshop-manager/dashboard' },
+    { name: 'Appointments', icon: Calendar, to: '/teleshop-manager/appointments' },
     { name: 'Completed Services', icon: ListOrdered, to: '/teleshop-manager/completed-services' },
     { name: 'Feedback Management', icon: MessageSquare, to: '/teleshop-manager/feedback' },
     { name: 'Manage Officers', icon: Users, to: '/teleshop-manager/officers' },

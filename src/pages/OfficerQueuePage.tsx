@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { User, Clock, Phone, FileText, Users, RefreshCwIcon } from "lucide-react"
+import { User, Clock, Phone, FileText, Users, RefreshCwIcon, Calendar } from "lucide-react"
 // OfficerTopBar is provided globally from Layout for officer routes
 import api, { WS_URL } from "../config/api"
 import type { Officer, Token } from "../types"
@@ -307,13 +307,18 @@ export default function OfficerQueuePage() {
 
                     return (
                       <div key={t.id} className={`grid grid-cols-12 gap-4 px-4 py-4 hover:bg-gray-50 transition-colors ${isSkipped ? 'bg-orange-50 rounded-lg' : ''}`}>
-                        <div className="col-span-2">
+                        <div className="col-span-2 flex items-center gap-2">
                           {isPriority ? (
                             <span className="inline-flex items-center px-2 py-1 rounded-md bg-yellow-100 text-yellow-800 text-sm font-semibold">
                               {t.tokenNumber} Priority
                             </span>
                           ) : (
                             <span className="text-gray-900 font-semibold">{t.tokenNumber}</span>
+                          )}
+                          {(t as any)?.fromAppointment && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-indigo-100 text-indigo-700 text-xs font-semibold" title="Booked appointment">
+                              <Calendar className="w-3 h-3" /> Appointment
+                            </span>
                           )}
                         </div>
                         <div className="col-span-2">
