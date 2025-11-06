@@ -123,7 +123,7 @@ export default function OfficerQueuePage() {
     try {
                         const resp = await api.post('/twilio/test', {
                           to: "+94768950003",
-                          body: `Test message from DQMS to ${officer.name}`,
+                          body: `Please come to the counter ${officer.counterNumber} for your service.`,
                         })
                         if (resp.data?.success) {
                           alert('Test SMS sent (sid: ' + resp.data.sid + ')')
@@ -163,6 +163,20 @@ export default function OfficerQueuePage() {
     if (!officer || !currentToken) return
     setLoading(true)
     try {
+                        const resp = await api.post('/twilio/test', {
+                          to: "+94768950003",
+                          body: `Thank you. Come again!.`,
+                        })
+                        if (resp.data?.success) {
+                          alert('Test SMS sent (sid: ' + resp.data.sid + ')')
+                        } else {
+                          alert('Failed to send test SMS')
+                        }
+                      } catch (err: any) {
+                        console.error('Test SMS failed:', err)
+                        alert('Test SMS failed: ' + (err.response?.data?.error || err.message || 'Unknown error'))
+                      }
+    try {
       await api.post('/officer/complete-service', { tokenId: currentToken.id, officerId: officer.id, accountRef })
       setCurrentToken(null)
       setAccountRef("")
@@ -181,6 +195,20 @@ export default function OfficerQueuePage() {
     if (!confirm('Are you sure you want to skip this customer?')) return
     setLoading(true)
     try {
+                        const resp = await api.post('/twilio/test', {
+                          to: "+94768950003",
+                          body: `You have been skipped.`,
+                        })
+                        if (resp.data?.success) {
+                          alert('Test SMS sent (sid: ' + resp.data.sid + ')')
+                        } else {
+                          alert('Failed to send test SMS')
+                        }
+                      } catch (err: any) {
+                        console.error('Test SMS failed:', err)
+                        alert('Test SMS failed: ' + (err.response?.data?.error || err.message || 'Unknown error'))
+                      }
+    try {
       await api.post('/officer/skip-token', { officerId: officer.id, tokenId: targetTokenId })
       if (!tokenId) {
         setCurrentToken(null)
@@ -197,6 +225,20 @@ export default function OfficerQueuePage() {
     if (!officer) return
     if (!confirm('Recall this customer?')) return
     setLoading(true)
+    try {
+                        const resp = await api.post('/twilio/test', {
+                          to: "+94768950003",
+                          body: `Please come to the counter ${officer.counterNumber} for your service.`,
+                        })
+                        if (resp.data?.success) {
+                          alert('Test SMS sent (sid: ' + resp.data.sid + ')')
+                        } else {
+                          alert('Failed to send test SMS')
+                        }
+                      } catch (err: any) {
+                        console.error('Test SMS failed:', err)
+                        alert('Test SMS failed: ' + (err.response?.data?.error || err.message || 'Unknown error'))
+                      }
     try {
       const response = await api.post('/officer/recall-token', { officerId: officer.id, tokenId })
       if (response.data.token) {
