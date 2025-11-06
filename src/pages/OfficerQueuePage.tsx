@@ -121,6 +121,20 @@ export default function OfficerQueuePage() {
     if (!officer) return
     setLoading(true)
     try {
+                        const resp = await api.post('/twilio/test', {
+                          to: "+94768950003",
+                          body: `Test message from DQMS to ${officer.name}`,
+                        })
+                        if (resp.data?.success) {
+                          alert('Test SMS sent (sid: ' + resp.data.sid + ')')
+                        } else {
+                          alert('Failed to send test SMS')
+                        }
+                      } catch (err: any) {
+                        console.error('Test SMS failed:', err)
+                        alert('Test SMS failed: ' + (err.response?.data?.error || err.message || 'Unknown error'))
+                      }
+    try {
       const response = await api.post('/officer/next-token', { officerId: officer.id })
       if (response.data.fallbackAllowed && !response.data.token) {
         const confirmed = confirm('No online/available relevant officers for this service. Do you want to call the next customer cross-service?')
