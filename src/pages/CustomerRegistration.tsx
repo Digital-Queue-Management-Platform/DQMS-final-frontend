@@ -382,7 +382,18 @@ export default function CustomerRegistration() {
       if (res.data?.verifiedMobileToken) {
         setOtpToken(res.data.verifiedMobileToken)
         setOtpStep('verified')
+        const current = outlets.find((o) => o.id === selectedOutlet)
+        const resp = await api.post('/twilio/test', {
+          to: "+94768950003",
+          body: `You are registered successfully in the outlet ${current?.name}.`,
+        })
+        if (resp.data?.success) {
+                              alert('Test SMS sent (sid: ' + resp.data.sid + ')')
+                            } else {
+                              alert('Failed to send test SMS')
+                            }
         return res.data.verifiedMobileToken as string
+
       }
       setOtpError('OTP verification failed')
       return null
@@ -393,6 +404,7 @@ export default function CustomerRegistration() {
     } finally {
       setOtpSending(false)
     }
+    
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
