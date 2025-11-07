@@ -42,6 +42,9 @@ import ProtectedTeleshopManagerRoute from "./components/ProtectedTeleshopManager
 import AppointmentBooking from "./pages/AppointmentBooking"
 import AppointmentMy from "./pages/AppointmentMy"
 import AdminAppointments from "./admin/adminPages/AdminAppointments"
+import ServiceStatus from "./pages/ServiceStatus"
+import ManagerServiceTracking from "./pages/ManagerServiceTracking"
+import TeleshopManagerServiceTracking from "./pages/TeleshopManagerServiceTracking"
 
 import { Shield, UserCog, ArrowRight, Building2, Phone } from "lucide-react"
 import OfficerTopBar from "./components/OfficerTopBar"
@@ -247,7 +250,7 @@ function TabsLanding() {
               <p className="text-sm text-gray-500">Need help? Contact system support</p>
             </div>
 
-            {/* Quick access to Appointments */}
+            {/* Quick access for customers */}
             <div className="mt-6 text-center">
               <div className="inline-flex flex-wrap gap-3">
                 <button
@@ -262,8 +265,14 @@ function TabsLanding() {
                 >
                   My Appointments
                 </button>
+                <button
+                  onClick={() => navigate('/service/status')}
+                  className="px-5 py-2.5 bg-white text-blue-700 font-semibold rounded-lg border border-blue-200 hover:bg-blue-50 transition-all"
+                >
+                  Check Service Status
+                </button>
               </div>
-              <p className="mt-2 text-xs text-gray-500">Use your mobile number on “My Appointments” to view bookings.</p>
+              <p className="mt-2 text-xs text-gray-500">Use your mobile number on “My Appointments” to view bookings, or your reference number to check service status.</p>
             </div>
           </div>
         </div>
@@ -380,6 +389,10 @@ function App() {
         path="/appointment/my"
       />
       <Route
+        element={<Layout><ServiceStatus /></Layout>}
+        path="/service/status"
+      />
+      <Route
         element={<Layout><QueueStatus /></Layout>}
         path="/queue/:tokenId"
       />
@@ -452,6 +465,10 @@ function App() {
         path="/manager/dashboard"
       />
       <Route
+        element={<Layout><ProtectedManagerRoute><ManagerServiceTracking /></ProtectedManagerRoute></Layout>}
+        path="/manager/service-tracking"
+      />
+      <Route
         element={<Layout><ProtectedManagerRoute><ManagerAppointments /></ProtectedManagerRoute></Layout>}
         path="/manager/appointments"
       />
@@ -482,6 +499,10 @@ function App() {
       <Route
         element={<Layout><ProtectedTeleshopManagerRoute><TeleshopManagerDashboard /></ProtectedTeleshopManagerRoute></Layout>}
         path="/teleshop-manager/dashboard"
+      />
+      <Route
+        element={<Layout><ProtectedTeleshopManagerRoute><TeleshopManagerServiceTracking /></ProtectedTeleshopManagerRoute></Layout>}
+        path="/teleshop-manager/service-tracking"
       />
       <Route
         element={<Layout><ProtectedTeleshopManagerRoute><TeleshopManagerAppointments /></ProtectedTeleshopManagerRoute></Layout>}

@@ -72,6 +72,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed, activePa
     { name: 'Break Oversight', icon: Coffee, to: '/manager/breaks' },
     { name: 'QR Codes', icon: QrCode, to: '/manager/qr-codes' },
     { name: 'Compare', icon: Scale3D, to: '/manager/compare' },
+    { name: 'Service Tracking', icon: MessageSquare, to: '/manager/service-tracking' },
   ]
 
   const teleshopManagerItems: NavigationItem[] = [
@@ -81,6 +82,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed, activePa
     { name: 'Feedback Management', icon: MessageSquare, to: '/teleshop-manager/feedback' },
     { name: 'Manage Officers', icon: Users, to: '/teleshop-manager/officers' },
     { name: 'Register Officer', icon: UserPlus, to: '/teleshop-manager/officers/add' },
+    { name: 'Service Tracking', icon: MessageSquare, to: '/teleshop-manager/service-tracking' },
   ]
 
   // Fix flickering: prioritize URL path over role, and handle loading state
