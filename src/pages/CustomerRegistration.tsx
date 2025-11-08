@@ -51,7 +51,7 @@ export default function CustomerRegistration() {
     console.log('clearAllFormData called - clearing serviceTypes from:', serviceTypes)
     setName("")
     setMobileNumber("")
-  setServiceTypes([])
+    setServiceTypes([])
     setNicNumber("")
     setEmail("")
     setPreferredLanguage('en')
@@ -59,12 +59,12 @@ export default function CustomerRegistration() {
     setLanguage("en")
     setIsServiceDropdownOpen(false)
     setFormKey(Date.now()) // Force form re-render
-  // Reset OTP state
-  setOtpStep('idle')
-  setOtpCode("")
-  setOtpToken("")
-  setOtpError("")
-  setOtpSending(false)
+    // Reset OTP state
+    setOtpStep('idle')
+    setOtpCode("")
+    setOtpToken("")
+    setOtpError("")
+    setOtpSending(false)
     
     // Additional browser form clearing
     setTimeout(() => {
@@ -384,14 +384,14 @@ export default function CustomerRegistration() {
         setOtpStep('verified')
         const current = outlets.find((o) => o.id === selectedOutlet)
         const resp = await api.post('/twilio/test', {
-          to: "+94768950003",
-          body: `You are registered successfully in the outlet ${current?.name}.`,
+          to: "+94718738041",
+          body: `You’ve successfully registered at the ${current?.name} outlet.`,
         })
         if (resp.data?.success) {
-                              alert('Test SMS sent (sid: ' + resp.data.sid + ')')
-                            } else {
-                              alert('Failed to send test SMS')
-                            }
+          alert('Test SMS sent (sid: ' + resp.data.sid + ')')
+        } else {
+          alert('Failed to send test SMS')
+        }
         return res.data.verifiedMobileToken as string
 
       }
@@ -403,8 +403,7 @@ export default function CustomerRegistration() {
       return null
     } finally {
       setOtpSending(false)
-    }
-    
+    } 
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -429,7 +428,7 @@ export default function CustomerRegistration() {
         serviceTypes,
         outletId: selectedOutlet,
         qrToken,
-  verifiedMobileToken: tokenForSubmit,
+        verifiedMobileToken: tokenForSubmit,
         preferredLanguages: preferredLanguage ? [preferredLanguage] : undefined,
       })
 
@@ -494,7 +493,7 @@ export default function CustomerRegistration() {
       register: "ලියාපදිංචි වන්න",
       registering: "ලියාපදිංචි වෙමින්...",
       sltMobile: "දුරකථන අංකය",
-      nic: "ජාතික කාර්ද අංකය",
+      nic: "ජාතික කාර්ද අංකය (විකල්ප)",
       email: "ඊමේල් (විකල්ප)",
     },
     ta: {

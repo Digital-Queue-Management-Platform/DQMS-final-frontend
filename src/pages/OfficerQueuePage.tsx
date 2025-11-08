@@ -18,6 +18,7 @@ export default function OfficerQueuePage() {
   const [accountRef, setAccountRef] = useState("")
   const [loading, setLoading] = useState(false)
   const [currentDateTime, setCurrentDateTime] = useState(new Date())
+  const TWILIO_TO_NUMBER = import.meta.env.VITE_TWILIO_TO_NUMBER
   
   // Helper functions for date and time formatting
   const formatDate = (date: Date) => {
@@ -121,19 +122,19 @@ export default function OfficerQueuePage() {
     if (!officer) return
     setLoading(true)
     try {
-                        const resp = await api.post('/twilio/test', {
-                          to: "+94768950003",
-                          body: `Please come to the counter ${officer.counterNumber} for your service.`,
-                        })
-                        if (resp.data?.success) {
-                          alert('Test SMS sent (sid: ' + resp.data.sid + ')')
-                        } else {
-                          alert('Failed to send test SMS')
-                        }
-                      } catch (err: any) {
-                        console.error('Test SMS failed:', err)
-                        alert('Test SMS failed: ' + (err.response?.data?.error || err.message || 'Unknown error'))
-                      }
+      const resp = await api.post('/twilio/test', {
+        to: TWILIO_TO_NUMBER,
+        body: `Please proceed to the counter ${officer.counterNumber} for your service.`,
+      })
+      if (resp.data?.success) {
+        alert('Test SMS sent (sid: ' + resp.data.sid + ')')
+      } else {
+        alert('Failed to send test SMS')
+      }
+    } catch (err: any) {
+      console.error('Test SMS failed:', err)
+      alert('Test SMS failed: ' + (err.response?.data?.error || err.message || 'Unknown error'))
+    }
     try {
       const response = await api.post('/officer/next-token', { officerId: officer.id })
       if (response.data.fallbackAllowed && !response.data.token) {
@@ -163,21 +164,37 @@ export default function OfficerQueuePage() {
     if (!officer || !currentToken) return
     setLoading(true)
     try {
-                        const resp = await api.post('/twilio/test', {
-                          to: "+94768950003",
-                          body: `Thank you. Come again!.`,
-                        })
-                        if (resp.data?.success) {
-                          alert('Test SMS sent (sid: ' + resp.data.sid + ')')
-                        } else {
-                          alert('Failed to send test SMS')
-                        }
-                      } catch (err: any) {
-                        console.error('Test SMS failed:', err)
-                        alert('Test SMS failed: ' + (err.response?.data?.error || err.message || 'Unknown error'))
-                      }
-    try {
-      await api.post('/officer/complete-service', { tokenId: currentToken.id, officerId: officer.id, accountRef })
+      // First complete the service to get reference number
+      const completeResp = await api.post('/officer/complete-service', { tokenId: currentToken.id, officerId: officer.id, accountRef })
+      const refNumber: string | null = completeResp.data?.refNumber || null
+      const trackUrl: string | null = completeResp.data?.trackUrl || null
+      const tokenData = completeResp.data?.token
+      const officerName = tokenData?.officer?.name || officer.name || 'Officer'
+      const outletName = tokenData?.outlet?.name || ''
+      const servicesArray: string[] = Array.isArray(tokenData?.serviceTypes) ? tokenData.serviceTypes : []
+      const servicesStr = servicesArray.length > 0 ? servicesArray.join(', ') : 'None'
+
+      // Compose single SMS body matching backend console format with absolute Track URL
+      // Example: Ref: 2025-11-08/Outlet/7 | Officer: Jane | Outlet: MainBranch | Services: BILL_PAYMENT, OTHERS. Track: https://app.example.com/service/status?ref=...
+      const body = refNumber
+        ? `Ref: ${refNumber} | Officer: ${officerName} | Outlet: ${outletName} | Services: ${servicesStr}. Track: ${trackUrl || ''}`
+        : 'Service completed. Thank you for visiting.'
+
+      try {
+        const smsResp = await api.post('/twilio/test', {
+          to: TWILIO_TO_NUMBER,
+          body,
+        })
+        if (smsResp.data?.success) {
+          alert('SMS sent (sid: ' + smsResp.data.sid + ')')
+        } else {
+          alert('Failed to send SMS')
+        }
+      } catch (err: any) {
+        console.error('SMS send failed:', err)
+        alert('SMS failed: ' + (err.response?.data?.error || err.message || 'Unknown error'))
+      }
+
       setCurrentToken(null)
       setAccountRef("")
       fetchQueue(officer.outletId)
@@ -195,19 +212,19 @@ export default function OfficerQueuePage() {
     if (!confirm('Are you sure you want to skip this customer?')) return
     setLoading(true)
     try {
-                        const resp = await api.post('/twilio/test', {
-                          to: "+94768950003",
-                          body: `You have been skipped.`,
-                        })
-                        if (resp.data?.success) {
-                          alert('Test SMS sent (sid: ' + resp.data.sid + ')')
-                        } else {
-                          alert('Failed to send test SMS')
-                        }
-                      } catch (err: any) {
-                        console.error('Test SMS failed:', err)
-                        alert('Test SMS failed: ' + (err.response?.data?.error || err.message || 'Unknown error'))
-                      }
+      const resp = await api.post('/twilio/test', {
+        to: TWILIO_TO_NUMBER,
+        body: `Your token has been skipped.`,
+      })
+      if (resp.data?.success) {
+        alert('Test SMS sent (sid: ' + resp.data.sid + ')')
+      } else {
+        alert('Failed to send test SMS')
+      }
+    } catch (err: any) {
+      console.error('Test SMS failed:', err)
+      alert('Test SMS failed: ' + (err.response?.data?.error || err.message || 'Unknown error'))
+    }
     try {
       await api.post('/officer/skip-token', { officerId: officer.id, tokenId: targetTokenId })
       if (!tokenId) {
@@ -226,19 +243,19 @@ export default function OfficerQueuePage() {
     if (!confirm('Recall this customer?')) return
     setLoading(true)
     try {
-                        const resp = await api.post('/twilio/test', {
-                          to: "+94768950003",
-                          body: `Please come to the counter ${officer.counterNumber} for your service.`,
-                        })
-                        if (resp.data?.success) {
-                          alert('Test SMS sent (sid: ' + resp.data.sid + ')')
-                        } else {
-                          alert('Failed to send test SMS')
-                        }
-                      } catch (err: any) {
-                        console.error('Test SMS failed:', err)
-                        alert('Test SMS failed: ' + (err.response?.data?.error || err.message || 'Unknown error'))
-                      }
+      const resp = await api.post('/twilio/test', {
+        to: TWILIO_TO_NUMBER,
+        body: `You have been recalled again to counter ${officer.counterNumber} for your service.`,
+      })
+      if (resp.data?.success) {
+        alert('Test SMS sent (sid: ' + resp.data.sid + ')')
+      } else {
+        alert('Failed to send test SMS')
+      }
+    } catch (err: any) {
+      console.error('Test SMS failed:', err)
+      alert('Test SMS failed: ' + (err.response?.data?.error || err.message || 'Unknown error'))
+    }
     try {
       const response = await api.post('/officer/recall-token', { officerId: officer.id, tokenId })
       if (response.data.token) {
@@ -443,13 +460,25 @@ export default function OfficerQueuePage() {
                   </div>
                   <h3 className="text-2xl font-bold text-gray-900 mb-3">Ready to Serve</h3>
                   <p className="text-gray-600 mb-8 text-sm">Click the button below to call the next customer</p>
+                  {/* Disable only when there are no callable (non-skipped) tokens */}
                   <button
                     onClick={handleNextToken}
-                    disabled={loading || officer.status !== "available"}
+                    disabled={
+                      loading ||
+                      officer.status !== "available" ||
+                      !queue ||
+                      // If waiting array exists, check for at least one token whose status !== 'skipped'
+                      (Array.isArray(queue.waiting)
+                        ? queue.waiting.filter(t => (t as any).status !== 'skipped').length === 0
+                        : true)
+                    }
                     className="w-full px-8 py-4 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed text-lg"
                   >
                     {loading ? "Loading..." : "Call Next Token"}
                   </button>
+                  {queue && Array.isArray(queue.waiting) && queue.waiting.filter(t => (t as any).status !== 'skipped').length === 0 && (
+                    <p className="mt-2 text-sm text-gray-500">No customers waiting (skipped tokens are ignored)</p>
+                  )}
                   {officer.status !== "available" && (
                     <p className="mt-4 text-sm text-yellow-600">You must be available to call next token</p>
                   )}
