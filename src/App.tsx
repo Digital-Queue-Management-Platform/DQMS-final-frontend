@@ -66,13 +66,12 @@ function TabsLanding() {
     navigate(`/?tab=${tab}`)
   }
 
-  
-
   return (
     <div className="min-h-screen bg-white">
-      <div className="flex flex-col xl:flex-row min-h-screen">
+      {/* Use a 7-column grid at xl+ to enforce exact 3/7 + 4/7 split without relying on non-standard width classes */}
+      <div className="min-h-screen grid grid-cols-1 xl:grid-cols-7">
         {/* Left Side - Branding & Features */}
-        <div className="xl:w-1/2 bg-gradient-to-br from-blue-600 via-indigo-700 to-purple-800 text-white p-4 sm:p-8 lg:p-12 flex flex-col justify-center relative overflow-hidden min-h-[40vh] xl:min-h-screen">
+        <div className="col-span-3 bg-gradient-to-br from-blue-600 via-indigo-700 to-purple-800 text-white p-4 sm:p-8 lg:p-12 flex flex-col justify-center relative overflow-hidden min-h-[40vh] xl:min-h-screen">
           {/* Decorative Background Elements */}
           <div className="absolute top-0 right-0 w-48 h-48 sm:w-72 sm:h-72 lg:w-96 lg:h-96 bg-white opacity-5 rounded-full -mr-24 -mt-24 sm:-mr-36 sm:-mt-36 lg:-mr-48 lg:-mt-48"></div>
           <div className="absolute bottom-0 left-0 w-36 h-36 sm:w-54 sm:h-54 lg:w-72 lg:h-72 bg-white opacity-5 rounded-full -ml-18 -mb-18 sm:-ml-27 sm:-mb-27 lg:-ml-36 lg:-mb-36"></div>
@@ -110,12 +109,13 @@ function TabsLanding() {
         </div>
 
         {/* Right Side - Portal Selection */}
-        <div className="xl:w-1/2 p-4 sm:p-6 lg:p-8 xl:p-12 flex flex-col justify-center bg-gray-50 min-h-[60vh] xl:min-h-screen">
-          <div className="max-w-2xl mx-auto w-full">
-            <div className="mb-6 sm:mb-8 text-center xl:text-left">
+        <div className="col-span-4 p-4 sm:p-6 lg:p-8 xl:p-12 flex flex-col justify-center bg-gray-50 min-h-[60vh] xl:min-h-screen">
+          {/* Remove max-width & auto horizontal margin to eliminate unintended empty space on the right */}
+          <div className="w-full">
+            {/*<div className="mb-6 sm:mb-8 text-center xl:text-left">
               <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Access Portal</h2>
               <p className="text-sm sm:text-base text-gray-600">Select your role to continue</p>
-            </div>
+            </div>*/}
 
             {/* Tab Navigation */}
             <div className="bg-white rounded-xl sm:rounded-2xl shadow-xl overflow-hidden border border-gray-100">
