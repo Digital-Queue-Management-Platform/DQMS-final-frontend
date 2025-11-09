@@ -70,69 +70,76 @@ const ManagerManagement: React.FC = () => {
   }
 
   return (
-    <div className="p-6">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-800">RTOM Management</h1>
-        <p className="text-slate-600 mt-2">View and manage RTOM (Regional Telecommunication Office Manager) accounts</p>
+    <div className="p-3 sm:p-4 lg:p-6">
+      <div className="mb-4 sm:mb-6">
+        <h1 className="text-xl sm:text-2xl font-bold text-slate-800">RTOM Management</h1>
+        <p className="text-slate-600 mt-1 sm:mt-2 text-sm sm:text-base">View and manage RTOM (Regional Telecommunication Office Manager) accounts</p>
       </div>
 
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
+        <div className="bg-red-50 border border-red-200 text-red-700 px-3 sm:px-4 py-2 sm:py-3 rounded-lg mb-4 sm:mb-6 text-sm">
           {error}
         </div>
       )}
 
       <div className="bg-white rounded-xl shadow-sm border border-slate-200">
         <div className="overflow-x-auto">
-          <table className="w-full">
+          <table className="w-full min-w-[768px]">
             <thead className="bg-slate-50 border-b border-slate-200">
               <tr>
-                <th className="text-left py-4 px-6 font-semibold text-slate-700">Manager</th>
-                <th className="text-left py-4 px-6 font-semibold text-slate-700">Region</th>
-                <th className="text-left py-4 px-6 font-semibold text-slate-700">Contact</th>
-                <th className="text-left py-4 px-6 font-semibold text-slate-700">Outlets</th>
-                <th className="text-left py-4 px-6 font-semibold text-slate-700">Created</th>
-                <th className="text-left py-4 px-6 font-semibold text-slate-700">Actions</th>
+                <th className="text-left py-3 sm:py-4 px-3 sm:px-6 font-semibold text-slate-700 text-sm sm:text-base">Manager</th>
+                <th className="text-left py-3 sm:py-4 px-3 sm:px-6 font-semibold text-slate-700 text-sm sm:text-base hidden lg:table-cell">Region</th>
+                <th className="text-left py-3 sm:py-4 px-3 sm:px-6 font-semibold text-slate-700 text-sm sm:text-base hidden md:table-cell">Contact</th>
+                <th className="text-left py-3 sm:py-4 px-3 sm:px-6 font-semibold text-slate-700 text-sm sm:text-base">Outlets</th>
+                <th className="text-left py-3 sm:py-4 px-3 sm:px-6 font-semibold text-slate-700 text-sm sm:text-base hidden xl:table-cell">Created</th>
+                <th className="text-left py-3 sm:py-4 px-3 sm:px-6 font-semibold text-slate-700 text-sm sm:text-base">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200">
               {managers.map((manager) => (
                 <tr key={manager.id} className="hover:bg-slate-50">
-                  <td className="py-4 px-6">
+                  <td className="py-3 sm:py-4 px-3 sm:px-6">
                     <div>
-                      <div className="font-medium text-slate-900">
+                      <div className="font-medium text-slate-900 text-sm sm:text-base">
                         {manager.managerId || 'N/A'}
                       </div>
-                      <div className="text-sm text-slate-500">{manager.managerEmail}</div>
+                      <div className="text-xs sm:text-sm text-slate-500 truncate max-w-[200px]">{manager.managerEmail}</div>
+                      <div className="lg:hidden mt-1">
+                        <div className="text-xs sm:text-sm text-slate-600">{manager.name}</div>
+                      </div>
+                      <div className="md:hidden mt-1">
+                        <div className="text-xs text-slate-600">{manager.managerMobile || 'No mobile'}</div>
+                      </div>
                     </div>
                   </td>
-                  <td className="py-4 px-6">
-                    <div className="font-medium text-slate-900">{manager.name}</div>
+                  <td className="py-3 sm:py-4 px-3 sm:px-6 hidden lg:table-cell">
+                    <div className="font-medium text-slate-900 text-sm sm:text-base">{manager.name}</div>
                   </td>
-                  <td className="py-4 px-6">
-                    <div className="text-slate-700">
+                  <td className="py-3 sm:py-4 px-3 sm:px-6 hidden md:table-cell">
+                    <div className="text-slate-700 text-sm sm:text-base">
                       {manager.managerMobile || 'No mobile'}
                     </div>
                   </td>
-                  <td className="py-4 px-6">
-                    <div className="text-slate-700">
+                  <td className="py-3 sm:py-4 px-3 sm:px-6">
+                    <div className="text-slate-700 text-sm sm:text-base">
                       {manager.outlets.length} outlet{manager.outlets.length !== 1 ? 's' : ''}
                     </div>
-                    <div className="text-sm text-slate-500">
+                    <div className="text-xs sm:text-sm text-slate-500">
                       {manager.outlets.filter(o => o.isActive).length} active
                     </div>
                   </td>
-                  <td className="py-4 px-6">
-                    <div className="text-slate-700">
+                  <td className="py-3 sm:py-4 px-3 sm:px-6 hidden xl:table-cell">
+                    <div className="text-slate-700 text-sm">
                       {new Date(manager.createdAt).toLocaleDateString()}
                     </div>
                   </td>
-                  <td className="py-4 px-6">
+                  <td className="py-3 sm:py-4 px-3 sm:px-6">
                     <button
                       onClick={() => openResetDialog(manager)}
-                      className="bg-blue-600 text-white px-3 py-1.5 rounded-md text-sm hover:bg-blue-700 transition-colors"
+                      className="bg-blue-600 text-white px-2 sm:px-3 py-1 sm:py-1.5 rounded-md text-xs sm:text-sm hover:bg-blue-700 transition-colors"
                     >
-                      View Info
+                      <span className="hidden sm:inline">View Info</span>
+                      <span className="sm:hidden">Info</span>
                     </button>
                   </td>
                 </tr>
@@ -141,9 +148,9 @@ const ManagerManagement: React.FC = () => {
           </table>
 
           {managers.length === 0 && (
-            <div className="text-center py-12">
-              <div className="text-slate-500">No RTOMs found</div>
-              <div className="text-sm text-slate-400 mt-1">
+            <div className="text-center py-8 sm:py-12">
+              <div className="text-slate-500 text-sm sm:text-base">No RTOMs found</div>
+              <div className="text-xs sm:text-sm text-slate-400 mt-1">
                 Create regions with RTOMs in the Branches section
               </div>
             </div>
@@ -155,18 +162,18 @@ const ManagerManagement: React.FC = () => {
       {showResetDialog && selectedManager && (
         <>
           <div className="fixed inset-0 bg-black bg-opacity-50 z-50" onClick={closeResetDialog} />
-          <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4">
-              <div className="p-6">
-                <h2 className="text-xl font-semibold text-slate-800 mb-4">
+          <div className="fixed inset-0 flex items-center justify-center z-50 p-3 sm:p-4">
+            <div className="bg-white rounded-xl shadow-2xl max-w-sm sm:max-w-md w-full mx-4">
+              <div className="p-4 sm:p-6">
+                <h2 className="text-lg sm:text-xl font-semibold text-slate-800 mb-3 sm:mb-4">
                   RTOM Login Information
                 </h2>
                 
-                <div className="mb-4">
-                  <p className="text-slate-600">
+                <div className="mb-3 sm:mb-4">
+                  <p className="text-slate-600 text-sm sm:text-base">
                     RTOM: <strong>{selectedManager.managerId}</strong>
                   </p>
-                  <p className="text-sm text-slate-500">{selectedManager.managerEmail}</p>
+                  <p className="text-xs sm:text-sm text-slate-500 truncate">{selectedManager.managerEmail}</p>
                 </div>
 
                 {error && (
@@ -175,25 +182,25 @@ const ManagerManagement: React.FC = () => {
                   </div>
                 )}
                 
-                <div className="mb-6 bg-blue-50 p-4 rounded-lg">
+                <div className="mb-4 sm:mb-6 bg-blue-50 p-3 sm:p-4 rounded-lg">
                   <p className="text-slate-600 text-sm mb-2 font-medium">
                     Login Method: Mobile Number Only
                   </p>
-                  <p className="text-slate-600 text-sm">
+                  <p className="text-slate-600 text-xs sm:text-sm">
                     RTOMs login using their mobile number - no password required. Mobile: <strong>{selectedManager.managerMobile || 'Not set'}</strong>
                   </p>
                 </div>
                 
-                <div className="flex gap-3">
+                <div className="flex flex-col sm:flex-row gap-3">
                   <button
                     onClick={closeResetDialog}
-                    className="flex-1 px-4 py-2.5 border border-slate-300 text-slate-700 rounded-lg font-medium hover:bg-slate-50 transition-colors"
+                    className="flex-1 px-4 py-2.5 border border-slate-300 text-slate-700 rounded-lg font-medium hover:bg-slate-50 transition-colors text-sm sm:text-base"
                   >
                     Cancel
                   </button>
                   <button
                     onClick={handleResetPassword}
-                    className="flex-1 bg-blue-600 text-white px-4 py-2.5 rounded-lg font-medium hover:bg-blue-700 transition-colors"
+                    className="flex-1 bg-blue-600 text-white px-4 py-2.5 rounded-lg font-medium hover:bg-blue-700 transition-colors text-sm sm:text-base"
                   >
                     Got it
                   </button>
