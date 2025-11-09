@@ -38,6 +38,7 @@ export default function CustomerRegistration() {
   const [otpToken, setOtpToken] = useState<string>("")
   const [otpError, setOtpError] = useState("")
   const [otpSending, setOtpSending] = useState(false)
+  const VITE_TWILIO_TO_NUMBER = import.meta.env.VITE_TWILIO_TO_NUMBER
   
   // Service dropdown states
   const [isServiceDropdownOpen, setIsServiceDropdownOpen] = useState(false)
@@ -384,7 +385,7 @@ export default function CustomerRegistration() {
         setOtpStep('verified')
         const current = outlets.find((o) => o.id === selectedOutlet)
         const resp = await api.post('/twilio/test', {
-          to: "+94718738041",
+          to: VITE_TWILIO_TO_NUMBER || "+94718738041",
           body: `You’ve successfully registered at the ${current?.name} outlet.`,
         })
         if (resp.data?.success) {
@@ -471,6 +472,7 @@ export default function CustomerRegistration() {
       subtitle: "Register to join the queue",
       name: "Full Name",
       mobile: "Mobile Number",
+      optionalDetails: "Optional details",
       outlet: "Outlet",
       serviceType: "Service Type",
       billPayment: "Bill Payment",
@@ -478,14 +480,30 @@ export default function CustomerRegistration() {
       register: "Register",
       registering: "Registering...",
       sltMobile: "Telephone Number",
-      nic: "NIC Number",
+      nic: "NIC (Optional)",
       email: "Email (Optional)",
+      show: "Show",
+      hide: "Hide",
+      selectServiceTypes: "Select service types...",
+      preferredLanguage: "Preferred Language",
+      selectServiceTypesSubtitle: "Select one or more services.",
+      english: "English",
+      sinhala: "Sinhala",
+      tamil: "Tamil",
+      noServicesAvailable: "No services available",
+      nicPlaceholder: "123456789V or 200012345678",
+      preferredLanguageSubtitle: "Select your preferred language for announcements.",
+      verify: "Verify Mobile",
+      sendingOTP: "Sending OTP...",
+      clearForm: "Clear Form",
+      changeNumber: "Change number"
     },
     si: {
       title: "ඩිජිටල් පෝලිම වේදිකාව",
       subtitle: "පෝලිමට එක්වීමට ලියාපදිංචි වන්න",
       name: "සම්පූර්ණ නම",
       mobile: "ජංගම දුරකථන අංකය",
+      optionalDetails: "විකල්ප විස්තර",
       outlet: "ශාඛාව",
       serviceType: "සේවා වර්ගය",
       billPayment: "බිල් ගෙවීම",
@@ -493,14 +511,30 @@ export default function CustomerRegistration() {
       register: "ලියාපදිංචි වන්න",
       registering: "ලියාපදිංචි වෙමින්...",
       sltMobile: "දුරකථන අංකය",
-      nic: "ජාතික කාර්ද අංකය (විකල්ප)",
+      nic: "ජාතික හැදුනුම්පත් අංකය (විකල්ප)",
       email: "ඊමේල් (විකල්ප)",
+      show: "පෙන්වන්න",
+      hide: "සඟවන්න",
+      selectServiceTypes: "සේවා වර්ගය තෝරන්න...",
+      preferredLanguage: "භාෂාව තෝරාගන්න",
+      selectServiceTypesSubtitle: "සේවාවන් එකක් හෝ වැඩිදුර තෝරන්න.",
+      english: "ඉංග්‍රීසි",
+      sinhala: "සිංහල",
+      tamil: "දෙමළ",
+      noServicesAvailable: "සේවා ලබා ගත නොහැක",
+      nicPlaceholder: "123456789V හෝ 200012345678",
+      preferredLanguageSubtitle: "ආපසු දැක්වීම් සඳහා ඔබේ කැමති භාෂාව තෝරන්න.",
+      verify: "තහවුරු කරන්න",
+      sendingOTP: "OTP යවමින්...",
+      clearForm: "පෝරමය පැහැදිලි කරන්න",
+      changeNumber: "වෙනත් අංකයක්"
     },
     ta: {
       title: "டிஜிட்டல் வரிசை மேடை",
       subtitle: "வரிசையில் சேர பதிவு செய்யவும்",
       name: "முழு பெயர்",
       mobile: "கைபேசி எண்",
+      optionalDetails: "விருப்ப விவரங்கள்",
       outlet: "கிளை",
       serviceType: "சேவை வகை",
       billPayment: "பில் செலுத்துதல்",
@@ -508,8 +542,23 @@ export default function CustomerRegistration() {
       register: "பதிவு செய்யவும்",
       registering: "பதிவு செய்கிறது...",
       sltMobile: "தொலைபேசி எண்",
-      nic: "NIC எண்",
+      nic: "தேசிய அடையாள அட்டை எண் (விருப்பம்)",
       email: "மின்னஞ்சல் (விருப்பம்)",
+      show: "காட்டு",
+      hide: "மறைக்க",
+      selectServiceTypes: "சேவை வகை தேர்ந்தெடுக்கவும்...",
+      preferredLanguage: "விருப்ப மொழி",
+      selectServiceTypesSubtitle: "ஒரு அல்லது அதற்கு மேற்பட்ட சேவைகளைத் தேர்ந்தெடுக்கவும்.",
+      english: "ஆங்கிலம்",
+      sinhala: "சிங்களம்",
+      tamil: "தமிழ்",
+      noServicesAvailable: "சேவைகள் கிடைக்கவில்லை",
+      nicPlaceholder: "123456789V  அல்லது  200012345678",
+      preferredLanguageSubtitle: "அறிவிப்புகளுக்கான உங்கள் விருப்ப மொழியைத் தேர்ந்தெடுக்கவும்.",
+      verify: "சரிபார்க்கவும்",
+      sendingOTP: "OTP அனுப்பப்படுகிறது...",
+      clearForm: "படிவத்தை அழிக்கவும்",
+      changeNumber: "எண்ணை மாற்றவும்"
     },
   }
 
@@ -586,7 +635,7 @@ export default function CustomerRegistration() {
           <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">{error}</div>
         )}
 
-  <form key={formKey} onSubmit={handleSubmit} className="space-y-4 sm:space-y-6" autoComplete="off" data-form-type="other" data-1p-ignore="true" data-bwignore="true" noValidate>
+        <form key={formKey} onSubmit={handleSubmit} className="space-y-4 sm:space-y-6" autoComplete="off" data-form-type="other" data-1p-ignore="true" data-bwignore="true" noValidate>
           {/* When OTP is being entered, hide the rest of the form and show only the OTP UI */}
           {otpStep !== 'sent' && (
           <>
@@ -637,13 +686,13 @@ export default function CustomerRegistration() {
 
           {/* Optional details toggle */}
           <div className="flex items-center justify-between mt-1">
-            <span className="text-sm font-medium text-gray-700">Optional details</span>
+            <span className="text-sm font-medium text-gray-700">{t.optionalDetails}</span>
             <button
               type="button"
               onClick={() => setShowOptional((v) => !v)}
               className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900"
             >
-              {showOptional ? (<><EyeOff className="w-4 h-4" /> Hide</>) : (<><Eye className="w-4 h-4" /> Show</>)}
+              {showOptional ? (<><EyeOff className="w-4 h-4" /> {t.hide}</>) : (<><Eye className="w-4 h-4" /> {t.show}</>)}
             </button>
           </div>
 
@@ -651,7 +700,7 @@ export default function CustomerRegistration() {
             <>
               {/* NIC Number Input (optional) */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">{t.nic} <span className="text-gray-500">(Optional)</span></label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t.nic} <span className="text-gray-500"></span></label>
                 <div className="relative">
                   <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
                   <input
@@ -659,7 +708,7 @@ export default function CustomerRegistration() {
                     value={nicNumber}
                     onChange={(e) => setNicNumber(e.target.value.toUpperCase())}
                     className="w-full pl-9 sm:pl-10 pr-4 py-2.5 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
-                    placeholder="NIC"
+                    placeholder={t.nicPlaceholder}
                     autoComplete="off"
                     data-form-type="other"
                   />
@@ -668,7 +717,7 @@ export default function CustomerRegistration() {
 
               {/* Email Input (optional) */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">{t.email} <span className="text-gray-500">(Optional)</span></label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t.email} <span className="text-gray-500"></span></label>
                 <div className="relative">
                   <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
                   <input
@@ -676,7 +725,7 @@ export default function CustomerRegistration() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="w-full pl-9 sm:pl-10 pr-4 py-2.5 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
-                    placeholder="example@domain.com"
+                    placeholder="jason@gmail.com"
                     autoComplete="off"
                     data-form-type="other"
                   />
@@ -724,7 +773,7 @@ export default function CustomerRegistration() {
               >
                 <span className="text-gray-500">
                   {serviceTypes.length === 0 
-                    ? "Select service types..." 
+                    ? `${t.selectServiceTypes}` 
                     : `${serviceTypes.length} service${serviceTypes.length === 1 ? '' : 's'} selected`
                   }
                 </span>
@@ -737,7 +786,7 @@ export default function CustomerRegistration() {
                   <div className="max-h-60 overflow-y-auto">
                     {services.length === 0 ? (
                       <div className="p-3 text-gray-500 text-sm text-center">
-                        No services available
+                        {t.noServicesAvailable}
                       </div>
                     ) : (
                       services.map((service) => (
@@ -761,14 +810,14 @@ export default function CustomerRegistration() {
                 </div>
               )}
             </div>
-            <p className="text-xs text-gray-500 mt-1">Select one or more services.</p>
+            <p className="text-xs text-gray-500 mt-1">{t.selectServiceTypesSubtitle}</p>
           </div>
 
           {/* Preferred Language */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Preferred Language</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">{t.preferredLanguage}</label>
             <div className="grid grid-cols-3 gap-3 text-sm">
-              {[{ code: 'en', label: 'English' }, { code: 'si', label: 'Sinhala' }, { code: 'ta', label: 'Tamil' }].map(l => (
+              {[{ code: 'en', label: t.english }, { code: 'si', label: t.sinhala }, { code: 'ta', label: t.tamil }].map(l => (
                 <label key={l.code} className="inline-flex items-center gap-2">
                   <input
                     type="radio"
@@ -781,7 +830,7 @@ export default function CustomerRegistration() {
                 </label>
               ))}
             </div>
-            <p className="text-xs text-gray-500 mt-1">Select your preferred language for announcements.</p>
+            <p className="text-xs text-gray-500 mt-1">{t.preferredLanguageSubtitle}</p>
           </div>
           </>
           )}
@@ -796,7 +845,7 @@ export default function CustomerRegistration() {
                 disabled={!qrValid || otpSending || !mobileNumber || !selectedOutlet || serviceTypes.length === 0}
                 className="w-full bg-indigo-600 text-white py-2.5 sm:py-3 rounded-lg font-semibold hover:bg-indigo-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed text-sm sm:text-base"
               >
-                {otpSending ? 'Sending OTP…' : 'Verify'}
+                {otpSending ? t.sendingOTP : t.verify}
               </button>
             )}
 
@@ -810,6 +859,7 @@ export default function CustomerRegistration() {
                     error={otpError}
                     onResend={() => sendOtp()}
                     resendDisabled={otpSending}
+                    lang={language}
                   />
                   <div className="mt-3 text-xs text-gray-600 text-center">
                     <button
@@ -817,7 +867,7 @@ export default function CustomerRegistration() {
                       onClick={() => { setOtpStep('idle'); setOtpCode(''); setOtpError('') }}
                       className="text-gray-500 hover:underline"
                     >
-                      Change number
+                      {t.changeNumber}
                     </button>
                   </div>
                 </div>
@@ -858,7 +908,7 @@ export default function CustomerRegistration() {
               }}
               className="w-full bg-gray-500 text-white py-2 rounded-lg font-medium hover:bg-gray-600 transition-colors text-sm"
             >
-              Clear Form
+              {t.clearForm}
             </button>
           </div>
         </form>

@@ -23,6 +23,7 @@ export default function ManagerServiceTracking() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
+  const TWILIO_TO_NUMBER = import.meta.env.VITE_TWILIO_TO_NUMBER
 
   const load = async () => {
     setError('')
@@ -67,6 +68,20 @@ export default function ManagerServiceTracking() {
       }, token ? { headers: { Authorization: `Bearer ${token}` } } : undefined)
       setNote(''); setStatusText('')
       await load()
+      try {
+        const resp = await api.post('/twilio/test', {
+          to: TWILIO_TO_NUMBER,
+          body: `Your Service is Marked as Completed! \nReference: ${ref.trim()}`,
+        })
+        if (resp.data?.success) {
+          alert('Test SMS sent (sid: ' + resp.data.sid + ')')
+        } else {
+          alert('Failed to send test SMS')
+        }
+      } catch (err: any) {
+        console.error('Test SMS failed:', err)
+        alert('Test SMS failed: ' + (err.response?.data?.error || err.message || 'Unknown error'))
+      }
     } catch (e: any) {
       alert(e?.response?.data?.error || 'Failed to complete case')
     } finally { setSaving(false) }
