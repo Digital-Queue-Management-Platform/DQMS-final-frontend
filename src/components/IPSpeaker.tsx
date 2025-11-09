@@ -18,22 +18,22 @@ const LANGUAGE_CODES = {
 // Announcement templates in different languages
 const ANNOUNCEMENT_TEMPLATES = {
   en: {
-    call: (tokenNumber: number, counterNumber?: number) => 
-      `Token number ${tokenNumber}, please proceed to counter ${counterNumber || 'assigned'}. Token ${tokenNumber}, counter ${counterNumber || 'assigned'}.`,
+    call: (tokenNumber: number, customerName: string, counterNumber?: number) => 
+      `${customerName}, token number ${tokenNumber}, please proceed to counter ${counterNumber || 'assigned'}. ${customerName}, token ${tokenNumber}, counter ${counterNumber || 'assigned'}.`,
     welcome: 'Welcome to our service center.',
     next: 'Next customer, please.',
     wait: 'Please wait for your turn.'
   },
   si: {
-    call: (tokenNumber: number, counterNumber?: number) => 
-      `අංක ${tokenNumber} ගැණුම්කරු ${counterNumber || 'නියම කළ'} කවුන්ටරයට පැමිණෙන්න. අංක ${tokenNumber}, කවුන්ටරය ${counterNumber || 'නියම කළ'}.`,
+    call: (tokenNumber: number, customerName: string, counterNumber?: number) => 
+      `${customerName} මහත්මයා, අංක ${tokenNumber} ගැණුම්කරු ${counterNumber || 'නියම කළ'} කවුන්ටරයට පැමිණෙන්න. ${customerName} මහත්මයා, අංක ${tokenNumber}, කවුන්ටරය ${counterNumber || 'නියම කළ'}.`,
     welcome: 'අපගේ සේවා මධ්‍යස්ථානයට සාදරයෙන් පිළිගනිමු.',
     next: 'ඊළඟ පාරිභෝගිකයා කරුණාකර.',
     wait: 'කරුණාකර ඔබේ වාරය සඳහා රැඳී සිටින්න.'
   },
   ta: {
-    call: (tokenNumber: number, counterNumber?: number) => 
-      `எண் ${tokenNumber}, தயவுசெய்து கவுண்டர் ${counterNumber || 'ஒதுக்கப்பட்ட'} க்கு வாருங்கள். எண் ${tokenNumber}, கவுண்டர் ${counterNumber || 'ஒதுக்கப்பட்ட'}.`,
+    call: (tokenNumber: number, customerName: string, counterNumber?: number) => 
+      `${customerName} அவர்களே, எண் ${tokenNumber}, தயவுசெய்து கவுண்டர் ${counterNumber || 'ஒதுக்கப்பட்ட'} க்கு வாருங்கள். ${customerName} அவர்களே, எண் ${tokenNumber}, கவுண்டர் ${counterNumber || 'ஒதுக்கப்பட்ட'}.`,
     welcome: 'எங்கள் சேவை மையத்திற்கு வரவேற்கிறோம்.',
     next: 'அடுத்த வாடிக்கையாளர், தயவுசெய்து.',
     wait: 'தயவுசெய்து உங்கள் முறைக்கு காத்திருங்கள்.'
@@ -166,7 +166,8 @@ export default function IPSpeaker({ token, counterNumber, onCall }: IPSpeakerPro
     }
     
     const template = ANNOUNCEMENT_TEMPLATES[selectedLanguage]
-    const announcement = template.call(token.tokenNumber, counterNumber || token.counterNumber || undefined)
+    const customerName = token.customer.name
+    const announcement = template.call(token.tokenNumber, customerName, counterNumber || token.counterNumber || undefined)
     
     console.log(`Calling customer in ${selectedLanguage}: ${announcement}`)
     speak(announcement, selectedLanguage)

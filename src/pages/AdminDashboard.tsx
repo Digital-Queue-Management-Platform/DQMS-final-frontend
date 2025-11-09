@@ -165,7 +165,7 @@ export default function AdminDashboard() {
           <div className="flex items-center justify-between">
             <div className="min-w-0 flex-1">
               <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 truncate">Admin Dashboard</h1>
-              <p className="text-xs sm:text-sm text-gray-600 hidden sm:block">Digital Queue Management System</p>
+              <p className="text-[10px] sm:text-sm text-gray-600 block">Digital Queue Management System</p>
             </div>
 
             <div className="flex items-center gap-2 sm:gap-4">
