@@ -81,34 +81,34 @@ export default function AdminAllOfficers() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="mx-auto p-6 lg:p-8">
-        <div className="mb-6 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <UserCircle2 className="w-7 h-7 text-slate-800" />
+      <div className="mx-auto p-3 sm:p-4 lg:p-6 xl:p-8">
+        <div className="mb-4 sm:mb-6 flex items-center justify-between">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <UserCircle2 className="w-6 h-6 sm:w-7 sm:h-7 text-slate-800" />
             <div>
-              <h1 className="text-2xl font-bold text-slate-900">All Officers</h1>
-              <p className="text-slate-600 text-sm">Across all branches with current status</p>
+              <h1 className="text-xl sm:text-2xl font-bold text-slate-900">All Officers</h1>
+              <p className="text-slate-600 text-sm hidden sm:block">Across all branches with current status</p>
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 mb-4">
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-3 sm:p-4 mb-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search by name, mobile, outlet, or location"
-              className="w-full pl-10 pr-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full pl-10 pr-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
             />
           </div>
         </div>
 
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
           {loading ? (
-            <div className="p-6 text-center text-slate-500">Loading officers…</div>
+            <div className="p-4 sm:p-6 text-center text-slate-500 text-sm sm:text-base">Loading officers…</div>
           ) : filtered.length === 0 ? (
-            <div className="p-6 text-center text-slate-500">No officers found</div>
+            <div className="p-4 sm:p-6 text-center text-slate-500 text-sm sm:text-base">No officers found</div>
           ) : (
             <div className="divide-y divide-slate-200">
               {/* Render known regions in alphabetical order */}
@@ -121,19 +121,20 @@ export default function AdminAllOfficers() {
                     <div key={regionId} className="">
                       <button
                         type="button"
-                        className="w-full px-4 py-3 flex items-center justify-between hover:bg-slate-50"
+                        className="w-full px-3 sm:px-4 py-2 sm:py-3 flex items-center justify-between hover:bg-slate-50"
                         onClick={() => toggleRegion(regionId)}
                       >
                         <div className="flex items-center gap-2 text-left">
                           {isCollapsed ? <ChevronRight className="w-4 h-4 text-slate-500" /> : <ChevronDown className="w-4 h-4 text-slate-500" />}
-                          <span className="font-semibold text-slate-900">{regionName(regionId)}</span>
+                          <span className="font-semibold text-slate-900 text-sm sm:text-base">{regionName(regionId)}</span>
                           <span className="text-xs text-slate-500">({officersInRegion.length})</span>
                         </div>
                       </button>
 
                       {!isCollapsed && (
                         <div className="">
-                          <div className="border-t border-slate-200 px-4 py-2 text-xs uppercase tracking-wide text-slate-500 grid grid-cols-12 bg-slate-50/50">
+                          {/* Desktop header - hidden on mobile */}
+                          <div className="hidden lg:block border-t border-slate-200 px-4 py-2 text-xs uppercase tracking-wide text-slate-500 grid grid-cols-12 bg-slate-50/50">
                             <div className="col-span-4">Officer</div>
                             <div className="col-span-2">Mobile</div>
                             <div className="col-span-4">Outlet</div>
@@ -141,31 +142,74 @@ export default function AdminAllOfficers() {
                           </div>
                           <ul className="divide-y divide-slate-200">
                             {officersInRegion.map((o) => (
-                              <li key={o.id} className="px-4 py-3 grid grid-cols-12 items-center hover:bg-slate-50">
-                                <div className="col-span-4 flex items-center gap-3 min-w-0">
-                                  <div className="w-9 h-9 rounded-full bg-slate-800 text-white flex items-center justify-center text-sm font-semibold">
-                                    {o.name?.[0]?.toUpperCase() || '?'}
-                                  </div>
-                                  <div className="truncate">
-                                    <div className="font-medium text-slate-900 truncate">{o.name}</div>
-                                    <div className="text-xs text-slate-500 flex items-center gap-1 truncate"><Activity className="w-3.5 h-3.5" /> ID: {o.id.slice(0,8)}…</div>
-                                    {Array.isArray(o.languages) && o.languages.length > 0 && (
-                                      <div className="mt-1 flex flex-wrap gap-1.5">
-                                        {o.languages.map((c: string) => (
-                                          <span key={c} className="px-2 py-0.5 bg-slate-100 text-slate-700 text-[11px] font-medium rounded-full border border-slate-200">
-                                            {c === 'en' ? 'EN' : c === 'si' ? 'SI' : c === 'ta' ? 'TA' : (c || '').toUpperCase()}
-                                          </span>
-                                        ))}
+                              <li key={o.id} className="px-3 sm:px-4 py-3 lg:grid lg:grid-cols-12 lg:items-center hover:bg-slate-50">
+                                {/* Mobile/Tablet Layout */}
+                                <div className="lg:hidden">
+                                  <div className="flex items-start gap-3">
+                                    <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-slate-800 text-white flex items-center justify-center text-sm font-semibold flex-shrink-0">
+                                      {o.name?.[0]?.toUpperCase() || '?'}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <div className="flex items-start justify-between">
+                                        <div className="min-w-0 flex-1">
+                                          <div className="font-medium text-slate-900 text-sm sm:text-base truncate">{o.name}</div>
+                                          <div className="text-xs text-slate-500 flex items-center gap-1 mt-0.5 truncate">
+                                            <Activity className="w-3 h-3 flex-shrink-0" /> 
+                                            ID: {o.id.slice(0,8)}…
+                                          </div>
+                                        </div>
+                                        <div className="ml-2 flex-shrink-0">{statusBadge(o.status)}</div>
                                       </div>
-                                    )}
+                                      <div className="mt-2 space-y-1">
+                                        <div className="text-slate-700 flex items-center gap-2 text-sm">
+                                          <Phone className="w-3 h-3 sm:w-4 sm:h-4 text-slate-400 flex-shrink-0" /> 
+                                          <span>{o.mobileNumber}</span>
+                                        </div>
+                                        <div className="text-slate-700 flex items-center gap-2 text-sm">
+                                          <MapPin className="w-3 h-3 sm:w-4 sm:h-4 text-slate-400 flex-shrink-0" />
+                                          <span className="truncate">{o.outlet?.name || '—'}</span>
+                                        </div>
+                                      </div>
+                                      {Array.isArray(o.languages) && o.languages.length > 0 && (
+                                        <div className="mt-2 flex flex-wrap gap-1">
+                                          {o.languages.map((c: string) => (
+                                            <span key={c} className="px-1.5 py-0.5 bg-slate-100 text-slate-700 text-[10px] sm:text-[11px] font-medium rounded-full border border-slate-200">
+                                              {c === 'en' ? 'EN' : c === 'si' ? 'SI' : c === 'ta' ? 'TA' : (c || '').toUpperCase()}
+                                            </span>
+                                          ))}
+                                        </div>
+                                      )}
+                                    </div>
                                   </div>
                                 </div>
-                                <div className="col-span-2 text-slate-700 flex items-center gap-2"><Phone className="w-4 h-4 text-slate-400" /> {o.mobileNumber}</div>
-                                <div className="col-span-4 text-slate-700 truncate flex items-center gap-2">
-                                  <MapPin className="w-4 h-4 text-slate-400" />
-                                  <span className="truncate">{o.outlet?.name || '—'}</span>
+
+                                {/* Desktop Layout */}
+                                <div className="hidden lg:contents">
+                                  <div className="col-span-4 flex items-center gap-3 min-w-0">
+                                    <div className="w-9 h-9 rounded-full bg-slate-800 text-white flex items-center justify-center text-sm font-semibold">
+                                      {o.name?.[0]?.toUpperCase() || '?'}
+                                    </div>
+                                    <div className="truncate">
+                                      <div className="font-medium text-slate-900 truncate">{o.name}</div>
+                                      <div className="text-xs text-slate-500 flex items-center gap-1 truncate"><Activity className="w-3.5 h-3.5" /> ID: {o.id.slice(0,8)}…</div>
+                                      {Array.isArray(o.languages) && o.languages.length > 0 && (
+                                        <div className="mt-1 flex flex-wrap gap-1.5">
+                                          {o.languages.map((c: string) => (
+                                            <span key={c} className="px-2 py-0.5 bg-slate-100 text-slate-700 text-[11px] font-medium rounded-full border border-slate-200">
+                                              {c === 'en' ? 'EN' : c === 'si' ? 'SI' : c === 'ta' ? 'TA' : (c || '').toUpperCase()}
+                                            </span>
+                                          ))}
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                  <div className="col-span-2 text-slate-700 flex items-center gap-2"><Phone className="w-4 h-4 text-slate-400" /> {o.mobileNumber}</div>
+                                  <div className="col-span-4 text-slate-700 truncate flex items-center gap-2">
+                                    <MapPin className="w-4 h-4 text-slate-400" />
+                                    <span className="truncate">{o.outlet?.name || '—'}</span>
+                                  </div>
+                                  <div className="col-span-2 text-right">{statusBadge(o.status)}</div>
                                 </div>
-                                <div className="col-span-2 text-right">{statusBadge(o.status)}</div>
                               </li>
                             ))}
                           </ul>

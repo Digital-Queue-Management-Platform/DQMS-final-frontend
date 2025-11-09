@@ -121,18 +121,18 @@ const ServicesPage: React.FC = () => {
   const goToPrevPage = () => setCurrentPage((prev) => Math.max(prev - 1, 1))
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-8">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-3 sm:p-4 lg:p-8">
       <div className="mx-auto">
         {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-2">
+        <div className="mb-6 sm:mb-8">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-2 gap-3 sm:gap-0">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center">
-                <Package className="w-6 h-6" />
+              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center">
+                <Package className="w-5 h-5 sm:w-6 sm:h-6" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">Services</h1>
-                <p className="text-gray-600 text-sm">Manage your service offerings</p>
+                <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Services</h1>
+                <p className="text-gray-600 text-sm hidden sm:block">Manage your service offerings</p>
               </div>
             </div>
             <button
@@ -140,32 +140,34 @@ const ServicesPage: React.FC = () => {
                 resetForm()
                 setShowForm(!showForm)
               }}
-              className="px-5 py-2 bg-gray-900 text-white font-semibold rounded-xl hover:shadow-lg transition-all flex items-center gap-2"
+              className="px-4 sm:px-5 py-2 bg-gray-900 text-white font-semibold rounded-xl hover:shadow-lg transition-all flex items-center gap-2 text-sm sm:text-base"
             >
-              <Plus className="w-5 h-5" />
-              Add Service
+              <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
+              <span className="hidden sm:inline">Add Service</span>
+              <span className="sm:hidden">Add</span>
             </button>
           </div>
+          <p className="text-gray-600 text-sm sm:hidden">Manage your service offerings</p>
         </div>
 
         {/* Form Modal */}
         {showForm && (
-          <div className="mb-6 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
-            <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-2">
-              <h2 className="text-lg font-semibold text-white flex items-center gap-2">
-                {editingId ? <Edit2 className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
+          <div className="mb-4 sm:mb-6 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
+            <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-4 sm:px-6 py-3 sm:py-4">
+              <h2 className="text-base sm:text-lg font-semibold text-white flex items-center gap-2">
+                {editingId ? <Edit2 className="w-4 h-4 sm:w-5 sm:h-5" /> : <Plus className="w-4 h-4 sm:w-5 sm:h-5" />}
                 {editingId ? 'Edit Service' : 'Create New Service'}
               </h2>
             </div>
             
-            <div className="p-6">
+            <div className="p-4 sm:p-6">
               {error && (
-                <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+                <div className="mb-4 p-3 sm:p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
                   {error}
                 </div>
               )}
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-4 sm:mb-6">
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
                     Service Code *
@@ -175,7 +177,7 @@ const ServicesPage: React.FC = () => {
                     onChange={(e) => setCode(e.target.value)}
                     disabled={!!editingId}
                     placeholder="e.g., SVC001"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition disabled:bg-gray-100 disabled:cursor-not-allowed"
+                    className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition disabled:bg-gray-100 disabled:cursor-not-allowed text-sm sm:text-base"
                   />
                 </div>
                 
@@ -187,12 +189,12 @@ const ServicesPage: React.FC = () => {
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
                     placeholder="e.g., Account Opening"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
+                    className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition text-sm sm:text-base"
                   />
                 </div>
               </div>
               
-              <div className="mb-6">
+              <div className="mb-4 sm:mb-6">
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
                   Description
                 </label>
@@ -201,14 +203,14 @@ const ServicesPage: React.FC = () => {
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="Brief description of the service..."
                   rows={3}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition resize-none"
+                  className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition resize-none text-sm sm:text-base"
                 />
               </div>
               
-              <div className="flex gap-3">
+              <div className="flex flex-col sm:flex-row gap-3">
                 <button
                   onClick={(e) => handleCreateOrUpdate(e)}
-                  className="px-5 py-2 bg-gray-900 text-white font-semibold rounded-lg hover:shadow-lg transition-all flex items-center gap-2"
+                  className="px-4 sm:px-5 py-2 bg-gray-900 text-white font-semibold rounded-lg hover:shadow-lg transition-all flex items-center justify-center gap-2 text-sm sm:text-base"
                 >
                   <Save className="w-4 h-4" />
                   {editingId ? 'Update Service' : 'Create Service'}
@@ -218,7 +220,7 @@ const ServicesPage: React.FC = () => {
                     resetForm()
                     setShowForm(false)
                   }}
-                  className="px-5 py-2 bg-gray-100 text-gray-700 font-semibold rounded-lg hover:bg-gray-200 transition-all flex items-center gap-2"
+                  className="px-4 sm:px-5 py-2 bg-gray-100 text-gray-700 font-semibold rounded-lg hover:bg-gray-200 transition-all flex items-center justify-center gap-2 text-sm sm:text-base"
                 >
                   <X className="w-4 h-4" />
                   Cancel
@@ -229,23 +231,23 @@ const ServicesPage: React.FC = () => {
         )}
 
         {/* Search Bar */}
-        <div className="mb-6 bg-white rounded-xl shadow-md p-4">
+        <div className="mb-4 sm:mb-6 bg-white rounded-xl shadow-md p-3 sm:p-4">
           <div className="relative">
-            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+            <Search className="absolute left-3 sm:left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 sm:w-5 sm:h-5" />
             <input
               type="text"
               placeholder="Search services by code, title, or description..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
+              className="w-full pl-10 sm:pl-12 pr-3 sm:pr-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition text-sm sm:text-base"
             />
           </div>
         </div>
 
         {/* Pagination Controls */}
-        <div className="flex flex-col space-y-3 mb-3 px-4 md:flex-row md:justify-between md:items-center md:space-y-0">
+        <div className="flex flex-col space-y-3 mb-3 px-2 sm:px-4 sm:flex-row sm:justify-between sm:items-center sm:space-y-0">
           <div className="flex items-center space-x-2">
-            <span className="text-sm text-gray-600">
+            <span className="text-xs sm:text-sm text-gray-600">
               Showing {indexOfFirstService + 1}-{Math.min(indexOfLastService, filteredServices.length)} of {filteredServices.length} services
             </span>
           </div>
@@ -254,19 +256,20 @@ const ServicesPage: React.FC = () => {
             <button 
               onClick={goToPrevPage} 
               disabled={currentPage === 1}
-              className="px-3 py-1.5 bg-white border border-gray-300 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="px-2 sm:px-3 py-1.5 bg-white border border-gray-300 rounded-lg sm:rounded-xl text-xs sm:text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
-              Previous
+              <span className="hidden sm:inline">Previous</span>
+              <span className="sm:hidden">Prev</span>
             </button>
             
-            <div className="flex items-center px-3 py-1.5 text-sm font-medium text-gray-700">
+            <div className="flex items-center px-2 sm:px-3 py-1.5 text-xs sm:text-sm font-medium text-gray-700">
               {currentPage} of {totalPages}
             </div>
             
             <button 
               onClick={goToNextPage} 
               disabled={currentPage === totalPages}
-              className="px-3 py-1.5 bg-white border border-gray-300 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="px-2 sm:px-3 py-1.5 bg-white border border-gray-300 rounded-lg sm:rounded-xl text-xs sm:text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               Next
             </button>
@@ -279,19 +282,19 @@ const ServicesPage: React.FC = () => {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-black">
                 <tr>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">
+                  <th className="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">
                     Code
                   </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">
+                  <th className="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">
                     Service Title
                   </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">
+                  <th className="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-white uppercase tracking-wider hidden lg:table-cell">
                     Description
                   </th>
-                  <th className="px-6 py-4 text-center text-xs font-semibold text-white uppercase tracking-wider">
+                  <th className="px-3 sm:px-6 py-3 sm:py-4 text-center text-xs font-semibold text-white uppercase tracking-wider">
                     Status
                   </th>
-                  <th className="px-6 py-4 text-center text-xs font-semibold text-white uppercase tracking-wider">
+                  <th className="px-3 sm:px-6 py-3 sm:py-4 text-center text-xs font-semibold text-white uppercase tracking-wider">
                     Actions
                   </th>
                 </tr>
@@ -301,22 +304,22 @@ const ServicesPage: React.FC = () => {
                   <tr>
                     <td colSpan={5} className="text-center py-12">
                       <div className="flex items-center justify-center">
-                        <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-                        <span className="ml-3 text-gray-600">Loading services...</span>
+                        <div className="w-6 h-6 sm:w-8 sm:h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                        <span className="ml-3 text-gray-600 text-sm sm:text-base">Loading services...</span>
                       </div>
                     </td>
                   </tr>
                 ) : currentServices.length === 0 ? (
                   <tr>
                     <td colSpan={5} className="text-center py-12">
-                      <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                      <p className="text-gray-500 text-lg">
+                      <Package className="w-12 h-12 sm:w-16 sm:h-16 text-gray-300 mx-auto mb-4" />
+                      <p className="text-gray-500 text-base sm:text-lg">
                         {searchTerm ? 'No services match your search' : 'No services available'}
                       </p>
                       {!searchTerm && (
                         <button
                           onClick={() => setShowForm(true)}
-                          className="mt-4 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                          className="mt-4 px-4 sm:px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm sm:text-base"
                         >
                           Create First Service
                         </button>
@@ -326,26 +329,29 @@ const ServicesPage: React.FC = () => {
                 ) : (
                   currentServices.map((service) => (
                     <tr key={service.id} className="hover:bg-gray-50 transition-colors">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="px-3 py-1 bg-blue-100 text-blue-700 text-xs font-semibold rounded-full">
+                      <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
+                        <span className="px-2 sm:px-3 py-1 bg-blue-100 text-blue-700 text-xs font-semibold rounded-full">
                           {service.code}
                         </span>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-3 sm:px-6 py-3 sm:py-4">
                         <div className="text-sm font-semibold text-gray-900">
                           {service.title}
                         </div>
+                        <div className="lg:hidden mt-1 text-xs text-gray-500 max-w-xs truncate">
+                          {service.description || 'No description'}
+                        </div>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-3 sm:px-6 py-3 sm:py-4 hidden lg:table-cell">
                         <div className="text-sm text-gray-600 max-w-md truncate">
                           {service.description || 'No description'}
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-center">
+                      <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-center">
                         <select
                           value={service.isActive !== false ? 'active' : 'inactive'}
                           onChange={(e) => handleStatusChange(service.id, e.target.value === 'active')}
-                          className={`px-3 py-1 text-xs font-semibold rounded-full border-0 focus:ring-2 focus:ring-blue-500 cursor-pointer transition-colors ${
+                          className={`px-2 sm:px-3 py-1 text-xs font-semibold rounded-full border-0 focus:ring-2 focus:ring-blue-500 cursor-pointer transition-colors ${
                             service.isActive !== false
                               ? 'bg-green-100 text-green-700 hover:bg-green-200'
                               : 'bg-red-100 text-red-700 hover:bg-red-200'
@@ -355,21 +361,21 @@ const ServicesPage: React.FC = () => {
                           <option value="inactive" className="bg-white text-black">Inactive</option>
                         </select>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-center">
-                        <div className="flex items-center justify-center gap-2">
+                      <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-center">
+                        <div className="flex items-center justify-center gap-1 sm:gap-2">
                           <button
                             onClick={() => handleEdit(service)}
-                            className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors"
+                            className="p-1.5 sm:p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors"
                             title="Edit"
                           >
-                            <Edit2 className="w-4 h-4" />
+                            <Edit2 className="w-3 h-3 sm:w-4 sm:h-4" />
                           </button>
                           <button
                             onClick={() => handleDelete(service.id)}
-                            className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors"
+                            className="p-1.5 sm:p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors"
                             title="Delete"
                           >
-                            <Trash2 className="w-4 h-4" />
+                            <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
                           </button>
                         </div>
                       </td>
