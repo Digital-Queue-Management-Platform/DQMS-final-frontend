@@ -15,6 +15,8 @@ interface Service {
 const SystemHealthStatus: React.FC = () => {
   const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);
+  const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
+  const [error, setError] = useState<string | null>(null);
 
   const getIconComponent = (iconName: string): LucideIcon => {
     switch (iconName) {
@@ -31,10 +33,14 @@ const SystemHealthStatus: React.FC = () => {
 
   const fetchSystemHealth = async () => {
     try {
+      setLoading(true);
+      setError(null);
       const response = await api.get('/admin/system-health');
       setServices(response.data);
+      setLastUpdated(new Date());
     } catch (error) {
       console.error('Failed to fetch system health:', error);
+      setError('Failed to fetch system health data');
       // Fallback to some default data in case of error
       setServices([
         {
@@ -113,9 +119,21 @@ const SystemHealthStatus: React.FC = () => {
   return (
     <div className="p-4">
       <div className="max-w-lg">
-        <h1 className="text-lg font-semibold mb-6">
-          System Health Status
-        </h1>
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-lg font-semibold">
+            System Health Status
+          </h1>
+          <div className="flex items-center gap-3 text-xs text-slate-600">
+            {loading && <span className="flex items-center gap-1">🔄 Checking...</span>}
+            <span>Updated: {lastUpdated.toLocaleTimeString()}</span>
+          </div>
+        </div>
+
+        {error && (
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+            <p className="text-red-700 text-sm">{error}</p>
+          </div>
+        )}
 
         <div className="space-y-3">
           {services.map((service, index) => {

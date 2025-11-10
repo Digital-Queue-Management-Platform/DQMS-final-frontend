@@ -38,8 +38,18 @@ export default function AdminDashboard() {
   const [showAlerts, setShowAlerts] = useState(false)
   const [loading, setLoading] = useState(true)
   const [outlets, setOutlets] = useState<any[]>([])
+  const [dashboardLoading, setDashboardLoading] = useState(false)
+  const [lastUpdated, setLastUpdated] = useState<Date>(new Date())
+  const [isAuthenticated, setIsAuthenticated] = useState(true) // Track authentication state
 
   const fetchOutlets = async () => {
+    // Check if admin is still authenticated before making API call
+    const adminToken = localStorage.getItem('adminToken')
+    if (!adminToken) {
+      console.log('No admin token found, skipping outlets fetch')
+      return
+    }
+
     try {
       const response = await api.get("/queue/outlets")
       setOutlets(response.data)
@@ -52,32 +62,95 @@ export default function AdminDashboard() {
     fetchOutlets()
   }, [])
 
+  // Monitor authentication state changes
   useEffect(() => {
+    const checkAuthStatus = () => {
+      const adminToken = localStorage.getItem('adminToken')
+      const isCurrentlyAuth = !!adminToken
+      
+      if (isAuthenticated !== isCurrentlyAuth) {
+        setIsAuthenticated(isCurrentlyAuth)
+        if (!isCurrentlyAuth) {
+          console.log('Admin token removed, stopping dashboard activities')
+          // Clear all state when unauthenticated
+          setAnalytics(null)
+          setRealtimeStats(null)
+          setAlerts([])
+        }
+      }
+    }
+
+    // Check initially
+    checkAuthStatus()
+
+    // Set up interval to periodically check auth status
+    const authCheckInterval = setInterval(checkAuthStatus, 1000)
+
+    return () => {
+      clearInterval(authCheckInterval)
+    }
+  }, [isAuthenticated])
+
+  useEffect(() => {
+    // Only proceed if authenticated
+    if (!isAuthenticated) {
+      console.log('Not authenticated, skipping dashboard initialization')
+      return
+    }
+
     fetchAnalytics()
     fetchRealtimeStats()
     fetchAlerts()
 
-    // Refresh realtime stats every 30 seconds
-    const interval = setInterval(fetchRealtimeStats, 30000)
+    // Enhanced auto-refresh every 30 seconds for comprehensive analytics monitoring
+    const interval = setInterval(() => {
+      fetchRealtimeStats()
+      fetchAlerts()
+    }, 30000)
 
-    // WebSocket for real-time updates
+    // WebSocket for real-time comprehensive monitoring
     const ws = new WebSocket(WS_URL)
 
     ws.onmessage = (event) => {
-      const data = JSON.parse(event.data)
-      if (data.type === "NEGATIVE_FEEDBACK" || data.type === "LONG_WAIT") {
-        fetchAlerts()
+      try {
+        const data = JSON.parse(event.data)
+        if (data.type === "NEGATIVE_FEEDBACK" || data.type === "LONG_WAIT" || data.type === "NEW_TOKEN" || data.type === "TOKEN_COMPLETED" || data.type === "OFFICER_STATUS_CHANGE" || data.type === "CRITICAL_FEEDBACK_ALERT") {
+          fetchAlerts()
+          fetchRealtimeStats()
+          
+          // Show immediate notification for critical 1-star feedback
+          if (data.type === "CRITICAL_FEEDBACK_ALERT") {
+            console.log('CRITICAL FEEDBACK ALERT:', data.data)
+            // You could add a toast notification here
+          }
+        }
+      } catch (error) {
+        console.error('WebSocket message parsing error:', error)
       }
-      fetchRealtimeStats()
+    }
+
+    ws.onopen = () => {
+      console.log('AdminDashboard WebSocket connected')
+    }
+
+    ws.onerror = (error) => {
+      console.error('AdminDashboard WebSocket error:', error)
     }
 
     return () => {
       clearInterval(interval)
       ws.close()
     }
-  }, [])
+  }, [isAuthenticated]) // Re-run when authentication state changes
 
   const fetchAnalytics = async () => {
+    // Check if admin is still authenticated before making API call
+    const adminToken = localStorage.getItem('adminToken')
+    if (!adminToken) {
+      console.log('No admin token found, skipping analytics fetch')
+      return
+    }
+
     setLoading(true)
     try {
       // Ensure end date includes the full day
@@ -105,15 +178,33 @@ export default function AdminDashboard() {
   }
 
   const fetchRealtimeStats = async () => {
+    // Check if admin is still authenticated before making API call
+    const adminToken = localStorage.getItem('adminToken')
+    if (!adminToken) {
+      console.log('No admin token found, skipping realtime stats fetch')
+      return
+    }
+
     try {
+      setDashboardLoading(true)
       const response = await api.get("/admin/dashboard/realtime")
       setRealtimeStats(response.data)
+      setLastUpdated(new Date())
     } catch (err) {
       console.error("Failed to fetch realtime stats:", err)
+    } finally {
+      setDashboardLoading(false)
     }
   }
 
   const fetchAlerts = async () => {
+    // Check if admin is still authenticated before making API call
+    const adminToken = localStorage.getItem('adminToken')
+    if (!adminToken) {
+      console.log('No admin token found, skipping alerts fetch')
+      return
+    }
+
     try {
       const params: any = { isRead: false }
       if (alertFilter.type) params.type = alertFilter.type
@@ -129,6 +220,13 @@ export default function AdminDashboard() {
   }
 
   const markAlertAsRead = async (alertId: string) => {
+    // Check if admin is still authenticated before making API call
+    const adminToken = localStorage.getItem('adminToken')
+    if (!adminToken) {
+      console.log('No admin token found, skipping mark alert as read')
+      return
+    }
+
     try {
       await api.patch(`/admin/alerts/${alertId}/read`)
       fetchAlerts()
@@ -165,7 +263,13 @@ export default function AdminDashboard() {
           <div className="flex items-center justify-between">
             <div className="min-w-0 flex-1">
               <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 truncate">Admin Dashboard</h1>
-              <p className="text-[10px] sm:text-sm text-gray-600 block">Digital Queue Management System</p>
+              <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
+                <p className="text-[10px] sm:text-sm text-gray-600">Digital Queue Management System</p>
+                <div className="flex items-center gap-2 text-xs text-slate-600">
+                  {dashboardLoading && <span className="flex items-center gap-1">Refreshing...</span>}
+                  <span>Last updated: {lastUpdated.toLocaleTimeString()}</span>
+                </div>
+              </div>
             </div>
 
             <div className="flex items-center gap-2 sm:gap-4">
@@ -207,7 +311,10 @@ export default function AdminDashboard() {
                   className="px-3 py-2 border rounded-lg text-sm"
                 >
                   <option value="">All Types</option>
-                  <option value="negative_feedback">Negative Feedback</option>
+                  <option value="negative_feedback">Negative Feedback (Legacy)</option>
+                  <option value="critical_feedback">Critical Feedback (1-star)</option>
+                  <option value="high_priority_feedback">High Priority Feedback (2-star)</option>
+                  <option value="moderate_feedback">Moderate Feedback (3-star)</option>
                   <option value="long_wait">Long Wait</option>
                 </select>
 
@@ -217,6 +324,7 @@ export default function AdminDashboard() {
                   className="px-3 py-2 border rounded-lg text-sm"
                 >
                   <option value="">All Severities</option>
+                  <option value="critical">Critical</option>
                   <option value="high">High</option>
                   <option value="medium">Medium</option>
                   <option value="low">Low</option>
@@ -272,21 +380,25 @@ export default function AdminDashboard() {
                   <div
                     key={alert.id}
                     className={`p-3 sm:p-4 rounded-lg border ${
-                      alert.severity === "high"
-                        ? "bg-red-50 border-red-200"
-                        : alert.severity === "medium"
-                          ? "bg-yellow-50 border-yellow-200"
-                          : "bg-blue-50 border-blue-200"
+                      alert.severity === "critical"
+                        ? "bg-red-100 border-red-300 ring-1 ring-red-400"
+                        : alert.severity === "high"
+                          ? "bg-red-50 border-red-200"
+                          : alert.severity === "medium"
+                            ? "bg-yellow-50 border-yellow-200"
+                            : "bg-blue-50 border-blue-200"
                     }`}
                   >
                     <div className="flex items-start gap-3">
                       <AlertCircle
                         className={`w-4 h-4 sm:w-5 sm:h-5 mt-0.5 flex-shrink-0 ${
-                          alert.severity === "high"
-                            ? "text-red-600"
-                            : alert.severity === "medium"
-                              ? "text-yellow-600"
-                              : "text-blue-600"
+                          alert.severity === "critical"
+                            ? "text-red-700 animate-pulse"
+                            : alert.severity === "high"
+                              ? "text-red-600"
+                              : alert.severity === "medium"
+                                ? "text-yellow-600"
+                                : "text-blue-600"
                         }`}
                       />
                       <div className="flex-1 min-w-0">

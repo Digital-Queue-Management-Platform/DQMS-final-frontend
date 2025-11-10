@@ -60,6 +60,8 @@ export default function TeleshopManagerDashboard() {
   const [breakAnalytics, setBreakAnalytics] = useState<BreakAnalytics | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
+  const [dashboardLoading, setDashboardLoading] = useState(false)
+  const [lastUpdated, setLastUpdated] = useState<Date>(new Date())
 
   useEffect(() => {
     fetchTeleshopManagerData()
@@ -69,21 +71,86 @@ export default function TeleshopManagerDashboard() {
     const token = localStorage.getItem("teleshopManagerToken")
     if (!token) return
 
-    // WebSocket for real-time updates
-    const ws = new WebSocket(WS_URL)
-    ws.onmessage = () => {
+    // Enhanced auto-refresh every 30 seconds for teleshop analytics
+    const interval = setInterval(() => {
       fetchBreakAnalytics()
+      fetchTeleshopManagerData()
+    }, 30000)
+
+    // WebSocket for real-time teleshop updates with better error handling
+    let ws: WebSocket | null = null
+    let reconnectTimer: number | null = null
+    let isComponentMounted = true
+    let connectionAttempts = 0
+    const maxReconnectAttempts = 5
+    
+    const connectWebSocket = () => {
+      if (!isComponentMounted || connectionAttempts >= maxReconnectAttempts) return
+      
+      try {
+        // Check if WebSocket is already connected
+        if (ws && (ws.readyState === WebSocket.CONNECTING || ws.readyState === WebSocket.OPEN)) {
+          return
+        }
+
+        connectionAttempts++
+        ws = new WebSocket(WS_URL)
+        
+        ws.onopen = () => {
+          console.log('TeleshopManagerDashboard WebSocket connected')
+          connectionAttempts = 0 // Reset attempts on successful connection
+        }
+        
+        ws.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data)
+            if (data.type === "BREAK_STATUS_CHANGE" || data.type === "OFFICER_STATUS_CHANGE" || data.type === "BREAK_STARTED" || data.type === "BREAK_ENDED" || data.type === "TELESHOP_MANAGER_FEEDBACK_ALERT") {
+              fetchBreakAnalytics()
+              
+              // Show immediate notification for teleshop manager 3-star feedback alerts
+              if (data.type === "TELESHOP_MANAGER_FEEDBACK_ALERT") {
+                console.log('TELESHOP MANAGER FEEDBACK ALERT (3-star):', data.data)
+                // You could add a toast notification here
+              }
+            }
+          } catch (error) {
+            console.error('WebSocket message parsing error:', error)
+          }
+        }
+
+        ws.onerror = (error) => {
+          console.error('TeleshopManagerDashboard WebSocket error:', error)
+        }
+        
+        ws.onclose = (event) => {
+          console.log('TeleshopManagerDashboard WebSocket disconnected:', event.reason)
+          if (isComponentMounted && connectionAttempts < maxReconnectAttempts) {
+            const reconnectDelay = Math.min(1000 * Math.pow(2, connectionAttempts), 30000) // Exponential backoff
+            reconnectTimer = window.setTimeout(() => connectWebSocket(), reconnectDelay)
+          }
+        }
+      } catch (error) {
+        console.error('Failed to create TeleshopManagerDashboard WebSocket:', error)
+        if (isComponentMounted && connectionAttempts < maxReconnectAttempts) {
+          const reconnectDelay = Math.min(1000 * Math.pow(2, connectionAttempts), 30000)
+          reconnectTimer = window.setTimeout(() => connectWebSocket(), reconnectDelay)
+        }
+      }
     }
 
-    const interval = setInterval(fetchBreakAnalytics, 30000) // Refresh every 30 seconds
+    // Delay initial connection to avoid React strict mode issues
+    const initialConnectionTimer = setTimeout(() => connectWebSocket(), 1000)
 
     return () => {
+      isComponentMounted = false
       clearInterval(interval)
-      try { 
-        if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) {
-          ws.close() 
-        }
-      } catch (e) {}
+      clearTimeout(initialConnectionTimer)
+      if (reconnectTimer) {
+        clearTimeout(reconnectTimer)
+      }
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.close()
+      }
     }
   }, [])
 
@@ -118,6 +185,7 @@ export default function TeleshopManagerDashboard() {
 
   const fetchBreakAnalytics = async () => {
     try {
+      setDashboardLoading(true)
       const token = localStorage.getItem("teleshopManagerToken")
       if (!token) return
 
@@ -127,8 +195,11 @@ export default function TeleshopManagerDashboard() {
       })
 
       setBreakAnalytics(response.data)
+      setLastUpdated(new Date())
     } catch (error) {
       console.error("Failed to fetch break analytics:", error)
+    } finally {
+      setDashboardLoading(false)
     }
   }
 
@@ -141,16 +212,37 @@ export default function TeleshopManagerDashboard() {
     return `${mins}m`
   }
 
+  const formatStatus = (status: string) => {
+    switch (status) {
+      case "available":
+        return "Available"
+      case "serving":
+        return "Serving"
+      case "on_break":
+      case "break":
+        return "On Break"
+      case "offline":
+        return "Offline"
+      case "busy":
+        return "Busy"
+      default:
+        return status.charAt(0).toUpperCase() + status.slice(1)
+    }
+  }
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case "available":
         return "bg-green-100 text-green-800"
       case "serving":
         return "bg-blue-100 text-blue-800"
+      case "on_break":
       case "break":
         return "bg-yellow-100 text-yellow-800"
       case "offline":
         return "bg-gray-100 text-gray-800"
+      case "busy":
+        return "bg-orange-100 text-orange-800"
       default:
         return "bg-gray-100 text-gray-800"
     }
@@ -195,9 +287,15 @@ export default function TeleshopManagerDashboard() {
         <div className="flex items-center justify-between mb-2">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Teleshop Manager Dashboard</h1>
-            <p className="text-sm text-gray-500">
-              Teleshop Manager: {teleshopManager.name} | {new Date().toLocaleDateString()} | {new Date().toLocaleTimeString()}
-            </p>
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+              <p className="text-sm text-gray-500">
+                Teleshop Manager: {teleshopManager.name} | {new Date().toLocaleDateString()} | {new Date().toLocaleTimeString()}
+              </p>
+              <div className="flex items-center gap-3 text-sm text-slate-600">
+                {dashboardLoading && <span className="flex items-center gap-1">Refreshing...</span>}
+                <span>Last updated: {lastUpdated.toLocaleTimeString()}</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -297,7 +395,7 @@ export default function TeleshopManagerDashboard() {
                   </div>
                   <div className="text-center">
                     <div className="text-2xl font-bold text-yellow-600">
-                      {breakAnalytics.officers.filter(o => o.activeBreak).length}
+                      {breakAnalytics.officers.filter(o => o.status === 'on_break' || o.status === 'break' || o.activeBreak).length}
                     </div>
                     <div className="text-sm text-gray-600">On Break</div>
                   </div>
@@ -337,8 +435,8 @@ export default function TeleshopManagerDashboard() {
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
-                      {breakAnalytics.officers.slice(0, 5).map((officer) => (
-                        <tr key={officer.id} className="hover:bg-gray-50">
+                      {breakAnalytics.officers.slice(0, 5).map((officer, index) => (
+                        <tr key={`officer-${officer.id}-${index}`} className="hover:bg-gray-50">
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div>
                               <div className="text-sm font-medium text-gray-900">{officer.name}</div>
@@ -353,7 +451,7 @@ export default function TeleshopManagerDashboard() {
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(officer.status)}`}>
-                              {officer.status}
+                              {formatStatus(officer.status)}
                             </span>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
@@ -400,8 +498,8 @@ export default function TeleshopManagerDashboard() {
                   {breakAnalytics.officers
                     .filter(officer => officer.activeBreak)
                     .slice(0, 3)
-                    .map((officer) => (
-                      <div key={officer.id} className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                    .map((officer, index) => (
+                      <div key={`active-break-${officer.id}-${index}`} className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
                         <div className="flex justify-between items-start">
                           <div className="flex-1 min-w-0">
                             <h4 className="text-sm font-medium text-gray-900 truncate">{officer.name}</h4>

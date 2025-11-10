@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import api from '../config/api'
+import api, { WS_URL } from '../config/api'
 import { Users, Hash, CheckCircle2, XCircle, Edit3, X, Search, Phone, MapPin, Save } from 'lucide-react'
 
 interface Officer {
@@ -20,6 +20,8 @@ export default function ManagerOfficers() {
   const [services, setServices] = useState<any[]>([])
   const [saving, setSaving] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [lastUpdated, setLastUpdated] = useState<Date>(new Date())
   const LANG_OPTIONS = [
     { code: 'en', label: 'English' },
     { code: 'si', label: 'Sinhala' },
@@ -29,6 +31,65 @@ export default function ManagerOfficers() {
   useEffect(() => {
     fetchOfficers()
     fetchServices()
+    
+    // Auto-refresh every 30 seconds for officer management
+    const interval = setInterval(() => {
+      fetchOfficers()
+    }, 30000)
+
+    // WebSocket for real-time officer updates with better error handling
+    let ws: WebSocket | null = null
+    let reconnectTimer: number | null = null
+    let isComponentMounted = true
+    
+    const connectWebSocket = () => {
+      if (!isComponentMounted) return
+      
+      try {
+        ws = new WebSocket(WS_URL)
+        
+        ws.onopen = () => {
+          console.log('ManagerOfficers WebSocket connected')
+        }
+        
+        ws.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data)
+            if (data.type === "OFFICER_STATUS_CHANGE" || data.type === "OFFICER_ASSIGNMENT_CHANGE" || data.type === "BREAK_STATUS_CHANGE") {
+              fetchOfficers()
+            }
+          } catch (error) {
+            console.error('WebSocket message parsing error:', error)
+          }
+        }
+
+        ws.onerror = (error) => {
+          console.error('ManagerOfficers WebSocket error:', error)
+        }
+        
+        ws.onclose = (event) => {
+          console.log('ManagerOfficers WebSocket disconnected:', event.reason)
+          if (!event.wasClean && isComponentMounted) {
+            reconnectTimer = window.setTimeout(connectWebSocket, 5000)
+          }
+        }
+      } catch (error) {
+        console.error('Failed to create ManagerOfficers WebSocket:', error)
+      }
+    }
+
+    connectWebSocket()
+
+    return () => {
+      isComponentMounted = false
+      clearInterval(interval)
+      if (reconnectTimer) {
+        clearTimeout(reconnectTimer)
+      }
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.close()
+      }
+    }
   }, [])
 
   const fetchServices = async () => {
@@ -43,10 +104,14 @@ export default function ManagerOfficers() {
 
   const fetchOfficers = async () => {
     try {
+      setLoading(true)
       const res = await api.get('/manager/officers')
       setOfficers(res.data)
+      setLastUpdated(new Date())
     } catch (err) {
       console.error('Failed to fetch officers', err)
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -123,6 +188,10 @@ export default function ManagerOfficers() {
           <div className="flex items-center justify-between mb-2">
             <div>
               <h1 className="text-2xl font-bold text-gray-900">Officers Management</h1>
+              <div className="flex items-center gap-3 text-sm text-slate-600 mt-1">
+                {loading && <span className="flex items-center gap-1">Refreshing...</span>}
+                <span>Last updated: {lastUpdated.toLocaleTimeString()}</span>
+              </div>
             </div>
           </div>
         </div>

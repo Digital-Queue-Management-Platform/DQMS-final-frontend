@@ -14,16 +14,17 @@ import {
   Clock,
   Coffee,
   Phone,
-  MapPin
+  MapPin,
+  RefreshCw
 } from "lucide-react"
-import api from "../config/api"
+import api, { WS_URL } from "../config/api"
 
 interface Officer {
   id: string
   name: string
   mobileNumber: string
   counterNumber?: number
-  status: 'online' | 'offline' | 'break'
+  status: 'available' | 'serving' | 'on_break' | 'break' | 'offline' | 'busy'
   outlet: {
     id: string
     name: string
@@ -44,10 +45,67 @@ export default function TeleshopManagerOfficers() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
   const [searchTerm, setSearchTerm] = useState("")
-  const [statusFilter, setStatusFilter] = useState<"all" | "online" | "offline" | "break">("all")
+  const [statusFilter, setStatusFilter] = useState<"all" | "available" | "serving" | "on_break" | "offline">("all")
   
   useEffect(() => {
     fetchOfficers()
+    
+    // Auto-refresh every 30 seconds
+    const interval = setInterval(fetchOfficers, 30000)
+
+    // WebSocket for real-time updates with better error handling
+    let ws: WebSocket | null = null
+    let reconnectTimer: number | null = null
+    let isComponentMounted = true
+    
+    const connectWebSocket = () => {
+      if (!isComponentMounted) return
+      
+      try {
+        ws = new WebSocket(WS_URL)
+        
+        ws.onopen = () => {
+          console.log('TeleshopManagerOfficers WebSocket connected')
+        }
+        
+        ws.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data)
+            if (data.type === "OFFICER_STATUS_CHANGE" || data.type === "BREAK_STATUS_CHANGE" || data.type === "OFFICER_UPDATED") {
+              fetchOfficers()
+            }
+          } catch (error) {
+            console.error('WebSocket message parsing error:', error)
+          }
+        }
+
+        ws.onerror = (error) => {
+          console.error('TeleshopManagerOfficers WebSocket error:', error)
+        }
+        
+        ws.onclose = (event) => {
+          console.log('TeleshopManagerOfficers WebSocket disconnected:', event.reason)
+          if (!event.wasClean && isComponentMounted) {
+            reconnectTimer = window.setTimeout(connectWebSocket, 5000)
+          }
+        }
+      } catch (error) {
+        console.error('Failed to create TeleshopManagerOfficers WebSocket:', error)
+      }
+    }
+
+    connectWebSocket()
+
+    return () => {
+      isComponentMounted = false
+      clearInterval(interval)
+      if (reconnectTimer) {
+        clearTimeout(reconnectTimer)
+      }
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.close()
+      }
+    }
   }, [])
 
   const fetchOfficers = async () => {
@@ -125,16 +183,26 @@ export default function TeleshopManagerOfficers() {
                          officer.mobileNumber.includes(searchTerm) ||
                          officer.outlet.name.toLowerCase().includes(searchTerm.toLowerCase())
     
-    const matchesStatus = statusFilter === "all" || officer.status === statusFilter
+    let matchesStatus = true
+    if (statusFilter !== "all") {
+      if (statusFilter === "on_break") {
+        matchesStatus = officer.status === "on_break" || officer.status === "break"
+      } else {
+        matchesStatus = officer.status === statusFilter
+      }
+    }
     
     return matchesSearch && matchesStatus
   })
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
-      online: { color: "bg-green-100 text-green-800", icon: CheckCircle, label: "Online" },
+      available: { color: "bg-green-100 text-green-800", icon: CheckCircle, label: "Available" },
+      serving: { color: "bg-blue-100 text-blue-800", icon: CheckCircle, label: "Serving" },
+      on_break: { color: "bg-yellow-100 text-yellow-800", icon: Coffee, label: "On Break" },
+      break: { color: "bg-yellow-100 text-yellow-800", icon: Coffee, label: "On Break" },
       offline: { color: "bg-gray-100 text-gray-800", icon: Clock, label: "Offline" },
-      break: { color: "bg-yellow-100 text-yellow-800", icon: Coffee, label: "On Break" }
+      busy: { color: "bg-orange-100 text-orange-800", icon: Clock, label: "Busy" }
     }
     
     const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.offline
@@ -194,16 +262,29 @@ export default function TeleshopManagerOfficers() {
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Manage Officers</h1>
             <p className="text-sm text-gray-500">
-              View and manage officers in your outlets
+              View and manage officers in your outlets. Updates automatically every 30 seconds.
             </p>
           </div>
-          <button
-            onClick={() => navigate('/teleshop-manager/officers/add')}
-            className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 flex items-center gap-2"
-          >
-            <UserPlus className="w-4 h-4" />
-            Add New Officer
-          </button>
+          <div className="flex items-center gap-2">
+            <div className="text-xs text-gray-500">
+              Last updated: {new Date().toLocaleTimeString()}
+            </div>
+            <button
+              onClick={fetchOfficers}
+              disabled={loading}
+              className="bg-green-600 text-white px-3 py-2 rounded-lg hover:bg-green-700 flex items-center gap-2 disabled:bg-gray-400"
+            >
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+              Refresh
+            </button>
+            <button
+              onClick={() => navigate('/teleshop-manager/officers/add')}
+              className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 flex items-center gap-2"
+            >
+              <UserPlus className="w-4 h-4" />
+              Add New Officer
+            </button>
+          </div>
         </div>
       </div>
 
@@ -215,7 +296,7 @@ export default function TeleshopManagerOfficers() {
         </div>
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 text-center">
           <div className="text-2xl font-bold text-green-600">
-            {officers.filter(o => o.status === 'online').length}
+            {officers.filter(o => o.status === 'available').length}
           </div>
           <div className="text-sm text-gray-600">Online</div>
         </div>
@@ -256,9 +337,10 @@ export default function TeleshopManagerOfficers() {
             className="pl-10 pr-8 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent appearance-none bg-white"
           >
             <option value="all">All Status</option>
-            <option value="online">Online</option>
+            <option value="available">Available</option>
+            <option value="serving">Serving</option>
+            <option value="on_break">On Break</option>
             <option value="offline">Offline</option>
-            <option value="break">On Break</option>
           </select>
         </div>
       </div>

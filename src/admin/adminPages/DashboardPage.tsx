@@ -49,6 +49,8 @@ const DashboardPage: React.FC = () => {
   const [realtimeStats, setRealtimeStats] = useState<any | null>(null)
   // removed unused loading state
   const [outlets, setOutlets] = useState<any[]>([])
+  const [dashboardLoading, setDashboardLoading] = useState(false)
+  const [lastUpdated, setLastUpdated] = useState<Date>(new Date())
 
   // Computed unread notifications count
   const unreadNotifications = alerts.filter(alert => !alert.isRead).length;
@@ -58,26 +60,73 @@ const DashboardPage: React.FC = () => {
     fetchRealtimeStats()
     fetchAlerts()
 
-    const interval = setInterval(fetchRealtimeStats, 30000)
-
-    const ws = new WebSocket(WS_URL)
-    ws.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data)
-        // Refresh alerts on certain types of events
-        if (data.type === "NEGATIVE_FEEDBACK" || data.type === "LONG_WAIT") {
-          fetchAlerts()
-        }
-        // ignore specific data types, just refresh stats
-      } catch (e) {
-        // ignore
-      }
+    // Enhanced auto-refresh every 30 seconds for comprehensive dashboard monitoring
+    const interval = setInterval(() => {
       fetchRealtimeStats()
+      fetchAlerts()
+    }, 30000)
+
+    // WebSocket connection with better error handling
+    let ws: WebSocket | null = null
+    let reconnectTimer: number | null = null
+    let isComponentMounted = true
+    
+    const connectWebSocket = () => {
+      if (!isComponentMounted) return
+      
+      try {
+        ws = new WebSocket(WS_URL)
+        
+        ws.onopen = () => {
+          console.log('AdminDashboard WebSocket connected')
+        }
+        
+        ws.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data)
+            // Refresh alerts on certain types of events
+            if (data.type === "NEGATIVE_FEEDBACK" || data.type === "LONG_WAIT" || data.type === "NEW_TOKEN" || data.type === "TOKEN_COMPLETED" || data.type === "OFFICER_STATUS_CHANGE" || data.type === "CRITICAL_FEEDBACK_ALERT") {
+              fetchAlerts()
+              fetchRealtimeStats()
+              
+              // Show immediate notification for critical 1-star feedback
+              if (data.type === "CRITICAL_FEEDBACK_ALERT") {
+                console.log('🚨 CRITICAL FEEDBACK ALERT:', data.data)
+                // You could add a toast notification here
+              }
+            }
+          } catch (e) {
+            console.error('WebSocket message parsing error:', e)
+          }
+        }
+
+        ws.onerror = (error) => {
+          console.error('AdminDashboard WebSocket error:', error)
+        }
+        
+        ws.onclose = (event) => {
+          console.log('AdminDashboard WebSocket disconnected:', event.reason)
+          // Don't attempt to reconnect if component is unmounted or connection was closed intentionally
+          if (!event.wasClean && isComponentMounted) {
+            reconnectTimer = window.setTimeout(connectWebSocket, 5000) // Reconnect after 5 seconds
+          }
+        }
+      } catch (error) {
+        console.error('Failed to create WebSocket:', error)
+      }
     }
 
+    connectWebSocket()
+
     return () => {
+      isComponentMounted = false
       clearInterval(interval)
-      try { ws.close() } catch (e) {}
+      if (reconnectTimer) {
+        clearTimeout(reconnectTimer)
+      }
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.close()
+      }
     }
   }, [])
 
@@ -230,10 +279,14 @@ const DashboardPage: React.FC = () => {
 
   const fetchRealtimeStats = async () => {
     try {
+      setDashboardLoading(true)
       const res = await api.get('/admin/dashboard/realtime')
       setRealtimeStats(res.data)
+      setLastUpdated(new Date())
     } catch (err) {
       console.error('Failed to fetch realtime stats', err)
+    } finally {
+      setDashboardLoading(false)
     }
   }
 
@@ -290,11 +343,17 @@ const DashboardPage: React.FC = () => {
               <h1 className="text-2xl font-bold text-gray-900">
                 {showBranchDashboard ? 'Branch Dashboard' : 'Admin Dashboard'}
               </h1>
-              <div className="flex text-sm items-center text-gray-500 mt-1">
-                <Clock size={16} className="mr-1" />
-                <span>
-                  {formatDate(currentDateTime)} | {formatTime(currentDateTime)}
-                </span>
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                <div className="flex text-sm items-center text-gray-500">
+                  <Clock size={16} className="mr-1" />
+                  <span>
+                    {formatDate(currentDateTime)} | {formatTime(currentDateTime)}
+                  </span>
+                </div>
+                <div className="flex items-center gap-3 text-sm text-slate-600">
+                  {dashboardLoading && <span className="flex items-center gap-1">🔄 Refreshing...</span>}
+                  <span>Last updated: {lastUpdated.toLocaleTimeString()}</span>
+                </div>
               </div>
             </div>
             <div className="flex items-center space-x-4">
@@ -314,11 +373,22 @@ const DashboardPage: React.FC = () => {
                 
                 {/* Notification Dropdown */}
                 {showNotifications && (
-                  <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
-                    <div className="p-4 border-b border-gray-200">
-                      <h3 className="text-lg font-semibold text-gray-900">Notifications</h3>
-                    </div>
-                    <div className="max-h-64 overflow-y-auto">
+                  <>
+                    {/* Mobile Overlay */}
+                    <div className="fixed inset-0 bg-black bg-opacity-50 z-40 md:hidden" onClick={() => setShowNotifications(false)}></div>
+                    
+                    {/* Notification Panel */}
+                    <div className="fixed inset-x-4 top-20 md:absolute md:right-0 md:inset-x-auto md:top-auto md:mt-2 w-auto md:w-80 bg-white rounded-lg shadow-lg border border-gray-200 z-50 max-h-[70vh] md:max-h-96 flex flex-col">
+                      <div className="p-4 border-b border-gray-200 flex items-center justify-between">
+                        <h3 className="text-lg font-semibold text-gray-900">Notifications</h3>
+                        <button 
+                          onClick={() => setShowNotifications(false)}
+                          className="md:hidden p-1 hover:bg-gray-100 rounded-full"
+                        >
+                          <span className="text-gray-500 text-xl">✕</span>
+                        </button>
+                      </div>
+                      <div className="flex-1 overflow-y-auto">
                       {alerts.length === 0 ? (
                         <div className="p-6 text-center text-gray-500">
                           <p>No new notifications</p>
@@ -328,26 +398,27 @@ const DashboardPage: React.FC = () => {
                           <div key={alert.id} className="p-3 border-b border-gray-100 hover:bg-gray-50">
                             <div className="flex items-start space-x-3">
                               <div className={`w-2 h-2 rounded-full mt-2 flex-shrink-0 ${
+                                alert.severity === 'critical' ? 'bg-red-600 animate-pulse' :
                                 alert.severity === 'high' ? 'bg-red-500' :
                                 alert.severity === 'medium' ? 'bg-yellow-500' : 'bg-blue-500'
                               }`}></div>
-                              <div className="flex-1">
-                                <p className="text-sm font-medium text-gray-900">{alert.message}</p>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium text-gray-900 break-words">{alert.message}</p>
                                 <p className="text-xs text-gray-400 mt-1">
                                   {new Date(alert.createdAt).toLocaleString()}
                                 </p>
-                                <div className="flex items-center space-x-2 mt-1">
+                                <div className="flex items-center space-x-2 mt-2">
                                   {!alert.isRead && (
                                     <button
                                       onClick={() => markAlertAsRead(alert.id)}
-                                      className="text-xs text-blue-600 hover:text-blue-700"
+                                      className="text-xs text-blue-600 hover:text-blue-700 px-2 py-1 bg-blue-50 rounded"
                                     >
                                       Mark as read
                                     </button>
                                   )}
                                   <button
                                     onClick={() => deleteAlert(alert.id)}
-                                    className="flex items-center text-xs text-red-600 hover:text-red-700"
+                                    className="flex items-center text-xs text-red-600 hover:text-red-700 px-2 py-1 bg-red-50 rounded"
                                     title="Delete notification"
                                   >
                                     <Trash2 className="w-3 h-3 mr-1" />
@@ -359,16 +430,17 @@ const DashboardPage: React.FC = () => {
                           </div>
                         ))
                       )}
+                      </div>
+                      <div className="p-3 border-t border-gray-200">
+                        <button
+                          onClick={markAllAlertsAsRead}
+                          className="w-full text-center text-sm text-blue-600 hover:text-blue-800 py-2 px-4 bg-blue-50 rounded hover:bg-blue-100 transition-colors"
+                        >
+                          Mark all as read
+                        </button>
+                      </div>
                     </div>
-                    <div className="p-3 border-t border-gray-200">
-                      <button
-                        onClick={markAllAlertsAsRead}
-                        className="w-full text-center text-sm text-blue-600 hover:text-blue-800"
-                      >
-                        Mark all as read
-                      </button>
-                    </div>
-                  </div>
+                  </>
                 )}
               </div>
 

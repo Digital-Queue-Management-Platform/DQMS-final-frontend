@@ -2,7 +2,7 @@
 
 import React from "react"
 import { useNavigate } from "react-router-dom"
-import { LogOut, Phone } from "lucide-react"
+import { LogOut, Phone, Bell } from "lucide-react"
 import api from "../config/api"
 
 type TeleshopManager = {
@@ -16,9 +16,16 @@ type TeleshopManager = {
 type Props = {
   teleshopManager: TeleshopManager
   title?: string
+  unreadAlertCount?: number
+  onNotificationClick?: () => void
 }
 
-export default function TeleshopManagerTopBar({ teleshopManager, title = "Teleshop Manager" }: Props) {
+export default function TeleshopManagerTopBar({ 
+  teleshopManager, 
+  title = "Teleshop Manager",
+  unreadAlertCount = 0,
+  onNotificationClick
+}: Props) {
   const navigate = useNavigate()
   const [currentTime, setCurrentTime] = React.useState(new Date())
 
@@ -67,6 +74,22 @@ export default function TeleshopManagerTopBar({ teleshopManager, title = "Telesh
 
         {/* Header Actions */}
         <div className="flex items-center space-x-2 sm:space-x-4 lg:space-x-10 flex-shrink-0">
+          {/* 3-Star Feedback Alerts Notification Bell */}
+          {onNotificationClick && (
+            <button
+              onClick={onNotificationClick}
+              className="relative p-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+              title="3-Star Feedback Alerts"
+            >
+              <Bell className="w-5 h-5 text-gray-700" />
+              {unreadAlertCount > 0 && (
+                <span className="absolute -top-1 -right-1 w-4 h-4 bg-orange-500 text-white text-xs rounded-full flex items-center justify-center text-[10px]">
+                  {unreadAlertCount > 99 ? '99+' : unreadAlertCount}
+                </span>
+              )}
+            </button>
+          )}
+
           {/* Role Badge */}
           <div className="hidden sm:block px-2 sm:px-3 py-1 sm:py-1.5 rounded-full text-xs sm:text-sm font-medium bg-purple-100 text-purple-700">
             <span className="hidden md:inline">Teleshop </span>Manager

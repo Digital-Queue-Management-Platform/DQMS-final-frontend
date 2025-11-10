@@ -18,6 +18,8 @@ export default function OfficerQueuePage() {
   const [accountRef, setAccountRef] = useState("")
   const [loading, setLoading] = useState(false)
   const [currentDateTime, setCurrentDateTime] = useState(new Date())
+  const [queueLoading, setQueueLoading] = useState(false)
+  const [lastUpdated, setLastUpdated] = useState<Date>(new Date())
   const TWILIO_TO_NUMBER = import.meta.env.VITE_TWILIO_TO_NUMBER
   
   // Helper functions for date and time formatting
@@ -48,6 +50,22 @@ export default function OfficerQueuePage() {
       fetchQueue(me.outletId)
       fetchCurrentToken(me.id)
 
+      // Auto-refresh every 15 seconds for critical queue updates
+      const interval = setInterval(() => {
+        fetchQueue(me.outletId)
+        fetchCurrentToken(me.id)
+      }, 15000)
+
+      // Handle window closing/refreshing - send logout when window closes
+      const handleBeforeUnload = () => {
+        const token = localStorage.getItem("dqToken")
+        if (token) {
+          navigator.sendBeacon('/api/officer/logout', JSON.stringify({}))
+        }
+      }
+
+      window.addEventListener('beforeunload', handleBeforeUnload)
+
       // WebSocket updates
       const ws = new WebSocket(WS_URL)
       ws.onmessage = (event) => {
@@ -68,17 +86,27 @@ export default function OfficerQueuePage() {
       }
       
       ws.onopen = () => {
-        console.log('WebSocket connected')
+        console.log('OfficerQueue WebSocket connected')
       }
       
       ws.onerror = (error) => {
-        console.error('WebSocket error:', error)
+        console.error('OfficerQueue WebSocket error:', error)
       }
       
       ws.onclose = () => {
-        console.log('WebSocket disconnected')
+        console.log('OfficerQueue WebSocket disconnected')
       }
       ;(window as any).__dq_ws_queue = ws
+
+      return () => {
+        clearInterval(interval)
+        window.removeEventListener('beforeunload', handleBeforeUnload)
+        try {
+          ws.close()
+        } catch (error) {
+          console.error('Error closing WebSocket:', error)
+        }
+      }
     }).catch(() => navigate('/officer/login'))
 
     return () => {
@@ -101,10 +129,14 @@ export default function OfficerQueuePage() {
   const fetchQueue = async (outletId?: string) => {
     if (!outletId) return
     try {
+      setQueueLoading(true)
       const res = await api.get(`/queue/outlet/${outletId}`)
       setQueue(res.data)
+      setLastUpdated(new Date())
     } catch (e) {
       console.error('failed to fetch queue', e)
+    } finally {
+      setQueueLoading(false)
     }
   }
 
@@ -303,9 +335,15 @@ export default function OfficerQueuePage() {
           <div className="flex items-center justify-between mb-2">
             <div>
               <h1 className="text-2xl font-bold text-gray-900">Queue Management</h1>
-              <p className="text-sm text-gray-500">
-                {formatDate(currentDateTime)} | {formatTime(currentDateTime)}
-              </p>
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                <p className="text-sm text-gray-500">
+                  {formatDate(currentDateTime)} | {formatTime(currentDateTime)}
+                </p>
+                <div className="flex items-center gap-3 text-sm text-slate-600">
+                  {queueLoading && <span className="flex items-center gap-1">🔄 Refreshing...</span>}
+                  <span>Queue updated: {lastUpdated.toLocaleTimeString()}</span>
+                </div>
+              </div>
             </div>
             <div className="flex items-center space-x-4">
               <button 

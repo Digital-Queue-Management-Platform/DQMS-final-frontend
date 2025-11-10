@@ -10,10 +10,11 @@ import {
   MapPin,
   ChevronLeft,
   ChevronRight,
-  Download
+  Download,
+  RefreshCw
 } from "lucide-react"
 import CompletedServiceCard from "../components/CompletedServiceCard"
-import api from "../config/api"
+import api, { WS_URL } from "../config/api"
 
 interface CompletedService {
   id: string
@@ -103,6 +104,81 @@ export default function TeleshopManagerCompletedServices() {
     fetchTeleshopManagerData()
     fetchOfficersAndOutlets()
     fetchServices()
+    
+    // Auto-refresh every 60 seconds for completed services
+    const interval = setInterval(() => {
+      fetchServices()
+    }, 60000)
+
+    // WebSocket for real-time updates with better error handling
+    let ws: WebSocket | null = null
+    let reconnectTimer: number | null = null
+    let isComponentMounted = true
+    let connectionAttempts = 0
+    const maxReconnectAttempts = 5
+    
+    const connectWebSocket = () => {
+      if (!isComponentMounted || connectionAttempts >= maxReconnectAttempts) return
+      
+      try {
+        // Check if WebSocket is already connected
+        if (ws && (ws.readyState === WebSocket.CONNECTING || ws.readyState === WebSocket.OPEN)) {
+          return
+        }
+
+        connectionAttempts++
+        ws = new WebSocket(WS_URL)
+        
+        ws.onopen = () => {
+          console.log('TeleshopManagerCompletedServices WebSocket connected')
+          connectionAttempts = 0 // Reset attempts on successful connection
+        }
+        
+        ws.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data)
+            if (data.type === "TOKEN_COMPLETED" || data.type === "SERVICE_COMPLETED") {
+              fetchServices()
+            }
+          } catch (error) {
+            console.error('WebSocket message parsing error:', error)
+          }
+        }
+
+        ws.onerror = (error) => {
+          console.error('TeleshopManagerCompletedServices WebSocket error:', error)
+        }
+        
+        ws.onclose = (event) => {
+          console.log('TeleshopManagerCompletedServices WebSocket disconnected:', event.reason)
+          if (isComponentMounted && connectionAttempts < maxReconnectAttempts) {
+            const reconnectDelay = Math.min(1000 * Math.pow(2, connectionAttempts), 30000) // Exponential backoff
+            reconnectTimer = window.setTimeout(() => connectWebSocket(), reconnectDelay)
+          }
+        }
+      } catch (error) {
+        console.error('Failed to create TeleshopManagerCompletedServices WebSocket:', error)
+        if (isComponentMounted && connectionAttempts < maxReconnectAttempts) {
+          const reconnectDelay = Math.min(1000 * Math.pow(2, connectionAttempts), 30000)
+          reconnectTimer = window.setTimeout(() => connectWebSocket(), reconnectDelay)
+        }
+      }
+    }
+
+    // Delay initial connection to avoid React strict mode issues
+    const initialConnectionTimer = setTimeout(() => connectWebSocket(), 1000)
+
+    return () => {
+      isComponentMounted = false
+      clearInterval(interval)
+      clearTimeout(initialConnectionTimer)
+      if (reconnectTimer) {
+        clearTimeout(reconnectTimer)
+      }
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.close()
+      }
+    }
   }, [currentPage, filters])
 
   const fetchTeleshopManagerData = async () => {
@@ -236,13 +312,29 @@ export default function TeleshopManagerCompletedServices() {
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back to Dashboard
             </button>
-            <h1 className="text-2xl font-bold text-gray-900">Completed Services</h1>
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">Completed Services</h1>
+              <p className="text-sm text-gray-500">Updates automatically every 60 seconds</p>
+            </div>
           </div>
           
-          <button className="flex items-center bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700">
-            <Download className="w-4 h-4 mr-2" />
-            Export Report
-          </button>
+          <div className="flex items-center gap-2">
+            <div className="text-xs text-gray-500">
+              Last updated: {new Date().toLocaleTimeString()}
+            </div>
+            <button 
+              onClick={fetchServices}
+              disabled={loading}
+              className="flex items-center bg-green-600 text-white px-3 py-2 rounded-lg hover:bg-green-700 disabled:bg-gray-400"
+            >
+              <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+              Refresh
+            </button>
+            <button className="flex items-center bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700">
+              <Download className="w-4 h-4 mr-2" />
+              Export Report
+            </button>
+          </div>
         </div>
 
         {/* Statistics Cards */}
