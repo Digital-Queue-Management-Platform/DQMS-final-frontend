@@ -24,7 +24,7 @@ interface Officer {
   name: string
   mobileNumber: string
   counterNumber?: number
-  status: 'online' | 'offline' | 'break'
+  status: 'available' | 'serving' | 'on_break' | 'break' | 'offline' | 'busy'
   outlet: {
     id: string
     name: string
@@ -45,7 +45,7 @@ export default function TeleshopManagerOfficers() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
   const [searchTerm, setSearchTerm] = useState("")
-  const [statusFilter, setStatusFilter] = useState<"all" | "online" | "offline" | "break">("all")
+  const [statusFilter, setStatusFilter] = useState<"all" | "available" | "serving" | "on_break" | "offline">("all")
   
   useEffect(() => {
     fetchOfficers()
@@ -159,16 +159,26 @@ export default function TeleshopManagerOfficers() {
                          officer.mobileNumber.includes(searchTerm) ||
                          officer.outlet.name.toLowerCase().includes(searchTerm.toLowerCase())
     
-    const matchesStatus = statusFilter === "all" || officer.status === statusFilter
+    let matchesStatus = true
+    if (statusFilter !== "all") {
+      if (statusFilter === "on_break") {
+        matchesStatus = officer.status === "on_break" || officer.status === "break"
+      } else {
+        matchesStatus = officer.status === statusFilter
+      }
+    }
     
     return matchesSearch && matchesStatus
   })
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
-      online: { color: "bg-green-100 text-green-800", icon: CheckCircle, label: "Online" },
+      available: { color: "bg-green-100 text-green-800", icon: CheckCircle, label: "Available" },
+      serving: { color: "bg-blue-100 text-blue-800", icon: CheckCircle, label: "Serving" },
+      on_break: { color: "bg-yellow-100 text-yellow-800", icon: Coffee, label: "On Break" },
+      break: { color: "bg-yellow-100 text-yellow-800", icon: Coffee, label: "On Break" },
       offline: { color: "bg-gray-100 text-gray-800", icon: Clock, label: "Offline" },
-      break: { color: "bg-yellow-100 text-yellow-800", icon: Coffee, label: "On Break" }
+      busy: { color: "bg-orange-100 text-orange-800", icon: Clock, label: "Busy" }
     }
     
     const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.offline
@@ -303,9 +313,10 @@ export default function TeleshopManagerOfficers() {
             className="pl-10 pr-8 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent appearance-none bg-white"
           >
             <option value="all">All Status</option>
-            <option value="online">Online</option>
+            <option value="available">Available</option>
+            <option value="serving">Serving</option>
+            <option value="on_break">On Break</option>
             <option value="offline">Offline</option>
-            <option value="break">On Break</option>
           </select>
         </div>
       </div>

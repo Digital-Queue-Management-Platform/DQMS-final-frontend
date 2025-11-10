@@ -166,16 +166,37 @@ export default function TeleshopManagerDashboard() {
     return `${mins}m`
   }
 
+  const formatStatus = (status: string) => {
+    switch (status) {
+      case "available":
+        return "Available"
+      case "serving":
+        return "Serving"
+      case "on_break":
+      case "break":
+        return "On Break"
+      case "offline":
+        return "Offline"
+      case "busy":
+        return "Busy"
+      default:
+        return status.charAt(0).toUpperCase() + status.slice(1)
+    }
+  }
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case "available":
         return "bg-green-100 text-green-800"
       case "serving":
         return "bg-blue-100 text-blue-800"
+      case "on_break":
       case "break":
         return "bg-yellow-100 text-yellow-800"
       case "offline":
         return "bg-gray-100 text-gray-800"
+      case "busy":
+        return "bg-orange-100 text-orange-800"
       default:
         return "bg-gray-100 text-gray-800"
     }
@@ -328,7 +349,7 @@ export default function TeleshopManagerDashboard() {
                   </div>
                   <div className="text-center">
                     <div className="text-2xl font-bold text-yellow-600">
-                      {breakAnalytics.officers.filter(o => o.activeBreak).length}
+                      {breakAnalytics.officers.filter(o => o.status === 'on_break' || o.status === 'break' || o.activeBreak).length}
                     </div>
                     <div className="text-sm text-gray-600">On Break</div>
                   </div>
@@ -384,7 +405,7 @@ export default function TeleshopManagerDashboard() {
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(officer.status)}`}>
-                              {officer.status}
+                              {formatStatus(officer.status)}
                             </span>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
