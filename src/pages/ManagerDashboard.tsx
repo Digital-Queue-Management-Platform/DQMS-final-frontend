@@ -38,6 +38,7 @@ export default function ManagerDashboard() {
   // Alert notification states
   const [alerts, setAlerts] = useState<Alert[]>([])
   const [showAlerts, setShowAlerts] = useState(false)
+  const [alertsLoading, setAlertsLoading] = useState(false)
   const [alertFilter, setAlertFilter] = useState({ 
     type: "", 
     severity: "", 
@@ -45,16 +46,30 @@ export default function ManagerDashboard() {
     importantOnly: false 
   })
 
+  // Calculate unread alert count for notification badge
+  const unreadAlertCount = alerts.filter((a) => !a.isRead).length
+  
+  // Debug: Log when unread count changes
+  useEffect(() => {
+    console.log('RTOM Dashboard - Unread alert count changed:', unreadAlertCount, 'total alerts:', alerts.length)
+  }, [unreadAlertCount, alerts.length])
+
   useEffect(() => {
     // Manager authentication is handled globally by Layout
     fetchRegionalData()
-    fetchAlerts() // Fetch 2-star feedback alerts for RTOM
+    fetchAlerts(false) // Fetch 2-star feedback alerts for RTOM (no filters initially)
 
     // Enhanced auto-refresh every 30 seconds for regional management overview
-    const interval = setInterval(() => {
+    const dataRefreshInterval = setInterval(() => {
       fetchRegionalData()
-      fetchAlerts() // Also refresh alerts
+      fetchAlerts(false) // Also refresh alerts (no filters)
     }, 30000)
+
+    // More frequent auto-refresh for notification bell alerts (every 10 seconds)
+    const alertRefreshInterval = setInterval(() => {
+      console.log('Auto-refreshing notification alerts...')
+      fetchAlerts(false) // Refresh alerts more frequently for better responsiveness
+    }, 10000)
 
     // WebSocket for real-time branch data monitoring with better error handling
     let ws: WebSocket | null = null
@@ -74,13 +89,15 @@ export default function ManagerDashboard() {
         ws.onmessage = (event) => {
           try {
             const data = JSON.parse(event.data)
+            console.log('ManagerDashboard received WebSocket message:', data.type, data)
+            
             if (data.type === "NEW_TOKEN" || data.type === "TOKEN_COMPLETED" || data.type === "OFFICER_STATUS_CHANGE" || data.type === "BRANCH_UPDATED" || data.type === "RTOM_FEEDBACK_ALERT") {
               fetchRegionalData()
               
               // Show immediate notification for RTOM 2-star feedback alerts
               if (data.type === "RTOM_FEEDBACK_ALERT") {
                 console.log('⚠️ RTOM FEEDBACK ALERT (2-star):', data.data)
-                fetchAlerts() // Refresh alerts when new 2-star feedback arrives
+                fetchAlerts(false) // Refresh alerts when new 2-star feedback arrives (without filters)
               }
             }
           } catch (error) {
@@ -107,7 +124,8 @@ export default function ManagerDashboard() {
 
     return () => {
       isComponentMounted = false
-      clearInterval(interval)
+      clearInterval(dataRefreshInterval)
+      clearInterval(alertRefreshInterval)
       if (reconnectTimer) {
         clearTimeout(reconnectTimer)
       }
@@ -244,15 +262,23 @@ export default function ManagerDashboard() {
   }
 
   // Fetch alerts for RTOM (2-star feedback alerts)
-  const fetchAlerts = async () => {
+  const fetchAlerts = async (applyFilters = true) => {
     try {
+      setAlertsLoading(true)
       const params: any = { isRead: false }
-      if (alertFilter.outletId) params.outletId = alertFilter.outletId
+      // Only apply outlet filter if explicitly requested (not for WebSocket triggers)
+      if (applyFilters && alertFilter.outletId) {
+        params.outletId = alertFilter.outletId
+      }
 
+      console.log('Fetching RTOM alerts with params:', params)
       const response = await api.get("/manager/alerts", { params })
+      console.log('Received RTOM alerts:', response.data?.length || 0, 'alerts')
       setAlerts(response.data)
     } catch (err) {
       console.error("Failed to fetch RTOM alerts:", err)
+    } finally {
+      setAlertsLoading(false)
     }
   }
 
@@ -260,7 +286,7 @@ export default function ManagerDashboard() {
   const markAlertAsRead = async (alertId: string) => {
     try {
       await api.patch(`/manager/alerts/${alertId}/read`)
-      fetchAlerts() // Refresh alerts after marking as read
+      fetchAlerts(false) // Refresh alerts after marking as read (no filters)
     } catch (err) {
       console.error("Failed to mark alert as read:", err)
     }
@@ -278,9 +304,6 @@ export default function ManagerDashboard() {
       </div>
     )
   }
-
-  // Calculate unread alert count for notification badge
-  const unreadAlertCount = alerts.filter((a) => !a.isRead).length
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-8">
@@ -305,14 +328,19 @@ export default function ManagerDashboard() {
             <div className="flex items-center gap-4">
               <button
                 onClick={() => setShowAlerts(!showAlerts)}
-                className="relative p-2 bg-white rounded-lg hover:bg-gray-50 transition-colors border border-gray-200 shadow-sm"
+                className={`relative p-2 bg-white rounded-lg hover:bg-gray-50 transition-colors border border-gray-200 shadow-sm ${
+                  alertsLoading ? 'animate-pulse' : ''
+                }`}
                 title="2-Star Feedback Alerts"
               >
-                <Bell className="w-5 h-5 text-gray-700" />
+                <Bell className={`w-5 h-5 ${alertsLoading ? 'text-blue-600' : 'text-gray-700'}`} />
                 {unreadAlertCount > 0 && (
                   <span className="absolute -top-1 -right-1 w-4 h-4 bg-yellow-500 text-white text-xs rounded-full flex items-center justify-center text-[10px]">
                     {unreadAlertCount > 99 ? '99+' : unreadAlertCount}
                   </span>
+                )}
+                {alertsLoading && (
+                  <div className="absolute -top-1 -left-1 w-2 h-2 bg-blue-500 rounded-full animate-ping"></div>
                 )}
               </button>
             </div>
@@ -526,7 +554,7 @@ export default function ManagerDashboard() {
                   ))}
                 </select>
                 <button
-                  onClick={fetchAlerts}
+                  onClick={() => fetchAlerts(true)}
                   className="px-3 py-2 bg-blue-500 text-white rounded-lg text-sm hover:bg-blue-600"
                 >
                   Apply Filter
@@ -547,10 +575,10 @@ export default function ManagerDashboard() {
                   {alerts.map((alert) => (
                     <div
                       key={alert.id}
-                      className={`p-3 rounded-lg border-l-4 ${
+                      className={`p-3 rounded-lg ${
                         !alert.isRead
-                          ? 'bg-yellow-50 border-yellow-400'
-                          : 'bg-gray-50 border-gray-300'
+                          ? 'bg-white'
+                          : 'bg-gray-50'
                       }`}
                     >
                       <div className="flex items-start justify-between">
