@@ -503,7 +503,7 @@ const DashboardPage: React.FC = () => {
                     className="text-xs text-red-600 hover:text-red-700"
                     title="Browser notifications disabled - click to learn how to enable"
                   >
-                    🔕
+                    
                   </button>
                 )}
                 {notificationPermission === 'default' && (
