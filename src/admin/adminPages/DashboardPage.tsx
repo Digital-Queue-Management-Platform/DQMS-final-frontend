@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import MetricCard from '../adminComponents/dashboardComponents/MetricCard';
 import {BranchComparisonChart} from '../adminComponents/dashboardComponents/BranchComparisonChart';
 import WaitingTimeChart from '../adminComponents/dashboardComponents/WaitingTimeChart';
