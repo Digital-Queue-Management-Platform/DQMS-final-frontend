@@ -373,11 +373,22 @@ const DashboardPage: React.FC = () => {
                 
                 {/* Notification Dropdown */}
                 {showNotifications && (
-                  <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
-                    <div className="p-4 border-b border-gray-200">
-                      <h3 className="text-lg font-semibold text-gray-900">Notifications</h3>
-                    </div>
-                    <div className="max-h-64 overflow-y-auto">
+                  <>
+                    {/* Mobile Overlay */}
+                    <div className="fixed inset-0 bg-black bg-opacity-50 z-40 md:hidden" onClick={() => setShowNotifications(false)}></div>
+                    
+                    {/* Notification Panel */}
+                    <div className="fixed inset-x-4 top-20 md:absolute md:right-0 md:inset-x-auto md:top-auto md:mt-2 w-auto md:w-80 bg-white rounded-lg shadow-lg border border-gray-200 z-50 max-h-[70vh] md:max-h-96 flex flex-col">
+                      <div className="p-4 border-b border-gray-200 flex items-center justify-between">
+                        <h3 className="text-lg font-semibold text-gray-900">Notifications</h3>
+                        <button 
+                          onClick={() => setShowNotifications(false)}
+                          className="md:hidden p-1 hover:bg-gray-100 rounded-full"
+                        >
+                          <span className="text-gray-500 text-xl">✕</span>
+                        </button>
+                      </div>
+                      <div className="flex-1 overflow-y-auto">
                       {alerts.length === 0 ? (
                         <div className="p-6 text-center text-gray-500">
                           <p>No new notifications</p>
@@ -391,23 +402,23 @@ const DashboardPage: React.FC = () => {
                                 alert.severity === 'high' ? 'bg-red-500' :
                                 alert.severity === 'medium' ? 'bg-yellow-500' : 'bg-blue-500'
                               }`}></div>
-                              <div className="flex-1">
-                                <p className="text-sm font-medium text-gray-900">{alert.message}</p>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium text-gray-900 break-words">{alert.message}</p>
                                 <p className="text-xs text-gray-400 mt-1">
                                   {new Date(alert.createdAt).toLocaleString()}
                                 </p>
-                                <div className="flex items-center space-x-2 mt-1">
+                                <div className="flex items-center space-x-2 mt-2">
                                   {!alert.isRead && (
                                     <button
                                       onClick={() => markAlertAsRead(alert.id)}
-                                      className="text-xs text-blue-600 hover:text-blue-700"
+                                      className="text-xs text-blue-600 hover:text-blue-700 px-2 py-1 bg-blue-50 rounded"
                                     >
                                       Mark as read
                                     </button>
                                   )}
                                   <button
                                     onClick={() => deleteAlert(alert.id)}
-                                    className="flex items-center text-xs text-red-600 hover:text-red-700"
+                                    className="flex items-center text-xs text-red-600 hover:text-red-700 px-2 py-1 bg-red-50 rounded"
                                     title="Delete notification"
                                   >
                                     <Trash2 className="w-3 h-3 mr-1" />
@@ -419,16 +430,17 @@ const DashboardPage: React.FC = () => {
                           </div>
                         ))
                       )}
+                      </div>
+                      <div className="p-3 border-t border-gray-200">
+                        <button
+                          onClick={markAllAlertsAsRead}
+                          className="w-full text-center text-sm text-blue-600 hover:text-blue-800 py-2 px-4 bg-blue-50 rounded hover:bg-blue-100 transition-colors"
+                        >
+                          Mark all as read
+                        </button>
+                      </div>
                     </div>
-                    <div className="p-3 border-t border-gray-200">
-                      <button
-                        onClick={markAllAlertsAsRead}
-                        className="w-full text-center text-sm text-blue-600 hover:text-blue-800"
-                      >
-                        Mark all as read
-                      </button>
-                    </div>
-                  </div>
+                  </>
                 )}
               </div>
 
