@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
-import { Clock, Star, Users, Building2, TrendingUp, TrendingDown, Bell, X } from "lucide-react"
+import { Clock, Star, Users, Building2, TrendingUp, TrendingDown, Bell, X, Activity, Building, Calendar } from "lucide-react"
 // ManagerTopBar is provided globally from Layout for manager routes
 import api, { WS_URL } from "../config/api"
 import type { Alert } from "../types"
@@ -462,6 +462,38 @@ export default function ManagerDashboard() {
                 ))}
               </tbody>
             </table>
+          </div>
+        </div>
+
+        {/* Quick Actions Section */}
+        <div className="bg-white rounded-lg shadow border">
+          <div className="px-6 py-4 border-b">
+            <h3 className="text-lg font-semibold text-gray-900">Quick Actions</h3>
+          </div>
+          <div className="p-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <button
+                onClick={() => navigate("/manager/service-tracking")}
+                className="bg-green-600 text-white p-4 rounded-lg hover:bg-green-700 flex items-center justify-center transition-colors"
+              >
+                <Activity className="w-5 h-5 mr-2" />
+                Service Tracking
+              </button>
+              <button
+                onClick={() => navigate("/manager/branches")}
+                className="bg-purple-600 text-white p-4 rounded-lg hover:bg-purple-700 flex items-center justify-center transition-colors"
+              >
+                <Building className="w-5 h-5 mr-2" />
+                Manage Branches
+              </button>
+              <button
+                onClick={() => navigate("/manager/appointments")}
+                className="bg-orange-600 text-white p-4 rounded-lg hover:bg-orange-700 flex items-center justify-center transition-colors"
+              >
+                <Calendar className="w-5 h-5 mr-2" />
+                Appointments
+              </button>
+            </div>
           </div>
         </div>
         </div>

@@ -113,15 +113,24 @@ export default function TeleshopManagerFeedback() {
     let ws: WebSocket | null = null
     let reconnectTimer: number | null = null
     let isComponentMounted = true
+    let connectionAttempts = 0
+    const maxReconnectAttempts = 5
     
     const connectWebSocket = () => {
-      if (!isComponentMounted) return
+      if (!isComponentMounted || connectionAttempts >= maxReconnectAttempts) return
       
       try {
+        // Check if WebSocket is already connected
+        if (ws && (ws.readyState === WebSocket.CONNECTING || ws.readyState === WebSocket.OPEN)) {
+          return
+        }
+
+        connectionAttempts++
         ws = new WebSocket(WS_URL)
         
         ws.onopen = () => {
           console.log('TeleshopManagerFeedback WebSocket connected')
+          connectionAttempts = 0 // Reset attempts on successful connection
         }
         
         ws.onmessage = (event) => {
@@ -147,25 +156,31 @@ export default function TeleshopManagerFeedback() {
 
         ws.onclose = (event) => {
           console.log('TeleshopManagerFeedback WebSocket disconnected:', event.reason)
-          if (isComponentMounted) {
-            reconnectTimer = window.setTimeout(() => connectWebSocket(), 5000)
+          if (isComponentMounted && connectionAttempts < maxReconnectAttempts) {
+            const reconnectDelay = Math.min(1000 * Math.pow(2, connectionAttempts), 30000) // Exponential backoff
+            reconnectTimer = window.setTimeout(() => connectWebSocket(), reconnectDelay)
           }
         }
       } catch (error) {
         console.error('Failed to create TeleshopManagerFeedback WebSocket:', error)
-        if (isComponentMounted) {
-          reconnectTimer = window.setTimeout(() => connectWebSocket(), 5000)
+        if (isComponentMounted && connectionAttempts < maxReconnectAttempts) {
+          const reconnectDelay = Math.min(1000 * Math.pow(2, connectionAttempts), 30000)
+          reconnectTimer = window.setTimeout(() => connectWebSocket(), reconnectDelay)
         }
       }
     }
 
-    connectWebSocket()
+    // Delay initial connection to avoid React strict mode issues
+    const initialConnectionTimer = setTimeout(() => connectWebSocket(), 1000)
 
     return () => {
       isComponentMounted = false
       clearInterval(interval)
-      if (ws) ws.close()
+      clearTimeout(initialConnectionTimer)
       if (reconnectTimer) clearTimeout(reconnectTimer)
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.close()
+      }
     }
   }, [currentPage, filters])
 
