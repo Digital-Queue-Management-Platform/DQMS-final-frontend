@@ -196,7 +196,7 @@ const DashboardPage: React.FC = () => {
               
               // Immediate notification for critical alerts
               if (data.type === "CRITICAL_FEEDBACK_ALERT") {
-                console.log('🚨 CRITICAL FEEDBACK ALERT:', data.data)
+                console.log('CRITICAL FEEDBACK ALERT:', data.data)
                 
                 // Play sound immediately for critical alerts
                 playNotificationSound()
