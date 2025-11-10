@@ -44,6 +44,10 @@ const DashboardPage: React.FC = () => {
   const [showNotifications, setShowNotifications] = useState<boolean>(false);
   const [alerts, setAlerts] = useState<Alert[]>([]);
 
+  // Notification system state
+  const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>('default')
+  const [lastAlertCount, setLastAlertCount] = useState(0)
+
   // Admin data states
   // removed unused selectedOutlet and analytics state
   const [realtimeStats, setRealtimeStats] = useState<any | null>(null)
@@ -54,6 +58,107 @@ const DashboardPage: React.FC = () => {
 
   // Computed unread notifications count
   const unreadNotifications = alerts.filter(alert => !alert.isRead).length;
+
+  // Request notification permission on component mount
+  useEffect(() => {
+    if ('Notification' in window) {
+      setNotificationPermission(Notification.permission)
+      if (Notification.permission === 'default') {
+        Notification.requestPermission().then((permission) => {
+          setNotificationPermission(permission)
+        })
+      }
+    }
+  }, [])
+
+  // Notification functions - always enabled
+  const playNotificationSound = () => {
+    try {
+      // Always use device's default notification sound (Web Audio API)
+      createBeepSound()
+    } catch (error) {
+      console.log('Notification sound error:', error)
+    }
+  }
+
+  // Device notification beep sound - always enabled
+  const createBeepSound = () => {
+    try {
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
+      const oscillator = audioContext.createOscillator()
+      const gainNode = audioContext.createGain()
+      
+      oscillator.connect(gainNode)
+      gainNode.connect(audioContext.destination)
+      
+      // Create a pleasant notification sound that mimics device notification tone
+      oscillator.frequency.setValueAtTime(800, audioContext.currentTime)
+      oscillator.frequency.exponentialRampToValueAtTime(400, audioContext.currentTime + 0.2)
+      
+      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime)
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2)
+      
+      oscillator.start(audioContext.currentTime)
+      oscillator.stop(audioContext.currentTime + 0.2)
+    } catch (error) {
+      console.log('Web Audio API not supported:', error)
+    }
+  }
+
+  const showBrowserNotification = (alert: Alert) => {
+    if (notificationPermission !== 'granted') return
+
+    try {
+      const notification = new Notification('DQMS Alert', {
+        body: alert.message,
+        icon: '/favicon.ico',
+        badge: '/favicon.ico',
+        tag: `alert-${alert.id}`,
+        requireInteraction: alert.severity === 'critical',
+        silent: false
+      })
+
+      // Auto close notification after 5 seconds for non-critical alerts
+      if (alert.severity !== 'critical') {
+        setTimeout(() => {
+          notification.close()
+        }, 5000)
+      }
+
+      // Handle notification click
+      notification.onclick = () => {
+        window.focus()
+        setShowNotifications(true)
+        notification.close()
+      }
+    } catch (error) {
+      console.log('Browser notification error:', error)
+    }
+  }
+
+  const handleNewAlerts = (newAlerts: Alert[]) => {
+    // Check if there are new unread alerts
+    const newUnreadCount = newAlerts.filter(a => !a.isRead).length
+    
+    if (newUnreadCount > lastAlertCount && lastAlertCount > 0) {
+      // There are new alerts
+      const newestAlerts = newAlerts
+        .filter(a => !a.isRead)
+        .slice(0, newUnreadCount - lastAlertCount)
+      
+      // Play sound for any new alert
+      playNotificationSound()
+      
+      // Show browser notification for critical/high priority alerts
+      newestAlerts.forEach(alert => {
+        if (alert.severity === 'critical' || alert.severity === 'high') {
+          showBrowserNotification(alert)
+        }
+      })
+    }
+    
+    setLastAlertCount(newUnreadCount)
+  }
 
   useEffect(() => {
     fetchOutlets()
@@ -89,10 +194,30 @@ const DashboardPage: React.FC = () => {
               fetchAlerts()
               fetchRealtimeStats()
               
-              // Show immediate notification for critical 1-star feedback
+              // Immediate notification for critical alerts
               if (data.type === "CRITICAL_FEEDBACK_ALERT") {
-                console.log('🚨 CRITICAL FEEDBACK ALERT:', data.data)
-                // You could add a toast notification here
+                console.log('CRITICAL FEEDBACK ALERT:', data.data)
+                
+                // Play sound immediately for critical alerts
+                playNotificationSound()
+                
+                // Show browser notification immediately
+                if (notificationPermission === 'granted') {
+                  const criticalAlert: Alert = {
+                    id: `critical-${Date.now()}`,
+                    message: data.data?.message || 'Critical feedback received',
+                    severity: 'critical',
+                    type: 'critical_feedback',
+                    isRead: false,
+                    createdAt: new Date().toISOString()
+                  }
+                  showBrowserNotification(criticalAlert)
+                }
+              }
+
+              // Sound notification for other important events
+              if (data.type === "NEGATIVE_FEEDBACK" || data.type === "LONG_WAIT") {
+                playNotificationSound()
               }
             }
           } catch (e) {
@@ -295,7 +420,12 @@ const DashboardPage: React.FC = () => {
       const response = await api.get('/admin/alerts', {
         params: { isRead: false }
       })
-      setAlerts(response.data)
+      const newAlerts = response.data
+      
+      // Handle notifications for new alerts
+      handleNewAlerts(newAlerts)
+      
+      setAlerts(newAlerts)
     } catch (err) {
       console.error('Failed to fetch alerts:', err)
     }
@@ -357,6 +487,40 @@ const DashboardPage: React.FC = () => {
               </div>
             </div>
             <div className="flex items-center space-x-4">
+              {/* Notification Controls */}
+              <div className="flex items-center gap-2">
+                {/* Browser Notification Status */}
+                {notificationPermission === 'granted' && (
+                  <div className="text-xs text-green-600" title="Browser notifications enabled">
+                    
+                  </div>
+                )}
+                {notificationPermission === 'denied' && (
+                  <button
+                    onClick={() => {
+                      alert('Please enable notifications in your browser settings for this site to receive alerts.')
+                    }}
+                    className="text-xs text-red-600 hover:text-red-700"
+                    title="Browser notifications disabled - click to learn how to enable"
+                  >
+                    
+                  </button>
+                )}
+                {notificationPermission === 'default' && (
+                  <button
+                    onClick={() => {
+                      Notification.requestPermission().then((permission) => {
+                        setNotificationPermission(permission)
+                      })
+                    }}
+                    className="text-xs text-yellow-600 hover:text-yellow-700"
+                    title="Click to enable browser notifications"
+                  >
+                    
+                  </button>
+                )}
+              </div>
+
               {/* Notification Bell */}
               <div className="relative">
                 <button
@@ -365,7 +529,7 @@ const DashboardPage: React.FC = () => {
                 >
                   <BellIcon className="w-5 h-5 text-gray-600" />
                   {unreadNotifications > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center animate-pulse">
                       {unreadNotifications > 9 ? '9+' : unreadNotifications}
                     </span>
                   )}
