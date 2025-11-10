@@ -56,6 +56,34 @@ export default function OfficerQueuePage() {
         fetchCurrentToken(me.id)
       }, 15000)
 
+      // Send heartbeat every 60 seconds to indicate officer is still active
+      const sendHeartbeat = async () => {
+        try {
+          const token = localStorage.getItem("dqToken")
+          if (token) {
+            await api.post("/officer/heartbeat", {}, {
+              headers: { Authorization: `Bearer ${token}` }
+            })
+          }
+        } catch (error) {
+          console.error('Heartbeat failed:', error)
+        }
+      }
+
+      // Send initial heartbeat and set interval
+      sendHeartbeat()
+      const heartbeatInterval = setInterval(sendHeartbeat, 60000)
+
+      // Handle window closing/refreshing
+      const handleBeforeUnload = () => {
+        const token = localStorage.getItem("dqToken")
+        if (token) {
+          navigator.sendBeacon('/api/officer/logout', JSON.stringify({}))
+        }
+      }
+
+      window.addEventListener('beforeunload', handleBeforeUnload)
+
       // WebSocket updates
       const ws = new WebSocket(WS_URL)
       ws.onmessage = (event) => {
@@ -90,6 +118,8 @@ export default function OfficerQueuePage() {
 
       return () => {
         clearInterval(interval)
+        clearInterval(heartbeatInterval)
+        window.removeEventListener('beforeunload', handleBeforeUnload)
         try {
           ws.close()
         } catch (error) {
