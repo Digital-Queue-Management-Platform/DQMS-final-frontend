@@ -46,7 +46,6 @@ const DashboardPage: React.FC = () => {
 
   // Notification system state
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>('default')
-  const [soundEnabled, setSoundEnabled] = useState(true)
   const [lastAlertCount, setLastAlertCount] = useState(0)
 
   // Admin data states
@@ -72,19 +71,17 @@ const DashboardPage: React.FC = () => {
     }
   }, [])
 
-  // Notification functions
+  // Notification functions - always enabled
   const playNotificationSound = () => {
-    if (!soundEnabled) return
-    
     try {
-      // Use device's default notification sound (Web Audio API)
+      // Always use device's default notification sound (Web Audio API)
       createBeepSound()
     } catch (error) {
       console.log('Notification sound error:', error)
     }
   }
 
-  // Device notification beep sound
+  // Device notification beep sound - always enabled
   const createBeepSound = () => {
     try {
       const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
@@ -94,7 +91,7 @@ const DashboardPage: React.FC = () => {
       oscillator.connect(gainNode)
       gainNode.connect(audioContext.destination)
       
-      // Create a pleasant notification sound
+      // Create a pleasant notification sound that mimics device notification tone
       oscillator.frequency.setValueAtTime(800, audioContext.currentTime)
       oscillator.frequency.exponentialRampToValueAtTime(400, audioContext.currentTime + 0.2)
       
@@ -492,15 +489,6 @@ const DashboardPage: React.FC = () => {
             <div className="flex items-center space-x-4">
               {/* Notification Controls */}
               <div className="flex items-center gap-2">
-                {/* Sound Toggle */}
-                <button
-                  onClick={() => setSoundEnabled(!soundEnabled)}
-                  className={`p-2 rounded-lg transition-colors ${soundEnabled ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-400'}`}
-                  title={soundEnabled ? 'Sound notifications enabled' : 'Sound notifications disabled'}
-                >
-                  <span className="text-sm">🔊</span>
-                </button>
-
                 {/* Browser Notification Status */}
                 {notificationPermission === 'granted' && (
                   <div className="text-xs text-green-600" title="Browser notifications enabled">
@@ -528,7 +516,7 @@ const DashboardPage: React.FC = () => {
                     className="text-xs text-yellow-600 hover:text-yellow-700"
                     title="Click to enable browser notifications"
                   >
-                    🔔
+                    
                   </button>
                 )}
               </div>
