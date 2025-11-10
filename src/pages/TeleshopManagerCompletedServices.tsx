@@ -110,33 +110,57 @@ export default function TeleshopManagerCompletedServices() {
       fetchServices()
     }, 60000)
 
-    // WebSocket for real-time updates
-    const ws = new WebSocket(WS_URL)
-    ws.onmessage = (event) => {
+    // WebSocket for real-time updates with better error handling
+    let ws: WebSocket | null = null
+    let reconnectTimer: number | null = null
+    let isComponentMounted = true
+    
+    const connectWebSocket = () => {
+      if (!isComponentMounted) return
+      
       try {
-        const data = JSON.parse(event.data)
-        if (data.type === "TOKEN_COMPLETED" || data.type === "SERVICE_COMPLETED") {
-          fetchServices()
+        ws = new WebSocket(WS_URL)
+        
+        ws.onopen = () => {
+          console.log('TeleshopManagerCompletedServices WebSocket connected')
+        }
+        
+        ws.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data)
+            if (data.type === "TOKEN_COMPLETED" || data.type === "SERVICE_COMPLETED") {
+              fetchServices()
+            }
+          } catch (error) {
+            console.error('WebSocket message parsing error:', error)
+          }
+        }
+
+        ws.onerror = (error) => {
+          console.error('TeleshopManagerCompletedServices WebSocket error:', error)
+        }
+        
+        ws.onclose = (event) => {
+          console.log('TeleshopManagerCompletedServices WebSocket disconnected:', event.reason)
+          if (!event.wasClean && isComponentMounted) {
+            reconnectTimer = window.setTimeout(connectWebSocket, 5000)
+          }
         }
       } catch (error) {
-        console.error('WebSocket message parsing error:', error)
+        console.error('Failed to create TeleshopManagerCompletedServices WebSocket:', error)
       }
     }
 
-    ws.onopen = () => {
-      console.log('TeleshopManagerCompletedServices WebSocket connected')
-    }
-
-    ws.onerror = (error) => {
-      console.error('TeleshopManagerCompletedServices WebSocket error:', error)
-    }
+    connectWebSocket()
 
     return () => {
+      isComponentMounted = false
       clearInterval(interval)
-      try {
+      if (reconnectTimer) {
+        clearTimeout(reconnectTimer)
+      }
+      if (ws && ws.readyState === WebSocket.OPEN) {
         ws.close()
-      } catch (error) {
-        console.error('Error closing WebSocket:', error)
       }
     }
   }, [currentPage, filters])

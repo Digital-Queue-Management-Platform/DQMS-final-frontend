@@ -41,30 +41,64 @@ export default function ManagerDashboard() {
     // Enhanced auto-refresh every 30 seconds for regional management overview
     const interval = setInterval(fetchRegionalData, 30000)
 
-    // WebSocket for real-time branch data monitoring
-    const ws = new WebSocket(WS_URL)
-    ws.onmessage = (event) => {
+    // WebSocket for real-time branch data monitoring with better error handling
+    let ws: WebSocket | null = null
+    let reconnectTimer: number | null = null
+    let isComponentMounted = true
+    
+    const connectWebSocket = () => {
+      if (!isComponentMounted) return
+      
       try {
-        const data = JSON.parse(event.data)
-        if (data.type === "NEW_TOKEN" || data.type === "TOKEN_COMPLETED" || data.type === "OFFICER_STATUS_CHANGE" || data.type === "BRANCH_UPDATED") {
-          fetchRegionalData()
+        ws = new WebSocket(WS_URL)
+        
+        ws.onopen = () => {
+          console.log('ManagerDashboard WebSocket connected')
+        }
+        
+        ws.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data)
+            if (data.type === "NEW_TOKEN" || data.type === "TOKEN_COMPLETED" || data.type === "OFFICER_STATUS_CHANGE" || data.type === "BRANCH_UPDATED" || data.type === "RTOM_FEEDBACK_ALERT") {
+              fetchRegionalData()
+              
+              // Show immediate notification for RTOM 2-star feedback alerts
+              if (data.type === "RTOM_FEEDBACK_ALERT") {
+                console.log('⚠️ RTOM FEEDBACK ALERT (2-star):', data.data)
+                // You could add a toast notification here
+              }
+            }
+          } catch (error) {
+            console.error('WebSocket message parsing error:', error)
+          }
+        }
+
+        ws.onerror = (error) => {
+          console.error('ManagerDashboard WebSocket error:', error)
+        }
+        
+        ws.onclose = (event) => {
+          console.log('ManagerDashboard WebSocket disconnected:', event.reason)
+          if (!event.wasClean && isComponentMounted) {
+            reconnectTimer = window.setTimeout(connectWebSocket, 5000)
+          }
         }
       } catch (error) {
-        console.error('WebSocket message parsing error:', error)
+        console.error('Failed to create ManagerDashboard WebSocket:', error)
       }
     }
 
-    ws.onopen = () => {
-      console.log('ManagerDashboard WebSocket connected')
-    }
-
-    ws.onerror = (error) => {
-      console.error('ManagerDashboard WebSocket error:', error)
-    }
+    connectWebSocket()
 
     return () => {
+      isComponentMounted = false
       clearInterval(interval)
-      try { ws.close() } catch (e) {}
+      if (reconnectTimer) {
+        clearTimeout(reconnectTimer)
+      }
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.close()
+      }
     }
   }, [navigate])
 
@@ -220,7 +254,7 @@ export default function ManagerDashboard() {
                   {formatDate(currentDateTime)} | {formatTime(currentDateTime)}
                 </p>
                 <div className="flex items-center gap-3 text-sm text-slate-600">
-                  {dashboardLoading && <span className="flex items-center gap-1">🔄 Refreshing...</span>}
+                  {dashboardLoading && <span className="flex items-center gap-1">Refreshing...</span>}
                   <span>Last updated: {lastUpdated.toLocaleTimeString()}</span>
                 </div>
               </div>

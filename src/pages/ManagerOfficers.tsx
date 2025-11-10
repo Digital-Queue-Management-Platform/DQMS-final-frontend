@@ -37,33 +37,57 @@ export default function ManagerOfficers() {
       fetchOfficers()
     }, 30000)
 
-    // WebSocket for real-time officer updates
-    const ws = new WebSocket(WS_URL)
-    ws.onmessage = (event) => {
+    // WebSocket for real-time officer updates with better error handling
+    let ws: WebSocket | null = null
+    let reconnectTimer: number | null = null
+    let isComponentMounted = true
+    
+    const connectWebSocket = () => {
+      if (!isComponentMounted) return
+      
       try {
-        const data = JSON.parse(event.data)
-        if (data.type === "OFFICER_STATUS_CHANGE" || data.type === "OFFICER_ASSIGNMENT_CHANGE" || data.type === "BREAK_STATUS_CHANGE") {
-          fetchOfficers()
+        ws = new WebSocket(WS_URL)
+        
+        ws.onopen = () => {
+          console.log('ManagerOfficers WebSocket connected')
+        }
+        
+        ws.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data)
+            if (data.type === "OFFICER_STATUS_CHANGE" || data.type === "OFFICER_ASSIGNMENT_CHANGE" || data.type === "BREAK_STATUS_CHANGE") {
+              fetchOfficers()
+            }
+          } catch (error) {
+            console.error('WebSocket message parsing error:', error)
+          }
+        }
+
+        ws.onerror = (error) => {
+          console.error('ManagerOfficers WebSocket error:', error)
+        }
+        
+        ws.onclose = (event) => {
+          console.log('ManagerOfficers WebSocket disconnected:', event.reason)
+          if (!event.wasClean && isComponentMounted) {
+            reconnectTimer = window.setTimeout(connectWebSocket, 5000)
+          }
         }
       } catch (error) {
-        console.error('WebSocket message parsing error:', error)
+        console.error('Failed to create ManagerOfficers WebSocket:', error)
       }
     }
 
-    ws.onopen = () => {
-      console.log('ManagerOfficers WebSocket connected')
-    }
-
-    ws.onerror = (error) => {
-      console.error('ManagerOfficers WebSocket error:', error)
-    }
+    connectWebSocket()
 
     return () => {
+      isComponentMounted = false
       clearInterval(interval)
-      try {
+      if (reconnectTimer) {
+        clearTimeout(reconnectTimer)
+      }
+      if (ws && ws.readyState === WebSocket.OPEN) {
         ws.close()
-      } catch (error) {
-        console.error('Error closing WebSocket:', error)
       }
     }
   }, [])
@@ -165,7 +189,7 @@ export default function ManagerOfficers() {
             <div>
               <h1 className="text-2xl font-bold text-gray-900">Officers Management</h1>
               <div className="flex items-center gap-3 text-sm text-slate-600 mt-1">
-                {loading && <span className="flex items-center gap-1">🔄 Refreshing...</span>}
+                {loading && <span className="flex items-center gap-1">Refreshing...</span>}
                 <span>Last updated: {lastUpdated.toLocaleTimeString()}</span>
               </div>
             </div>

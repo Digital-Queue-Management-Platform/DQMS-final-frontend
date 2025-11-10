@@ -53,33 +53,57 @@ export default function TeleshopManagerOfficers() {
     // Auto-refresh every 30 seconds
     const interval = setInterval(fetchOfficers, 30000)
 
-    // WebSocket for real-time updates
-    const ws = new WebSocket(WS_URL)
-    ws.onmessage = (event) => {
+    // WebSocket for real-time updates with better error handling
+    let ws: WebSocket | null = null
+    let reconnectTimer: number | null = null
+    let isComponentMounted = true
+    
+    const connectWebSocket = () => {
+      if (!isComponentMounted) return
+      
       try {
-        const data = JSON.parse(event.data)
-        if (data.type === "OFFICER_STATUS_CHANGE" || data.type === "BREAK_STATUS_CHANGE" || data.type === "OFFICER_UPDATED") {
-          fetchOfficers()
+        ws = new WebSocket(WS_URL)
+        
+        ws.onopen = () => {
+          console.log('TeleshopManagerOfficers WebSocket connected')
+        }
+        
+        ws.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data)
+            if (data.type === "OFFICER_STATUS_CHANGE" || data.type === "BREAK_STATUS_CHANGE" || data.type === "OFFICER_UPDATED") {
+              fetchOfficers()
+            }
+          } catch (error) {
+            console.error('WebSocket message parsing error:', error)
+          }
+        }
+
+        ws.onerror = (error) => {
+          console.error('TeleshopManagerOfficers WebSocket error:', error)
+        }
+        
+        ws.onclose = (event) => {
+          console.log('TeleshopManagerOfficers WebSocket disconnected:', event.reason)
+          if (!event.wasClean && isComponentMounted) {
+            reconnectTimer = window.setTimeout(connectWebSocket, 5000)
+          }
         }
       } catch (error) {
-        console.error('WebSocket message parsing error:', error)
+        console.error('Failed to create TeleshopManagerOfficers WebSocket:', error)
       }
     }
 
-    ws.onopen = () => {
-      console.log('TeleshopManagerOfficers WebSocket connected')
-    }
-
-    ws.onerror = (error) => {
-      console.error('TeleshopManagerOfficers WebSocket error:', error)
-    }
+    connectWebSocket()
 
     return () => {
+      isComponentMounted = false
       clearInterval(interval)
-      try {
+      if (reconnectTimer) {
+        clearTimeout(reconnectTimer)
+      }
+      if (ws && ws.readyState === WebSocket.OPEN) {
         ws.close()
-      } catch (error) {
-        console.error('Error closing WebSocket:', error)
       }
     }
   }, [])
@@ -272,7 +296,7 @@ export default function TeleshopManagerOfficers() {
         </div>
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 text-center">
           <div className="text-2xl font-bold text-green-600">
-            {officers.filter(o => o.status === 'online').length}
+            {officers.filter(o => o.status === 'available').length}
           </div>
           <div className="text-sm text-gray-600">Online</div>
         </div>

@@ -66,32 +66,67 @@ const DashboardPage: React.FC = () => {
       fetchAlerts()
     }, 30000)
 
-    const ws = new WebSocket(WS_URL)
-    ws.onmessage = (event) => {
+    // WebSocket connection with better error handling
+    let ws: WebSocket | null = null
+    let reconnectTimer: number | null = null
+    let isComponentMounted = true
+    
+    const connectWebSocket = () => {
+      if (!isComponentMounted) return
+      
       try {
-        const data = JSON.parse(event.data)
-        // Refresh alerts on certain types of events
-        if (data.type === "NEGATIVE_FEEDBACK" || data.type === "LONG_WAIT" || data.type === "NEW_TOKEN" || data.type === "TOKEN_COMPLETED" || data.type === "OFFICER_STATUS_CHANGE") {
-          fetchAlerts()
-          fetchRealtimeStats()
+        ws = new WebSocket(WS_URL)
+        
+        ws.onopen = () => {
+          console.log('AdminDashboard WebSocket connected')
         }
-        // ignore specific data types, just refresh stats
-      } catch (e) {
-        console.error('WebSocket message parsing error:', e)
+        
+        ws.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data)
+            // Refresh alerts on certain types of events
+            if (data.type === "NEGATIVE_FEEDBACK" || data.type === "LONG_WAIT" || data.type === "NEW_TOKEN" || data.type === "TOKEN_COMPLETED" || data.type === "OFFICER_STATUS_CHANGE" || data.type === "CRITICAL_FEEDBACK_ALERT") {
+              fetchAlerts()
+              fetchRealtimeStats()
+              
+              // Show immediate notification for critical 1-star feedback
+              if (data.type === "CRITICAL_FEEDBACK_ALERT") {
+                console.log('🚨 CRITICAL FEEDBACK ALERT:', data.data)
+                // You could add a toast notification here
+              }
+            }
+          } catch (e) {
+            console.error('WebSocket message parsing error:', e)
+          }
+        }
+
+        ws.onerror = (error) => {
+          console.error('AdminDashboard WebSocket error:', error)
+        }
+        
+        ws.onclose = (event) => {
+          console.log('AdminDashboard WebSocket disconnected:', event.reason)
+          // Don't attempt to reconnect if component is unmounted or connection was closed intentionally
+          if (!event.wasClean && isComponentMounted) {
+            reconnectTimer = window.setTimeout(connectWebSocket, 5000) // Reconnect after 5 seconds
+          }
+        }
+      } catch (error) {
+        console.error('Failed to create WebSocket:', error)
       }
     }
 
-    ws.onopen = () => {
-      console.log('AdminDashboard WebSocket connected')
-    }
-
-    ws.onerror = (error) => {
-      console.error('AdminDashboard WebSocket error:', error)
-    }
+    connectWebSocket()
 
     return () => {
+      isComponentMounted = false
       clearInterval(interval)
-      try { ws.close() } catch (e) {}
+      if (reconnectTimer) {
+        clearTimeout(reconnectTimer)
+      }
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.close()
+      }
     }
   }, [])
 
@@ -352,6 +387,7 @@ const DashboardPage: React.FC = () => {
                           <div key={alert.id} className="p-3 border-b border-gray-100 hover:bg-gray-50">
                             <div className="flex items-start space-x-3">
                               <div className={`w-2 h-2 rounded-full mt-2 flex-shrink-0 ${
+                                alert.severity === 'critical' ? 'bg-red-600 animate-pulse' :
                                 alert.severity === 'high' ? 'bg-red-500' :
                                 alert.severity === 'medium' ? 'bg-yellow-500' : 'bg-blue-500'
                               }`}></div>

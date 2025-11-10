@@ -71,9 +71,15 @@ export default function AdminDashboard() {
     ws.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data)
-        if (data.type === "NEGATIVE_FEEDBACK" || data.type === "LONG_WAIT" || data.type === "NEW_TOKEN" || data.type === "TOKEN_COMPLETED" || data.type === "OFFICER_STATUS_CHANGE") {
+        if (data.type === "NEGATIVE_FEEDBACK" || data.type === "LONG_WAIT" || data.type === "NEW_TOKEN" || data.type === "TOKEN_COMPLETED" || data.type === "OFFICER_STATUS_CHANGE" || data.type === "CRITICAL_FEEDBACK_ALERT") {
           fetchAlerts()
           fetchRealtimeStats()
+          
+          // Show immediate notification for critical 1-star feedback
+          if (data.type === "CRITICAL_FEEDBACK_ALERT") {
+            console.log('CRITICAL FEEDBACK ALERT:', data.data)
+            // You could add a toast notification here
+          }
         }
       } catch (error) {
         console.error('WebSocket message parsing error:', error)
@@ -189,7 +195,7 @@ export default function AdminDashboard() {
               <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
                 <p className="text-[10px] sm:text-sm text-gray-600">Digital Queue Management System</p>
                 <div className="flex items-center gap-2 text-xs text-slate-600">
-                  {dashboardLoading && <span className="flex items-center gap-1">🔄 Refreshing...</span>}
+                  {dashboardLoading && <span className="flex items-center gap-1">Refreshing...</span>}
                   <span>Last updated: {lastUpdated.toLocaleTimeString()}</span>
                 </div>
               </div>
@@ -234,7 +240,10 @@ export default function AdminDashboard() {
                   className="px-3 py-2 border rounded-lg text-sm"
                 >
                   <option value="">All Types</option>
-                  <option value="negative_feedback">Negative Feedback</option>
+                  <option value="negative_feedback">Negative Feedback (Legacy)</option>
+                  <option value="critical_feedback">Critical Feedback (1-star)</option>
+                  <option value="high_priority_feedback">High Priority Feedback (2-star)</option>
+                  <option value="moderate_feedback">Moderate Feedback (3-star)</option>
                   <option value="long_wait">Long Wait</option>
                 </select>
 
@@ -244,6 +253,7 @@ export default function AdminDashboard() {
                   className="px-3 py-2 border rounded-lg text-sm"
                 >
                   <option value="">All Severities</option>
+                  <option value="critical">Critical</option>
                   <option value="high">High</option>
                   <option value="medium">Medium</option>
                   <option value="low">Low</option>
@@ -299,21 +309,25 @@ export default function AdminDashboard() {
                   <div
                     key={alert.id}
                     className={`p-3 sm:p-4 rounded-lg border ${
-                      alert.severity === "high"
-                        ? "bg-red-50 border-red-200"
-                        : alert.severity === "medium"
-                          ? "bg-yellow-50 border-yellow-200"
-                          : "bg-blue-50 border-blue-200"
+                      alert.severity === "critical"
+                        ? "bg-red-100 border-red-300 ring-1 ring-red-400"
+                        : alert.severity === "high"
+                          ? "bg-red-50 border-red-200"
+                          : alert.severity === "medium"
+                            ? "bg-yellow-50 border-yellow-200"
+                            : "bg-blue-50 border-blue-200"
                     }`}
                   >
                     <div className="flex items-start gap-3">
                       <AlertCircle
                         className={`w-4 h-4 sm:w-5 sm:h-5 mt-0.5 flex-shrink-0 ${
-                          alert.severity === "high"
-                            ? "text-red-600"
-                            : alert.severity === "medium"
-                              ? "text-yellow-600"
-                              : "text-blue-600"
+                          alert.severity === "critical"
+                            ? "text-red-700 animate-pulse"
+                            : alert.severity === "high"
+                              ? "text-red-600"
+                              : alert.severity === "medium"
+                                ? "text-yellow-600"
+                                : "text-blue-600"
                         }`}
                       />
                       <div className="flex-1 min-w-0">

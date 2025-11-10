@@ -42,33 +42,57 @@ export default function AdminAppointments() {
       if (outlets.length) loadData()
     }, 30000)
 
-    // WebSocket for real-time updates
-    const ws = new WebSocket(WS_URL)
-    ws.onmessage = (event) => {
+    // WebSocket for real-time updates with better error handling
+    let ws: WebSocket | null = null
+    let reconnectTimer: number | null = null
+    let isComponentMounted = true
+    
+    const connectWebSocket = () => {
+      if (!isComponentMounted) return
+      
       try {
-        const data = JSON.parse(event.data)
-        if (data.type === "NEW_APPOINTMENT" || data.type === "APPOINTMENT_QUEUED" || data.type === "APPOINTMENT_CANCELLED") {
-          if (outlets.length) loadData()
+        ws = new WebSocket(WS_URL)
+        
+        ws.onopen = () => {
+          console.log('AdminAppointments WebSocket connected')
+        }
+        
+        ws.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data)
+            if (data.type === "NEW_APPOINTMENT" || data.type === "APPOINTMENT_QUEUED" || data.type === "APPOINTMENT_CANCELLED") {
+              if (outlets.length) loadData()
+            }
+          } catch (error) {
+            console.error('WebSocket message parsing error:', error)
+          }
+        }
+
+        ws.onerror = (error) => {
+          console.error('AdminAppointments WebSocket error:', error)
+        }
+        
+        ws.onclose = (event) => {
+          console.log('AdminAppointments WebSocket disconnected:', event.reason)
+          if (!event.wasClean && isComponentMounted) {
+            reconnectTimer = window.setTimeout(connectWebSocket, 5000)
+          }
         }
       } catch (error) {
-        console.error('WebSocket message parsing error:', error)
+        console.error('Failed to create AdminAppointments WebSocket:', error)
       }
     }
 
-    ws.onopen = () => {
-      console.log('AdminAppointments WebSocket connected')
-    }
-
-    ws.onerror = (error) => {
-      console.error('AdminAppointments WebSocket error:', error)
-    }
+    connectWebSocket()
 
     return () => {
+      isComponentMounted = false
       clearInterval(interval)
-      try {
+      if (reconnectTimer) {
+        clearTimeout(reconnectTimer)
+      }
+      if (ws && ws.readyState === WebSocket.OPEN) {
         ws.close()
-      } catch (error) {
-        console.error('Error closing WebSocket:', error)
       }
     }
   }, [])
