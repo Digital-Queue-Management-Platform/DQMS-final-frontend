@@ -60,6 +60,8 @@ export default function TeleshopManagerDashboard() {
   const [breakAnalytics, setBreakAnalytics] = useState<BreakAnalytics | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
+  const [dashboardLoading, setDashboardLoading] = useState(false)
+  const [lastUpdated, setLastUpdated] = useState<Date>(new Date())
 
   useEffect(() => {
     fetchTeleshopManagerData()
@@ -69,13 +71,32 @@ export default function TeleshopManagerDashboard() {
     const token = localStorage.getItem("teleshopManagerToken")
     if (!token) return
 
-    // WebSocket for real-time updates
-    const ws = new WebSocket(WS_URL)
-    ws.onmessage = () => {
+    // Enhanced auto-refresh every 30 seconds for teleshop analytics
+    const interval = setInterval(() => {
       fetchBreakAnalytics()
+      fetchTeleshopManagerData()
+    }, 30000)
+
+    // WebSocket for real-time teleshop updates
+    const ws = new WebSocket(WS_URL)
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data)
+        if (data.type === "BREAK_STATUS_CHANGE" || data.type === "OFFICER_STATUS_CHANGE" || data.type === "BREAK_STARTED" || data.type === "BREAK_ENDED") {
+          fetchBreakAnalytics()
+        }
+      } catch (error) {
+        console.error('WebSocket message parsing error:', error)
+      }
     }
 
-    const interval = setInterval(fetchBreakAnalytics, 30000) // Refresh every 30 seconds
+    ws.onopen = () => {
+      console.log('TeleshopManagerDashboard WebSocket connected')
+    }
+
+    ws.onerror = (error) => {
+      console.error('TeleshopManagerDashboard WebSocket error:', error)
+    }
 
     return () => {
       clearInterval(interval)
@@ -118,6 +139,7 @@ export default function TeleshopManagerDashboard() {
 
   const fetchBreakAnalytics = async () => {
     try {
+      setDashboardLoading(true)
       const token = localStorage.getItem("teleshopManagerToken")
       if (!token) return
 
@@ -127,8 +149,11 @@ export default function TeleshopManagerDashboard() {
       })
 
       setBreakAnalytics(response.data)
+      setLastUpdated(new Date())
     } catch (error) {
       console.error("Failed to fetch break analytics:", error)
+    } finally {
+      setDashboardLoading(false)
     }
   }
 
@@ -195,9 +220,15 @@ export default function TeleshopManagerDashboard() {
         <div className="flex items-center justify-between mb-2">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Teleshop Manager Dashboard</h1>
-            <p className="text-sm text-gray-500">
-              Teleshop Manager: {teleshopManager.name} | {new Date().toLocaleDateString()} | {new Date().toLocaleTimeString()}
-            </p>
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+              <p className="text-sm text-gray-500">
+                Teleshop Manager: {teleshopManager.name} | {new Date().toLocaleDateString()} | {new Date().toLocaleTimeString()}
+              </p>
+              <div className="flex items-center gap-3 text-sm text-slate-600">
+                {dashboardLoading && <span className="flex items-center gap-1">🔄 Refreshing...</span>}
+                <span>Last updated: {lastUpdated.toLocaleTimeString()}</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>

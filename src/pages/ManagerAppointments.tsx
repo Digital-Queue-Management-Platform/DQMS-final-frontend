@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react"
 import { Calendar, Filter, RefreshCwIcon, Search } from "lucide-react"
-import api from "../config/api"
+import api, { WS_URL } from "../config/api"
 
 type Outlet = { id: string; name: string; location: string; regionId?: string }
 type Appointment = {
@@ -33,7 +33,44 @@ export default function ManagerAppointments() {
   const [error, setError] = useState('')
   const [rows, setRows] = useState<(Appointment & { outletName?: string; outletLocation?: string })[]>([])
 
-  useEffect(() => { fetchOutlets() }, [])
+  useEffect(() => { 
+    fetchOutlets()
+    
+    // Auto-refresh every 30 seconds
+    const interval = setInterval(() => {
+      if (outlets.length) loadData()
+    }, 30000)
+
+    // WebSocket for real-time updates
+    const ws = new WebSocket(WS_URL)
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data)
+        if (data.type === "NEW_APPOINTMENT" || data.type === "APPOINTMENT_QUEUED" || data.type === "APPOINTMENT_CANCELLED") {
+          if (outlets.length) loadData()
+        }
+      } catch (error) {
+        console.error('WebSocket message parsing error:', error)
+      }
+    }
+
+    ws.onopen = () => {
+      console.log('ManagerAppointments WebSocket connected')
+    }
+
+    ws.onerror = (error) => {
+      console.error('ManagerAppointments WebSocket error:', error)
+    }
+
+    return () => {
+      clearInterval(interval)
+      try {
+        ws.close()
+      } catch (error) {
+        console.error('Error closing WebSocket:', error)
+      }
+    }
+  }, [])
 
   const fetchOutlets = async () => {
     try {
@@ -106,12 +143,19 @@ export default function ManagerAppointments() {
     <div className="p-4 sm:p-6">
       <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 mb-4">
         <div className="flex items-center justify-between mb-2">
-          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Appointments (Region)</h1>
-          <button onClick={loadData} className="inline-flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700">
-            <RefreshCwIcon className="w-4 h-4" /> Refresh
-          </button>
+          <div>
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Appointments (Region)</h1>
+            <p className="text-sm text-gray-600">View booked appointments for your region. Updates automatically every 30 seconds.</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="text-xs text-gray-500">
+              Last updated: {new Date().toLocaleTimeString()}
+            </div>
+            <button onClick={loadData} disabled={loading} className="inline-flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 disabled:bg-gray-400">
+              <RefreshCwIcon className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} /> Refresh
+            </button>
+          </div>
         </div>
-        <p className="text-sm text-gray-600">View booked appointments for your region. Queued ones drop off automatically.</p>
       </div>
 
       <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 mb-4">

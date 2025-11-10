@@ -27,6 +27,8 @@ export default function OfficerDashboard() {
   const [currentDateTime, setCurrentDateTime] = useState(new Date())
   const [breakLoading, setBreakLoading] = useState(false)
   const [breakError, setBreakError] = useState<string | null>(null)
+  const [dashboardLoading, setDashboardLoading] = useState(false)
+  const [lastUpdated, setLastUpdated] = useState<Date>(new Date())
   
   // Helper functions for date and time formatting
   const formatDate = (date: Date) => {
@@ -61,23 +63,56 @@ export default function OfficerDashboard() {
         localStorage.setItem('dq_user', JSON.stringify(officerData))
         
         fetchStats(officerData.id)
+        fetchQueue(officerData.outletId)
+        fetchServed(officerData.id)
+        fetchBreaks(officerData.id)
+        fetchFeedback(officerData.id)
+
+        // Auto-refresh every 30 seconds for officer performance monitoring
+        const interval = setInterval(() => {
+          fetchStats(officerData.id)
           fetchQueue(officerData.outletId)
-            fetchServed(officerData.id)
-            fetchBreaks(officerData.id)
-            fetchFeedback(officerData.id)
+          fetchServed(officerData.id)
+          fetchBreaks(officerData.id)
+          fetchFeedback(officerData.id)
+        }, 30000)
 
         // WebSocket for real-time updates
         const ws = new WebSocket(WS_URL)
         ws.onmessage = (event) => {
-          const data = JSON.parse(event.data)
-          // refresh stats and queue on relevant events
-          if (data.type === "NEW_TOKEN" || data.type === "TOKEN_COMPLETED" || data.type === 'TOKEN_SKIPPED' || data.type === 'TOKEN_CALLED' || data.type === 'TOKEN_RECALLED') {
-            fetchStats(res.data.officer.id)
-            fetchQueue(res.data.officer.outletId)
-            fetchServed(res.data.officer.id)
+          try {
+            const data = JSON.parse(event.data)
+            // refresh stats and queue on relevant events
+            if (data.type === "NEW_TOKEN" || data.type === "TOKEN_COMPLETED" || data.type === 'TOKEN_SKIPPED' || data.type === 'TOKEN_CALLED' || data.type === 'TOKEN_RECALLED' || data.type === 'BREAK_STATUS_CHANGE' || data.type === 'FEEDBACK_SUBMITTED') {
+              fetchStats(officerData.id)
+              fetchQueue(officerData.outletId)
+              fetchServed(officerData.id)
+              fetchBreaks(officerData.id)
+              fetchFeedback(officerData.id)
+            }
+          } catch (error) {
+            console.error('WebSocket message parsing error:', error)
           }
         }
+
+        ws.onopen = () => {
+          console.log('OfficerDashboard WebSocket connected')
+        }
+
+        ws.onerror = (error) => {
+          console.error('OfficerDashboard WebSocket error:', error)
+        }
+
         ;(window as any).__dq_ws = ws
+
+        return () => {
+          clearInterval(interval)
+          try {
+            ws.close()
+          } catch (error) {
+            console.error('Error closing WebSocket:', error)
+          }
+        }
       })
       .catch(() => {
         navigate("/officer/login")
@@ -114,13 +149,17 @@ export default function OfficerDashboard() {
 
   const fetchStats = async (officerId: string) => {
     try {
+      setDashboardLoading(true)
       const response = await api.get(`/officer/stats/${officerId}`)
       setStats({
         tokensHandled: response.data.tokensHandled,
         avgRating: response.data.avgRating,
       })
+      setLastUpdated(new Date())
     } catch (err) {
       console.error("Failed to fetch stats:", err)
+    } finally {
+      setDashboardLoading(false)
     }
   }
 
@@ -243,9 +282,15 @@ export default function OfficerDashboard() {
           <div className="flex items-center justify-between mb-2">
             <div>
               <h1 className="text-2xl font-bold text-gray-900">Customer Service Officer Dashboard</h1>
-              <p className="text-sm text-gray-500">
-                {formatDate(currentDateTime)} | {formatTime(currentDateTime)}
-              </p>
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                <p className="text-sm text-gray-500">
+                  {formatDate(currentDateTime)} | {formatTime(currentDateTime)}
+                </p>
+                <div className="flex items-center gap-3 text-sm text-slate-600">
+                  {dashboardLoading && <span className="flex items-center gap-1">🔄 Refreshing...</span>}
+                  <span>Last updated: {lastUpdated.toLocaleTimeString()}</span>
+                </div>
+              </div>
             </div>
             <div className="flex items-center space-x-4">
               {/* Enhanced Break Controls */}

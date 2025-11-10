@@ -14,9 +14,10 @@ import {
   Clock,
   Coffee,
   Phone,
-  MapPin
+  MapPin,
+  RefreshCw
 } from "lucide-react"
-import api from "../config/api"
+import api, { WS_URL } from "../config/api"
 
 interface Officer {
   id: string
@@ -48,6 +49,39 @@ export default function TeleshopManagerOfficers() {
   
   useEffect(() => {
     fetchOfficers()
+    
+    // Auto-refresh every 30 seconds
+    const interval = setInterval(fetchOfficers, 30000)
+
+    // WebSocket for real-time updates
+    const ws = new WebSocket(WS_URL)
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data)
+        if (data.type === "OFFICER_STATUS_CHANGE" || data.type === "BREAK_STATUS_CHANGE" || data.type === "OFFICER_UPDATED") {
+          fetchOfficers()
+        }
+      } catch (error) {
+        console.error('WebSocket message parsing error:', error)
+      }
+    }
+
+    ws.onopen = () => {
+      console.log('TeleshopManagerOfficers WebSocket connected')
+    }
+
+    ws.onerror = (error) => {
+      console.error('TeleshopManagerOfficers WebSocket error:', error)
+    }
+
+    return () => {
+      clearInterval(interval)
+      try {
+        ws.close()
+      } catch (error) {
+        console.error('Error closing WebSocket:', error)
+      }
+    }
   }, [])
 
   const fetchOfficers = async () => {
@@ -194,16 +228,29 @@ export default function TeleshopManagerOfficers() {
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Manage Officers</h1>
             <p className="text-sm text-gray-500">
-              View and manage officers in your outlets
+              View and manage officers in your outlets. Updates automatically every 30 seconds.
             </p>
           </div>
-          <button
-            onClick={() => navigate('/teleshop-manager/officers/add')}
-            className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 flex items-center gap-2"
-          >
-            <UserPlus className="w-4 h-4" />
-            Add New Officer
-          </button>
+          <div className="flex items-center gap-2">
+            <div className="text-xs text-gray-500">
+              Last updated: {new Date().toLocaleTimeString()}
+            </div>
+            <button
+              onClick={fetchOfficers}
+              disabled={loading}
+              className="bg-green-600 text-white px-3 py-2 rounded-lg hover:bg-green-700 flex items-center gap-2 disabled:bg-gray-400"
+            >
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+              Refresh
+            </button>
+            <button
+              onClick={() => navigate('/teleshop-manager/officers/add')}
+              className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 flex items-center gap-2"
+            >
+              <UserPlus className="w-4 h-4" />
+              Add New Officer
+            </button>
+          </div>
         </div>
       </div>
 

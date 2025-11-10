@@ -3,7 +3,7 @@ import Header2 from '../adminComponents/branchDashboardComponents/Header2'
 import OverviewCards from '../adminComponents/branchDashboardComponents/OverviewCards'
 import AnalyticsCharts from '../adminComponents/branchDashboardComponents/AnalyticsCharts'
 import AgentPerformance from '../adminComponents/branchDashboardComponents/AgentPerformance'
-import api from '../../config/api'
+import api, { WS_URL } from '../../config/api'
 import { AlertsPanel } from '../adminComponents/dashboardComponents/AlertsPanel'
 
 interface BranchDashboardPageProps {
@@ -40,6 +40,41 @@ const BranchDashboardPage: React.FC<BranchDashboardPageProps> = ({ outlets = [] 
     if (!selectedBranchId) return
     if (hasUserSelectedBranch) {
       fetchBranchData(selectedBranchId)
+      
+      // Auto-refresh every 60 seconds for branch analytics
+      const interval = setInterval(() => {
+        fetchBranchData(selectedBranchId)
+      }, 60000)
+
+      // WebSocket for real-time updates
+      const ws = new WebSocket(WS_URL)
+      ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data)
+          if (data.type === "TOKEN_COMPLETED" || data.type === "NEW_TOKEN" || data.type === "OFFICER_STATUS_CHANGE") {
+            fetchBranchData(selectedBranchId)
+          }
+        } catch (error) {
+          console.error('WebSocket message parsing error:', error)
+        }
+      }
+
+      ws.onopen = () => {
+        console.log('BranchDashboard WebSocket connected')
+      }
+
+      ws.onerror = (error) => {
+        console.error('BranchDashboard WebSocket error:', error)
+      }
+
+      return () => {
+        clearInterval(interval)
+        try {
+          ws.close()
+        } catch (error) {
+          console.error('Error closing WebSocket:', error)
+        }
+      }
     }
   }, [selectedBranchId, hasUserSelectedBranch])
 

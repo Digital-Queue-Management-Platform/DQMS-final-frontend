@@ -38,6 +38,8 @@ export default function AdminDashboard() {
   const [showAlerts, setShowAlerts] = useState(false)
   const [loading, setLoading] = useState(true)
   const [outlets, setOutlets] = useState<any[]>([])
+  const [dashboardLoading, setDashboardLoading] = useState(false)
+  const [lastUpdated, setLastUpdated] = useState<Date>(new Date())
 
   const fetchOutlets = async () => {
     try {
@@ -57,18 +59,33 @@ export default function AdminDashboard() {
     fetchRealtimeStats()
     fetchAlerts()
 
-    // Refresh realtime stats every 30 seconds
-    const interval = setInterval(fetchRealtimeStats, 30000)
+    // Enhanced auto-refresh every 30 seconds for comprehensive analytics monitoring
+    const interval = setInterval(() => {
+      fetchRealtimeStats()
+      fetchAlerts()
+    }, 30000)
 
-    // WebSocket for real-time updates
+    // WebSocket for real-time comprehensive monitoring
     const ws = new WebSocket(WS_URL)
 
     ws.onmessage = (event) => {
-      const data = JSON.parse(event.data)
-      if (data.type === "NEGATIVE_FEEDBACK" || data.type === "LONG_WAIT") {
-        fetchAlerts()
+      try {
+        const data = JSON.parse(event.data)
+        if (data.type === "NEGATIVE_FEEDBACK" || data.type === "LONG_WAIT" || data.type === "NEW_TOKEN" || data.type === "TOKEN_COMPLETED" || data.type === "OFFICER_STATUS_CHANGE") {
+          fetchAlerts()
+          fetchRealtimeStats()
+        }
+      } catch (error) {
+        console.error('WebSocket message parsing error:', error)
       }
-      fetchRealtimeStats()
+    }
+
+    ws.onopen = () => {
+      console.log('AdminDashboard WebSocket connected')
+    }
+
+    ws.onerror = (error) => {
+      console.error('AdminDashboard WebSocket error:', error)
     }
 
     return () => {
@@ -106,10 +123,14 @@ export default function AdminDashboard() {
 
   const fetchRealtimeStats = async () => {
     try {
+      setDashboardLoading(true)
       const response = await api.get("/admin/dashboard/realtime")
       setRealtimeStats(response.data)
+      setLastUpdated(new Date())
     } catch (err) {
       console.error("Failed to fetch realtime stats:", err)
+    } finally {
+      setDashboardLoading(false)
     }
   }
 
@@ -165,7 +186,13 @@ export default function AdminDashboard() {
           <div className="flex items-center justify-between">
             <div className="min-w-0 flex-1">
               <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 truncate">Admin Dashboard</h1>
-              <p className="text-[10px] sm:text-sm text-gray-600 block">Digital Queue Management System</p>
+              <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
+                <p className="text-[10px] sm:text-sm text-gray-600">Digital Queue Management System</p>
+                <div className="flex items-center gap-2 text-xs text-slate-600">
+                  {dashboardLoading && <span className="flex items-center gap-1">🔄 Refreshing...</span>}
+                  <span>Last updated: {lastUpdated.toLocaleTimeString()}</span>
+                </div>
+              </div>
             </div>
 
             <div className="flex items-center gap-2 sm:gap-4">

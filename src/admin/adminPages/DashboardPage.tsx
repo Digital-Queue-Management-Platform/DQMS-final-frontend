@@ -49,6 +49,8 @@ const DashboardPage: React.FC = () => {
   const [realtimeStats, setRealtimeStats] = useState<any | null>(null)
   // removed unused loading state
   const [outlets, setOutlets] = useState<any[]>([])
+  const [dashboardLoading, setDashboardLoading] = useState(false)
+  const [lastUpdated, setLastUpdated] = useState<Date>(new Date())
 
   // Computed unread notifications count
   const unreadNotifications = alerts.filter(alert => !alert.isRead).length;
@@ -58,21 +60,33 @@ const DashboardPage: React.FC = () => {
     fetchRealtimeStats()
     fetchAlerts()
 
-    const interval = setInterval(fetchRealtimeStats, 30000)
+    // Enhanced auto-refresh every 30 seconds for comprehensive dashboard monitoring
+    const interval = setInterval(() => {
+      fetchRealtimeStats()
+      fetchAlerts()
+    }, 30000)
 
     const ws = new WebSocket(WS_URL)
     ws.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data)
         // Refresh alerts on certain types of events
-        if (data.type === "NEGATIVE_FEEDBACK" || data.type === "LONG_WAIT") {
+        if (data.type === "NEGATIVE_FEEDBACK" || data.type === "LONG_WAIT" || data.type === "NEW_TOKEN" || data.type === "TOKEN_COMPLETED" || data.type === "OFFICER_STATUS_CHANGE") {
           fetchAlerts()
+          fetchRealtimeStats()
         }
         // ignore specific data types, just refresh stats
       } catch (e) {
-        // ignore
+        console.error('WebSocket message parsing error:', e)
       }
-      fetchRealtimeStats()
+    }
+
+    ws.onopen = () => {
+      console.log('AdminDashboard WebSocket connected')
+    }
+
+    ws.onerror = (error) => {
+      console.error('AdminDashboard WebSocket error:', error)
     }
 
     return () => {
@@ -230,10 +244,14 @@ const DashboardPage: React.FC = () => {
 
   const fetchRealtimeStats = async () => {
     try {
+      setDashboardLoading(true)
       const res = await api.get('/admin/dashboard/realtime')
       setRealtimeStats(res.data)
+      setLastUpdated(new Date())
     } catch (err) {
       console.error('Failed to fetch realtime stats', err)
+    } finally {
+      setDashboardLoading(false)
     }
   }
 
@@ -290,11 +308,17 @@ const DashboardPage: React.FC = () => {
               <h1 className="text-2xl font-bold text-gray-900">
                 {showBranchDashboard ? 'Branch Dashboard' : 'Admin Dashboard'}
               </h1>
-              <div className="flex text-sm items-center text-gray-500 mt-1">
-                <Clock size={16} className="mr-1" />
-                <span>
-                  {formatDate(currentDateTime)} | {formatTime(currentDateTime)}
-                </span>
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                <div className="flex text-sm items-center text-gray-500">
+                  <Clock size={16} className="mr-1" />
+                  <span>
+                    {formatDate(currentDateTime)} | {formatTime(currentDateTime)}
+                  </span>
+                </div>
+                <div className="flex items-center gap-3 text-sm text-slate-600">
+                  {dashboardLoading && <span className="flex items-center gap-1">🔄 Refreshing...</span>}
+                  <span>Last updated: {lastUpdated.toLocaleTimeString()}</span>
+                </div>
               </div>
             </div>
             <div className="flex items-center space-x-4">

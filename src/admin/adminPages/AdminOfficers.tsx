@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import api from '../../config/api'
+import api, { WS_URL } from '../../config/api'
 import { Users, Hash, CheckCircle2, XCircle, Search, UserCog } from 'lucide-react'
 
 interface Officer {
@@ -15,10 +15,47 @@ const AdminOfficers: React.FC = () => {
   const [officers, setOfficers] = useState<Officer[]>([])
   const [services, setServices] = useState<any[]>([])
   const [searchTerm, setSearchTerm] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [lastUpdated, setLastUpdated] = useState<Date>(new Date())
 
   useEffect(() => {
     fetchOfficers()
     fetchServices()
+    
+    // Auto-refresh every 30 seconds for admin officer overview
+    const interval = setInterval(() => {
+      fetchOfficers()
+    }, 30000)
+
+    // WebSocket for real-time officer updates
+    const ws = new WebSocket(WS_URL)
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data)
+        if (data.type === "OFFICER_STATUS_CHANGE" || data.type === "OFFICER_ASSIGNMENT_CHANGE" || data.type === "BREAK_STATUS_CHANGE") {
+          fetchOfficers()
+        }
+      } catch (error) {
+        console.error('WebSocket message parsing error:', error)
+      }
+    }
+
+    ws.onopen = () => {
+      console.log('AdminOfficers WebSocket connected')
+    }
+
+    ws.onerror = (error) => {
+      console.error('AdminOfficers WebSocket error:', error)
+    }
+
+    return () => {
+      clearInterval(interval)
+      try {
+        ws.close()
+      } catch (error) {
+        console.error('Error closing WebSocket:', error)
+      }
+    }
   }, [])
 
   const fetchServices = async () => {
@@ -33,10 +70,14 @@ const AdminOfficers: React.FC = () => {
 
   const fetchOfficers = async () => {
     try {
+      setLoading(true)
       const res = await api.get('/admin/officers')
       setOfficers(res.data)
+      setLastUpdated(new Date())
     } catch (err) {
       console.error('Failed to fetch officers', err)
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -51,7 +92,13 @@ const AdminOfficers: React.FC = () => {
             </div>
             <div>
               <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Officers Management</h1>
-              <p className="text-gray-600 text-sm hidden sm:block">Overview of officer assignments and services</p>
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                <p className="text-gray-600 text-sm">Overview of officer assignments and services</p>
+                <div className="flex items-center gap-3 text-sm text-slate-600">
+                  {loading && <span className="flex items-center gap-1">🔄 Refreshing...</span>}
+                  <span>Last updated: {lastUpdated.toLocaleTimeString()}</span>
+                </div>
+              </div>
             </div>
           </div>
           <p className="text-gray-600 text-sm sm:hidden">Overview of officer assignments and services</p>

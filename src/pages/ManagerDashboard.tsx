@@ -23,6 +23,8 @@ export default function ManagerDashboard() {
   const [branchData, setBranchData] = useState<BranchData[]>([])
   const [loading, setLoading] = useState(true)
   const [currentDateTime, setCurrentDateTime] = useState<Date>(new Date())
+  const [dashboardLoading, setDashboardLoading] = useState(false)
+  const [lastUpdated, setLastUpdated] = useState<Date>(new Date())
   const [regionStats, setRegionStats] = useState({
     totalCustomersServed: 0,
     avgRegionalWaitTime: 0,
@@ -36,13 +38,29 @@ export default function ManagerDashboard() {
     // Manager authentication is handled globally by Layout
     fetchRegionalData()
 
-    // WebSocket for real-time updates
+    // Enhanced auto-refresh every 30 seconds for regional management overview
+    const interval = setInterval(fetchRegionalData, 30000)
+
+    // WebSocket for real-time branch data monitoring
     const ws = new WebSocket(WS_URL)
-    ws.onmessage = () => {
-      fetchRegionalData()
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data)
+        if (data.type === "NEW_TOKEN" || data.type === "TOKEN_COMPLETED" || data.type === "OFFICER_STATUS_CHANGE" || data.type === "BRANCH_UPDATED") {
+          fetchRegionalData()
+        }
+      } catch (error) {
+        console.error('WebSocket message parsing error:', error)
+      }
     }
 
-    const interval = setInterval(fetchRegionalData, 30000) // Refresh every 30 seconds
+    ws.onopen = () => {
+      console.log('ManagerDashboard WebSocket connected')
+    }
+
+    ws.onerror = (error) => {
+      console.error('ManagerDashboard WebSocket error:', error)
+    }
 
     return () => {
       clearInterval(interval)
@@ -81,14 +99,15 @@ export default function ManagerDashboard() {
 
   const fetchRegionalData = async () => {
     try {
-  // Fetch only this manager's region outlets
-  const storedManager = localStorage.getItem('manager')
-  const managerData = storedManager ? JSON.parse(storedManager) : null
-  const params: any = {}
-  if (managerData?.email) params.email = managerData.email
-  
-  const meRes = await api.get('/manager/me', { params })
-  const outlets = (meRes.data?.manager?.outlets || [])
+      setDashboardLoading(true)
+      // Fetch only this manager's region outlets
+      const storedManager = localStorage.getItem('manager')
+      const managerData = storedManager ? JSON.parse(storedManager) : null
+      const params: any = {}
+      if (managerData?.email) params.email = managerData.email
+      
+      const meRes = await api.get('/manager/me', { params })
+      const outlets = (meRes.data?.manager?.outlets || [])
 
       const branchMetrics = await Promise.all(
         outlets.map(async (outlet: any) => {
@@ -165,10 +184,13 @@ export default function ManagerDashboard() {
         totalCustomersWaiting: totalWaiting
       })
 
+      setLastUpdated(new Date())
+
     } catch (error) {
       console.error('Failed to fetch regional data:', error)
     } finally {
       setLoading(false)
+      setDashboardLoading(false)
     }
   }
 
@@ -193,9 +215,15 @@ export default function ManagerDashboard() {
           <div className="flex items-center justify-between mb-2">
             <div>
               <h1 className="text-2xl font-bold text-gray-900">RTOM Dashboard</h1>
-              <p className="text-sm text-gray-500">
-                {formatDate(currentDateTime)} | {formatTime(currentDateTime)}
-              </p>
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                <p className="text-sm text-gray-500">
+                  {formatDate(currentDateTime)} | {formatTime(currentDateTime)}
+                </p>
+                <div className="flex items-center gap-3 text-sm text-slate-600">
+                  {dashboardLoading && <span className="flex items-center gap-1">🔄 Refreshing...</span>}
+                  <span>Last updated: {lastUpdated.toLocaleTimeString()}</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>

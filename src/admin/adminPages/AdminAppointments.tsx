@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react"
 import { Calendar, Filter, RefreshCwIcon, Search } from "lucide-react"
-import api from "../../config/api"
+import api, { WS_URL } from "../../config/api"
 
 type Outlet = { id: string; name: string; location: string }
 type Appointment = {
@@ -34,7 +34,44 @@ export default function AdminAppointments() {
   const [error, setError] = useState('')
   const [rows, setRows] = useState<(Appointment & { outletName?: string; outletLocation?: string })[]>([])
 
-  useEffect(() => { fetchOutlets() }, [])
+  useEffect(() => { 
+    fetchOutlets()
+    
+    // Auto-refresh every 30 seconds
+    const interval = setInterval(() => {
+      if (outlets.length) loadData()
+    }, 30000)
+
+    // WebSocket for real-time updates
+    const ws = new WebSocket(WS_URL)
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data)
+        if (data.type === "NEW_APPOINTMENT" || data.type === "APPOINTMENT_QUEUED" || data.type === "APPOINTMENT_CANCELLED") {
+          if (outlets.length) loadData()
+        }
+      } catch (error) {
+        console.error('WebSocket message parsing error:', error)
+      }
+    }
+
+    ws.onopen = () => {
+      console.log('AdminAppointments WebSocket connected')
+    }
+
+    ws.onerror = (error) => {
+      console.error('AdminAppointments WebSocket error:', error)
+    }
+
+    return () => {
+      clearInterval(interval)
+      try {
+        ws.close()
+      } catch (error) {
+        console.error('Error closing WebSocket:', error)
+      }
+    }
+  }, [])
 
   const fetchOutlets = async () => {
     try {
@@ -103,14 +140,19 @@ export default function AdminAppointments() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-2 gap-3 sm:gap-0">
           <div className="min-w-0 flex-1">
             <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 truncate">Appointment Pool</h1>
-            <p className="text-xs sm:text-sm text-gray-600 hidden sm:block">View and filter all booked appointments by outlet, date, status, and service.</p>
+            <p className="text-xs sm:text-sm text-gray-600 hidden sm:block">View and filter all booked appointments by outlet, date, status, and service. Updates automatically every 30 seconds.</p>
           </div>
-          <button onClick={loadData} className="inline-flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 flex-shrink-0">
-            <RefreshCwIcon className="w-4 h-4" /> 
-            <span className="hidden sm:inline">Refresh</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <div className="text-xs text-gray-500">
+              Last updated: {new Date().toLocaleTimeString()}
+            </div>
+            <button onClick={loadData} disabled={loading} className="inline-flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 flex-shrink-0 disabled:bg-gray-400">
+              <RefreshCwIcon className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} /> 
+              <span className="hidden sm:inline">Refresh</span>
+            </button>
+          </div>
         </div>
-        <p className="text-xs sm:text-sm text-gray-600 sm:hidden">View and filter all booked appointments by outlet, date, status, and service.</p>
+        <p className="text-xs sm:text-sm text-gray-600 sm:hidden">View and filter all booked appointments. Updates automatically every 30 seconds.</p>
       </div>
 
       <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 mb-4">

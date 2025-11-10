@@ -10,10 +10,11 @@ import {
   MapPin,
   ChevronLeft,
   ChevronRight,
-  Download
+  Download,
+  RefreshCw
 } from "lucide-react"
 import CompletedServiceCard from "../components/CompletedServiceCard"
-import api from "../config/api"
+import api, { WS_URL } from "../config/api"
 
 interface CompletedService {
   id: string
@@ -103,6 +104,41 @@ export default function TeleshopManagerCompletedServices() {
     fetchTeleshopManagerData()
     fetchOfficersAndOutlets()
     fetchServices()
+    
+    // Auto-refresh every 60 seconds for completed services
+    const interval = setInterval(() => {
+      fetchServices()
+    }, 60000)
+
+    // WebSocket for real-time updates
+    const ws = new WebSocket(WS_URL)
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data)
+        if (data.type === "TOKEN_COMPLETED" || data.type === "SERVICE_COMPLETED") {
+          fetchServices()
+        }
+      } catch (error) {
+        console.error('WebSocket message parsing error:', error)
+      }
+    }
+
+    ws.onopen = () => {
+      console.log('TeleshopManagerCompletedServices WebSocket connected')
+    }
+
+    ws.onerror = (error) => {
+      console.error('TeleshopManagerCompletedServices WebSocket error:', error)
+    }
+
+    return () => {
+      clearInterval(interval)
+      try {
+        ws.close()
+      } catch (error) {
+        console.error('Error closing WebSocket:', error)
+      }
+    }
   }, [currentPage, filters])
 
   const fetchTeleshopManagerData = async () => {
@@ -236,13 +272,29 @@ export default function TeleshopManagerCompletedServices() {
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back to Dashboard
             </button>
-            <h1 className="text-2xl font-bold text-gray-900">Completed Services</h1>
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">Completed Services</h1>
+              <p className="text-sm text-gray-500">Updates automatically every 60 seconds</p>
+            </div>
           </div>
           
-          <button className="flex items-center bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700">
-            <Download className="w-4 h-4 mr-2" />
-            Export Report
-          </button>
+          <div className="flex items-center gap-2">
+            <div className="text-xs text-gray-500">
+              Last updated: {new Date().toLocaleTimeString()}
+            </div>
+            <button 
+              onClick={fetchServices}
+              disabled={loading}
+              className="flex items-center bg-green-600 text-white px-3 py-2 rounded-lg hover:bg-green-700 disabled:bg-gray-400"
+            >
+              <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+              Refresh
+            </button>
+            <button className="flex items-center bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700">
+              <Download className="w-4 h-4 mr-2" />
+              Export Report
+            </button>
+          </div>
         </div>
 
         {/* Statistics Cards */}
