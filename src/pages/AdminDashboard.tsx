@@ -40,8 +40,16 @@ export default function AdminDashboard() {
   const [outlets, setOutlets] = useState<any[]>([])
   const [dashboardLoading, setDashboardLoading] = useState(false)
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date())
+  const [isAuthenticated, setIsAuthenticated] = useState(true) // Track authentication state
 
   const fetchOutlets = async () => {
+    // Check if admin is still authenticated before making API call
+    const adminToken = localStorage.getItem('adminToken')
+    if (!adminToken) {
+      console.log('No admin token found, skipping outlets fetch')
+      return
+    }
+
     try {
       const response = await api.get("/queue/outlets")
       setOutlets(response.data)
@@ -54,7 +62,42 @@ export default function AdminDashboard() {
     fetchOutlets()
   }, [])
 
+  // Monitor authentication state changes
   useEffect(() => {
+    const checkAuthStatus = () => {
+      const adminToken = localStorage.getItem('adminToken')
+      const isCurrentlyAuth = !!adminToken
+      
+      if (isAuthenticated !== isCurrentlyAuth) {
+        setIsAuthenticated(isCurrentlyAuth)
+        if (!isCurrentlyAuth) {
+          console.log('Admin token removed, stopping dashboard activities')
+          // Clear all state when unauthenticated
+          setAnalytics(null)
+          setRealtimeStats(null)
+          setAlerts([])
+        }
+      }
+    }
+
+    // Check initially
+    checkAuthStatus()
+
+    // Set up interval to periodically check auth status
+    const authCheckInterval = setInterval(checkAuthStatus, 1000)
+
+    return () => {
+      clearInterval(authCheckInterval)
+    }
+  }, [isAuthenticated])
+
+  useEffect(() => {
+    // Only proceed if authenticated
+    if (!isAuthenticated) {
+      console.log('Not authenticated, skipping dashboard initialization')
+      return
+    }
+
     fetchAnalytics()
     fetchRealtimeStats()
     fetchAlerts()
@@ -98,9 +141,16 @@ export default function AdminDashboard() {
       clearInterval(interval)
       ws.close()
     }
-  }, [])
+  }, [isAuthenticated]) // Re-run when authentication state changes
 
   const fetchAnalytics = async () => {
+    // Check if admin is still authenticated before making API call
+    const adminToken = localStorage.getItem('adminToken')
+    if (!adminToken) {
+      console.log('No admin token found, skipping analytics fetch')
+      return
+    }
+
     setLoading(true)
     try {
       // Ensure end date includes the full day
@@ -128,6 +178,13 @@ export default function AdminDashboard() {
   }
 
   const fetchRealtimeStats = async () => {
+    // Check if admin is still authenticated before making API call
+    const adminToken = localStorage.getItem('adminToken')
+    if (!adminToken) {
+      console.log('No admin token found, skipping realtime stats fetch')
+      return
+    }
+
     try {
       setDashboardLoading(true)
       const response = await api.get("/admin/dashboard/realtime")
@@ -141,6 +198,13 @@ export default function AdminDashboard() {
   }
 
   const fetchAlerts = async () => {
+    // Check if admin is still authenticated before making API call
+    const adminToken = localStorage.getItem('adminToken')
+    if (!adminToken) {
+      console.log('No admin token found, skipping alerts fetch')
+      return
+    }
+
     try {
       const params: any = { isRead: false }
       if (alertFilter.type) params.type = alertFilter.type
@@ -156,6 +220,13 @@ export default function AdminDashboard() {
   }
 
   const markAlertAsRead = async (alertId: string) => {
+    // Check if admin is still authenticated before making API call
+    const adminToken = localStorage.getItem('adminToken')
+    if (!adminToken) {
+      console.log('No admin token found, skipping mark alert as read')
+      return
+    }
+
     try {
       await api.patch(`/admin/alerts/${alertId}/read`)
       fetchAlerts()
