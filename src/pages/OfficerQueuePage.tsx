@@ -22,6 +22,72 @@ export default function OfficerQueuePage() {
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date())
   const TWILIO_TO_NUMBER = import.meta.env.VITE_TWILIO_TO_NUMBER
   
+  // Helpers for language selection from a token's preferredLanguages
+  const toLangArray = (val: any): string[] => {
+    try {
+      if (!val) return []
+      if (Array.isArray(val)) return val.filter(v => typeof v === 'string') as string[]
+      if (typeof val === 'string') {
+        const parsed = JSON.parse(val)
+        return Array.isArray(parsed) ? parsed.filter(v => typeof v === 'string') : []
+      }
+      if (typeof val === 'object') {
+        return Object.values(val).filter(v => typeof v === 'string') as string[]
+      }
+    } catch {}
+    return []
+  }
+
+  const pickLang = (token?: any): 'en' | 'si' | 'ta' => {
+    const arr = toLangArray(token?.preferredLanguages)
+    const l = (arr[0] as any) || 'en'
+    return l === 'si' || l === 'ta' ? l : 'en'
+  }
+
+  const langText = {
+    // Put required lang first, optional counter second (fix TS param order)
+    proceed: (lang: 'en'|'si'|'ta', counter?: number) => ({
+      en: `Please proceed to counter ${counter ?? ''} for your service.`,
+      si: `කරුණාකර ඔබගේ සේවා සඳහා ${counter ?? ''} කවුටරයට පැමිණෙන්න.`,
+      ta: `தயவுசெய்து உங்கள் சேவைக்காக ${counter ?? ''} கவுண்டருக்கு செல்லவும்.`,
+    })[lang],
+    skipped: (lang: 'en'|'si'|'ta') => ({
+      en: `Your token has been skipped.`,
+      si: `ඔබගේ ටෝකනය මඟ හැර තිබේ.`,
+      ta: `உங்கள் டோக்கன் தவிர்க்கப்பட்டுள்ளது.`,
+    })[lang],
+    recalled: (lang: 'en'|'si'|'ta', counter?: number) => ({
+      en: `You have been recalled to counter ${counter ?? ''} for your service.`,
+      si: `ඔබගේ සේවාව සඳහා ඔබව ${counter ?? ''} කවුටරයට නැවත කැඳවා ඇත.`,
+      ta: `உங்கள் சேவைக்காக ${counter ?? ''} கவுண்டருக்கு உங்களை மீண்டும் அழைத்திருக்கிறோம்.`,
+    })[lang],
+    completed: (
+      ref: string | null,
+      track: string | null,
+      lang: 'en'|'si'|'ta',
+      extra?: { officerName?: string; outletName?: string; servicesStr?: string }
+    ) => ({
+      /*en: ref
+        ? `Your service is completed. Officer: ${extra?.officerName ?? ''} | Outlet: ${extra?.outletName ?? ''} | Services: ${extra?.servicesStr ?? ''} |Ref: ${ref}. Track: ${track ?? ''}`
+        : `Service completed. Thank you for visiting.`,
+      si: ref
+        ? `ඔබගේ සේවාව සම්පූර්ණ විය. නිලධාරී: ${extra?.officerName ?? ''} | ශාඛාව: ${extra?.outletName ?? ''} | සේවාවන්: ${extra?.servicesStr ?? ''} | යොමු අංකය: ${ref}. පථය: ${track ?? ''}`
+        : `සේවාව සම්පූර්ණයි. පැමිණියේට ස්තුති.`,
+      ta: ref
+        ? `உங்கள் சேவை முடிந்தது. அதிகாரி: ${extra?.officerName ?? ''} | கிளை: ${extra?.outletName ?? ''} | சேவைகள்: ${extra?.servicesStr ?? ''} | குறிப்பு: ${ref}. கண்காணிப்பு: ${track ?? ''}`
+        : `சேவை முடிந்தது. வருகைக்கு நன்றி.`,*/
+        en: ref
+        ? `Your service is completed |Ref: ${ref}. Track: ${track ?? ''}`
+        : `Service completed. Thank you for visiting.`,
+      si: ref
+        ? `ඔබගේ සේවාව සම්පූර්ණ විය | යොමු අංකය: ${ref}. පථය: ${track ?? ''}`
+        : `සේවාව සම්පූර්ණයි. පැමිණියේට ස්තුති.`,
+      ta: ref
+        ? `உங்கள் சேவை முடிந்தது | குறிப்பு: ${ref}. கண்காணிப்பு: ${track ?? ''}`
+        : `சேவை முடிந்தது. வருகைக்கு நன்றி.`,
+    })[lang],
+  }
+  
   // Helper functions for date and time formatting
   const formatDate = (date: Date) => {
     return date.toLocaleDateString('en-US', {
@@ -154,34 +220,54 @@ export default function OfficerQueuePage() {
     if (!officer) return
     setLoading(true)
     try {
-      const resp = await api.post('/twilio/test', {
-        to: TWILIO_TO_NUMBER,
-        body: `Please proceed to the counter ${officer.counterNumber} for your service.`,
-      })
-      if (resp.data?.success) {
-        alert('Test SMS sent (sid: ' + resp.data.sid + ')')
-      } else {
-        alert('Failed to send test SMS')
-      }
-    } catch (err: any) {
-      console.error('Test SMS failed:', err)
-      alert('Test SMS failed: ' + (err.response?.data?.error || err.message || 'Unknown error'))
-    }
-    try {
+      // First assign next token, then notify in preferred language
       const response = await api.post('/officer/next-token', { officerId: officer.id })
       if (response.data.fallbackAllowed && !response.data.token) {
         const confirmed = confirm('No online/available relevant officers for this service. Do you want to call the next customer cross-service?')
         if (!confirmed) return
         const confirmRes = await api.post('/officer/next-token', { officerId: officer.id, allowFallback: true })
         if (confirmRes.data.token) {
-          setCurrentToken(confirmRes.data.token)
+          const picked = confirmRes.data.token
+          // Send localized proceed message
+          try {
+            const lang = pickLang(picked)
+              const resp = await api.post('/twilio/test', {
+                to: TWILIO_TO_NUMBER,
+                body: langText.proceed(lang, officer.counterNumber),
+            })
+            if (resp.data?.success) {
+              alert('Test SMS sent (sid: ' + resp.data.sid + ')')
+            } else {
+              alert('Failed to send test SMS')
+            }
+          } catch (err:any) {
+            console.error('Test SMS failed:', err)
+            alert('Test SMS failed: ' + (err.response?.data?.error || err.message || 'Unknown error'))
+          }
+          setCurrentToken(picked)
           setAccountRef("")
           fetchQueue(officer.outletId)
         }
       } else if (response.data.token) {
         console.log('Received token data:', response.data.token)
         console.log('Customer name:', response.data.token.customer?.name)
-        setCurrentToken(response.data.token)
+        const picked = response.data.token
+        try {
+          const lang = pickLang(picked)
+            const resp = await api.post('/twilio/test', {
+              to: TWILIO_TO_NUMBER,
+              body: langText.proceed(lang, officer.counterNumber),
+          })
+          if (resp.data?.success) {
+            alert('Test SMS sent (sid: ' + resp.data.sid + ')')
+          } else {
+            alert('Failed to send test SMS')
+          }
+        } catch (err:any) {
+          console.error('Test SMS failed:', err)
+          alert('Test SMS failed: ' + (err.response?.data?.error || err.message || 'Unknown error'))
+        }
+        setCurrentToken(picked)
         setAccountRef("")
         fetchQueue(officer.outletId)
       }
@@ -201,16 +287,16 @@ export default function OfficerQueuePage() {
       const refNumber: string | null = completeResp.data?.refNumber || null
       const trackUrl: string | null = completeResp.data?.trackUrl || null
       const tokenData = completeResp.data?.token
-      const officerName = tokenData?.officer?.name || officer.name || 'Officer'
-      const outletName = tokenData?.outlet?.name || ''
-      const servicesArray: string[] = Array.isArray(tokenData?.serviceTypes) ? tokenData.serviceTypes : []
-      const servicesStr = servicesArray.length > 0 ? servicesArray.join(', ') : 'None'
+  const officerName = tokenData?.officer?.name || officer.name || 'Officer'
+  const outletName = tokenData?.outlet?.name || ''
+  const servicesArray: string[] = Array.isArray(tokenData?.serviceTypes) ? tokenData.serviceTypes : []
+  const servicesStr = servicesArray.length > 0 ? servicesArray.join(', ') : 'None'
 
       // Compose single SMS body matching backend console format with absolute Track URL
       // Example: Ref: 2025-11-08/Outlet/7 | Officer: Jane | Outlet: MainBranch | Services: BILL_PAYMENT, OTHERS. Track: https://app.example.com/service/status?ref=...
-      const body = refNumber
-        ? `Ref: ${refNumber} | Officer: ${officerName} | Outlet: ${outletName} | Services: ${servicesStr}. Track: ${trackUrl || ''}`
-        : 'Service completed. Thank you for visiting.'
+      const lang = pickLang(tokenData || currentToken)
+  const body = langText.completed(refNumber, trackUrl, lang, { officerName, outletName, servicesStr })
+
 
       try {
         const smsResp = await api.post('/twilio/test', {
@@ -244,9 +330,14 @@ export default function OfficerQueuePage() {
     if (!confirm('Are you sure you want to skip this customer?')) return
     setLoading(true)
     try {
+       // Resolve token to read language
+      const tokenObj = (currentToken && currentToken.id === targetTokenId)
+        ? currentToken
+        : (queue?.waiting || []).find(t => t.id === targetTokenId)
+      const lang = pickLang(tokenObj)
       const resp = await api.post('/twilio/test', {
         to: TWILIO_TO_NUMBER,
-        body: `Your token has been skipped.`,
+        body: langText.skipped(lang),
       })
       if (resp.data?.success) {
         alert('Test SMS sent (sid: ' + resp.data.sid + ')')
@@ -275,9 +366,13 @@ export default function OfficerQueuePage() {
     if (!confirm('Recall this customer?')) return
     setLoading(true)
     try {
+      const tokenObj = (currentToken && currentToken.id === tokenId)
+        ? currentToken
+        : (queue?.waiting || []).find(t => t.id === tokenId)
+      const lang = pickLang(tokenObj)
       const resp = await api.post('/twilio/test', {
         to: TWILIO_TO_NUMBER,
-        body: `You have been recalled again to counter ${officer.counterNumber} for your service.`,
+        body: langText.recalled(lang, officer.counterNumber),
       })
       if (resp.data?.success) {
         alert('Test SMS sent (sid: ' + resp.data.sid + ')')

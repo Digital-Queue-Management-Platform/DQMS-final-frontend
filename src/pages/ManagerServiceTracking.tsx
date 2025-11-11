@@ -12,6 +12,7 @@ type CaseData = {
   serviceTypes: string[]
   createdAt: string
   completedAt?: string | null
+  preferredLanguage?: string | null
   updates: CaseUpdate[]
 }
 
@@ -23,6 +24,7 @@ export default function ManagerServiceTracking() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
+  const [lang, setLang] = useState<'en' | 'si' | 'ta'>('en')
   const TWILIO_TO_NUMBER = import.meta.env.VITE_TWILIO_TO_NUMBER
 
   const load = async () => {
@@ -69,9 +71,16 @@ export default function ManagerServiceTracking() {
       setNote(''); setStatusText('')
       await load()
       try {
+        // Determine language preference: case data (customer) or selected fallback
+        const effectiveLang = (data?.preferredLanguage as 'en' | 'si' | 'ta') || lang || 'en'
+        const bodies: Record<string, string> = {
+          en: `Your service is marked as completed.\nReference: ${ref.trim()}`,
+          si: `ඔබගේ සේවාව සම්පූර්ණ කරන ලදී.\nයොමු අංකය: ${ref.trim()}`,
+          ta: `உங்கள் சேவை முடிக்கப்பட்டதாக குறிக்கப்பட்டது.\nகுறிப்பு: ${ref.trim()}`,
+        }
         const resp = await api.post('/twilio/test', {
           to: TWILIO_TO_NUMBER,
-          body: `Your Service is Marked as Completed! \nReference: ${ref.trim()}`,
+          body: bodies[bodies[effectiveLang] ? effectiveLang : 'en'],
         })
         if (resp.data?.success) {
           alert('Test SMS sent (sid: ' + resp.data.sid + ')')
@@ -91,6 +100,16 @@ export default function ManagerServiceTracking() {
     <div className="p-6 max-w-3xl mx-auto">
       <div className="bg-white rounded-xl shadow-sm p-5 mb-4">
         <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-3">Service Tracking</h1>
+        <div className="flex gap-2 mb-2">
+          {['en','si','ta'].map(l => (
+            <button
+              key={l}
+              onClick={() => setLang(l as any)}
+              type="button"
+              className={`px-2 py-1 rounded text-xs font-medium ${lang===l ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700'}`}
+            >{l.toUpperCase()}</button>
+          ))}
+        </div>
         <div className="flex gap-2">
           <div className="relative flex-1">
             <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -109,6 +128,9 @@ export default function ManagerServiceTracking() {
             <span className="px-2 py-1 bg-gray-100 rounded font-mono text-sm">{data.refNumber}</span>
             <span className={`ml-auto text-xs px-2 py-1 rounded-full font-semibold ${data.status === 'completed' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>{data.status.toUpperCase()}</span>
           </div>
+          {data.preferredLanguage && (
+            <div className="text-xs text-gray-500">Customer Prefers: {data.preferredLanguage.toUpperCase()}</div>
+          )}
           <div className="text-sm text-gray-700">{data.outlet.name} — {data.outlet.location} • Services: {(data.serviceTypes || []).join(', ')}</div>
           <div className="space-y-3">
             {(data.updates || []).map(u => (
