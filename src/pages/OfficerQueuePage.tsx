@@ -63,7 +63,7 @@ export default function OfficerQueuePage() {
     })[lang],
     completed: (
       ref: string | null,
-      track: string | null,
+      _track: string | null,
       lang: 'en'|'si'|'ta',
       _extra?: { officerName?: string; outletName?: string; servicesStr?: string }
     ) => ({
@@ -76,7 +76,7 @@ export default function OfficerQueuePage() {
       ta: ref
         ? `உங்கள் சேவை முடிந்தது. அதிகாரி: ${extra?.officerName ?? ''} | கிளை: ${extra?.outletName ?? ''} | சேவைகள்: ${extra?.servicesStr ?? ''} | குறிப்பு: ${ref}. கண்காணிப்பு: ${track ?? ''}`
         : `சேவை முடிந்தது. வருகைக்கு நன்றி.`,*/
-        en: ref
+      en: ref
         ? `Your service is completed |Ref: ${ref}.}`
         : `Service completed. Thank you for visiting.`,
       si: ref
