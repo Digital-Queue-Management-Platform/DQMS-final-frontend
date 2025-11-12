@@ -65,7 +65,7 @@ export default function OfficerQueuePage() {
       ref: string | null,
       track: string | null,
       lang: 'en'|'si'|'ta',
-      extra?: { officerName?: string; outletName?: string; servicesStr?: string }
+      _extra?: { officerName?: string; outletName?: string; servicesStr?: string }
     ) => ({
       /*en: ref
         ? `Your service is completed. Officer: ${extra?.officerName ?? ''} | Outlet: ${extra?.outletName ?? ''} | Services: ${extra?.servicesStr ?? ''} |Ref: ${ref}. Track: ${track ?? ''}`
