@@ -77,13 +77,13 @@ export default function OfficerQueuePage() {
         ? `உங்கள் சேவை முடிந்தது. அதிகாரி: ${extra?.officerName ?? ''} | கிளை: ${extra?.outletName ?? ''} | சேவைகள்: ${extra?.servicesStr ?? ''} | குறிப்பு: ${ref}. கண்காணிப்பு: ${track ?? ''}`
         : `சேவை முடிந்தது. வருகைக்கு நன்றி.`,*/
         en: ref
-        ? `Your service is completed |Ref: ${ref}. Track: ${track ?? ''}`
+        ? `Your service is completed |Ref: ${ref}.}`
         : `Service completed. Thank you for visiting.`,
       si: ref
-        ? `ඔබගේ සේවාව සම්පූර්ණ විය | යොමු අංකය: ${ref}. පථය: ${track ?? ''}`
+        ? `ඔබගේ සේවාව සම්පූර්ණ විය | යොමු අංකය: ${ref}.}`
         : `සේවාව සම්පූර්ණයි. පැමිණියේට ස්තුති.`,
       ta: ref
-        ? `உங்கள் சேவை முடிந்தது | குறிப்பு: ${ref}. கண்காணிப்பு: ${track ?? ''}`
+        ? `உங்கள் சேவை முடிந்தது | குறிப்பு: ${ref}.}`
         : `சேவை முடிந்தது. வருகைக்கு நன்றி.`,
     })[lang],
   }
@@ -287,15 +287,15 @@ export default function OfficerQueuePage() {
       const refNumber: string | null = completeResp.data?.refNumber || null
       const trackUrl: string | null = completeResp.data?.trackUrl || null
       const tokenData = completeResp.data?.token
-  const officerName = tokenData?.officer?.name || officer.name || 'Officer'
-  const outletName = tokenData?.outlet?.name || ''
-  const servicesArray: string[] = Array.isArray(tokenData?.serviceTypes) ? tokenData.serviceTypes : []
-  const servicesStr = servicesArray.length > 0 ? servicesArray.join(', ') : 'None'
+      const officerName = tokenData?.officer?.name || officer.name || 'Officer'
+      const outletName = tokenData?.outlet?.name || ''
+      const servicesArray: string[] = Array.isArray(tokenData?.serviceTypes) ? tokenData.serviceTypes : []
+      const servicesStr = servicesArray.length > 0 ? servicesArray.join(', ') : 'None'
 
       // Compose single SMS body matching backend console format with absolute Track URL
       // Example: Ref: 2025-11-08/Outlet/7 | Officer: Jane | Outlet: MainBranch | Services: BILL_PAYMENT, OTHERS. Track: https://app.example.com/service/status?ref=...
       const lang = pickLang(tokenData || currentToken)
-  const body = langText.completed(refNumber, trackUrl, lang, { officerName, outletName, servicesStr })
+      const body = langText.completed(refNumber, trackUrl, lang, { officerName, outletName, servicesStr })
 
 
       try {
