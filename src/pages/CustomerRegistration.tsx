@@ -363,7 +363,7 @@ export default function CustomerRegistration() {
     setOtpError("")
     setOtpSending(true)
     try {
-      await api.post("/customer/otp/start", { mobileNumber })
+      await api.post("/customer/otp/start", { mobileNumber, preferredLanguage })
       setOtpStep('sent')
       return true
     } catch (err: any) {
@@ -384,9 +384,15 @@ export default function CustomerRegistration() {
         setOtpToken(res.data.verifiedMobileToken)
         setOtpStep('verified')
         const current = outlets.find((o) => o.id === selectedOutlet)
+        // Localize the confirmation/test SMS by preferred language
+        const msgByLang: Record<string, string> = {
+          en: `You’ve successfully registered at the ${current?.name} outlet.`,
+          si: `${current?.name || ''} ශාඛාවේදී ඔබ සාර්ථකව ලියාපදිංචි වී ඇත.`,
+          ta: `நீங்கள் ${current?.name || ''} கிளையில் வெற்றிகரமாக பதிவு செய்யப்பட்டுள்ளீர்கள்.`,
+        }
         const resp = await api.post('/twilio/test', {
           to: VITE_TWILIO_TO_NUMBER || "+94718738041",
-          body: `You’ve successfully registered at the ${current?.name} outlet.`,
+          body: msgByLang[preferredLanguage] || msgByLang.en,
         })
         if (resp.data?.success) {
           alert('Test SMS sent (sid: ' + resp.data.sid + ')')

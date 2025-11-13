@@ -159,7 +159,7 @@ export default function AppointmentBooking() {
     setOtpError("")
     setOtpSending(true)
     try {
-      await api.post("/customer/otp/start", { mobileNumber })
+      await api.post("/customer/otp/start", { mobileNumber, preferredLanguage })
       setOtpStep('sent')
     } catch (err: any) {
       setOtpError(err?.response?.data?.error || 'Failed to send OTP')

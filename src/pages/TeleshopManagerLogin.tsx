@@ -103,7 +103,7 @@ export default function TeleshopManagerLogin() {
         </form>
 
         <div className="mt-5 sm:mt-6 text-center text-xs sm:text-sm text-gray-500">
-          <p>RTOM access only</p>
+          <p>TeleshopManager access only</p>
           <p className="mt-1">Contact your administrator if you need assistance</p>
         </div>
       </div>

@@ -102,7 +102,7 @@ export default function ManagerLogin() {
         </form>
 
         <div className="mt-5 sm:mt-6 text-center text-xs sm:text-sm text-gray-500">
-          <p>RTOM (Regional Telecommunication Office Manager) access only</p>
+          <p>RTOM access only</p>
         </div>
       </div>
     </div>
