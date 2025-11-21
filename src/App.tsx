@@ -22,6 +22,8 @@ import QRDisplay from "./pages/QRDisplay"
 // import OfficerRegistration from "./pages/OfficerRegistration" // moved under manager portal
 import OfficerQueuePage from "./pages/OfficerQueuePage"
 import IPSpeakerPage from "./pages/IPSpeakerPage"
+import OfficerServedCustomers from "./pages/OfficerServedCustomers"
+import OfficerServiceTracking from "./pages/OfficerServiceTracking"
 import ManagerLogin from "./pages/ManagerLogin"
 import ManagerDashboard from "./pages/ManagerDashboard"
 import ManagerBranches from "./pages/ManagerBranches"
@@ -352,11 +354,11 @@ function Layout({ children }: { children: React.ReactNode }) {
       <div 
         className={`flex-1 transition-all duration-300 ${showSidebar ? (isCollapsed ? 'lg:ml-16' : 'lg:ml-72') : 'ml-0'}`}
       >
-        {/* Header for all dashboard pages */}
-        {showSidebar && <Header />}
+        {/* Header for all dashboard pages
+        {showSidebar && <Header />} */}
         
-        {/* Shared Officer Top Bar for all officer pages except login, dashboard, queue, and ip-speaker */}
-        {isOfficerPath && !isOfficerLogin && officer && !location.pathname.includes('/officer/dashboard') && !location.pathname.includes('/officer/queue') && !location.pathname.includes('/officer/ip-speaker') && (
+        {/* Shared Officer Top Bar for all officer pages except login, dashboard, queue, ip-speaker, served-customers, and service-tracking */}
+        {isOfficerPath && !isOfficerLogin && officer && !location.pathname.includes('/officer/dashboard') && !location.pathname.includes('/officer/queue') && !location.pathname.includes('/officer/ip-speaker') && !location.pathname.includes('/officer/served-customers') && !location.pathname.includes('/officer/service-tracking') && (
           <OfficerTopBar 
             officer={officer}
             onOfficerUpdate={setOfficer as any}
@@ -419,6 +421,14 @@ function App() {
       <Route
         element={<Layout><IPSpeakerPage /></Layout>}
         path="/officer/ip-speaker"
+      />
+      <Route
+        element={<Layout><OfficerServedCustomers /></Layout>}
+        path="/officer/served-customers"
+      />
+      <Route
+        element={<Layout><OfficerServiceTracking /></Layout>}
+        path="/officer/service-tracking"
       />
       <Route
         element={<AdminLogin />}

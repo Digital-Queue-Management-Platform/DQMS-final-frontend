@@ -22,6 +22,7 @@ import {
   Phone,
   MessageSquare,
   Calendar,
+  UserCheck,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useUser } from '../../../contexts/UserContext'
@@ -62,6 +63,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed, activePa
     { name: 'Queue', icon: ListOrdered, to: '/officer/queue' },
     { name: 'Officer Dashboard', icon: LayoutDashboard, to: '/officer/dashboard' },
     { name: 'IP Speaker', icon: Headphones, to: '/officer/ip-speaker' },
+    { name: 'Serve Customers', icon: UserCheck, to: '/officer/served-customers' },
+    { name: 'Service Tracking', icon: MessageSquare, to: '/officer/service-tracking' },
   ]
   const regionManagerItems: NavigationItem[] = [
     //{ name: 'Home', icon: Home, to: '/' },
