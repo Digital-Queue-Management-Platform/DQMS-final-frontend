@@ -83,16 +83,16 @@ export default function ManagerServiceTracking() {
           body: bodies[bodies[effectiveLang] ? effectiveLang : 'en'],
         })
         if (resp.data?.success) {
-          alert('Test SMS sent (sid: ' + resp.data.sid + ')')
+          console.log('[TEST SMS][MANAGER_COMPLETE]', resp.data)
         } else {
-          alert('Failed to send test SMS')
+          console.warn('[TEST SMS][MANAGER_COMPLETE][FAILED]', resp.data)
         }
       } catch (err: any) {
         console.error('Test SMS failed:', err)
-        alert('Test SMS failed: ' + (err.response?.data?.error || err.message || 'Unknown error'))
+        console.error('Test SMS failed:', err.response?.data?.error || err.message || 'Unknown error')
       }
     } catch (e: any) {
-      alert(e?.response?.data?.error || 'Failed to complete case')
+      console.error('Failed to complete case:', e?.response?.data?.error || 'Unknown error')
     } finally { setSaving(false) }
   }
 

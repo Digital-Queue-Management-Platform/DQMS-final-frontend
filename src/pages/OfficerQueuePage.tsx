@@ -236,9 +236,9 @@ export default function OfficerQueuePage() {
                 body: langText.proceed(lang, officer.counterNumber),
             })
             if (resp.data?.success) {
-              alert('Test SMS sent (sid: ' + resp.data.sid + ')')
+              console.log('[TEST SMS][PROCEED]', resp.data)
             } else {
-              alert('Failed to send test SMS')
+              console.warn('[TEST SMS][PROCEED][FAILED]', resp.data)
             }
           } catch (err:any) {
             console.error('Test SMS failed:', err)
@@ -259,9 +259,9 @@ export default function OfficerQueuePage() {
               body: langText.proceed(lang, officer.counterNumber),
           })
           if (resp.data?.success) {
-            alert('Test SMS sent (sid: ' + resp.data.sid + ')')
+            console.log('[TEST SMS][PROCEED]', resp.data)
           } else {
-            alert('Failed to send test SMS')
+            console.warn('[TEST SMS][PROCEED][FAILED]', resp.data)
           }
         } catch (err:any) {
           console.error('Test SMS failed:', err)
@@ -304,9 +304,9 @@ export default function OfficerQueuePage() {
           body,
         })
         if (smsResp.data?.success) {
-          alert('SMS sent (sid: ' + smsResp.data.sid + ')')
+          console.log('[TEST SMS][COMPLETE]', smsResp.data)
         } else {
-          alert('Failed to send SMS')
+          console.warn('[TEST SMS][COMPLETE][FAILED]', smsResp.data)
         }
       } catch (err: any) {
         console.error('SMS send failed:', err)
@@ -340,9 +340,9 @@ export default function OfficerQueuePage() {
         body: langText.skipped(lang),
       })
       if (resp.data?.success) {
-        alert('Test SMS sent (sid: ' + resp.data.sid + ')')
+        console.log('[TEST SMS][SKIP]', resp.data)
       } else {
-        alert('Failed to send test SMS')
+        console.warn('[TEST SMS][SKIP][FAILED]', resp.data)
       }
     } catch (err: any) {
       console.error('Test SMS failed:', err)
@@ -375,9 +375,9 @@ export default function OfficerQueuePage() {
         body: langText.recalled(lang, officer.counterNumber),
       })
       if (resp.data?.success) {
-        alert('Test SMS sent (sid: ' + resp.data.sid + ')')
+        console.log('[TEST SMS][RECALL]', resp.data)
       } else {
-        alert('Failed to send test SMS')
+        console.warn('[TEST SMS][RECALL][FAILED]', resp.data)
       }
     } catch (err: any) {
       console.error('Test SMS failed:', err)

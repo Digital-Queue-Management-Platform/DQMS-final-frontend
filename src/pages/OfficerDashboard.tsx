@@ -357,20 +357,20 @@ export default function OfficerDashboard() {
               {/* Twilio test button */}
               <button
                 onClick={async () => {
-                  if (!officer?.mobileNumber) return alert('Officer mobile number not available')
+                  if (!officer?.mobileNumber) { console.warn('Officer mobile number not available'); return }
                   try {
                     const resp = await api.post('/twilio/test', {
                       to: "+94768950003",
                       body: `Test message from DQMS to ${officer.name}`,
                     })
                     if (resp.data?.success) {
-                      alert('Test SMS sent (sid: ' + resp.data.sid + ')')
+                      console.log('[TEST SMS][DASHBOARD]', resp.data)
                     } else {
-                      alert('Failed to send test SMS')
+                      console.warn('[TEST SMS][DASHBOARD][FAILED]', resp.data)
                     }
                   } catch (err: any) {
                     console.error('Test SMS failed:', err)
-                    alert('Test SMS failed: ' + (err.response?.data?.error || err.message || 'Unknown error'))
+                    console.error('Test SMS failed:', err.response?.data?.error || err.message || 'Unknown error')
                   }
                 }}
                 className="flex items-center px-4 py-2 bg-teal-600 rounded-md text-sm font-medium text-white hover:bg-teal-700 ml-2"
