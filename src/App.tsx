@@ -2,7 +2,7 @@ import React from "react"
 import { Routes, Route, useLocation, useNavigate } from "react-router-dom"
 // MainNav removed per request - no top navbar
 import Sidebar from "./admin/adminComponents/additionalComps/SideBar"
-import Header from "./components/Header"
+//import Header from "./components/Header"
 import ProtectedAdminRoute from "./components/ProtectedAdminRoute"
 import ProtectedManagerRoute from "./components/ProtectedManagerRoute"
 import CustomerRegistration from "./pages/CustomerRegistration"
