@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Search, Send } from "lucide-react"
+import { Search, Send, CheckCircle } from "lucide-react"
 import api from "../config/api"
 
 type CaseUpdate = { id: string; actorRole: string; status?: string | null; note: string; createdAt: string }
@@ -23,6 +23,7 @@ export default function OfficerServiceTracking() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
+  const [completing, setCompleting] = useState(false)
 
   const load = async () => {
     setError('')
@@ -56,6 +57,20 @@ export default function OfficerServiceTracking() {
     } catch (e: any) {
       alert(e?.response?.data?.error || 'Failed to add update')
     } finally { setSaving(false) }
+  }
+
+  const markComplete = async () => {
+    if (!ref.trim() || !data || data.status === 'completed') return
+    if (!confirm('Mark this service case as completed?')) return
+    setCompleting(true)
+    try {
+      const token = localStorage.getItem('officerToken')
+      await api.post('/officer/service-case/complete', { refNumber: ref.trim() }, token ? { headers: { Authorization: `Bearer ${token}` } } : undefined)
+      await load()
+    } catch (e: any) {
+      console.error('Complete failed:', e?.response?.data?.error || e.message)
+      alert(e?.response?.data?.error || 'Failed to complete case')
+    } finally { setCompleting(false) }
   }
 
   return (
@@ -145,6 +160,7 @@ export default function OfficerServiceTracking() {
               className="w-full border border-gray-300 rounded-lg p-3 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none" 
               rows={3}
             />
+            <div className="flex gap-2 mt-3">
             <button 
               onClick={addUpdate} 
               disabled={!note.trim() || saving} 
@@ -153,6 +169,15 @@ export default function OfficerServiceTracking() {
               <Send className="w-4 h-4" />
               {saving ? 'Sending...' : 'Send Update'}
             </button>
+            <button 
+              onClick={markComplete} 
+              disabled={data.status === 'completed' || completing}
+              className="mt-2 px-4 py-2 bg-green-600 text-white rounded-lg disabled:bg-gray-400 hover:bg-green-700 transition-colors font-semibold inline-flex items-center gap-2"
+            >
+              <CheckCircle className="w-4 h-4" />
+              {completing ? 'Completing...' : 'Mark Completed'}
+            </button>
+            </div>
           </div>
         </div>
       )}
