@@ -1,4 +1,5 @@
 import React from "react"
+import { useSearchParams } from "react-router-dom"
 import { Search, Filter, RefreshCcw, ChevronDown, ChevronUp } from "lucide-react"
 import api from "../config/api"
 
@@ -18,6 +19,7 @@ interface ServedToken {
 }
 
 export default function OfficerServedCustomers() {
+  const [searchParams, setSearchParams] = useSearchParams()
   const [loading, setLoading] = React.useState(true)
   const [error, setError] = React.useState<string | null>(null)
   const [allTokens, setAllTokens] = React.useState<ServedToken[]>([])
@@ -101,6 +103,29 @@ export default function OfficerServedCustomers() {
   }, [])
 
   React.useEffect(() => { fetchData() }, [fetchData])
+
+  // Auto-expand token from URL parameter
+  React.useEffect(() => {
+    const tokenId = searchParams.get('tokenId')
+    if (tokenId && allTokens.length > 0) {
+      const token = allTokens.find(t => t.id === tokenId)
+      if (token) {
+        setExpandedRow(tokenId)
+        if (token.refNumber) {
+          fetchCaseDetails(token.refNumber)
+        }
+        // Clear the URL parameter after expanding
+        setSearchParams({})
+        // Scroll to the token after a short delay
+        setTimeout(() => {
+          const element = document.getElementById(`token-${tokenId}`)
+          if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'center' })
+          }
+        }, 100)
+      }
+    }
+  }, [searchParams, allTokens, fetchCaseDetails, setSearchParams])
 
   React.useEffect(() => {
     let data = [...allTokens]
@@ -277,6 +302,7 @@ export default function OfficerServedCustomers() {
                 {filtered.map((t, idx) => (
                   <React.Fragment key={t.id}>
                     <tr 
+                      id={`token-${t.id}`}
                       onClick={() => {
                         if (expandedRow === t.id) {
                           setExpandedRow(null)

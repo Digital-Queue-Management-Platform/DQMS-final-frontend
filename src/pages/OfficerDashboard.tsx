@@ -515,7 +515,15 @@ export default function OfficerDashboard() {
           <div className="bg-white rounded-xl shadow-sm p-6">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-lg font-bold text-gray-900">Served Today</h2>
-              <div className="text-sm text-gray-600">Avg handle: {servedSummary ? servedSummary.avgHandleMinutes : 0} min</div>
+              <div className="flex items-center gap-4">
+                <div className="text-sm text-gray-600">Avg handle: {servedSummary ? servedSummary.avgHandleMinutes : 0} min</div>
+                <button
+                  onClick={() => navigate('/officer/served-customers')}
+                  className="px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors"
+                >
+                  View All
+                </button>
+              </div>
             </div>
             {!servedSummary ? (
               <div className="text-center py-12 text-gray-500">Loading...</div>
@@ -524,7 +532,11 @@ export default function OfficerDashboard() {
             ) : (
               <div className="space-y-3">
                 {servedSummary.tokens.map(t => (
-                  <div key={t.id} className="flex items-center justify-between p-4 border rounded-lg">
+                  <div 
+                    key={t.id} 
+                    onClick={() => navigate(`/officer/served-customers?tokenId=${t.id}`)}
+                    className="flex items-center justify-between p-4 border rounded-lg cursor-pointer hover:bg-blue-50 hover:border-blue-300 transition-all"
+                  >
                     <div className="flex items-center gap-4">
                       <div className="text-xl font-bold text-blue-600 w-12 text-center">{t.tokenNumber}</div>
                       <div>
