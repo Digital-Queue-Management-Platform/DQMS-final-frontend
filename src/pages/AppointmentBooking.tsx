@@ -18,6 +18,17 @@ export default function AppointmentBooking() {
   const [mobileNumber, setMobileNumber] = useState("")
   const [serviceTypes, setServiceTypes] = useState<string[]>([])
   const [datetime, setDatetime] = useState("") // yyyy-MM-ddTHH:mm
+  
+  // Get current date and time in local format for min attribute
+  const getMinDateTime = () => {
+    const now = new Date()
+    const year = now.getFullYear()
+    const month = String(now.getMonth() + 1).padStart(2, '0')
+    const day = String(now.getDate()).padStart(2, '0')
+    const hours = String(now.getHours()).padStart(2, '0')
+    const minutes = String(now.getMinutes()).padStart(2, '0')
+    return `${year}-${month}-${day}T${hours}:${minutes}`
+  }
   // UI language tabs (English/Sinhala/Tamil), independent from preferredLanguage used for announcements
   const [language, setLanguage] = useState<'en' | 'si' | 'ta'>(() => {
     try {
@@ -318,7 +329,14 @@ export default function AppointmentBooking() {
               <label className="block text-sm font-medium text-gray-700 mb-2">{t.dateTime}</label>
               <div className="relative">
                 <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input type="datetime-local" value={datetime} onChange={(e) => setDatetime(e.target.value)} className="w-full pl-9 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" required />
+                <input 
+                  type="datetime-local" 
+                  value={datetime} 
+                  onChange={(e) => setDatetime(e.target.value)} 
+                  min={getMinDateTime()}
+                  className="w-full pl-9 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" 
+                  required 
+                />
               </div>
             </div>
           </div>
