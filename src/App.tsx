@@ -10,13 +10,14 @@ import QueueStatus from "./pages/QueueStatus"
 import OfficerLogin from "./pages/OfficerLogin"
 import OfficerDashboard from "./pages/OfficerDashboard"
 import AdminLogin from "./pages/AdminLogin"
-import DashboardPage from "./admin/adminPages/DashboardPage"
-import AdminOfficers from "./admin/adminPages/AdminOfficers"
-import BranchesPage from "./admin/adminPages/BranchesPage"
-import ServicesPage from "./admin/adminPages/ServicesPage"
-import BranchComparePage from "./admin/adminPages/BranchComparePage"
-import AdminAllOfficers from "./admin/adminPages/AdminAllOfficers"
-import ManagerManagement from "./admin/adminPages/ManagerManagement"
+// Lazily-loaded heavy admin/manager pages to reduce initial bundle
+const DashboardPage = React.lazy(() => import("./admin/adminPages/DashboardPage"))
+const AdminOfficers = React.lazy(() => import("./admin/adminPages/AdminOfficers"))
+const BranchesPage = React.lazy(() => import("./admin/adminPages/BranchesPage"))
+const ServicesPage = React.lazy(() => import("./admin/adminPages/ServicesPage"))
+const BranchComparePage = React.lazy(() => import("./admin/adminPages/BranchComparePage"))
+const AdminAllOfficers = React.lazy(() => import("./admin/adminPages/AdminAllOfficers"))
+const ManagerManagement = React.lazy(() => import("./admin/adminPages/ManagerManagement"))
 import FeedbackPage from "./pages/FeedbackPage"
 import QRDisplay from "./pages/QRDisplay"
 // import OfficerRegistration from "./pages/OfficerRegistration" // moved under manager portal
@@ -25,20 +26,21 @@ import IPSpeakerPage from "./pages/IPSpeakerPage"
 import OfficerServedCustomers from "./pages/OfficerServedCustomers"
 import OfficerServiceTracking from "./pages/OfficerServiceTracking"
 import ManagerLogin from "./pages/ManagerLogin"
-import ManagerDashboard from "./pages/ManagerDashboard"
-import ManagerBranches from "./pages/ManagerBranches"
-import ManagerCompare from "./pages/ManagerCompare"
-import ManagerQRCodes from "./pages/ManagerQRCodes"
-import ManagerBreakOversight from "./pages/ManagerBreakOversight"
-import ManagerAppointments from "./pages/ManagerAppointments"
+const ManagerDashboard = React.lazy(() => import("./pages/ManagerDashboard"))
+const ManagerBranches = React.lazy(() => import("./pages/ManagerBranches"))
+const ManagerCompare = React.lazy(() => import("./pages/ManagerCompare"))
+const ManagerQRCodes = React.lazy(() => import("./pages/ManagerQRCodes"))
+const ManagerBreakOversight = React.lazy(() => import("./pages/ManagerBreakOversight"))
+const ManagerAppointments = React.lazy(() => import("./pages/ManagerAppointments"))
 import TeleshopManagerLogin from "./pages/TeleshopManagerLogin"
-import TeleshopManagerDashboard from "./pages/TeleshopManagerDashboard"
-import TeleshopManagerOfficerRegistration from "./pages/TeleshopManagerOfficerRegistration"
-import TeleshopManagerOfficers from "./pages/TeleshopManagerOfficers"
-import TeleshopManagerEditOfficer from "./pages/TeleshopManagerEditOfficer"
-import TeleshopManagerCompletedServices from "./pages/TeleshopManagerCompletedServices"
-import TeleshopManagerFeedback from "./pages/TeleshopManagerFeedback"
-import TeleshopManagerAppointments from "./pages/TeleshopManagerAppointments"
+const TeleshopManagerDashboard = React.lazy(() => import("./pages/TeleshopManagerDashboard"))
+const TeleshopManagerOfficerRegistration = React.lazy(() => import("./pages/TeleshopManagerOfficerRegistration"))
+const TeleshopManagerOfficers = React.lazy(() => import("./pages/TeleshopManagerOfficers"))
+const TeleshopManagerEditOfficer = React.lazy(() => import("./pages/TeleshopManagerEditOfficer"))
+const TeleshopManagerCompletedServices = React.lazy(() => import("./pages/TeleshopManagerCompletedServices"))
+const TeleshopManagerFeedback = React.lazy(() => import("./pages/TeleshopManagerFeedback"))
+const TeleshopManagerAppointments = React.lazy(() => import("./pages/TeleshopManagerAppointments"))
+const TeleshopManagerServedCustomers = React.lazy(() => import("./pages/TeleshopManagerServedCustomers"))
 import ManagerTeleshopManagers from "./pages/ManagerTeleshopManagers"
 import ProtectedTeleshopManagerRoute from "./components/ProtectedTeleshopManagerRoute"
 import AppointmentBooking from "./pages/AppointmentBooking"
@@ -373,6 +375,7 @@ function Layout({ children }: { children: React.ReactNode }) {
 
 function App() {
   return (
+    <React.Suspense fallback={<div className="p-6 text-center text-sm text-gray-600">Loading...</div>}>
     <Routes>
       <Route
         element={<Layout><TabsLanding /></Layout>}
@@ -535,10 +538,15 @@ function App() {
         path="/teleshop-manager/completed-services"
       />
       <Route
+        element={<Layout><ProtectedTeleshopManagerRoute><TeleshopManagerServedCustomers /></ProtectedTeleshopManagerRoute></Layout>}
+        path="/teleshop-manager/served-customers"
+      />
+      <Route
         element={<Layout><ProtectedTeleshopManagerRoute><TeleshopManagerFeedback /></ProtectedTeleshopManagerRoute></Layout>}
         path="/teleshop-manager/feedback"
       />
     </Routes>
+    </React.Suspense>
   )
 }
 

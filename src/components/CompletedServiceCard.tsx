@@ -33,7 +33,8 @@ interface CompletedServiceCardProps {
   }
 }
 
-export default function CompletedServiceCard({ service }: CompletedServiceCardProps) {
+import React from 'react'
+function CompletedServiceCardComponent({ service }: CompletedServiceCardProps) {
   const formatDuration = (minutes?: number) => {
     if (!minutes) return "N/A"
     const hours = Math.floor(minutes / 60)
@@ -117,3 +118,7 @@ export default function CompletedServiceCard({ service }: CompletedServiceCardPr
     </div>
   )
 }
+
+// Memoize since props are stable objects from list mapping; prevents re-renders
+const CompletedServiceCard = React.memo(CompletedServiceCardComponent)
+export default CompletedServiceCard

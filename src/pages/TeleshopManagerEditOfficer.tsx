@@ -25,12 +25,21 @@ interface Officer {
   }
 }
 
+interface Outlet {
+  id: string
+  name: string
+  location: string
+  counterCount: number
+}
+
 
 
 export default function TeleshopManagerEditOfficer() {
   const navigate = useNavigate()
   const { officerId } = useParams()
   const [officer, setOfficer] = useState<Officer | null>(null)
+  const [outlets, setOutlets] = useState<Outlet[]>([])
+  const [allOfficers, setAllOfficers] = useState<Officer[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState("")
@@ -44,6 +53,7 @@ export default function TeleshopManagerEditOfficer() {
 
   useEffect(() => {
     fetchOfficerData()
+    fetchOutlets()
   }, [officerId])
 
   const fetchOfficerData = async () => {
@@ -59,7 +69,9 @@ export default function TeleshopManagerEditOfficer() {
       })
       
       if (response.data.success) {
-        const foundOfficer = response.data.officers.find((o: Officer) => o.id === officerId)
+        const officersList: Officer[] = response.data.officers
+        setAllOfficers(officersList)
+        const foundOfficer = officersList.find((o: Officer) => o.id === officerId)
         if (foundOfficer) {
           setOfficer(foundOfficer)
           setFormData({
@@ -84,6 +96,19 @@ export default function TeleshopManagerEditOfficer() {
       }
     } finally {
       setLoading(false)
+    }
+  }
+
+  const fetchOutlets = async () => {
+    try {
+      const token = localStorage.getItem("teleshopManagerToken")
+      if (!token) return
+      const resp = await api.get('/teleshop-manager/outlets', {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      setOutlets(resp.data)
+    } catch (err) {
+      console.error('Failed to fetch outlets:', err)
     }
   }
 
@@ -260,14 +285,35 @@ export default function TeleshopManagerEditOfficer() {
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Counter Number (Optional)
             </label>
-            <input
-              type="number"
+            <select
               value={formData.counterNumber}
               onChange={(e) => handleInputChange('counterNumber', e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-              placeholder="Enter counter number (e.g., 1, 2, 3)"
-              min="1"
-            />
+              disabled={!formData.outletId || outlets.length === 0}
+            >
+              <option value="">Select counter (optional)</option>
+              {(() => {
+                const selectedOutlet = outlets.find(o => o.id === formData.outletId)
+                if (!selectedOutlet) return null
+
+                // Counters already assigned to other officers in this outlet
+                const assignedCounters = allOfficers
+                  .filter(o => o.outlet.id === selectedOutlet.id && o.counterNumber != null && o.id !== officerId)
+                  .map(o => o.counterNumber as number)
+
+                const options = Array.from({ length: selectedOutlet.counterCount }, (_, i) => i + 1)
+                  .filter(c => !assignedCounters.includes(c) || (officer && officer.counterNumber === c))
+
+                return options.map(counter => (
+                  <option key={counter} value={counter.toString()}>
+                    Counter {counter}
+                  </option>
+                ))
+              })()}
+            </select>
+            {!formData.outletId && (
+              <p className="text-sm text-gray-500 mt-1">Select an outlet first</p>
+            )}
           </div>
 
           {/* Submit Button */}

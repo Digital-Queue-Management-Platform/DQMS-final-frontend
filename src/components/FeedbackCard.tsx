@@ -33,7 +33,8 @@ interface FeedbackCardProps {
   onResolve?: (feedbackId: string, comment: string) => void
 }
 
-export default function FeedbackCard({ feedback, onResolve }: FeedbackCardProps) {
+import React from 'react'
+function FeedbackCardComponent({ feedback, onResolve }: FeedbackCardProps) {
   const handleResolve = () => {
     const comment = prompt("Enter resolution comment:")
     if (comment && onResolve) {
@@ -144,3 +145,6 @@ export default function FeedbackCard({ feedback, onResolve }: FeedbackCardProps)
     </div>
   )
 }
+
+const FeedbackCard = React.memo(FeedbackCardComponent)
+export default FeedbackCard

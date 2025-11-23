@@ -82,6 +82,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed, activePa
     { name: 'Dashboard', icon: LayoutDashboard, to: '/teleshop-manager/dashboard' },
     { name: 'Appointments', icon: Calendar, to: '/teleshop-manager/appointments' },
     { name: 'Completed Services', icon: ListOrdered, to: '/teleshop-manager/completed-services' },
+    { name: 'Served Customers', icon: UserCheck, to: '/teleshop-manager/served-customers' },
     { name: 'Feedback Management', icon: MessageSquare, to: '/teleshop-manager/feedback' },
     { name: 'Manage Officers', icon: Users, to: '/teleshop-manager/officers' },
     { name: 'Register Officer', icon: UserPlus, to: '/teleshop-manager/officers/add' },
