@@ -12,6 +12,14 @@ interface Outlet {
   counterCount: number
 }
 
+interface OfficerSummary {
+  id: string
+  name: string
+  mobileNumber: string
+  counterNumber: number | null
+  outlet: Outlet
+}
+
 
 
 const availableLanguages = [
@@ -28,6 +36,7 @@ const STATIC_SERVICES = [
 export default function TeleshopManagerOfficerRegistration() {
   const navigate = useNavigate()
   const [outlets, setOutlets] = useState<Outlet[]>([])
+  const [officers, setOfficers] = useState<OfficerSummary[]>([])
   const [loading, setLoading] = useState(false)
   const [loadingOutlets, setLoadingOutlets] = useState(true)
   const [error, setError] = useState("")
@@ -45,6 +54,7 @@ export default function TeleshopManagerOfficerRegistration() {
 
   useEffect(() => {
     fetchOutlets()
+    fetchOfficers()
   }, [])
 
   const fetchOutlets = async () => {
@@ -73,6 +83,28 @@ export default function TeleshopManagerOfficerRegistration() {
     }
   }
 
+  const fetchOfficers = async () => {
+    try {
+      const token = localStorage.getItem("teleshopManagerToken")
+      if (!token) {
+        navigate("/teleshop-manager/login")
+        return
+      }
+      const response = await api.get("/teleshop-manager/officers", {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      if (response.data?.success && Array.isArray(response.data.officers)) {
+        setOfficers(response.data.officers)
+      }
+    } catch (error: any) {
+      console.error("Failed to fetch officers:", error)
+      if (error.response?.status === 401) {
+        localStorage.removeItem("teleshopManagerToken")
+        navigate("/teleshop-manager/login")
+      }
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
@@ -95,7 +127,18 @@ export default function TeleshopManagerOfficerRegistration() {
       })
 
       if (response.data.success) {
-        navigate("/teleshop-manager/dashboard")
+        // Refresh officers so newly used counter disappears from options
+        fetchOfficers()
+        // Optionally clear form except outlet to allow adding more quickly
+        setFormData(prev => ({
+          ...prev,
+          name: "",
+          mobileNumber: "",
+          counterNumber: "",
+          isTraining: false,
+          languages: [],
+          assignedServices: []
+        }))
       }
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || "Failed to create officer"
@@ -130,8 +173,15 @@ export default function TeleshopManagerOfficerRegistration() {
   }
 
   const selectedOutlet = outlets.find(outlet => outlet.id === formData.outletId)
+
+  // Collect counters already assigned for this outlet
+  const assignedCounters = selectedOutlet ? officers
+    .filter(o => o.outlet.id === selectedOutlet.id && o.counterNumber !== null)
+    .map(o => o.counterNumber as number) : []
+
   const counterOptions = selectedOutlet 
     ? Array.from({ length: selectedOutlet.counterCount }, (_, i) => i + 1)
+        .filter(counter => !assignedCounters.includes(counter))
     : []
 
   if (loadingOutlets) {

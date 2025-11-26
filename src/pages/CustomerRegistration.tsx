@@ -395,9 +395,13 @@ export default function CustomerRegistration() {
           body: msgByLang[preferredLanguage] || msgByLang.en,
         })
         if (resp.data?.success) {
-          alert('Test SMS sent (sid: ' + resp.data.sid + ')')
+          if (resp.data?.dev) {
+            console.log('[DEV MODE] Test SMS skipped:', resp.data.message, resp.data.preview)
+          } else {
+            console.log('Test SMS sent (sid: ' + resp.data.sid + ')')
+          }
         } else {
-          alert('Failed to send test SMS')
+          console.log('Failed to send test SMS')
         }
         return res.data.verifiedMobileToken as string
 

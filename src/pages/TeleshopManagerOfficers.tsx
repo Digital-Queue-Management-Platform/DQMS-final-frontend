@@ -48,10 +48,11 @@ export default function TeleshopManagerOfficers() {
   const [statusFilter, setStatusFilter] = useState<"all" | "available" | "serving" | "on_break" | "offline">("all")
   
   useEffect(() => {
-    fetchOfficers()
-    
-    // Auto-refresh every 30 seconds
-    const interval = setInterval(fetchOfficers, 30000)
+    // Initial load should show full-screen loader
+    fetchOfficers(true)
+
+    // Auto-refresh every 30 seconds (silent, no full-screen loader)
+    const interval = setInterval(() => fetchOfficers(false), 30000)
 
     // WebSocket for real-time updates with better error handling
     let ws: WebSocket | null = null
@@ -72,7 +73,8 @@ export default function TeleshopManagerOfficers() {
           try {
             const data = JSON.parse(event.data)
             if (data.type === "OFFICER_STATUS_CHANGE" || data.type === "BREAK_STATUS_CHANGE" || data.type === "OFFICER_UPDATED") {
-              fetchOfficers()
+              // Refresh silently when updates arrive
+              fetchOfficers(false)
             }
           } catch (error) {
             console.error('WebSocket message parsing error:', error)
@@ -108,9 +110,9 @@ export default function TeleshopManagerOfficers() {
     }
   }, [])
 
-  const fetchOfficers = async () => {
+  const fetchOfficers = async (showLoading = true) => {
     try {
-      setLoading(true)
+      if (showLoading) setLoading(true)
       const token = localStorage.getItem("teleshopManagerToken")
       
       if (!token) {
@@ -141,7 +143,12 @@ export default function TeleshopManagerOfficers() {
         setError(error.response?.data?.error || "Failed to fetch officers data")
       }
     } finally {
-      setLoading(false)
+      // Only toggle the full-screen loading state if we showed it
+      try {
+        if (showLoading) setLoading(false)
+      } catch (e) {
+        // ignore
+      }
     }
   }
 
@@ -244,7 +251,7 @@ export default function TeleshopManagerOfficers() {
           <AlertCircle className="h-12 w-12 text-red-600 mx-auto mb-4" />
           <p className="text-red-600 mb-4">{error}</p>
           <button
-            onClick={() => window.location.reload()}
+            onClick={() => { setError(""); fetchOfficers(true); }}
             className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700"
           >
             Retry
@@ -270,7 +277,7 @@ export default function TeleshopManagerOfficers() {
               Last updated: {new Date().toLocaleTimeString()}
             </div>
             <button
-              onClick={fetchOfficers}
+              onClick={() => fetchOfficers(true)}
               disabled={loading}
               className="bg-green-600 text-white px-3 py-2 rounded-lg hover:bg-green-700 flex items-center gap-2 disabled:bg-gray-400"
             >
