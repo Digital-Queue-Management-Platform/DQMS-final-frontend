@@ -28,7 +28,8 @@ code {
 }
 
 /* Also ensure chart elements (canvas/svg) don't show outlines when clicked */
-canvas:focus, svg:focus {
+canvas:focus,
+svg:focus {
   outline: none !important;
   box-shadow: none !important;
 }
