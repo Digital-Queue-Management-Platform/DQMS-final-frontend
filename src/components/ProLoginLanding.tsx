@@ -72,7 +72,7 @@ export default function ProLoginLanding() {
       </div>
 
       {/* Right Login Selector */}
-      <div className="flex items-center justify-center p-6 sm:p-12">
+      <div className="flex items-center justify-center p-6 sm:px-12">
         <div className="w-full max-w-2xl">
           <div className="mb-6 text-center">
             <h2 className="text-3xl font-bold text-slate-900">Secure Portal Access</h2>
