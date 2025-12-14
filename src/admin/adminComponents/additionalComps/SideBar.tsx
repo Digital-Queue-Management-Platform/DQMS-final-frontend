@@ -43,6 +43,7 @@ interface SidebarProps {
 
 const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed, activePage, setActivePage }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState<boolean>(false);
+  const [hoverExpanded, setHoverExpanded] = useState<boolean>(false);
   const { currentUser, loading } = useUser()
   const location = useLocation()
   const navigate = useNavigate()
@@ -177,6 +178,9 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed, activePa
 
   const userInfo = getUserDisplayInfo()
 
+  // collapsed for rendering: true when user has collapsed sidebar and we're NOT hovering
+  const collapsed = isCollapsed && !hoverExpanded
+
   const handleLogout = async (): Promise<void> => {
     try {
       // Call appropriate backend logout to clear httpOnly cookies
@@ -219,12 +223,16 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed, activePa
       localStorage.removeItem('teleshopManagerToken')
     } catch {}
 
-    // Navigate to login page based on context
-    if (onOfficerPath) navigate('/officer/login', { replace: true })
-    else if (onManagerPath) navigate('/manager/login', { replace: true })
-    else if (onTeleshopManagerPath) navigate('/teleshop-manager/login', { replace: true })
-    else if (onAdminPath) navigate('/admin/login', { replace: true })
-    else navigate('/', { replace: true })
+    try {
+      window.location.replace('/')
+    } catch {
+      // Fallback to SPA navigation if window.location is unavailable
+      if (onOfficerPath) navigate('/officer/login', { replace: true })
+      else if (onManagerPath) navigate('/manager/login', { replace: true })
+      else if (onTeleshopManagerPath) navigate('/teleshop-manager/login', { replace: true })
+      else if (onAdminPath) navigate('/admin/login', { replace: true })
+      else navigate('/', { replace: true })
+    }
   };
 
   return (
@@ -246,18 +254,23 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed, activePa
       )}
       
       {/* Sidebar */}
-      <div className={`
+      <div
+        onMouseLeave={() => {
+          if (window.innerWidth >= 1024) setHoverExpanded(false)
+        }}
+        className={`
         fixed left-0 top-0 bg-white shadow-xl border-r border-gray-200 h-full min-h-screen z-50 transition-all duration-300 overflow-x-hidden
         ${isMobileMenuOpen ? 'w-72' : 'hidden lg:block'}
-        ${isCollapsed ? 'lg:w-16' : 'lg:w-72'}
+        ${collapsed ? 'lg:w-16' : 'lg:w-72'}
       `}>
         
         {/* Header */}
         {/*<div className="border-b border-gray-200 h-20 flex items-center justify-between p-5 relative">*/}
         <div className="h-20 flex items-center justify-between p-5 relative">
-          {isCollapsed ? (
+          {collapsed ? (
             <button
               onClick={toggleSidebar}
+              onMouseEnter={() => { if (window.innerWidth >= 1024 && isCollapsed) setHoverExpanded(true) }}
               className="flex items-center justify-center w-full cursor-pointer"
             >
               <Menu className="h-6 w-6 text-gray-600" />
@@ -289,7 +302,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed, activePa
         </div>
 
         {/* Navigation */}
-        <nav className={`${isCollapsed ? 'px-2' : 'px-6'} pt-6`}>
+        <nav className={`${collapsed ? 'px-2' : 'px-6'} pt-6`}>
           <ul className="space-y-3">
             {navigationItems.map((item) => (
               <li key={item.name}>
@@ -297,15 +310,15 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed, activePa
                   <Link
                     to={item.to}
                     onClick={() => handleNavClick(item.name)}
-                    className={`group w-full flex items-center ${isCollapsed ? 'px-3 py-3 justify-center' : 'px-4 py-3'} text-sm font-semibold rounded-lg transition-all duration-200 relative cursor-pointer ${
+                    className={`group w-full flex items-center ${collapsed ? 'px-3 py-3 justify-center' : 'px-4 py-3'} text-sm font-semibold rounded-lg transition-all duration-200 relative cursor-pointer ${
                       (location.pathname === item.to || activePage === item.name)
                         ? 'bg-blue-600 text-white shadow-lg'
                         : 'text-gray-600 hover:text-white hover:bg-blue-600'
                     }`}
                   >
                     <item.icon className="h-5 w-5 flex-shrink-0" />
-                    {!isCollapsed && <span className="ml-3 truncate">{item.name}</span>}
-                    {isCollapsed && (
+                    {!collapsed && <span className="ml-3 truncate">{item.name}</span>}
+                    {collapsed && (
                       <div className="absolute left-full ml-3 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50">
                         {item.name}
                       </div>
@@ -314,15 +327,15 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed, activePa
                 ) : (
                   <button
                     onClick={() => handleNavClick(item.name)}
-                    className={`group w-full flex items-center ${isCollapsed ? 'px-3 py-3 justify-center' : 'px-4 py-3'} text-sm font-semibold rounded-lg transition-all duration-200 relative cursor-pointer ${
+                    className={`group w-full flex items-center ${collapsed ? 'px-3 py-3 justify-center' : 'px-4 py-3'} text-sm font-semibold rounded-lg transition-all duration-200 relative cursor-pointer ${
                       activePage === item.name
                         ? 'bg-blue-600 text-white shadow-lg'
                         : 'text-gray-600 hover:text-white hover:bg-blue-600'
                     }`}
                   >
                     <item.icon className="h-5 w-5 flex-shrink-0" />
-                    {!isCollapsed && <span className="ml-3 truncate">{item.name}</span>}
-                    {isCollapsed && (
+                    {!collapsed && <span className="ml-3 truncate">{item.name}</span>}
+                    {collapsed && (
                       <div className="absolute left-full ml-3 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50">
                         {item.name}
                       </div>
@@ -337,7 +350,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed, activePa
         {/* User info and logout */}
         <div className="absolute bottom-0 left-0 right-0 border-t border-gray-200 bg-white">
           <div className="p-6">
-            {isCollapsed ? (
+            {collapsed ? (
               <div className="flex flex-col items-center space-y-3">
                 <div className="h-10 w-10 bg-gray-800 rounded-lg flex items-center justify-center">
                   <span className="text-white text-sm font-semibold">{userInfo.initials}</span>

@@ -59,8 +59,8 @@ export default function TeleshopManagerLogin() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-3 sm:p-4 lg:p-6">
-      <div className="bg-white rounded-xl sm:rounded-2xl shadow-xl w-full max-w-sm sm:max-w-md p-6 sm:p-8">
+    <div className="min-h-screen flex items-center justify-center p-3 sm:p-4 lg:p-6">
+      <div className="rounded-xl sm:rounded-3xl bg-gradient-to-br from-blue-50 to-indigo-100 border-2 border-blue-300 w-full max-w-sm sm:max-w-md p-6 sm:p-8">
         {/* Header */}
         <div className="text-center mb-6 sm:mb-8">
           <div className="inline-flex items-center justify-center w-12 h-12 sm:w-16 sm:h-16 bg-blue-100 rounded-full mb-3 sm:mb-4">
@@ -104,7 +104,6 @@ export default function TeleshopManagerLogin() {
 
         <div className="mt-5 sm:mt-6 text-center text-xs sm:text-sm text-gray-500">
           <p>TeleshopManager access only</p>
-          <p className="mt-1">Contact your administrator if you need assistance</p>
         </div>
       </div>
     </div>

@@ -6,7 +6,7 @@ import { BranchTable } from '../adminComponents/dashboardComponents/BranchTable'
 import SriLankaMap from '../adminComponents/dashboardComponents/SriLankaMap';
 import SystemHealthStatus from '../adminComponents/dashboardComponents/SystemHealthStatus';
 import BranchDashboardPage from './BranchDashboardPage';
-import { UsersIcon, ClockIcon, StarIcon, Ticket, BellIcon, Eye, ArrowLeft, Trash2, Clock } from 'lucide-react';
+import { UsersIcon, ClockIcon, StarIcon, Ticket, BellIcon, Eye, ArrowLeft, Trash2, Loader2 } from 'lucide-react';
 import api, { WS_URL } from '../../config/api'
 import type { Alert } from '../../types'
 
@@ -475,13 +475,13 @@ const DashboardPage: React.FC = () => {
               </h1>
               <div className="flex flex-col sm:flex-row sm:items-center gap-2">
                 <div className="flex text-sm items-center text-gray-500">
-                  <Clock size={16} className="mr-1" />
+                  {/*<Clock size={16} className="mr-1" />*/}
                   <span>
                     {formatDate(currentDateTime)} | {formatTime(currentDateTime)}
                   </span>
                 </div>
                 <div className="flex items-center gap-3 text-sm text-slate-600">
-                  {dashboardLoading && <span className="flex items-center gap-1">🔄 Refreshing...</span>}
+                  {dashboardLoading && <span className="flex items-center gap-1"><Loader2 className="w-4 h-4 animate-spin" /> Refreshing...</span>}
                   <span>Last updated: {lastUpdated.toLocaleTimeString()}</span>
                 </div>
               </div>
@@ -673,9 +673,11 @@ const DashboardPage: React.FC = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-              <div className="p-2 rounded-lg shadow mb-6">
-                <SystemHealthStatus/>
+            <div className="grid grid-cols-1 lg:grid-cols-1 gap-6 mb-4">
+              <div className="mb-2">
+                <div className="max-w-5xl mx-auto">
+                  <SystemHealthStatus/>
+                </div>
               </div>
             </div>
             
