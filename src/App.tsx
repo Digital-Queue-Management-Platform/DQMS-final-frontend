@@ -50,12 +50,13 @@ import ServiceStatus from "./pages/ServiceStatus"
 import ManagerServiceTracking from "./pages/ManagerServiceTracking"
 import TeleshopManagerServiceTracking from "./pages/TeleshopManagerServiceTracking"
 
-import { Shield, UserCog, ArrowRight, Building2, Phone } from "lucide-react"
+//import { Shield, UserCog, ArrowRight, Building2, Phone } from "lucide-react"
 import OfficerTopBar from "./components/OfficerTopBar"
 import api from "./config/api"
 import type { Officer } from "./types"
+import ProLoginLanding from "./components/ProLoginLanding"
 
-function TabsLanding() {
+{/*function TabsLanding() {
   const location = useLocation()
   const navigate = useNavigate()
   const [activeTab, setActiveTab] = React.useState<string>("admin")
@@ -72,16 +73,16 @@ function TabsLanding() {
 
   return (
     <div className="min-h-screen bg-white">
-      {/* Use a 7-column grid at xl+ to enforce exact 3/7 + 4/7 split without relying on non-standard width classes */}
+      {/* Use a 7-column grid at xl+ to enforce exact 3/7 + 4/7 split without relying on non-standard width classes 
       <div className="min-h-screen grid grid-cols-1 xl:grid-cols-7">
-        {/* Left Side - Branding & Features */}
+        {/* Left Side - Branding & Features 
         <div className="col-span-3 bg-gradient-to-br from-blue-600 via-indigo-700 to-purple-800 text-white p-4 sm:p-8 lg:p-12 flex flex-col justify-center relative overflow-hidden min-h-[40vh] xl:min-h-screen">
-          {/* Decorative Background Elements */}
+          {/* Decorative Background Elements 
           <div className="absolute top-0 right-0 w-48 h-48 sm:w-72 sm:h-72 lg:w-96 lg:h-96 bg-white opacity-5 rounded-full -mr-24 -mt-24 sm:-mr-36 sm:-mt-36 lg:-mr-48 lg:-mt-48"></div>
           <div className="absolute bottom-0 left-0 w-36 h-36 sm:w-54 sm:h-54 lg:w-72 lg:h-72 bg-white opacity-5 rounded-full -ml-18 -mb-18 sm:-ml-27 sm:-mb-27 lg:-ml-36 lg:-mb-36"></div>
           
           <div className="relative z-10 max-w-xl mx-auto w-full">
-            {/* Logo/Brand */}
+            {/* Logo/Brand 
             <div className="mb-8 sm:mb-12 lg:mb-16 text-center">
               <div className="flex flex-col items-center justify-center mb-4">
                 <img 
@@ -94,7 +95,7 @@ function TabsLanding() {
               <p className="text-base sm:text-lg lg:text-xl text-blue-100 text-center">Streamlining Service, Minimizing Wait Times</p>
             </div>
 
-            {/* Stats */}
+            {/* Stats *
             <div className="grid grid-cols-3 gap-4 sm:gap-6 lg:gap-8 pt-6 sm:pt-8 border-t border-white border-opacity-20">
               <div className="text-center xl:text-left">
                 <div className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-1 sm:mb-2">50%</div>
@@ -112,16 +113,16 @@ function TabsLanding() {
           </div>
         </div>
 
-        {/* Right Side - Portal Selection */}
+        {/* Right Side - Portal Selection *
         <div className="col-span-4 p-4 sm:p-6 lg:p-8 xl:p-12 flex flex-col justify-center bg-gray-50 min-h-[60vh] xl:min-h-screen">
-          {/* Remove max-width & auto horizontal margin to eliminate unintended empty space on the right */}
+          {/* Remove max-width & auto horizontal margin to eliminate unintended empty space on the right 
           <div className="w-full">
             {/*<div className="mb-6 sm:mb-8 text-center xl:text-left">
               <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Access Portal</h2>
               <p className="text-sm sm:text-base text-gray-600">Select your role to continue</p>
-            </div>*/}
+            </div>*
 
-            {/* Tab Navigation */}
+            {/* Tab Navigation 
             <div className="bg-white rounded-xl sm:rounded-2xl shadow-xl overflow-hidden border border-gray-100">
               <div className="flex flex-wrap sm:flex-nowrap border-b border-gray-200">
                 {[
@@ -148,9 +149,9 @@ function TabsLanding() {
                 })}
               </div>
 
-              {/* Tab Content */}
+              {/* Tab Content *
               <div className="p-4 sm:p-6 lg:p-8">
-                {/* Officer Tab */}
+                {/* Officer Tab 
                 {activeTab === 'officer' && (
                   <div className="space-y-6">
                     <div>
@@ -159,7 +160,7 @@ function TabsLanding() {
                     </div>
 
                     <div className="space-y-4">
-                      {/* Officer Login */}
+                      {/* Officer Login 
                       <div className="p-5 bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl border border-indigo-200">
                         <h4 className="font-semibold text-gray-900 mb-2">Customer Service Officer Login</h4>
                         <p className="text-sm text-gray-600 mb-4">Access your counter dashboard</p>
@@ -174,7 +175,7 @@ function TabsLanding() {
                   </div>
                 )}
 
-                {/* Manager Tab */}
+                {/* Manager Tab 
                 {activeTab === 'manager' && (
                   <div className="space-y-6">
                     <div>
@@ -183,7 +184,7 @@ function TabsLanding() {
                     </div>
 
                     <div className="space-y-4">
-                      {/* Manager Login */}
+                      {/* Manager Login 
                       <div className="p-5 bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl border border-green-200">
                         <h4 className="font-semibold text-gray-900 mb-2">RTOM Login</h4>
                         <p className="text-sm text-gray-600 mb-4">Access regional dashboard and analytics</p>
@@ -198,7 +199,7 @@ function TabsLanding() {
                   </div>
                 )}
 
-                {/* Teleshop Tab */}
+                {/* Teleshop Tab 
                 {activeTab === 'teleshop' && (
                   <div className="space-y-6">
                     <div>
@@ -207,7 +208,7 @@ function TabsLanding() {
                     </div>
 
                     <div className="space-y-4">
-                      {/* Teleshop Manager Login */}
+                      {/* Teleshop Manager Login 
                       <div className="p-5 bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl border border-purple-200">
                         <h4 className="font-semibold text-gray-900 mb-2">RTOM Login</h4>
                         <p className="text-sm text-gray-600 mb-4">Access officer management dashboard</p>
@@ -222,7 +223,7 @@ function TabsLanding() {
                   </div>
                 )}
 
-                {/* Admin Tab */}
+                {/* Admin Tab 
                 {activeTab === 'admin' && (
                   <div className="space-y-6">
                     <div>
@@ -231,7 +232,7 @@ function TabsLanding() {
                     </div>
 
                     <div className="space-y-4">
-                      {/* Admin Login */}
+                      {/* Admin Login 
                       <div className="p-5 bg-gradient-to-br from-blue-50 to-cyan-50 rounded-xl border border-blue-200">
                         <h4 className="font-semibold text-gray-900 mb-2">Admin Dashboard</h4>
                         <p className="text-sm text-gray-600 mb-4">Access comprehensive analytics</p>
@@ -249,12 +250,12 @@ function TabsLanding() {
               </div>
             </div>
 
-            {/* Footer */}
+            {/* Footer 
             <div className="mt-8 text-center">
               <p className="text-sm text-gray-500">Need help? Contact system support</p>
             </div>
 
-            {/* Quick access for customers */}
+            {/* Quick access for customers 
             <div className="mt-6 text-center">
               <div className="inline-flex flex-wrap gap-3">
                 <button
@@ -283,7 +284,7 @@ function TabsLanding() {
       </div>
     </div>
   )
-}
+}*/}
 
 function Layout({ children }: { children: React.ReactNode }) {
   const location = useLocation()
@@ -378,7 +379,7 @@ function App() {
     <React.Suspense fallback={<div className="p-6 text-center text-sm text-gray-600">Loading...</div>}>
     <Routes>
       <Route
-        element={<Layout><TabsLanding /></Layout>}
+        element={<Layout><ProLoginLanding /></Layout>}
         path="/"
       />
       <Route

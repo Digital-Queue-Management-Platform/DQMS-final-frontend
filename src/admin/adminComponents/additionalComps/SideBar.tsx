@@ -223,12 +223,16 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed, activePa
       localStorage.removeItem('teleshopManagerToken')
     } catch {}
 
-    // Navigate to login page based on context
-    if (onOfficerPath) navigate('/officer/login', { replace: true })
-    else if (onManagerPath) navigate('/manager/login', { replace: true })
-    else if (onTeleshopManagerPath) navigate('/teleshop-manager/login', { replace: true })
-    else if (onAdminPath) navigate('/admin/login', { replace: true })
-    else navigate('/', { replace: true })
+    try {
+      window.location.replace('/')
+    } catch {
+      // Fallback to SPA navigation if window.location is unavailable
+      if (onOfficerPath) navigate('/officer/login', { replace: true })
+      else if (onManagerPath) navigate('/manager/login', { replace: true })
+      else if (onTeleshopManagerPath) navigate('/teleshop-manager/login', { replace: true })
+      else if (onAdminPath) navigate('/admin/login', { replace: true })
+      else navigate('/', { replace: true })
+    }
   };
 
   return (

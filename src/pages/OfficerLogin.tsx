@@ -37,12 +37,12 @@ export default function OfficerLogin() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-blue-100 flex items-center justify-center p-3 sm:p-4 lg:p-6">
-      <div className="bg-white rounded-xl sm:rounded-2xl shadow-xl w-full max-w-sm sm:max-w-md p-6 sm:p-8">
+    <div className="min-h-screen flex items-center justify-center p-3 sm:p-4 lg:p-6">
+      <div className="rounded-xl sm:rounded-3xl bg-gradient-to-br from-yellow-50 to-orange-100 border-2 border-yellow-300 w-full max-w-sm sm:max-w-md p-6 sm:p-8">
         {/* Header */}
         <div className="text-center mb-6 sm:mb-8">
-          <div className="inline-flex items-center justify-center w-12 h-12 sm:w-16 sm:h-16 bg-indigo-100 rounded-full mb-3 sm:mb-4">
-            <LogIn className="w-6 h-6 sm:w-8 sm:h-8 text-indigo-600" />
+          <div className="inline-flex items-center justify-center w-12 h-12 sm:w-16 sm:h-16 bg-yellow-100 rounded-full mb-3 sm:mb-4">
+            <LogIn className="w-6 h-6 sm:w-8 sm:h-8 text-yellow-600" />
           </div>
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1 sm:mb-2">Officer Login</h1>
           <p className="text-sm sm:text-base text-gray-600">Enter your mobile number to continue</p>
@@ -62,7 +62,7 @@ export default function OfficerLogin() {
                 type="tel"
                 value={mobileNumber}
                 onChange={(e) => setMobileNumber(e.target.value)}
-                className="w-full pl-9 sm:pl-10 pr-4 py-2.5 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm sm:text-base"
+                className="w-full pl-9 sm:pl-10 pr-4 py-2.5 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent text-sm sm:text-base"
                 placeholder="07XXXXXXXX"
                 pattern="[0-9]{10}"
                 required
@@ -74,14 +74,14 @@ export default function OfficerLogin() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-indigo-600 text-white py-2.5 sm:py-3 rounded-lg font-semibold hover:bg-indigo-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed text-sm sm:text-base"
+            className="w-full bg-yellow-600 text-white py-2.5 sm:py-3 rounded-lg font-semibold hover:bg-yellow-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed text-sm sm:text-base"
           >
             {loading ? "Logging in..." : "Login"}
           </button>
         </form>
 
         <div className="mt-5 sm:mt-6 text-center text-xs sm:text-sm text-gray-500">
-          <p>Secure login for authorized officers only</p>
+          <p>Authorized officers only</p>
         </div>
       </div>
     </div>
