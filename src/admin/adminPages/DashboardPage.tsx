@@ -673,9 +673,11 @@ const DashboardPage: React.FC = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-              <div className="p-2 rounded-lg shadow mb-6">
-                <SystemHealthStatus/>
+            <div className="grid grid-cols-1 lg:grid-cols-1 gap-6 mb-4">
+              <div className="mb-2">
+                <div className="max-w-5xl mx-auto">
+                  <SystemHealthStatus/>
+                </div>
               </div>
             </div>
             

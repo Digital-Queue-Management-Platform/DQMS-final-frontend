@@ -18,3 +18,17 @@ body {
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, "Courier New", monospace;
 }*/
+
+/* Remove the visible focus outline for mouse/click interactions while preserving
+   keyboard focus (accessibility) using :focus-visible. This prevents the black
+   border that appears around charts (SVG/canvas) when clicked. */
+:focus:not(:focus-visible) {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Also ensure chart elements (canvas/svg) don't show outlines when clicked */
+canvas:focus, svg:focus {
+  outline: none !important;
+  box-shadow: none !important;
+}
