@@ -29,6 +29,7 @@ interface Officer {
     id: string
     name: string
     location: string
+    counterCount?: number
   }
   totalBreaks: number
   totalMinutes: number
@@ -46,7 +47,10 @@ export default function TeleshopManagerOfficers() {
   const [error, setError] = useState("")
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState<"all" | "available" | "serving" | "on_break" | "offline">("all")
-  
+  const [showAssignCounterModal, setShowAssignCounterModal] = useState(false)
+  const [selectedOfficerForCounter, setSelectedOfficerForCounter] = useState<Officer | null>(null)
+  const [selectedCounter, setSelectedCounter] = useState<number | null>(null)
+
   useEffect(() => {
     // Initial load should show full-screen loader
     fetchOfficers(true)
@@ -58,21 +62,24 @@ export default function TeleshopManagerOfficers() {
     let ws: WebSocket | null = null
     let reconnectTimer: number | null = null
     let isComponentMounted = true
-    
+
     const connectWebSocket = () => {
       if (!isComponentMounted) return
-      
+
       try {
         ws = new WebSocket(WS_URL)
-        
+
         ws.onopen = () => {
           console.log('TeleshopManagerOfficers WebSocket connected')
         }
-        
+
         ws.onmessage = (event) => {
           try {
             const data = JSON.parse(event.data)
-            if (data.type === "OFFICER_STATUS_CHANGE" || data.type === "BREAK_STATUS_CHANGE" || data.type === "OFFICER_UPDATED") {
+            if (data.type === "OFFICER_STATUS_CHANGE" ||
+              data.type === "BREAK_STATUS_CHANGE" ||
+              data.type === "OFFICER_UPDATED" ||
+              data.type === "DAILY_RESET") {
               // Refresh silently when updates arrive
               fetchOfficers(false)
             }
@@ -84,7 +91,7 @@ export default function TeleshopManagerOfficers() {
         ws.onerror = (error) => {
           console.error('TeleshopManagerOfficers WebSocket error:', error)
         }
-        
+
         ws.onclose = (event) => {
           console.log('TeleshopManagerOfficers WebSocket disconnected:', event.reason)
           if (!event.wasClean && isComponentMounted) {
@@ -114,7 +121,7 @@ export default function TeleshopManagerOfficers() {
     try {
       if (showLoading) setLoading(true)
       const token = localStorage.getItem("teleshopManagerToken")
-      
+
       if (!token) {
         navigate("/teleshop-manager/login")
         return
@@ -123,7 +130,7 @@ export default function TeleshopManagerOfficers() {
       const response = await api.get("/teleshop-manager/officers", {
         headers: { Authorization: `Bearer ${token}` }
       })
-      
+
       // Handle both response formats: { success: true, officers: [...] } or direct array [...]
       if (response.data.success && response.data.officers) {
         setOfficers(response.data.officers)
@@ -134,7 +141,7 @@ export default function TeleshopManagerOfficers() {
       }
     } catch (error: any) {
       console.error("Failed to fetch officers:", error)
-      
+
       if (error.response?.status === 401) {
         localStorage.removeItem("teleshopManagerToken")
         localStorage.removeItem("teleshopManager")
@@ -167,7 +174,7 @@ export default function TeleshopManagerOfficers() {
       const response = await api.delete(`/teleshop-manager/officers/${officerId}`, {
         headers: { Authorization: `Bearer ${token}` }
       })
-      
+
       if (response.data.success) {
         setOfficers(prev => prev.filter(officer => officer.id !== officerId))
       } else {
@@ -185,11 +192,49 @@ export default function TeleshopManagerOfficers() {
     }
   }
 
+  const handleOpenAssignCounter = (officer: Officer) => {
+    setSelectedOfficerForCounter(officer)
+    setSelectedCounter(officer.counterNumber || null)
+    setShowAssignCounterModal(true)
+  }
+
+  const handleAssignCounter = async () => {
+    if (!selectedOfficerForCounter) return
+
+    try {
+      const token = localStorage.getItem("teleshopManagerToken")
+      if (!token) {
+        navigate("/teleshop-manager/login")
+        return
+      }
+
+      const response = await api.patch(
+        `/teleshop-manager/officers/${selectedOfficerForCounter.id}/assign-counter`,
+        { counterNumber: selectedCounter },
+        { headers: { Authorization: `Bearer ${token}` } }
+      )
+
+      if (response.data.success) {
+        // Update local state
+        setOfficers(prev => prev.map(o =>
+          o.id === selectedOfficerForCounter.id
+            ? { ...o, counterNumber: selectedCounter ?? undefined }
+            : o
+        ))
+        setShowAssignCounterModal(false)
+        setSelectedOfficerForCounter(null)
+        setSelectedCounter(null)
+      }
+    } catch (err: any) {
+      alert(err.response?.data?.error || "Failed to assign counter")
+    }
+  }
+
   const filteredOfficers = officers.filter(officer => {
     const matchesSearch = officer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         officer.mobileNumber.includes(searchTerm) ||
-                         officer.outlet.name.toLowerCase().includes(searchTerm.toLowerCase())
-    
+      officer.mobileNumber.includes(searchTerm) ||
+      officer.outlet.name.toLowerCase().includes(searchTerm.toLowerCase())
+
     let matchesStatus = true
     if (statusFilter !== "all") {
       if (statusFilter === "on_break") {
@@ -198,7 +243,7 @@ export default function TeleshopManagerOfficers() {
         matchesStatus = officer.status === statusFilter
       }
     }
-    
+
     return matchesSearch && matchesStatus
   })
 
@@ -211,10 +256,10 @@ export default function TeleshopManagerOfficers() {
       offline: { color: "bg-gray-100 text-gray-800", icon: Clock, label: "Offline" },
       busy: { color: "bg-orange-100 text-orange-800", icon: Clock, label: "Busy" }
     }
-    
+
     const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.offline
     const Icon = config.icon
-    
+
     return (
       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${config.color}`}>
         <Icon className="w-3 h-3 mr-1" />
@@ -334,7 +379,7 @@ export default function TeleshopManagerOfficers() {
             className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
           />
         </div>
-        
+
         {/* Status Filter */}
         <div className="relative">
           <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
@@ -381,8 +426,26 @@ export default function TeleshopManagerOfficers() {
                           <MapPin className="w-4 h-4" />
                           {officer.outlet.name}
                         </div>
-                        {officer.counterNumber && (
-                          <span>Counter #{officer.counterNumber}</span>
+                        {officer.counterNumber ? (
+                          <div className="flex items-center gap-1">
+                            <span className="text-green-600 font-medium">Counter #{officer.counterNumber}</span>
+                            <button
+                              onClick={() => handleOpenAssignCounter(officer)}
+                              className="text-xs text-blue-600 hover:text-blue-700 ml-2"
+                            >
+                              Change
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-1">
+                            <span className="text-gray-400 italic">No Counter</span>
+                            <button
+                              onClick={() => handleOpenAssignCounter(officer)}
+                              className="text-xs text-purple-600 hover:text-purple-700 ml-2 font-medium"
+                            >
+                              Assign Counter
+                            </button>
+                          </div>
                         )}
                       </div>
                     </div>
@@ -444,6 +507,62 @@ export default function TeleshopManagerOfficers() {
         </div>
       )}
 
+      {/* Assign Counter Modal */}
+      {showAssignCounterModal && selectedOfficerForCounter && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
+            <div className="p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                Assign Counter
+              </h3>
+
+              <div className="mb-4">
+                <p className="text-sm text-gray-600 mb-2">
+                  Officer: <strong>{selectedOfficerForCounter.name}</strong>
+                </p>
+                <p className="text-sm text-gray-600">
+                  Outlet: <strong>{selectedOfficerForCounter.outlet.name}</strong>
+                </p>
+              </div>
+
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Counter Number
+                </label>
+                <select
+                  value={selectedCounter || ""}
+                  onChange={(e) => setSelectedCounter(e.target.value ? Number(e.target.value) : null)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                >
+                  <option value="">Unassigned</option>
+                  {Array.from({ length: selectedOfficerForCounter.outlet.counterCount || 10 }, (_, i) => i + 1).map(num => (
+                    <option key={num} value={num}>Counter #{num}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex justify-end space-x-3">
+                <button
+                  onClick={() => {
+                    setShowAssignCounterModal(false)
+                    setSelectedOfficerForCounter(null)
+                    setSelectedCounter(null)
+                  }}
+                  className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleAssignCounter}
+                  className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+                >
+                  {selectedCounter ? 'Assign Counter' : 'Unassign'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   )

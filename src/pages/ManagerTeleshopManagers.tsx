@@ -2,11 +2,11 @@
 
 import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
-import { 
-  Users, 
-  UserPlus, 
-  Phone, 
-  Trash2, 
+import {
+  Users,
+  UserPlus,
+  Phone,
+  Trash2,
   Calendar,
   AlertCircle,
   CheckCircle
@@ -19,14 +19,12 @@ interface TeleshopManager {
   mobileNumber: string
   isActive: boolean
   createdAt: string
-  officers: Array<{
+  branchId?: string
+  branch?: {
     id: string
     name: string
-    outlet: {
-      name: string
-      location: string
-    }
-  }>
+    location: string
+  }
 }
 
 interface NewTeleshopManagerForm {
@@ -49,9 +47,14 @@ export default function ManagerTeleshopManagers() {
     mobileNumber: "",
     email: ""
   })
+  const [branches, setBranches] = useState<Array<{ id: string, name: string, location: string }>>([])
+  const [showAssignBranchModal, setShowAssignBranchModal] = useState(false)
+  const [selectedTeleshopManager, setSelectedTeleshopManager] = useState<TeleshopManager | null>(null)
+  const [selectedBranchId, setSelectedBranchId] = useState<string | null>(null)
 
   useEffect(() => {
     fetchTeleshopManagers()
+    fetchBranches()
   }, [])
 
   const fetchTeleshopManagers = async () => {
@@ -78,6 +81,55 @@ export default function ManagerTeleshopManagers() {
       }
     } finally {
       setLoading(false)
+    }
+  }
+
+  const fetchBranches = async () => {
+    try {
+      const token = localStorage.getItem("managerToken")
+      if (!token) return
+
+      const storedManager = localStorage.getItem('manager')
+      const managerData = storedManager ? JSON.parse(storedManager) : null
+      const params: any = {}
+      if (managerData?.email) params.email = managerData.email
+
+      const meRes = await api.get('/manager/me', { params })
+      const outlets = meRes.data?.manager?.outlets || []
+      setBranches(outlets)
+    } catch (error) {
+      console.error("Failed to fetch branches:", error)
+    }
+  }
+
+  const handleAssignBranch = async () => {
+    if (!selectedTeleshopManager) return
+
+    try {
+      const token = localStorage.getItem("managerToken")
+      if (!token) {
+        navigate("/manager/login")
+        return
+      }
+
+      const response = await api.patch(
+        `/manager/teleshop-managers/${selectedTeleshopManager.id}/assign-branch`,
+        { branchId: selectedBranchId },
+        { headers: { Authorization: `Bearer ${token}` } }
+      )
+
+      if (response.data.success) {
+        setTeleshopManagers(prev => prev.map(tm =>
+          tm.id === selectedTeleshopManager.id
+            ? { ...tm, branchId: selectedBranchId ?? undefined, branch: branches.find(b => b.id === selectedBranchId) }
+            : tm
+        ))
+        setShowAssignBranchModal(false)
+        setSelectedTeleshopManager(null)
+        setSelectedBranchId(null)
+      }
+    } catch (err: any) {
+      alert(err.response?.data?.error || "Failed to assign branch")
     }
   }
 
@@ -151,14 +203,14 @@ export default function ManagerTeleshopManagers() {
         return
       }
 
-      const response = await api.patch(`/manager/teleshop-managers/${teleshopManagerId}`, 
-        { isActive: !currentStatus }, 
+      const response = await api.patch(`/manager/teleshop-managers/${teleshopManagerId}`,
+        { isActive: !currentStatus },
         { headers: { Authorization: `Bearer ${token}` } }
       )
 
       if (response.data.success) {
-        setTeleshopManagers(prev => prev.map(tm => 
-          tm.id === teleshopManagerId 
+        setTeleshopManagers(prev => prev.map(tm =>
+          tm.id === teleshopManagerId
             ? { ...tm, isActive: !currentStatus }
             : tm
         ))
@@ -219,7 +271,7 @@ export default function ManagerTeleshopManagers() {
           <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
             <div className="p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Add New Teleshop Manager</h3>
-              
+
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -360,8 +412,9 @@ export default function ManagerTeleshopManagers() {
                     Contact
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Officers
+                    Branch
                   </th>
+
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Status
                   </th>
@@ -396,22 +449,21 @@ export default function ManagerTeleshopManagers() {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">
-                        {manager.officers.length} officers
-                      </div>
-                      {manager.officers.length > 0 && (
-                        <div className="text-sm text-gray-500">
-                          {manager.officers.slice(0, 2).map(officer => officer.outlet.name).join(", ")}
-                          {manager.officers.length > 2 && ` +${manager.officers.length - 2} more`}
+                      {manager.branch ? (
+                        <div>
+                          <div className="text-sm font-medium text-gray-900">{manager.branch.name}</div>
+                          <div className="text-sm text-gray-500">{manager.branch.location}</div>
                         </div>
+                      ) : (
+                        <span className="text-sm text-gray-400 italic">Not assigned</span>
                       )}
                     </td>
+
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        manager.isActive 
-                          ? "bg-green-100 text-green-800" 
-                          : "bg-red-100 text-red-800"
-                      }`}>
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${manager.isActive
+                        ? "bg-green-100 text-green-800"
+                        : "bg-red-100 text-red-800"
+                        }`}>
                         {manager.isActive ? (
                           <>
                             <CheckCircle className="w-3 h-3 mr-1" />
@@ -433,20 +485,28 @@ export default function ManagerTeleshopManagers() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
                       <button
+                        onClick={() => {
+                          setSelectedTeleshopManager(manager)
+                          setSelectedBranchId(manager.branchId || null)
+                          setShowAssignBranchModal(true)
+                        }}
+                        className="inline-flex items-center px-3 py-1 rounded text-xs font-medium bg-blue-100 text-blue-700 hover:bg-blue-200"
+                      >
+                        {manager.branch ? 'Change Branch' : 'Assign Branch'}
+                      </button>
+                      <button
                         onClick={() => handleToggleStatus(manager.id, manager.isActive)}
-                        className={`inline-flex items-center px-3 py-1 rounded text-xs font-medium ${
-                          manager.isActive
-                            ? "bg-red-100 text-red-700 hover:bg-red-200"
-                            : "bg-green-100 text-green-700 hover:bg-green-200"
-                        }`}
+                        className={`inline-flex items-center px-3 py-1 rounded text-xs font-medium ${manager.isActive
+                          ? "bg-red-100 text-red-700 hover:bg-red-200"
+                          : "bg-green-100 text-green-700 hover:bg-green-200"
+                          }`}
                       >
                         {manager.isActive ? "Deactivate" : "Activate"}
                       </button>
                       <button
                         onClick={() => handleDelete(manager.id, manager.name)}
                         className="inline-flex items-center px-3 py-1 rounded text-xs font-medium bg-red-100 text-red-700 hover:bg-red-200"
-                        disabled={manager.officers.length > 0}
-                        title={manager.officers.length > 0 ? "Cannot delete RTOM with assigned officers" : "Delete RTOM"}
+                        title="Delete Teleshop Manager"
                       >
                         <Trash2 className="w-3 h-3 mr-1" />
                         Delete
@@ -469,6 +529,62 @@ export default function ManagerTeleshopManagers() {
           >
             Add First Teleshop Manager
           </button>
+        </div>
+      )}
+
+      {/* Assign Branch Modal */}
+      {showAssignBranchModal && selectedTeleshopManager && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
+            <div className="p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                Assign Branch
+              </h3>
+
+              <div className="mb-4">
+                <p className="text-sm text-gray-600 mb-2">
+                  Teleshop Manager: <strong>{selectedTeleshopManager.name}</strong>
+                </p>
+              </div>
+
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Select Branch
+                </label>
+                <select
+                  value={selectedBranchId || ""}
+                  onChange={(e) => setSelectedBranchId(e.target.value || null)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                >
+                  <option value="">No Branch (Unassign)</option>
+                  {branches.map(branch => (
+                    <option key={branch.id} value={branch.id}>
+                      {branch.name} - {branch.location}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex justify-end space-x-3">
+                <button
+                  onClick={() => {
+                    setShowAssignBranchModal(false)
+                    setSelectedTeleshopManager(null)
+                    setSelectedBranchId(null)
+                  }}
+                  className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleAssignBranch}
+                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+                >
+                  {selectedBranchId ? 'Assign Branch' : 'Unassign'}
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>
