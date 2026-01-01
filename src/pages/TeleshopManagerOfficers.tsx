@@ -20,6 +20,7 @@ import {
   ChevronUp
 } from "lucide-react"
 import api, { WS_URL } from "../config/api"
+import { AnimatedDropdown } from "../components/AnimatedDropdown"
 
 interface Officer {
   id: string
@@ -120,19 +121,22 @@ export default function TeleshopManagerOfficers() {
     }
   }, [])
 
+  // Centralized auth error handler
+  const handleAuthError = (error: any) => {
+    if (error.response?.status === 401 || error.response?.status === 403) {
+      localStorage.removeItem("teleshopManagerToken")
+      localStorage.removeItem("teleshopManager")
+      navigate("/teleshop-manager/login")
+      return true // Handled
+    }
+    return false // Not handled
+  }
+
   const fetchOfficers = async (showLoading = true) => {
     try {
       if (showLoading) setLoading(true)
-      const token = localStorage.getItem("teleshopManagerToken")
 
-      if (!token) {
-        navigate("/teleshop-manager/login")
-        return
-      }
-
-      const response = await api.get("/teleshop-manager/officers", {
-        headers: { Authorization: `Bearer ${token}` }
-      })
+      const response = await api.get("/teleshop-manager/officers")
 
       // Handle both response formats: { success: true, officers: [...] } or direct array [...]
       if (response.data.success && response.data.officers) {
@@ -145,20 +149,11 @@ export default function TeleshopManagerOfficers() {
     } catch (error: any) {
       console.error("Failed to fetch officers:", error)
 
-      if (error.response?.status === 401) {
-        localStorage.removeItem("teleshopManagerToken")
-        localStorage.removeItem("teleshopManager")
-        navigate("/teleshop-manager/login")
-      } else {
-        setError(error.response?.data?.error || "Failed to fetch officers data")
+      if (!handleAuthError(error)) {
+        setError(error.response?.data?.error || "Failed to fetch officers. Please try again.")
       }
     } finally {
-      // Only toggle the full-screen loading state if we showed it
-      try {
-        if (showLoading) setLoading(false)
-      } catch (e) {
-        // ignore
-      }
+      if (showLoading) setLoading(false)
     }
   }
 
@@ -168,15 +163,7 @@ export default function TeleshopManagerOfficers() {
     }
 
     try {
-      const token = localStorage.getItem("teleshopManagerToken")
-      if (!token) {
-        navigate("/teleshop-manager/login")
-        return
-      }
-
-      const response = await api.delete(`/teleshop-manager/officers/${officerId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      })
+      const response = await api.delete(`/teleshop-manager/officers/${officerId}`)
 
       if (response.data.success) {
         setOfficers(prev => prev.filter(officer => officer.id !== officerId))
@@ -185,12 +172,9 @@ export default function TeleshopManagerOfficers() {
       }
     } catch (error: any) {
       console.error("Failed to delete officer:", error)
-      if (error.response?.status === 401) {
-        localStorage.removeItem("teleshopManagerToken")
-        localStorage.removeItem("teleshopManager")
-        navigate("/teleshop-manager/login")
-      } else {
-        alert(error.response?.data?.error || "Failed to delete officer")
+
+      if (!handleAuthError(error)) {
+        alert(error.response?.data?.error || "Failed to delete officer. Please try again.")
       }
     }
   }
@@ -204,17 +188,11 @@ export default function TeleshopManagerOfficers() {
   const handleAssignCounter = async () => {
     if (!selectedOfficerForCounter) return
 
-    try {
-      const token = localStorage.getItem("teleshopManagerToken")
-      if (!token) {
-        navigate("/teleshop-manager/login")
-        return
-      }
 
+    try {
       const response = await api.patch(
         `/teleshop-manager/officers/${selectedOfficerForCounter.id}/assign-counter`,
-        { counterNumber: selectedCounter },
-        { headers: { Authorization: `Bearer ${token}` } }
+        { counterNumber: selectedCounter }
       )
 
       if (response.data.success) {
@@ -229,7 +207,9 @@ export default function TeleshopManagerOfficers() {
         setSelectedCounter(null)
       }
     } catch (err: any) {
-      alert(err.response?.data?.error || "Failed to assign counter")
+      if (!handleAuthError(err)) {
+        alert(err.response?.data?.error || "Failed to assign counter. Please try again.")
+      }
     }
   }
 
@@ -329,36 +309,8 @@ export default function TeleshopManagerOfficers() {
     )
   }
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading officers...</p>
-        </div>
-      </div>
-    )
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <AlertCircle className="h-12 w-12 text-red-600 mx-auto mb-4" />
-          <p className="text-red-600 mb-4">{error}</p>
-          <button
-            onClick={() => { setError(""); fetchOfficers(true); }}
-            className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700"
-          >
-            Retry
-          </button>
-        </div>
-      </div>
-    )
-  }
-
   return (
-    <div className="p-6">
+    <div className="p-4">
       {/* Header */}
       <div className="mb-8">
         <div className="flex items-center justify-between mb-2">
@@ -375,14 +327,14 @@ export default function TeleshopManagerOfficers() {
             <button
               onClick={() => fetchOfficers(true)}
               disabled={loading}
-              className="px-3 py-2 rounded-lg border-2 hover:border-black flex items-center gap-2 disabled:bg-gray-400"
+              className={`px-2 py-1.5 rounded-lg bg-blue-500 text-white hover:bg-blue-700 flex items-center gap-2 ${loading ? 'cursor-not-allowed' : 'cursor-pointer'}`}
             >
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
               Refresh
             </button>
             <button
               onClick={() => navigate('/teleshop-manager/officers/add')}
-              className="text-blue-600 border-2 px-4 py-2 rounded-lg hover:border-blue-600 flex items-center gap-2"
+              className="text-blue-600 border-2 px-2 py-1.5 rounded-lg hover:border-blue-600 flex items-center gap-2"
             >
               <UserPlus className="w-4 h-4" />
               Add New Officer
@@ -392,24 +344,24 @@ export default function TeleshopManagerOfficers() {
       </div>
 
       {/* Summary Cards */}
-      <div className="mb-6 grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 text-center">
+      <div className="max-w-4xl mx-auto mb-6 grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div className="bg-white rounded-lg border border-gray-200 p-6 text-center">
           <div className="text-2xl font-bold text-blue-600">{officers.length}</div>
           <div className="text-sm text-gray-600">Total Officers</div>
         </div>
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 text-center">
+        <div className="bg-white rounded-lg border border-gray-200 p-6 text-center">
           <div className="text-2xl font-bold text-green-600">
             {officers.filter(o => o.status === 'available').length}
           </div>
           <div className="text-sm text-gray-600">Online</div>
         </div>
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 text-center">
+        <div className="bg-white rounded-lg border border-gray-200 p-6 text-center">
           <div className="text-2xl font-bold text-yellow-600">
             {officers.filter(o => o.status === 'break').length}
           </div>
           <div className="text-sm text-gray-600">On Break</div>
         </div>
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 text-center">
+        <div className="bg-white rounded-lg border border-gray-200 p-6 text-center">
           <div className="text-2xl font-bold text-gray-600">
             {officers.filter(o => o.status === 'offline').length}
           </div>
@@ -432,24 +384,43 @@ export default function TeleshopManagerOfficers() {
         </div>
 
         {/* Status Filter */}
-        <div className="relative">
-          <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value as any)}
-            className="pl-10 pr-8 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-transparent appearance-none bg-white"
-          >
-            <option value="all">All Status</option>
-            <option value="available">Available</option>
-            <option value="serving">Serving</option>
-            <option value="on_break">On Break</option>
-            <option value="offline">Offline</option>
-          </select>
-        </div>
+        <AnimatedDropdown
+          options={[
+            { value: "all", label: "All Status" },
+            { value: "available", label: "Available" },
+            { value: "serving", label: "Serving" },
+            { value: "on_break", label: "On Break" },
+            { value: "offline", label: "Offline" },
+          ]}
+          value={statusFilter}
+          onChange={(value) => setStatusFilter(value as any)}
+          icon={<Filter className="w-4 h-4" />}
+          className="w-44"
+        />
       </div>
 
       {/* Officers List */}
-      {filteredOfficers.length === 0 ? (
+      {loading ? (
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto"></div>
+            <p className="mt-4 text-gray-600">Loading officers...</p>
+          </div>
+        </div>
+      ) : error ? (
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12">
+          <div className="text-center">
+            <AlertCircle className="h-12 w-12 text-red-600 mx-auto mb-4" />
+            <p className="text-red-600 mb-4">{error}</p>
+            <button
+              onClick={() => { setError(""); fetchOfficers(true); }}
+              className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700"
+            >
+              Retry
+            </button>
+          </div>
+        </div>
+      ) : filteredOfficers.length === 0 ? (
         <div className="text-center py-12">
           <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
           <p className="text-gray-500 text-lg">

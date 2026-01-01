@@ -258,7 +258,7 @@ export default function ManagerTeleshopManagers() {
       <div className="mb-6">
         <button
           onClick={() => setShowAddForm(true)}
-          className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center"
+          className="text-green-600 px-4 py-2 rounded-lg border-2 border-green-500 hover:text-white hover:bg-green-500 transition-colors flex items-center"
         >
           <UserPlus className="w-5 h-5 mr-2" />
           Add Teleshop Manager
@@ -431,12 +431,12 @@ export default function ManagerTeleshopManagers() {
                   <tr key={manager.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
-                        <div className="flex-shrink-0 h-10 w-10">
+                        {/*<div className="flex-shrink-0 h-10 w-10">
                           <div className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center">
                             <Users className="h-5 w-5 text-green-600" />
                           </div>
-                        </div>
-                        <div className="ml-4">
+                        </div>*/}
+                        <div className="">
                           <div className="text-sm font-medium text-gray-900">{manager.name}</div>
                           <div className="text-sm text-gray-500">Teleshop Manager</div>
                         </div>

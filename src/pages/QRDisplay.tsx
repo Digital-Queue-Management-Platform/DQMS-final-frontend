@@ -4,6 +4,7 @@ import { useParams } from "react-router-dom"
 import { QRCodeSVG } from "qrcode.react"
 import { useEffect, useMemo, useState } from "react"
 import api from "../config/api"
+import { Smartphone, CheckCircle, Clock } from "lucide-react"
 
 export default function QRDisplay() {
   const { outletId } = useParams()
@@ -21,7 +22,7 @@ export default function QRDisplay() {
 
     const fetchToken = async () => {
       if (!outletId) return
-      
+
       try {
         // First priority: Check for manager-generated QR codes in localStorage
         const storedQRCodes = localStorage.getItem('managerQRCodes')
@@ -56,7 +57,7 @@ export default function QRDisplay() {
 
     // Initial fetch
     fetchToken()
-    
+
     // Set up periodic refresh for localStorage monitoring (check every 5 seconds)
     timer = setInterval(() => {
       fetchToken()
@@ -69,55 +70,93 @@ export default function QRDisplay() {
   }, [outletId])
 
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center p-2 sm:p-4 md:p-6 lg:p-8">
-      <div className="bg-white rounded-2xl sm:rounded-3xl shadow-2xl w-full max-w-xs sm:max-w-sm md:max-w-md lg:max-w-2xl xl:max-w-3xl mx-auto">
-        <div className="p-4 sm:p-6 md:p-8 lg:p-12 text-center">
-          {/* Header Section */}
-          <div className="mb-4 sm:mb-6 md:mb-8">
-            <h1 className="text-lg sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-bold text-gray-900 mb-2 sm:mb-3 md:mb-4 leading-tight">
-              Welcome to Queue Management Platform
-            </h1>
-            <p className="text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl text-gray-600 px-2 sm:px-4">
-              Scan QR Code to Join the Queue
-            </p>
-          </div>
+    <div className="h-screen w-full bg-gray-50 flex items-center justify-center overflow-hidden p-4">
+      {/* Main Content Container - Fixed height to prevent scrolling */}
+      <div className="w-full max-w-5xl h-full max-h-screen flex items-center justify-center">
+        <div className="bg-white/95 backdrop-blur-sm rounded-3xl w-full p-8 lg:p-12 border border-gray-300">
+          <div className="grid lg:grid-cols-2 gap-8 items-center h-full">
 
-          {/* QR Code Section - Responsive container */}
-          <div className="bg-white p-3 sm:p-4 md:p-6 lg:p-8 rounded-xl sm:rounded-2xl inline-block shadow-lg mb-4 sm:mb-6 md:mb-8 mx-auto">
-            <div className="flex items-center justify-center">
-              <div className="relative">
-                <QRCodeSVG 
-                  value={registrationUrl} 
-                  size={200}
-                  level="H" 
-                  className="w-32 h-32 xs:w-36 xs:h-36 sm:w-40 sm:h-40 md:w-48 md:h-48 lg:w-56 lg:h-56 xl:w-64 xl:h-64 2xl:w-72 2xl:h-72 max-w-[90vw] max-h-[40vh] object-contain"
+            {/* Left Side - QR Code */}
+            <div className="flex flex-col items-center justify-center">
+              <div className="bg-gradient-to-br from-indigo-50 to-purple-50 p-6 rounded-2xl shadow-lg mb-4">
+                <QRCodeSVG
+                  value={registrationUrl}
+                  size={280}
+                  level="H"
+                  className="w-full h-full"
+                  style={{ maxWidth: '280px', maxHeight: '280px' }}
                 />
               </div>
+
+              {/* Error Message */}
+              {error && (
+                <div className="text-red-600 text-sm bg-red-50 rounded-lg border border-red-200 px-4 py-2">
+                  {error}
+                </div>
+              )}
             </div>
-          </div>
 
-          {/* Error Message */}
-          {error && (
-            <div className="text-red-600 text-xs sm:text-sm md:text-base mb-4 sm:mb-6 p-2 sm:p-3 md:p-4 bg-red-50 rounded-lg border border-red-200 mx-2 sm:mx-4">
-              {error}
+            {/* Right Side - Content */}
+            <div className="flex flex-col justify-center space-y-6">
+              {/* Header */}
+              <div>
+                <h1 className="text-4xl lg:text-5xl font-bold text-gray-900 mb-3 leading-tight">
+                  Join the Queue
+                </h1>
+                <p className="text-xl text-gray-600">
+                  Skip the wait, scan to register
+                </p>
+              </div>
+
+              {/* Steps */}
+              <div className="space-y-4">
+                <div className="flex items-start gap-4 bg-gradient-to-r from-indigo-50 to-purple-50 p-4 rounded-xl">
+                  <div className="flex-shrink-0 w-10 h-10 bg-indigo-600 text-white rounded-full flex items-center justify-center font-bold">
+                    1
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-gray-900 mb-1 flex items-center gap-2">
+                      <Smartphone className="w-5 h-5 text-indigo-600" />
+                      Scan with Your Phone
+                    </h3>
+                    <p className="text-sm text-gray-600">Use your mobile camera to scan the QR code</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-4 bg-gradient-to-r from-purple-50 to-blue-50 p-4 rounded-xl">
+                  <div className="flex-shrink-0 w-10 h-10 bg-purple-600 text-white rounded-full flex items-center justify-center font-bold">
+                    2
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-gray-900 mb-1 flex items-center gap-2">
+                      <CheckCircle className="w-5 h-5 text-purple-600" />
+                      Register Online
+                    </h3>
+                    <p className="text-sm text-gray-600">Fill in your details and get your queue number</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-4 bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-xl">
+                  <div className="flex-shrink-0 w-10 h-10 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">
+                    3
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-gray-900 mb-1 flex items-center gap-2">
+                      <Clock className="w-5 h-5 text-blue-600" />
+                      Track in Real-Time
+                    </h3>
+                    <p className="text-sm text-gray-600">Monitor your position in the queue on your device</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="pt-4 border-t border-gray-200">
+                <p className="text-sm text-gray-500 text-center lg:text-left">
+                  Digital Queue Management Platform
+                </p>
+              </div>
             </div>
-          )}
-
-          {/* Instructions Section */}
-          <div className="space-y-2 sm:space-y-3 md:space-y-4 mb-4 sm:mb-6 md:mb-8">
-            <p className="text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl text-gray-700 font-medium px-2 sm:px-4">
-              Scan with your mobile camera
-            </p>
-            <p className="text-xs sm:text-sm md:text-base lg:text-lg text-gray-500 px-2 sm:px-4 leading-relaxed">
-              Register online and track your queue position in real-time
-            </p>
-          </div>
-
-          {/* Footer */}
-          <div className="pt-3 sm:pt-4 md:pt-6 lg:pt-8 border-t border-gray-200">
-            <p className="text-xs sm:text-sm md:text-base text-gray-400">
-              Digital Queue Management Platform
-            </p>
           </div>
         </div>
       </div>

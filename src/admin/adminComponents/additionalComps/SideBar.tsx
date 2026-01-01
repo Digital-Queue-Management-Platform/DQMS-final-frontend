@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 //import SLTlogo from '../../../assets/logo.png';
-import { 
-  LayoutDashboard, 
+import {
+  LayoutDashboard,
   //FolderOpen, 
   //Users, 
   //UserCheck, 
@@ -96,7 +96,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed, activePa
   const onManagerPath = location.pathname.startsWith('/manager')
   const onTeleshopManagerPath = location.pathname.startsWith('/teleshop-manager')
   const role = (currentUser?.role || '').toLowerCase()
-  
+
   const navigationItems: NavigationItem[] = onOfficerPath
     ? officerItems
     : onAdminPath
@@ -109,9 +109,9 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed, activePa
             ? adminItems // Default to admin while loading or for admin role
             : role === 'officer'
               ? officerItems
-            : role === 'region_manager' || role === 'manager' || role === 'regionalmanager'
-              ? regionManagerItems
-              : adminItems // fallback
+              : role === 'region_manager' || role === 'manager' || role === 'regionalmanager'
+                ? regionManagerItems
+                : adminItems // fallback
 
   const handleNavClick = (itemName: string): void => {
     setActivePage(itemName);
@@ -133,7 +133,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed, activePa
     // Get stored user data
     const storedUser = localStorage.getItem('dq_user')
     const storedManager = localStorage.getItem('manager')
-    
+
     if (onOfficerPath) {
       const storedOfficer = localStorage.getItem('officer')
       const officer = storedOfficer ? JSON.parse(storedOfficer) : null
@@ -195,7 +195,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed, activePa
               await api.post('/officer/status', { officerId: o.id, status: 'offline' })
             }
           }
-        } catch {}
+        } catch { }
       } else if (onManagerPath) {
         await api.post('/manager/logout')
       } else if (onTeleshopManagerPath) {
@@ -221,7 +221,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed, activePa
       // Teleshop manager-specific
       localStorage.removeItem('teleshopManager')
       localStorage.removeItem('teleshopManagerToken')
-    } catch {}
+    } catch { }
 
     try {
       window.location.replace('/')
@@ -247,12 +247,12 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed, activePa
 
       {/* Mobile backdrop */}
       {isMobileMenuOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-opacity-50 z-40 lg:hidden"
           onClick={() => setIsMobileMenuOpen(false)}
         />
       )}
-      
+
       {/* Sidebar */}
       <div
         onMouseLeave={() => {
@@ -263,7 +263,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed, activePa
         ${isMobileMenuOpen ? 'w-72' : 'hidden lg:block'}
         ${collapsed ? 'lg:w-16' : 'lg:w-72'}
       `}>
-        
+
         {/* Header */}
         {/*<div className="border-b border-gray-200 h-20 flex items-center justify-between p-5 relative">*/}
         <div className="h-20 flex items-center justify-between p-5 relative">
@@ -278,9 +278,9 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed, activePa
           ) : (
             <>
               <div>
-                <img 
+                <img
                   src='/logo.png'
-                  alt='logo' 
+                  alt='logo'
                   className='w-36 pr-2 p-1'
                 />
               </div>
@@ -302,19 +302,18 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed, activePa
         </div>
 
         {/* Navigation */}
-        <nav className={`${collapsed ? 'px-2' : 'px-6'} pt-6`}>
-          <ul className="space-y-3">
+        <nav className={`${collapsed ? 'px-2' : 'px-6'} pt-4 overflow-y-auto overflow-x-hidden max-h-[calc(100vh-14rem)] [&::-webkit-scrollbar]:w-[5px] [&::-webkit-scrollbar-track]:bg-gray-100 [&::-webkit-scrollbar-track]:rounded-full [&::-webkit-scrollbar-thumb]:bg-blue-500 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:hover:bg-blue-600`}>
+          <ul className="space-y-1">
             {navigationItems.map((item) => (
               <li key={item.name}>
                 {item.to ? (
                   <Link
                     to={item.to}
                     onClick={() => handleNavClick(item.name)}
-                    className={`group w-full flex items-center ${collapsed ? 'px-3 py-3 justify-center' : 'px-4 py-3'} text-sm font-semibold rounded-lg transition-all duration-200 relative cursor-pointer ${
-                      (location.pathname === item.to || activePage === item.name)
-                        ? 'bg-blue-600 text-white shadow-lg'
-                        : 'text-gray-600 hover:text-white hover:bg-blue-600'
-                    }`}
+                    className={`group w-full flex items-center ${collapsed ? 'px-3 py-3 justify-center' : 'px-4 py-3'} text-sm font-semibold rounded-lg transition-all duration-200 relative cursor-pointer ${(location.pathname === item.to || activePage === item.name)
+                      ? 'bg-blue-600 text-white shadow-lg'
+                      : 'text-gray-600 hover:text-white hover:bg-blue-600'
+                      }`}
                   >
                     <item.icon className="h-5 w-5 flex-shrink-0" />
                     {!collapsed && <span className="ml-3 truncate">{item.name}</span>}
@@ -327,11 +326,10 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed, activePa
                 ) : (
                   <button
                     onClick={() => handleNavClick(item.name)}
-                    className={`group w-full flex items-center ${collapsed ? 'px-3 py-3 justify-center' : 'px-4 py-3'} text-sm font-semibold rounded-lg transition-all duration-200 relative cursor-pointer ${
-                      activePage === item.name
-                        ? 'bg-blue-600 text-white shadow-lg'
-                        : 'text-gray-600 hover:text-white hover:bg-blue-600'
-                    }`}
+                    className={`group w-full flex items-center ${collapsed ? 'px-3 py-3 justify-center' : 'px-4 py-3'} text-sm font-semibold rounded-lg transition-all duration-200 relative cursor-pointer ${activePage === item.name
+                      ? 'bg-blue-600 text-white shadow-lg'
+                      : 'text-gray-600 hover:text-white hover:bg-blue-600'
+                      }`}
                   >
                     <item.icon className="h-5 w-5 flex-shrink-0" />
                     {!collapsed && <span className="ml-3 truncate">{item.name}</span>}
@@ -352,25 +350,25 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed, activePa
           <div className="p-6">
             {collapsed ? (
               <div className="flex flex-col items-center space-y-3">
-                <div className="h-10 w-10 bg-gray-800 rounded-lg flex items-center justify-center">
+                <div className="h-10 w-10 bg-gray-800 rounded-full flex items-center justify-center">
                   <span className="text-white text-sm font-semibold">{userInfo.initials}</span>
                 </div>
                 <button
                   onClick={handleLogout}
-                  className="p-2 text-gray-600 hover:text-white hover:bg-red-500 rounded-lg group relative"
+                  className="p-3 text-gray-600 hover:text-white hover:bg-red-500 rounded-full group relative"
                 >
                   <LogOut className="h-4 w-4" />
-                  <div className="absolute left-full ml-3 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50">
+                  <div className="absolute left-full ml-3 px-3 py-2 text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50">
                     Sign Out
                   </div>
                 </button>
               </div>
             ) : (
               <>
-                <div className="flex items-center mb-4">
-                  <div className="h-10 w-10 bg-gray-800 rounded-lg flex items-center justify-center">
+                <div className="flex items-center mb-3">
+                  {/*<div className="h-10 w-10 bg-gray-800 rounded-lg flex items-center justify-center">
                     <span className="text-white text-sm font-semibold">{userInfo.initials}</span>
-                  </div>
+                  </div>*/}
                   <div className="ml-3 min-w-0 flex-1">
                     <p className="text-sm font-semibold text-gray-800 truncate">{userInfo.name}</p>
                     <p className="text-xs text-gray-600 truncate">{userInfo.role}</p>
