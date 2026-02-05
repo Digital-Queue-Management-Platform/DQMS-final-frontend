@@ -18,21 +18,21 @@ const LANGUAGE_CODES = {
 // Announcement templates in different languages
 const ANNOUNCEMENT_TEMPLATES = {
   en: {
-    call: (tokenNumber: number, customerName: string, counterNumber?: number) => 
+    call: (tokenNumber: number, customerName: string, counterNumber?: number) =>
       `${customerName}, token number ${tokenNumber}, please proceed to counter ${counterNumber || 'assigned'}. ${customerName}, token ${tokenNumber}, counter ${counterNumber || 'assigned'}.`,
     welcome: 'Welcome to our service center.',
     next: 'Next customer, please.',
     wait: 'Please wait for your turn.'
   },
   si: {
-    call: (tokenNumber: number, customerName: string, counterNumber?: number) => 
+    call: (tokenNumber: number, customerName: string, counterNumber?: number) =>
       `${customerName} මහත්මයා, අංක ${tokenNumber} ගැණුම්කරු ${counterNumber || 'නියම කළ'} කවුන්ටරයට පැමිණෙන්න. ${customerName} මහත්මයා, අංක ${tokenNumber}, කවුන්ටරය ${counterNumber || 'නියම කළ'}.`,
     welcome: 'අපගේ සේවා මධ්‍යස්ථානයට සාදරයෙන් පිළිගනිමු.',
     next: 'ඊළඟ පාරිභෝගිකයා කරුණාකර.',
     wait: 'කරුණාකර ඔබේ වාරය සඳහා රැඳී සිටින්න.'
   },
   ta: {
-    call: (tokenNumber: number, customerName: string, counterNumber?: number) => 
+    call: (tokenNumber: number, customerName: string, counterNumber?: number) =>
       `${customerName} அவர்களே, எண் ${tokenNumber}, தயவுசெய்து கவுண்டர் ${counterNumber || 'ஒதுக்கப்பட்ட'} க்கு வாருங்கள். ${customerName} அவர்களே, எண் ${tokenNumber}, கவுண்டர் ${counterNumber || 'ஒதுக்கப்பட்ட'}.`,
     welcome: 'எங்கள் சேவை மையத்திற்கு வரவேற்கிறோம்.',
     next: 'அடுத்த வாடிக்கையாளர், தயவுசெய்து.',
@@ -53,13 +53,13 @@ export default function IPSpeaker({ token, counterNumber, onCall }: IPSpeakerPro
     // Initialize speech synthesis
     if (typeof window !== 'undefined' && window.speechSynthesis) {
       setSpeechSynthesis(window.speechSynthesis)
-      
+
       // Load available voices
       const loadVoices = () => {
         const voices = window.speechSynthesis.getVoices()
         setAvailableVoices(voices)
       }
-      
+
       loadVoices()
       window.speechSynthesis.onvoiceschanged = loadVoices
     }
@@ -76,40 +76,54 @@ export default function IPSpeaker({ token, counterNumber, onCall }: IPSpeakerPro
   const findBestVoice = (language: string): SpeechSynthesisVoice | null => {
     // Try to find a voice that matches the language
     const languageCode = LANGUAGE_CODES[language as keyof typeof LANGUAGE_CODES] || 'en-US'
-    
+
     // First try exact match with the specific language
-    let voice = availableVoices.find(v => v.lang === languageCode)
-    
+    let voices = availableVoices.filter(v => v.lang === languageCode)
+
     // If no exact match, try language family (e.g., 'en' for 'en-US')
-    if (!voice) {
+    if (voices.length === 0) {
       const langFamily = languageCode.split('-')[0]
-      voice = availableVoices.find(v => v.lang.startsWith(langFamily))
+      voices = availableVoices.filter(v => v.lang.startsWith(langFamily))
     }
-    
+
     // For Sinhala, try to find any Sinhala voice variations
-    if (!voice && language === 'si') {
-      voice = availableVoices.find(v => 
-        v.lang.includes('si') || 
-        v.lang.includes('sin') || 
+    if (voices.length === 0 && language === 'si') {
+      voices = availableVoices.filter(v =>
+        v.lang.includes('si') ||
+        v.lang.includes('sin') ||
         v.name.toLowerCase().includes('sinhala')
       )
     }
-    
+
     // For Tamil, try to find any Tamil voice variations
-    if (!voice && language === 'ta') {
-      voice = availableVoices.find(v => 
-        v.lang.includes('ta') || 
-        v.lang.includes('tam') || 
+    if (voices.length === 0 && language === 'ta') {
+      voices = availableVoices.filter(v =>
+        v.lang.includes('ta') ||
+        v.lang.includes('tam') ||
         v.name.toLowerCase().includes('tamil')
       )
     }
-    
+
     // Only use English as fallback if explicitly requesting English
-    if (!voice && language === 'en' && availableVoices.length > 0) {
-      voice = availableVoices.find(v => v.lang.startsWith('en') || v.default) || availableVoices[0]
+    if (voices.length === 0 && language === 'en' && availableVoices.length > 0) {
+      voices = availableVoices.filter(v => v.lang.startsWith('en') || v.default)
+      if (voices.length === 0) voices = [availableVoices[0]]
     }
-    
-    return voice || null
+
+    // Prefer female voices from the filtered list
+    const femaleVoice = voices.find(v =>
+      v.name.toLowerCase().includes('female') ||
+      v.name.toLowerCase().includes('woman') ||
+      v.name.toLowerCase().includes('zira') ||
+      v.name.toLowerCase().includes('samantha') ||
+      v.name.toLowerCase().includes('victoria') ||
+      v.name.toLowerCase().includes('karen') ||
+      v.name.toLowerCase().includes('moira') ||
+      v.name.toLowerCase().includes('tessa') ||
+      v.name.toLowerCase().includes('fiona')
+    )
+
+    return femaleVoice || voices[0] || null
   }
 
   const speak = (text: string, language: 'en' | 'si' | 'ta') => {
@@ -117,12 +131,12 @@ export default function IPSpeaker({ token, counterNumber, onCall }: IPSpeakerPro
 
     // Stop any current speech
     speechSynthesis.cancel()
-    
+
     // Wait a bit to ensure cancellation is complete
     setTimeout(() => {
       const utterance = new SpeechSynthesisUtterance(text)
       const voice = findBestVoice(language)
-      
+
       // If no appropriate voice found for Sinhala or Tamil, use English voice but keep the original text
       if (!voice && (language === 'si' || language === 'ta')) {
         console.warn(`No ${language} voice found, using English voice with ${language} text`)
@@ -164,14 +178,14 @@ export default function IPSpeaker({ token, counterNumber, onCall }: IPSpeakerPro
     if (window.speechSynthesis) {
       window.speechSynthesis.cancel()
     }
-    
+
     const template = ANNOUNCEMENT_TEMPLATES[selectedLanguage]
     const customerName = token.customer.name
     const announcement = template.call(token.tokenNumber, customerName, counterNumber || token.counterNumber || undefined)
-    
+
     console.log(`Calling customer in ${selectedLanguage}: ${announcement}`)
     speak(announcement, selectedLanguage)
-    
+
     // Call parent callback if provided
     if (onCall) {
       onCall()
@@ -200,7 +214,7 @@ export default function IPSpeaker({ token, counterNumber, onCall }: IPSpeakerPro
   const preferredLanguages = getPreferredLanguages()
 
   return (
-    <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+    <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center space-x-2">
           <Volume2 className="w-5 h-5 text-blue-600" />
@@ -221,7 +235,7 @@ export default function IPSpeaker({ token, counterNumber, onCall }: IPSpeakerPro
         </div>
         {preferredLanguages.length > 0 && (
           <div className="text-xs text-gray-600 mt-1">
-            Preferred: {(() => {
+            language: {(() => {
               const lang = preferredLanguages[0]
               const names = { en: 'English', si: 'Sinhala', ta: 'Tamil' }
               return names[lang as keyof typeof names] || lang
@@ -242,11 +256,10 @@ export default function IPSpeaker({ token, counterNumber, onCall }: IPSpeakerPro
                 <button
                   key={lang}
                   onClick={() => setSelectedLanguage(lang as 'en' | 'si' | 'ta')}
-                  className={`px-2 py-1 text-xs rounded ${
-                    selectedLanguage === lang
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
-                  }`}
+                  className={`px-2 py-1 text-xs rounded ${selectedLanguage === lang
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
+                    }`}
                 >
                   {lang === 'en' ? 'English' : lang === 'si' ? 'සිංහල' : 'தமிழ்'}
                 </button>
@@ -272,18 +285,17 @@ export default function IPSpeaker({ token, counterNumber, onCall }: IPSpeakerPro
       )}
 
       {/* Controls */}
-      <div className="flex items-center space-x-2">
+      <div className="flex items-center justify-center space-x-2">
         <button
           onClick={callCustomer}
           disabled={isPlaying || isMuted}
-          className={`flex-1 flex items-center justify-center space-x-2 px-4 py-2 rounded font-medium ${
-            isPlaying || isMuted
-              ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-              : 'bg-blue-600 text-white hover:bg-blue-700'
-          }`}
+          className={`flex items-center justify-center space-x-2 border-b-2 border-black px-4 py-2 rounded-full font-bold ${isPlaying || isMuted
+            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+            : 'bg-blue-600 text-white hover:bg-gray-50 hover:text-blue-600'
+            }`}
         >
           <Play className="w-4 h-4" />
-          <span>Call Customer</span>
+          <span>Announce Call</span>
         </button>
 
         {isPlaying && (
@@ -298,11 +310,10 @@ export default function IPSpeaker({ token, counterNumber, onCall }: IPSpeakerPro
 
         <button
           onClick={toggleMute}
-          className={`p-2 rounded ${
-            isMuted 
-              ? 'bg-red-100 text-red-600 hover:bg-red-200' 
-              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-          }`}
+          className={`p-2 rounded ${isMuted
+            ? 'bg-red-100 text-red-600 hover:bg-red-200'
+            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
           title={isMuted ? 'Unmute' : 'Mute'}
         >
           {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
