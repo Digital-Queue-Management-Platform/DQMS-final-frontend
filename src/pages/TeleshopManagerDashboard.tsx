@@ -438,7 +438,6 @@ export default function TeleshopManagerDashboard() {
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
                     {(() => {
-                      const totalPages = Math.ceil(breakAnalytics.officers.length / itemsPerPage)
                       const startIndex = (currentPage - 1) * itemsPerPage
                       const endIndex = startIndex + itemsPerPage
                       const currentOfficers = breakAnalytics.officers.slice(startIndex, endIndex)

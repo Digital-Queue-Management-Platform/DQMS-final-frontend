@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
-import { UserPlus, ArrowLeft, Phone, User, MapPin, Languages, Briefcase } from "lucide-react"
+import { Phone, User, MapPin, Languages, Briefcase } from "lucide-react"
 import api from "../config/api"
 import { AnimatedDropdown } from "../components/AnimatedDropdown"
 

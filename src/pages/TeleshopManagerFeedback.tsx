@@ -73,7 +73,7 @@ interface TeleshopManager {
 
 export default function TeleshopManagerFeedback() {
   const navigate = useNavigate()
-  const [teleshopManager, setTeleshopManager] = useState<TeleshopManager | null>(null)
+  const [, setTeleshopManager] = useState<TeleshopManager | null>(null)
   const [feedback, setFeedback] = useState<Feedback[]>([])
   const [stats, setStats] = useState<Stats | null>(null)
   const [pagination, setPagination] = useState<Pagination | null>(null)
