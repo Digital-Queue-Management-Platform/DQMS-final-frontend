@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react"
-import { X } from "lucide-react"
+import { X, Copy, Check } from "lucide-react"
 
 interface OTPPopupProps {
   otpCode: string
@@ -9,6 +9,7 @@ interface OTPPopupProps {
 
 export default function OTPPopup({ otpCode, onClose, autoCloseDuration = 30000 }: OTPPopupProps) {
   const [remainingTime, setRemainingTime] = useState(Math.floor(autoCloseDuration / 1000))
+  const [copied, setCopied] = useState(false)
 
   useEffect(() => {
     // Auto-close timer
@@ -32,6 +33,16 @@ export default function OTPPopup({ otpCode, onClose, autoCloseDuration = 30000 }
       clearInterval(countdownInterval)
     }
   }, [autoCloseDuration, onClose])
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(otpCode)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch (err) {
+      console.error("Failed to copy:", err)
+    }
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
@@ -62,9 +73,25 @@ export default function OTPPopup({ otpCode, onClose, autoCloseDuration = 30000 }
               />
             </svg>
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">OTP Code (Demo)</h2>
-          <p className="text-sm text-gray-600">
-            Use this code to verify your mobile number
+          <h2 className="texflex items-center justify-center gap-3">
+              <div className="text-4xl font-bold text-gray-900 tracking-widest font-mono">
+                {otpCode}
+              </div>
+              <button
+                onClick={handleCopy}
+                className="p-2 hover:bg-blue-100 rounded-lg transition-colors"
+                title="Copy to clipboard"
+              >
+                {copied ? (
+                  <Check className="w-6 h-6 text-green-600" />
+                ) : (
+                  <Copy className="w-6 h-6 text-gray-600" />
+                )}
+              </button>
+            </div>
+            {copied && (
+              <p className="text-sm text-green-600 mt-2 font-semibold">Copied to clipboard!</p>
+            )}is code to verify your mobile number
           </p>
         </div>
 
