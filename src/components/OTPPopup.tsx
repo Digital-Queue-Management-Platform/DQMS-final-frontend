@@ -73,7 +73,17 @@ export default function OTPPopup({ otpCode, onClose, autoCloseDuration = 30000 }
               />
             </svg>
           </div>
-          <h2 className="texflex items-center justify-center gap-3">
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">OTP Code (Demo)</h2>
+          <p className="text-sm text-gray-600">
+            Use this code to verify your mobile number
+          </p>
+        </div>
+
+        {/* OTP Code Display */}
+        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-6 mb-6">
+          <div className="text-center">
+            <p className="text-sm text-gray-600 mb-2">Your OTP Code</p>
+            <div className="flex items-center justify-center gap-3">
               <div className="text-4xl font-bold text-gray-900 tracking-widest font-mono">
                 {otpCode}
               </div>
@@ -91,17 +101,7 @@ export default function OTPPopup({ otpCode, onClose, autoCloseDuration = 30000 }
             </div>
             {copied && (
               <p className="text-sm text-green-600 mt-2 font-semibold">Copied to clipboard!</p>
-            )}is code to verify your mobile number
-          </p>
-        </div>
-
-        {/* OTP Code Display */}
-        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-6 mb-6">
-          <div className="text-center">
-            <p className="text-sm text-gray-600 mb-2">Your OTP Code</p>
-            <div className="text-4xl font-bold text-gray-900 tracking-widest font-mono">
-              {otpCode}
-            </div>
+            )}
           </div>
         </div>
 
