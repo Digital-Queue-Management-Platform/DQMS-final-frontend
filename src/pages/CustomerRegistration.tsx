@@ -8,6 +8,7 @@ import { User, Phone, ChevronDown, X, Eye, EyeOff } from "lucide-react"
 import api from "../config/api"
 import type { Outlet } from "../types"
 import OTPInput from "../components/OTPInput"
+import OTPPopup from "../components/OTPPopup"
 
 export default function CustomerRegistration() {
   const { outletId } = useParams()
@@ -38,6 +39,8 @@ export default function CustomerRegistration() {
   const [otpToken, setOtpToken] = useState<string>("")
   const [otpError, setOtpError] = useState("")
   const [otpSending, setOtpSending] = useState(false)
+  const [showOtpPopup, setShowOtpPopup] = useState(false)
+  const [devOtpCode, setDevOtpCode] = useState<string>("")
   const VITE_TWILIO_TO_NUMBER = import.meta.env.VITE_TWILIO_TO_NUMBER
   
   // Service dropdown states
@@ -363,8 +366,15 @@ export default function CustomerRegistration() {
     setOtpError("")
     setOtpSending(true)
     try {
-      await api.post("/customer/otp/start", { mobileNumber, preferredLanguage })
+      const response = await api.post("/customer/otp/start", { mobileNumber, preferredLanguage })
       setOtpStep('sent')
+      
+      // If dev mode returns the OTP code, show it in a popup
+      if (response.data?.devCode) {
+        setDevOtpCode(response.data.devCode)
+        setShowOtpPopup(true)
+      }
+      
       return true
     } catch (err: any) {
       const msg = err?.response?.data?.error || 'Failed to send OTP'
@@ -925,6 +935,15 @@ export default function CustomerRegistration() {
         </>
         )}
       </div>
+
+      {/* OTP Popup for Demo Mode */}
+      {showOtpPopup && devOtpCode && (
+        <OTPPopup
+          otpCode={devOtpCode}
+          onClose={() => setShowOtpPopup(false)}
+          autoCloseDuration={30000}
+        />
+      )}
     </div>
   )
 }
