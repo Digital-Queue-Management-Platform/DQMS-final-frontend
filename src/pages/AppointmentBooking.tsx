@@ -5,6 +5,7 @@ import { Calendar, MapPin, User, Phone, ChevronDown, X } from "lucide-react"
 import api from "../config/api"
 import type { Outlet } from "../types"
 import OTPInput from "../components/OTPInput"
+import OTPPopup from "../components/OTPPopup"
 
 const STATIC_SERVICES = [
   { id: 'BILL_PAYMENT', code: 'BILL_PAYMENT', title: 'Bill Payment' },
@@ -51,6 +52,8 @@ export default function AppointmentBooking() {
   const [otpToken, setOtpToken] = useState<string>("")
   const [otpError, setOtpError] = useState("")
   const [otpSending, setOtpSending] = useState(false)
+  const [showOtpPopup, setShowOtpPopup] = useState(false)
+  const [devOtpCode, setDevOtpCode] = useState<string>("")
 
   const dropdownRef = useRef<HTMLDivElement>(null)
   const [openServices, setOpenServices] = useState(false)
@@ -170,8 +173,14 @@ export default function AppointmentBooking() {
     setOtpError("")
     setOtpSending(true)
     try {
-      await api.post("/customer/otp/start", { mobileNumber, preferredLanguage })
+      const response = await api.post("/customer/otp/start", { mobileNumber, preferredLanguage })
       setOtpStep('sent')
+      
+      // If dev mode returns the OTP code, show it in a popup
+      if (response.data?.devCode) {
+        setDevOtpCode(response.data.devCode)
+        setShowOtpPopup(true)
+      }
     } catch (err: any) {
       setOtpError(err?.response?.data?.error || 'Failed to send OTP')
     } finally {
@@ -405,6 +414,15 @@ export default function AppointmentBooking() {
           </button>
         </form>
       </div>
+
+      {/* OTP Popup for Demo Mode */}
+      {showOtpPopup && devOtpCode && (
+        <OTPPopup
+          otpCode={devOtpCode}
+          onClose={() => setShowOtpPopup(false)}
+          autoCloseDuration={30000}
+        />
+      )}
     </div>
   )
 }
