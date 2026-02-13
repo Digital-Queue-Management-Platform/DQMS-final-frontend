@@ -141,6 +141,9 @@ export default function TeleshopManagerKioskSettings() {
               <div>
                 <h2 className="text-xl font-bold text-gray-800">{outlet.name}</h2>
                 <p className="text-sm text-gray-600">{outlet.location}</p>
+                <p className="text-xs text-gray-500 mt-1">
+                  <span className="font-medium">Outlet ID:</span> <code className="bg-gray-100 px-2 py-0.5 rounded">{outlet.id}</code>
+                </p>
               </div>
               <button
                 onClick={() => navigate('/kiosk/login')}
@@ -237,6 +240,7 @@ export default function TeleshopManagerKioskSettings() {
               <p className="text-sm font-medium text-blue-800 mb-2">📋 Instructions for Staff:</p>
               <ol className="text-sm text-blue-700 space-y-1 list-decimal list-inside">
                 <li>Go to the main page and click "Walk-in Kiosk" button</li>
+                <li>Enter outlet ID: <code className="bg-blue-100 px-1 py-0.5 rounded font-semibold">{outlet.id}</code></li>
                 <li>Enter the kiosk password (shown above)</li>
                 <li>Generate tokens for customers who don't have smartphones</li>
                 <li>Share this password only with authorized outlet staff</li>
