@@ -42,6 +42,8 @@ const TeleshopManagerFeedback = React.lazy(() => import("./pages/TeleshopManager
 const TeleshopManagerAppointments = React.lazy(() => import("./pages/TeleshopManagerAppointments"))
 const TeleshopManagerServedCustomers = React.lazy(() => import("./pages/TeleshopManagerServedCustomers"))
 const TeleshopManagerKioskSettings = React.lazy(() => import("./pages/TeleshopManagerKioskSettings"))
+const ManagerFeedback = React.lazy(() => import("./pages/ManagerFeedback"))
+const AdminFeedback = React.lazy(() => import("./pages/AdminFeedback"))
 import ManagerTeleshopManagers from "./pages/ManagerTeleshopManagers"
 import ProtectedTeleshopManagerRoute from "./components/ProtectedTeleshopManagerRoute"
 import AppointmentBooking from "./pages/AppointmentBooking"
@@ -479,6 +481,10 @@ function App() {
         path="/admin/outlet-passwords"
       />
       <Route
+        element={<Layout><ProtectedAdminRoute><AdminFeedback /></ProtectedAdminRoute></Layout>}
+        path="/admin/feedback"
+      />
+      <Route
         element={<KioskLogin />}
         path="/kiosk/login"
       />
@@ -517,6 +523,10 @@ function App() {
       <Route
         element={<Layout><ProtectedManagerRoute><ManagerBreakOversight /></ProtectedManagerRoute></Layout>}
         path="/manager/breaks"
+      />
+      <Route
+        element={<Layout><ProtectedManagerRoute><ManagerFeedback /></ProtectedManagerRoute></Layout>}
+        path="/manager/feedback"
       />
       <Route
         element={<Layout><ProtectedManagerRoute><ManagerTeleshopManagers /></ProtectedManagerRoute></Layout>}
