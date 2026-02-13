@@ -134,18 +134,12 @@ export default function ManagerBranches() {
     try {
       setSaving(true)
       if (showModal?.mode === 'add') {
-        const response = await api.post('/manager/outlets', {
+        await api.post('/manager/outlets', {
           name: form.name.trim(),
           location: form.location.trim(),
           counters: form.counterCount,
         })
-        // Display kiosk password for new outlet
-        if (response.data?.kioskPassword) {
-          setKioskPassword({
-            outletName: form.name.trim(),
-            password: response.data.kioskPassword
-          })
-        }
+        // Kiosk password management moved to Teleshop Manager level
       } else if (showModal?.mode === 'edit') {
         await api.put(`/manager/outlets/${showModal.branch.id}`, {
           name: form.name.trim(),
