@@ -41,14 +41,18 @@ const TeleshopManagerCompletedServices = React.lazy(() => import("./pages/Telesh
 const TeleshopManagerFeedback = React.lazy(() => import("./pages/TeleshopManagerFeedback"))
 const TeleshopManagerAppointments = React.lazy(() => import("./pages/TeleshopManagerAppointments"))
 const TeleshopManagerServedCustomers = React.lazy(() => import("./pages/TeleshopManagerServedCustomers"))
+const TeleshopManagerKioskSettings = React.lazy(() => import("./pages/TeleshopManagerKioskSettings"))
 import ManagerTeleshopManagers from "./pages/ManagerTeleshopManagers"
 import ProtectedTeleshopManagerRoute from "./components/ProtectedTeleshopManagerRoute"
 import AppointmentBooking from "./pages/AppointmentBooking"
 import AppointmentMy from "./pages/AppointmentMy"
 import AdminAppointments from "./admin/adminPages/AdminAppointments"
+import AdminOutletPasswords from "./admin/adminPages/AdminOutletPasswords"
 import ServiceStatus from "./pages/ServiceStatus"
 import ManagerServiceTracking from "./pages/ManagerServiceTracking"
 import TeleshopManagerServiceTracking from "./pages/TeleshopManagerServiceTracking"
+import KioskLogin from "./pages/KioskLogin"
+import KioskDashboard from "./pages/KioskDashboard"
 
 //import { Shield, UserCog, ArrowRight, Building2, Phone } from "lucide-react"
 import OfficerTopBar from "./components/OfficerTopBar"
@@ -471,6 +475,18 @@ function App() {
         path="/admin/compare"
       />
       <Route
+        element={<Layout><ProtectedAdminRoute><AdminOutletPasswords /></ProtectedAdminRoute></Layout>}
+        path="/admin/outlet-passwords"
+      />
+      <Route
+        element={<KioskLogin />}
+        path="/kiosk/login"
+      />
+      <Route
+        element={<KioskDashboard />}
+        path="/kiosk/dashboard"
+      />
+      <Route
         element={<Layout><ManagerLogin /></Layout>}
         path="/manager/login"
       />
@@ -545,6 +561,10 @@ function App() {
       <Route
         element={<Layout><ProtectedTeleshopManagerRoute><TeleshopManagerFeedback /></ProtectedTeleshopManagerRoute></Layout>}
         path="/teleshop-manager/feedback"
+      />
+      <Route
+        element={<Layout><ProtectedTeleshopManagerRoute><TeleshopManagerKioskSettings /></ProtectedTeleshopManagerRoute></Layout>}
+        path="/teleshop-manager/kiosk-settings"
       />
     </Routes>
     </React.Suspense>

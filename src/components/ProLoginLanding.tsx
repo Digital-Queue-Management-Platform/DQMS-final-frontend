@@ -1,6 +1,6 @@
 //import React from "react";
 import { useNavigate } from "react-router-dom";
-import { ShieldCheck, Building2, PhoneCall, UserCircle2, ArrowRight } from "lucide-react";
+import { ShieldCheck, Building2, PhoneCall, UserCircle2, ArrowRight, Monitor } from "lucide-react";
 
 export default function ProLoginLanding() {
   const navigate = useNavigate();
@@ -113,24 +113,30 @@ export default function ProLoginLanding() {
 
             {/* Quick access for customers */}
             <div className="mt-6 text-center">
-                <div className="inline-flex flex-wrap gap-3">
+                <div className="flex gap-3 justify-center">
                 <button
                     onClick={() => navigate('/appointment/book')}
-                    className="px-5 py-2.5 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 transition-all shadow-sm"
+                    className="px-5 py-2.5 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 transition-all shadow-sm whitespace-nowrap"
                 >
                     Book Appointment
                 </button>
                 <button
                     onClick={() => navigate('/appointment/my')}
-                    className="px-5 py-2.5 bg-white text-indigo-700 font-semibold rounded-lg border border-indigo-200 hover:bg-indigo-50 transition-all"
+                    className="px-5 py-2.5 bg-white text-indigo-700 font-semibold rounded-lg border border-indigo-200 hover:bg-indigo-50 transition-all whitespace-nowrap"
                 >
                     My Appointments
                 </button>
                 <button
                     onClick={() => navigate('/service/status')}
-                    className="px-5 py-2.5 bg-white text-blue-700 font-semibold rounded-lg border border-blue-200 hover:bg-blue-50 transition-all"
+                    className="px-5 py-2.5 bg-white text-blue-700 font-semibold rounded-lg border border-blue-200 hover:bg-blue-50 transition-all whitespace-nowrap"
                 >
                     Check Service Status
+                </button>
+                <button
+                    onClick={() => navigate('/kiosk/login')}
+                    className="px-5 py-2.5 bg-purple-600 text-white font-semibold rounded-lg hover:bg-purple-700 transition-all shadow-sm whitespace-nowrap"
+                >
+                    Walk-in Kiosk
                 </button>
                 </div>
                 <p className="mt-2 text-xs text-gray-500">Use mobile number on “My Appointments” to view bookings, or your reference number to check service status.</p>

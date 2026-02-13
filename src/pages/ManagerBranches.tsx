@@ -32,6 +32,7 @@ export default function ManagerBranches() {
   const [confirmHardOpen, setConfirmHardOpen] = useState(false)
   const [targetBranch, setTargetBranch] = useState<Branch | null>(null)
   const [deleting, setDeleting] = useState(false)
+  const [kioskPassword, setKioskPassword] = useState<{ outletName: string, password: string } | null>(null)
 
   useEffect(() => {
     // Manager authentication is handled globally by Layout
@@ -134,11 +135,18 @@ export default function ManagerBranches() {
     try {
       setSaving(true)
       if (showModal?.mode === 'add') {
-        await api.post('/manager/outlets', {
+        const response = await api.post('/manager/outlets', {
           name: form.name.trim(),
           location: form.location.trim(),
           counters: form.counterCount,
         })
+        // Display kiosk password for new outlet
+        if (response.data?.kioskPassword) {
+          setKioskPassword({
+            outletName: form.name.trim(),
+            password: response.data.kioskPassword
+          })
+        }
       } else if (showModal?.mode === 'edit') {
         await api.put(`/manager/outlets/${showModal.branch.id}`, {
           name: form.name.trim(),
