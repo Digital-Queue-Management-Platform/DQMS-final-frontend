@@ -23,6 +23,7 @@ import {
   MessageSquare,
   Calendar,
   UserCheck,
+  Monitor,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useUser } from '../../../contexts/UserContext'
@@ -81,6 +82,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed, activePa
 
   const teleshopManagerItems: NavigationItem[] = [
     { name: 'Dashboard', icon: LayoutDashboard, to: '/teleshop-manager/dashboard' },
+    { name: 'Kiosk Settings', icon: Monitor, to: '/teleshop-manager/kiosk-settings' },
     { name: 'Appointments', icon: Calendar, to: '/teleshop-manager/appointments' },
     { name: 'Completed Services', icon: ListOrdered, to: '/teleshop-manager/completed-services' },
     { name: 'Served Customers', icon: UserCheck, to: '/teleshop-manager/served-customers' },

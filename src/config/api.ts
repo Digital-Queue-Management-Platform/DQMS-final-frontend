@@ -117,4 +117,7 @@ export const WS_URL = isLocal
   ? "ws://localhost:3001"
   : (import.meta.env.VITE_WS_URL || "wss://dqms-final-backend.onrender.com")
 
+// Export API_URL for use in fetch calls
+export const API_URL = API_BASE_URL
+
 export default api

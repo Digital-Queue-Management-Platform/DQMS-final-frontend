@@ -139,6 +139,7 @@ export default function ManagerBranches() {
           location: form.location.trim(),
           counters: form.counterCount,
         })
+        // Kiosk password management moved to Teleshop Manager level
       } else if (showModal?.mode === 'edit') {
         await api.put(`/manager/outlets/${showModal.branch.id}`, {
           name: form.name.trim(),

@@ -409,7 +409,7 @@ export default function AppointmentBooking() {
             </div>
           )}
 
-          <button type="submit" disabled={loading || !outletId || !mobileNumber || !name || !serviceTypes.length || !datetime || (otpStep === 'sent' && otpCode.length !== 6)} className="w-full bg-blue-600 text-white py-2.5 rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:bg-gray-400">
+          <button type="submit" disabled={loading || !outletId || !mobileNumber || !name || !serviceTypes.length || !datetime || (otpStep === 'sent' && otpCode.length !== 4)} className="w-full bg-blue-600 text-white py-2.5 rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:bg-gray-400">
             {loading ? t.booking : t.book}
           </button>
         </form>

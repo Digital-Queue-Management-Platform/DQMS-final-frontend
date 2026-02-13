@@ -894,7 +894,7 @@ export default function CustomerRegistration() {
 
                 <button
                   type="submit"
-                  disabled={!qrValid || loading || !selectedOutlet || serviceTypes.length === 0 || otpCode.length !== 6}
+                  disabled={!qrValid || loading || !selectedOutlet || serviceTypes.length === 0 || otpCode.length !== 4}
                   className="w-full bg-blue-600 text-white py-2.5 sm:py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed text-sm sm:text-base"
                 >
                   {loading ? t.registering : t.register}
