@@ -2,13 +2,6 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { API_URL } from '../config/api'
 
-interface Outlet {
-  id: string
-  name: string
-  location: string
-  regionName: string
-}
-
 export default function KioskLogin() {
   const [outletId, setOutletId] = useState('')
   const [outletName, setOutletName] = useState('')

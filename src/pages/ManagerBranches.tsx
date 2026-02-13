@@ -32,7 +32,6 @@ export default function ManagerBranches() {
   const [confirmHardOpen, setConfirmHardOpen] = useState(false)
   const [targetBranch, setTargetBranch] = useState<Branch | null>(null)
   const [deleting, setDeleting] = useState(false)
-  const [kioskPassword, setKioskPassword] = useState<{ outletName: string, password: string } | null>(null)
 
   useEffect(() => {
     // Manager authentication is handled globally by Layout

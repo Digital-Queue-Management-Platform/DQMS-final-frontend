@@ -18,7 +18,6 @@ export default function AdminOutletPasswords() {
   const [outlets, setOutlets] = useState<Outlet[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [selectedOutlet, setSelectedOutlet] = useState<Outlet | null>(null)
   const [showPassword, setShowPassword] = useState<{ [key: string]: boolean }>({})
   const [resettingPassword, setResettingPassword] = useState<string | null>(null)
   const [newPassword, setNewPassword] = useState<string | null>(null)

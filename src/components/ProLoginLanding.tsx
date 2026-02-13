@@ -1,6 +1,6 @@
 //import React from "react";
 import { useNavigate } from "react-router-dom";
-import { ShieldCheck, Building2, PhoneCall, UserCircle2, ArrowRight, Monitor } from "lucide-react";
+import { ShieldCheck, Building2, PhoneCall, UserCircle2, ArrowRight } from "lucide-react";
 
 export default function ProLoginLanding() {
   const navigate = useNavigate();

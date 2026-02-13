@@ -13,13 +13,6 @@ interface Service {
   description: string | null
 }
 
-interface QueueStatus {
-  waitingCount: number
-  servingCount: number
-  avgWaitTime: number
-  estimatedWait: number
-}
-
 export default function KioskDashboard() {
   const [outlet, setOutlet] = useState<any>(null)
   const [services, setServices] = useState<Service[]>([])
@@ -54,7 +47,6 @@ export default function KioskDashboard() {
   const serviceDropdownRef = useRef<HTMLDivElement>(null)
 
   const navigate = useNavigate()
-  const VITE_TWILIO_TO_NUMBER = import.meta.env.VITE_TWILIO_TO_NUMBER
 
   useEffect(() => {
     const token = localStorage.getItem('kioskToken')
@@ -66,10 +58,10 @@ export default function KioskDashboard() {
     }
 
     setOutlet(JSON.parse(outletData))
-    loadInitialData(token)
+    loadInitialData()
   }, [navigate])
 
-  const loadInitialData = async (token: string) => {
+  const loadInitialData = async () => {
     try {
       // Use static services like CustomerRegistration
       const STATIC_SERVICES = [
