@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Users, Clock, Star, TrendingUp, Filter, Download, Bell, Activity, BarChart3, AlertCircle } from "lucide-react"
+import { Users, Clock, Star, TrendingUp, Filter, Download, Bell, Activity, BarChart3, AlertCircle, MessageSquare } from "lucide-react"
 import api, { WS_URL } from "../config/api"
 import type { Alert } from "../types"
 
@@ -482,6 +482,31 @@ export default function AdminDashboard() {
             </div>
           </div>
         )}
+
+        {/* Quick Actions */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <button
+            onClick={() => window.location.href = "/admin/feedback"}
+            className="bg-red-600 text-white p-4 rounded-lg hover:bg-red-700 flex items-center justify-center transition-colors"
+          >
+            <MessageSquare className="w-5 h-5 mr-2" />
+            Manage Critical Feedback (1-Star)
+          </button>
+          <button
+            onClick={() => window.location.href = "/admin/branches"}
+            className="bg-blue-600 text-white p-4 rounded-lg hover:bg-blue-700 flex items-center justify-center transition-colors"
+          >
+            <BarChart3 className="w-5 h-5 mr-2" />
+            View All Branches
+          </button>
+          <button
+            onClick={() => window.location.href = "/admin/managers"}
+            className="bg-green-600 text-white p-4 rounded-lg hover:bg-green-700 flex items-center justify-center transition-colors"
+          >
+            <Users className="w-5 h-5 mr-2" />
+            Manage RTOMs
+          </button>
+        </div>
 
         {/* Filters */}
         <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 mb-6 sm:mb-8">

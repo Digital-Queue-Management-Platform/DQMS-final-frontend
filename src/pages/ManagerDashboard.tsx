@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
-import { Clock, Star, Users, Building2, TrendingUp, TrendingDown, Bell, X, Activity, Building, Calendar } from "lucide-react"
+import { Clock, Star, Users, Building2, TrendingUp, TrendingDown, Bell, X, Activity, Building, Calendar, MessageSquare } from "lucide-react"
 // ManagerTopBar is provided globally from Layout for manager routes
 import api, { WS_URL } from "../config/api"
 import type { Alert } from "../types"
@@ -499,7 +499,14 @@ export default function ManagerDashboard() {
             <h3 className="text-lg font-semibold text-gray-900">Quick Actions</h3>
           </div>
           <div className="p-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <button
+                onClick={() => navigate("/manager/feedback")}
+                className="bg-orange-600 text-white p-4 rounded-lg hover:bg-orange-700 flex items-center justify-center transition-colors"
+              >
+                <MessageSquare className="w-5 h-5 mr-2" />
+                Manage Feedback (2-Star)
+              </button>
               <button
                 onClick={() => navigate("/manager/service-tracking")}
                 className="bg-green-600 text-white p-4 rounded-lg hover:bg-green-700 flex items-center justify-center transition-colors"
@@ -516,7 +523,7 @@ export default function ManagerDashboard() {
               </button>
               <button
                 onClick={() => navigate("/manager/appointments")}
-                className="bg-orange-600 text-white p-4 rounded-lg hover:bg-orange-700 flex items-center justify-center transition-colors"
+                className="bg-blue-600 text-white p-4 rounded-lg hover:bg-blue-700 flex items-center justify-center transition-colors"
               >
                 <Calendar className="w-5 h-5 mr-2" />
                 Appointments
