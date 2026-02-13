@@ -12,9 +12,12 @@ export default function KioskLogin() {
   const navigate = useNavigate()
 
   useEffect(() => {
-    // Check if Teleshop Manager is logged in and pre-fill outlet ID
+    // Only auto-fill if Teleshop Manager is currently logged in (has valid token)
+    const teleshopManagerToken = localStorage.getItem('teleshopManagerToken')
     const teleshopManager = localStorage.getItem('teleshopManager')
-    if (teleshopManager) {
+    
+    // Auto-fill only if BOTH token and data exist (meaning they're actively logged in)
+    if (teleshopManagerToken && teleshopManager) {
       try {
         const managerData = JSON.parse(teleshopManager)
         if (managerData.branchId) {
