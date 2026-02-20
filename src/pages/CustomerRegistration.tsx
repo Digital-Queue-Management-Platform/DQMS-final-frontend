@@ -608,7 +608,9 @@ export default function CustomerRegistration() {
       step4Subtitle: "Verify your information and generate token",
       enterSltNumber: "Enter your SLT telephone number",
       verifiedAccount: "Account Verified",
-      billSummary: "Bill Summary"
+      billSummary: "Bill Summary",
+      verified: "Phone Verified",
+      readyToRegister: "Ready to generate your token"
     },
     si: {
       title: "ඩිජිටල් පෝලිම වේදිකාව",
@@ -667,7 +669,9 @@ export default function CustomerRegistration() {
       step4Subtitle: "ඔබගේ තොරතුරු තහවුරු කර ටෝකන් උත්පාදනය කරන්න",
       enterSltNumber: "ඔබේ SLT දුරකථන අංකය ඇතුළත් කරන්න",
       verifiedAccount: "ගිණුම තහවුරු කර ඇත",
-      billSummary: "බිල් සාරාංශය"
+      billSummary: "බිල් සාරාංශය",
+      verified: "දුරකථන තහවුරු විය",
+      readyToRegister: "ටෝකන් උත්පාදනය කිරීමට සූදානම්"
     },
     ta: {
       title: "டிஜிட்டல் வரிசை மேடை",
@@ -726,7 +730,9 @@ export default function CustomerRegistration() {
       step4Subtitle: "உங்கள் தகவலைச் சரிபார்த்து டோக்கனை உருவாக்கவும்",
       enterSltNumber: "உங்கள் SLT தொலைபேசி எண்ணை உள்ளிடவும்",
       verifiedAccount: "கணக்கு சரிபார்க்கப்பட்டது",
-      billSummary: "பில் சுருக்கம்"
+      billSummary: "பில் சுருக்கம்",
+      verified: "தொலைபேசி சரிபார்க்கப்பட்டது",
+      readyToRegister: "டோக்கன் உருவாக்க தயாரானது"
     },
   }
 
@@ -1173,15 +1179,26 @@ export default function CustomerRegistration() {
                       </button>
                     </div>
                   </div>
-
-                  <button
-                    type="submit"
-                    disabled={!qrValid || loading || !selectedOutlet || serviceTypes.length === 0 || otpCode.length !== 4}
-                    className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
-                  >
-                    {loading ? t.registering : t.register}
-                  </button>
                 </div>
+              )}
+
+              {otpStep === 'verified' && (
+                <div className="space-y-4">
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
+                    <p className="text-green-700 font-medium mb-1">✓ {t.verified || 'Phone Verified'}</p>
+                    <p className="text-sm text-green-600">{t.readyToRegister || 'Ready to generate your token'}</p>
+                  </div>
+                </div>
+              )}
+
+              {(otpStep === 'sent' || otpStep === 'verified') && (
+                <button
+                  type="submit"
+                  disabled={!qrValid || loading || !selectedOutlet || serviceTypes.length === 0 || (otpStep === 'sent' && otpCode.length !== 4)}
+                  className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+                >
+                  {loading ? t.registering : t.register}
+                </button>
               )}
 
               <div className="flex gap-3">
