@@ -1,7 +1,8 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
-import { Calendar, MapPin, User, Phone, ChevronDown, X } from "lucide-react"
+import { useEffect, useState } from "react"
+import { useNavigate } from "react-router-dom"
+import { Calendar, MapPin, User, Phone } from "lucide-react"
 import api from "../config/api"
 import type { Outlet } from "../types"
 import OTPInput from "../components/OTPInput"
@@ -13,6 +14,7 @@ const STATIC_SERVICES = [
 ]
 
 export default function AppointmentBooking() {
+  const navigate = useNavigate()
   const [outlets, setOutlets] = useState<Outlet[]>([])
   const [outletId, setOutletId] = useState("")
   const [name, setName] = useState("")
@@ -20,16 +22,27 @@ export default function AppointmentBooking() {
   const [serviceTypes, setServiceTypes] = useState<string[]>([])
   const [datetime, setDatetime] = useState("") // yyyy-MM-ddTHH:mm
   
-  // Get current date and time in local format for min attribute
+  // Get minimum date/time - at least 24 hours in advance
   const getMinDateTime = () => {
     const now = new Date()
-    const year = now.getFullYear()
-    const month = String(now.getMonth() + 1).padStart(2, '0')
-    const day = String(now.getDate()).padStart(2, '0')
-    const hours = String(now.getHours()).padStart(2, '0')
-    const minutes = String(now.getMinutes()).padStart(2, '0')
+    const minTime = new Date(now.getTime() + 24 * 60 * 60 * 1000) // Add 24 hours
+    const year = minTime.getFullYear()
+    const month = String(minTime.getMonth() + 1).padStart(2, '0')
+    const day = String(minTime.getDate()).padStart(2, '0')
+    const hours = String(minTime.getHours()).padStart(2, '0')
+    const minutes = String(minTime.getMinutes()).padStart(2, '0')
     return `${year}-${month}-${day}T${hours}:${minutes}`
   }
+  
+  // Validate that appointment is at least 24 hours away
+  const isValidAppointmentTime = (datetimeStr: string) => {
+    if (!datetimeStr) return true
+    const selectedTime = new Date(datetimeStr)
+    const now = new Date()
+    const hoursUntil = (selectedTime.getTime() - now.getTime()) / (1000 * 60 * 60)
+    return hoursUntil >= 24
+  }
+  
   // UI language tabs (English/Sinhala/Tamil), independent from preferredLanguage used for announcements
   const [language, setLanguage] = useState<'en' | 'si' | 'ta'>(() => {
     try {
@@ -55,8 +68,13 @@ export default function AppointmentBooking() {
   const [showOtpPopup, setShowOtpPopup] = useState(false)
   const [devOtpCode, setDevOtpCode] = useState<string>("")
 
-  const dropdownRef = useRef<HTMLDivElement>(null)
-  const [openServices, setOpenServices] = useState(false)
+  // Bill payment specific states
+  const [sltTelephoneNumber, setSltTelephoneNumber] = useState("")
+  const [billData, setBillData] = useState<any>(null)
+  const [sltVerified, setSltVerified] = useState(false)
+
+  // Multi-step form state
+  const [currentStep, setCurrentStep] = useState(1)
 
   useEffect(() => {
     fetchOutlets()
@@ -70,16 +88,6 @@ export default function AppointmentBooking() {
       setError('Failed to load outlets')
     }
   }
-
-  useEffect(() => {
-    const onClick = (e: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-        setOpenServices(false)
-      }
-    }
-    document.addEventListener('mousedown', onClick)
-    return () => document.removeEventListener('mousedown', onClick)
-  }, [])
 
   const toggleService = (code: string) => {
     setServiceTypes(prev => prev.includes(code) ? prev.filter(c => c !== code) : [...prev, code])
@@ -112,6 +120,34 @@ export default function AppointmentBooking() {
       english: 'English',
       sinhala: 'Sinhala',
       tamil: 'Tamil',
+      sltTelephone: "SLT Telephone Number",
+      sltTelephonePlaceholder: "01/041/081XXXXXXX",
+      verifySlt: "Verify Number",
+      verifyingSlt: "Verifying...",
+      accountName: "Account Name",
+      accountAddress: "Billing Address",
+      billAmount: "Bill Amount",
+      dueDate: "Due Date",
+      billStatus: "Status",
+      unpaid: "Unpaid",
+      paid: "Paid",
+      overdue: "Overdue",
+      changeNumber: "Change number",
+      optionalDetails: "Optional details",
+      step1Title: "Select Language",
+      step1Subtitle: "Choose your preferred language for announcements",
+      step2Title: "Select Services",
+      step2Subtitle: "Choose the services you need",
+      step3Title: "Booking Details",
+      step3Subtitle: "Enter your information and select date & time",
+      step4Title: "Review & Confirm",
+      step4Subtitle: "Verify your information and book appointment",
+      back: "Back",
+      next: "Next",
+      verify: "Verify Mobile",
+      enterSltNumber: "Enter your SLT telephone number",
+      verifiedAccount: "Account Verified",
+      minBookingTime: "Appointments must be booked at least 24 hours in advance"
     },
     si: {
       title: 'වේලාවක් වෙන්කරන්න',
@@ -138,6 +174,34 @@ export default function AppointmentBooking() {
       english: 'English',
       sinhala: 'සිංහල',
       tamil: 'தமிழ்',
+      sltTelephone: "SLT දුරකථන අංකය",
+      sltTelephonePlaceholder: "01/041/081XXXXXXX",
+      verifySlt: "අංකය තහවුරු කරන්න",
+      verifyingSlt: "තහවුරු කරමින්...",
+      accountName: "ගිණුම් නම",
+      accountAddress: "බිල්පත් ලිපිනය",
+      billAmount: "බිල් ගාස්තුව",
+      dueDate: "ගෙවිය යුතු දිනය",
+      billStatus: "තත්ත්වය",
+      unpaid: "නොගෙවූ",
+      paid: "ගෙවූ",
+      overdue: "කල් ඉකුත් වූ",
+      changeNumber: "වෙනත් අංකයක්",
+      optionalDetails: "විකල්ප විස්තර",
+      step1Title: "භාෂාව තෝරන්න",
+      step1Subtitle: "නිවේදන සඳහා ඔබගේ කැමති භාෂාව තෝරන්න",
+      step2Title: "සේවාවන් තෝරන්න",
+      step2Subtitle: "ඔබට අවශ්‍ය සේවා තෝරන්න",
+      step3Title: "වෙන්කරවාගැනීම් විස්තර",
+      step3Subtitle: "ඔබගේ තොරතුරු ඇතුළත් කර දිනය සහ වේලාව තෝරන්න",
+      step4Title: "සමාලෝචනය සහ තහවුරු කිරීම",
+      step4Subtitle: "ඔබගේ තොරතුරු පරීක්ෂා කර වෙන්කරවාගන්න",
+      back: "ආපසු",
+      next: "ඊළඟ",
+      verify: "ජංගම අංකය තහවුරු කරන්න",
+      enterSltNumber: "ඔබගේ SLT දුරකථන අංකය ඇතුළත් කරන්න",
+      verifiedAccount: "ගිණුම තහවුරු කර ඇත",
+      minBookingTime: "වෙන්කරවාගැනීම් අවම වශයෙන් 24 ساعत ඉතින් වෙන්කරගත යුතුය"
     },
     ta: {
       title: 'ஒரு நேரம் பதிவு செய்யவும்',
@@ -164,6 +228,34 @@ export default function AppointmentBooking() {
       english: 'English',
       sinhala: 'සිංහල',
       tamil: 'தமிழ்',
+      sltTelephone: "SLT தொலை பேசி எண்",
+      sltTelephonePlaceholder: "01/041/081XXXXXXX",
+      verifySlt: "எண்ணைச் சரிபார்க்கவும்",
+      verifyingSlt: "சரிபார்க்கிறது...",
+      accountName: "கணக்கு பெயர்",
+      accountAddress: "பில் முகவரி",
+      billAmount: "பில் தொகை",
+      dueDate: "செலுத்த வேண்டிய தேதி",
+      billStatus: "நிலை",
+      unpaid: "செலுத்தப்படாதது",
+      paid: "செலுத்தப்பட்டது",
+      overdue: "தாமதமானது",
+      changeNumber: "எண்ணை மாற்று",
+      optionalDetails: "விருப்ப விவரங்கள்",
+      step1Title: "மொழியைத் தேர்ந்தெடுக்கவும்",
+      step1Subtitle: "அறிவிப்புகளுக்கு உங்கள் விருப்ப மொழியைத் தேர்ந்தெடுக்கவும்",
+      step2Title: "சேவைகளைத் தேர்ந்தெடுக்கவும்",
+      step2Subtitle: "உங்களுக்குத் தேவையான சேவைகளைத் தேர்ந்தெடுக்கவும்",
+      step3Title: "முன்பதிவு விவரங்கள்",
+      step3Subtitle: "உங்கள் தகவலை உள்ளிட்டு தேதி மற்றும் நேரத்தைத் தேர்ந்தெடுக்கவும்",
+      step4Title: "மதிப்பாய்வு மற்றும் உறுதிப்படுத்தல்",
+      step4Subtitle: "உங்கள் தகவலைச் சரிபார்த்து முன்பதிவு செய்யவும்",
+      back: "முந்தைய",
+      next: "அடுத்து",
+      verify: "மொபைல் சரிபார்க்கவும்",
+      enterSltNumber: "உங்கள் SLT தொலைபேசி எண்ணை உள்ளிடவும்",
+      verifiedAccount: "கணக்கு சரிபார்க்கப்பட்டது",
+      minBookingTime: "நேரங்கள் குறைந்தபட்சம் 24 மணி நேரத்திற்கு முன் பதிவு செய்யப்பட வேண்டும்"
     },
   } as const
 
@@ -188,14 +280,26 @@ export default function AppointmentBooking() {
     }
   }
 
-  const verifyOtp = async (): Promise<string | null> => {
+  const verifyOtp = async (codeValue?: string): Promise<string | null> => {
+    const code = codeValue || otpCode
+    if (!code || code.length !== 4) {
+      setOtpError("Please enter the 4-digit code")
+      return null
+    }
+    
     setOtpError("")
     setOtpSending(true)
     try {
-      const res = await api.post("/customer/otp/verify", { mobileNumber, code: otpCode })
+      const res = await api.post("/customer/otp/verify", { mobileNumber, code })
       if (res.data?.verifiedMobileToken) {
         setOtpToken(res.data.verifiedMobileToken)
         setOtpStep('verified')
+        
+        // Auto-verify SLT number after mobile OTP (for bill payment)
+        if (serviceTypes.includes('BILL_PAYMENT') && sltTelephoneNumber && !sltVerified) {
+          await verifySltNumber()
+        }
+        
         return res.data.verifiedMobileToken as string
       }
       setOtpError('OTP verification failed')
@@ -205,6 +309,41 @@ export default function AppointmentBooking() {
       return null
     } finally {
       setOtpSending(false)
+    }
+  }
+
+  // Verify SLT telephone number and fetch bill data
+  const verifySltNumber = async () => {
+    if (!sltTelephoneNumber) {
+      setError("Please enter SLT telephone number")
+      return
+    }
+
+    // Validate format (10 digits starting with 01, 041, or 081)
+    const phoneRegex = /^(01\d{8}|041\d{7}|081\d{7})$/
+    if (!phoneRegex.test(sltTelephoneNumber)) {
+      setError("Invalid SLT number. Must be 10 digits (01/041/081).")
+      return
+    }
+
+    setLoading(true)
+    setError("")
+    try {
+      const response = await api.get(`/bills/verify/${sltTelephoneNumber}`)
+      if (response.data.success && response.data.bill) {
+        setBillData(response.data.bill)
+        setSltVerified(true)
+        setError("")
+      } else {
+        setError("No account found for this telephone number")
+      }
+    } catch (err: any) {
+      console.error('Bill verification error:', err)
+      setError(err.response?.data?.error || "Failed to verify telephone number")
+      setBillData(null)
+      setSltVerified(false)
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -228,6 +367,12 @@ export default function AppointmentBooking() {
         return
       }
 
+      // Final validation: verify 24-hour requirement (backend will also check)
+      if (!isValidAppointmentTime(datetime)) {
+        setError(t.minBookingTime)
+        return
+      }
+
       const res = await api.post('/appointment/book', {
         name,
         mobileNumber,
@@ -236,11 +381,15 @@ export default function AppointmentBooking() {
         preferredLanguage,
         appointmentAt: appointmentAt.toISOString(),
         verifiedMobileToken: tokenForSubmit,
+        sltTelephoneNumber: serviceTypes.includes('BILL_PAYMENT') ? sltTelephoneNumber : undefined,
       })
 
       if (res.data?.success) {
         setSuccess('Appointment booked successfully! You will be auto-added to the queue on the day.')
-        // optional: navigate to a confirmation page later
+        // Navigate to "My Appointments" page
+        setTimeout(() => {
+          navigate(`/appointment/my?mobileNumber=${mobileNumber}`)
+        }, 1500)
       } else {
         setError(res.data?.error || 'Failed to book appointment')
       }
@@ -251,7 +400,28 @@ export default function AppointmentBooking() {
     }
   }
 
-  const canSendOtp = !!(name && mobileNumber && outletId && serviceTypes.length && datetime)
+
+  // Step navigation functions
+  const goToNextStep = () => {
+    setCurrentStep(prev => Math.min(prev + 1, 4))
+  }
+
+  const goToPreviousStep = () => {
+    setCurrentStep(prev => Math.max(prev - 1, 1))
+  }
+
+  const canProceedFromStep1 = preferredLanguage !== ''
+  const canProceedFromStep2 = serviceTypes.length > 0
+  const canProceedFromStep3 = () => {
+    // Must have: outlet, datetime, name, mobile
+    // Datetime must be at least 24 hours in advance
+    // If bill payment selected: must also have SLT number
+    const hasBasicInfo = outletId && datetime && name && mobileNumber && isValidAppointmentTime(datetime)
+    if (serviceTypes.includes('BILL_PAYMENT')) {
+      return hasBasicInfo && sltTelephoneNumber
+    }
+    return hasBasicInfo
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
@@ -281,6 +451,31 @@ export default function AppointmentBooking() {
         <h1 className="text-2xl font-bold text-gray-900 mb-2">{t.title}</h1>
         <p className="text-sm text-gray-600 mb-6">{t.subtitle}</p>
 
+        {/* Progress Indicator */}
+        {!success && (
+          <div className="mb-6">
+            <div className="flex justify-center items-center gap-2 mb-2">
+              {[1, 2, 3, 4].map((step) => (
+                <div
+                  key={step}
+                  className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ${
+                    currentStep === step
+                      ? 'bg-blue-600 text-white'
+                      : currentStep > step
+                      ? 'bg-green-500 text-white'
+                      : 'bg-gray-200 text-gray-500'
+                  }`}
+                >
+                  {step}
+                </div>
+              ))}
+            </div>
+            <p className="text-xs text-center text-gray-500">
+              Step {currentStep} of 4
+            </p>
+          </div>
+        )}
+
         {error && (
           <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded text-red-700 text-sm">{error}</div>
         )}
@@ -300,118 +495,423 @@ export default function AppointmentBooking() {
         )}
 
         <form onSubmit={handleBook} className="space-y-4">
-          {/* Name */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">{t.fullName}</label>
-            <div className="relative">
-              <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <input type="text" value={name} onChange={(e) => setName(e.target.value)} className="w-full pl-9 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder={t.fullNamePh} required />
-            </div>
-          </div>
-
-          {/* Mobile */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">{t.mobile}</label>
-            <div className="relative">
-              <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <input type="tel" value={mobileNumber} onChange={(e) => setMobileNumber(e.target.value)} className="w-full pl-9 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder={t.mobilePh} pattern="[0-9]{10}" required />
-            </div>
-          </div>
-
-          {/* Outlet */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">{t.outlet}</label>
-            <div className="relative">
-              <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <select value={outletId} onChange={(e) => setOutletId(e.target.value)} className="w-full pl-9 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" required>
-                <option value="">{t.selectBranch}</option>
-                {outlets.map(o => (
-                  <option key={o.id} value={o.id}>{o.name} - {o.location}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          {/* Date/Time */}
-          <div className="grid grid-cols-1 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">{t.dateTime}</label>
-              <div className="relative">
-                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input 
-                  type="datetime-local" 
-                  value={datetime} 
-                  onChange={(e) => setDatetime(e.target.value)} 
-                  min={getMinDateTime()}
-                  className="w-full pl-9 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" 
-                  required 
-                />
+          
+          {/* STEP 1: Language Selection */}
+          {currentStep === 1 && (
+            <div className="space-y-6">
+              <div className="text-center">
+                <h2 className="text-xl font-bold text-gray-900 mb-2">{t.step1Title}</h2>
+                <p className="text-sm text-gray-600">{t.step1Subtitle}</p>
+              </div>
+              
+              <div className="space-y-3">
+                <label className="block text-sm font-medium text-gray-700 mb-3">{t.preferredLang}</label>
+                <div className="grid grid-cols-1 gap-3">
+                  {[{ code: 'en', label: t.english }, { code: 'si', label: t.sinhala }, { code: 'ta', label: t.tamil }].map(l => (
+                    <label
+                      key={l.code}
+                      className={`flex items-center gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all hover:border-blue-400 ${
+                        preferredLanguage === l.code ? 'border-blue-600 bg-blue-50' : 'border-gray-200'
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="preferredLanguage"
+                        value={l.code}
+                        checked={preferredLanguage === l.code}
+                        onChange={(e) => setPreferredLanguage(e.target.value)}
+                        className="w-5 h-5 text-blue-600"
+                      />
+                      <span className="text-base font-medium">{l.label}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+              
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={goToNextStep}
+                  disabled={!canProceedFromStep1}
+                  className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+                >
+                  {t.next}
+                </button>
               </div>
             </div>
-          </div>
+          )}
 
-          {/* Services */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">{t.serviceTypesLabel} <span className="text-xs text-gray-500">({serviceTypes.length}/{STATIC_SERVICES.length})</span></label>
-            {serviceTypes.length > 0 && (
-              <div className="mb-2 flex flex-wrap gap-2">
-                {serviceTypes.map(code => (
-                  <span key={code} className="inline-flex items-center gap-1 bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm">
-                    {(code === 'BILL_PAYMENT' ? t.billPayment : code === 'OTHERS' ? t.others : (STATIC_SERVICES.find(s => s.code === code)?.title || code))}
-                    <button type="button" onClick={() => toggleService(code)} className="ml-1 hover:bg-blue-200 rounded-full p-0.5"><X className="w-3 h-3" /></button>
-                  </span>
-                ))}
+          {/* STEP 2: Service Selection */}
+          {currentStep === 2 && (
+            <div className="space-y-6">
+              <div className="text-center">
+                <h2 className="text-xl font-bold text-gray-900 mb-2">{t.step2Title}</h2>
+                <p className="text-sm text-gray-600">{t.step2Subtitle}</p>
               </div>
-            )}
-            <div className="relative" ref={dropdownRef}>
-              <button type="button" onClick={() => setOpenServices(!openServices)} className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white text-left focus:ring-2 focus:ring-blue-500 focus:border-transparent flex items-center justify-between">
-                <span className="text-gray-500">{serviceTypes.length ? `${serviceTypes.length} ${t.selected}` : t.selectServices}</span>
-                <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${openServices ? 'rotate-180' : ''}`} />
-              </button>
-              {openServices && (
-                <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg">
-                  <div className="max-h-60 overflow-y-auto">
-                    {STATIC_SERVICES.map(s => (
-                      <label key={s.id} className="flex items-center gap-3 p-3 hover:bg-gray-50 cursor-pointer">
-                        <input type="checkbox" checked={serviceTypes.includes(s.code)} onChange={() => toggleService(s.code)} className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" />
-                        <span className="text-sm text-gray-700 flex-1">{s.code === 'BILL_PAYMENT' ? t.billPayment : s.code === 'OTHERS' ? t.others : s.title}</span>
-                      </label>
-                    ))}
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-3">
+                  {t.serviceTypesLabel}
+                  <span className="ml-2 text-xs text-gray-500">({serviceTypes.length}/{STATIC_SERVICES.length})</span>
+                </label>
+                
+                <div className="space-y-3">
+                  {STATIC_SERVICES.map((service) => (
+                    <label
+                      key={service.id}
+                      className={`flex items-center gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all hover:border-blue-400 ${
+                        serviceTypes.includes(service.code) ? 'border-blue-600 bg-blue-50' : 'border-gray-200'
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={serviceTypes.includes(service.code)}
+                        onChange={() => toggleService(service.code)}
+                        className="w-5 h-5 text-blue-600 rounded"
+                      />
+                      <span className="text-base font-medium">
+                        {service.code === 'BILL_PAYMENT' ? t.billPayment : service.code === 'OTHERS' ? t.others : service.title}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+              
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={goToPreviousStep}
+                  className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg font-semibold hover:bg-gray-300 transition-colors"
+                >
+                  {t.back}
+                </button>
+                <button
+                  type="button"
+                  onClick={goToNextStep}
+                  disabled={!canProceedFromStep2}
+                  className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+                >
+                  {t.next}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* STEP 3: Booking Details */}
+          {currentStep === 3 && (
+            <div className="space-y-6">
+              <div className="text-center">
+                <h2 className="text-xl font-bold text-gray-900 mb-2">{t.step3Title}</h2>
+                <p className="text-sm text-gray-600">{t.step3Subtitle}</p>
+              </div>
+
+              {/* Bill Payment - Collect SLT Number (will verify after mobile OTP) */}
+              {serviceTypes.includes('BILL_PAYMENT') && (
+                <div className="space-y-4">
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <h3 className="text-sm font-semibold text-blue-900 mb-3">{t.enterSltNumber}</h3>
+                    <div className="space-y-3">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">{t.sltTelephone}</label>
+                        <div className="relative">
+                          <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                          <input
+                            type="tel"
+                            value={sltTelephoneNumber}
+                            onChange={(e) => {
+                              setSltTelephoneNumber(e.target.value)
+                              setError("")
+                              setSltVerified(false)
+                            }}
+                            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            placeholder={t.sltTelephonePlaceholder}
+                            pattern="(01[0-9]{8}|041[0-9]{7}|081[0-9]{7})"
+                          />
+                        </div>
+                        <p className="text-xs text-blue-600 mt-2">🔒 {t.enterSltNumber}</p>
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}
-            </div>
-          </div>
 
-          {/* Preferred language */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">{t.preferredLang}</label>
-            <div className="grid grid-cols-3 gap-3 text-sm">
-              {[{ code: 'en', label: t.english }, { code: 'si', label: t.sinhala }, { code: 'ta', label: t.tamil }].map(l => (
-                <label key={l.code} className="inline-flex items-center gap-2">
-                  <input type="radio" name="preferredLanguage" value={l.code} checked={preferredLanguage === l.code} onChange={(e) => setPreferredLanguage(e.target.value)} />
-                  <span>{l.label}</span>
-                </label>
-              ))}
-            </div>
-          </div>
+              {/* Outlet Selection */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t.outlet}</label>
+                <div className="relative">
+                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <select 
+                    value={outletId} 
+                    onChange={(e) => setOutletId(e.target.value)} 
+                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" 
+                    required
+                  >
+                    <option value="">{t.selectBranch}</option>
+                    {outlets.map(o => (
+                      <option key={o.id} value={o.id}>{o.name} - {o.location}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
 
-          {/* OTP section */}
-          {otpStep === 'idle' && (
-            <button type="button" onClick={sendOtp} disabled={otpSending || !canSendOtp} className="w-full bg-indigo-600 text-white py-2.5 rounded-lg font-semibold hover:bg-indigo-700 transition-colors disabled:bg-gray-400">
-              {otpSending ? t.sendingOTP : t.verifyMobile}
-            </button>
+              {/* Date & Time */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t.dateTime}</label>
+                <div className="relative">
+                  <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <input 
+                    type="datetime-local" 
+                    value={datetime} 
+                    onChange={(e) => setDatetime(e.target.value)} 
+                    min={getMinDateTime()}
+                    className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                      datetime && !isValidAppointmentTime(datetime) 
+                        ? 'border-red-500 bg-red-50' 
+                        : 'border-gray-300'
+                    }`}
+                    required 
+                  />
+                </div>
+                {datetime && !isValidAppointmentTime(datetime) && (
+                  <p className="text-sm text-red-600 mt-2">⚠️ {t.minBookingTime}</p>
+                )}
+              </div>
+
+              {/* Customer Details */}
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">{t.fullName}</label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <input
+                      type="text"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder={t.fullNamePh}
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">{t.mobile}</label>
+                  <div className="relative">
+                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <input
+                      type="tel"
+                      value={mobileNumber}
+                      onChange={(e) => setMobileNumber(e.target.value)}
+                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder={t.mobilePh}
+                      pattern="[0-9]{10}"
+                      required
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={goToPreviousStep}
+                  className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg font-semibold hover:bg-gray-300 transition-colors"
+                >
+                  {t.back}
+                </button>
+                <button
+                  type="button"
+                  onClick={goToNextStep}
+                  disabled={!canProceedFromStep3()}
+                  className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+                >
+                  {t.next}
+                </button>
+              </div>
+            </div>
           )}
 
-          {otpStep === 'sent' && (
-            <div className="p-3 border rounded-lg bg-gray-50">
-              <OTPInput value={otpCode} onChange={setOtpCode} error={otpError} onResend={() => sendOtp()} resendDisabled={otpSending} lang={language} />
+          {/* STEP 4: Review & Confirm */}
+          {currentStep === 4 && (
+            <div className="space-y-6">
+              <div className="text-center">
+                <h2 className="text-xl font-bold text-gray-900 mb-2">{t.step4Title}</h2>
+                <p className="text-sm text-gray-600">{t.step4Subtitle}</p>
+              </div>
+
+              {/* Summary */}
+              <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+                <div>
+                  <span className="text-xs font-medium text-gray-500 uppercase">{t.preferredLang}</span>
+                  <p className="text-sm font-medium text-gray-900">
+                    {preferredLanguage === 'en' ? t.english : preferredLanguage === 'si' ? t.sinhala : t.tamil}
+                  </p>
+                </div>
+                <div>
+                  <span className="text-xs font-medium text-gray-500 uppercase">{t.serviceTypesLabel}</span>
+                  <p className="text-sm font-medium text-gray-900">
+                    {serviceTypes.map(code => code === 'BILL_PAYMENT' ? t.billPayment : code === 'OTHERS' ? t.others : code).join(', ')}
+                  </p>
+                </div>
+                {serviceTypes.includes('BILL_PAYMENT') && sltTelephoneNumber && (
+                  <div>
+                    <span className="text-xs font-medium text-gray-500 uppercase">{t.sltTelephone}</span>
+                    <p className="text-sm font-medium text-gray-900">{sltTelephoneNumber}</p>
+                  </div>
+                )}
+                <div>
+                  <span className="text-xs font-medium text-gray-500 uppercase">{t.outlet}</span>
+                  <p className="text-sm font-medium text-gray-900">
+                    {outlets.find(o => o.id === outletId)?.name || outletId}
+                  </p>
+                </div>
+                <div>
+                  <span className="text-xs font-medium text-gray-500 uppercase">{t.dateTime}</span>
+                  <p className="text-sm font-medium text-gray-900">
+                    {datetime ? new Date(datetime).toLocaleString() : ''}
+                  </p>
+                </div>
+                <div>
+                  <span className="text-xs font-medium text-gray-500 uppercase">{t.fullName}</span>
+                  <p className="text-sm font-medium text-gray-900">{name}</p>
+                </div>
+                <div>
+                  <span className="text-xs font-medium text-gray-500 uppercase">{t.mobile}</span>
+                  <p className="text-sm font-medium text-gray-900">{mobileNumber}</p>
+                </div>
+              </div>
+
+              {/* Bill Details - Show after OTP verified and SLT verified */}
+              {serviceTypes.includes('BILL_PAYMENT') && sltVerified && billData && (
+                <div className="bg-white rounded-lg p-4 border border-green-200">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <span className="text-sm font-semibold text-green-700">{t.verifiedAccount}</span>
+                  </div>
+                  
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">{t.accountName}:</span>
+                      <span className="font-medium text-gray-900">{billData.accountName}</span>
+                    </div>
+                    {billData.accountAddress && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">{t.accountAddress}:</span>
+                        <span className="font-medium text-gray-900 text-right max-w-[60%]">{billData.accountAddress}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between border-t pt-2">
+                      <span className="text-gray-600">{t.billAmount}:</span>
+                      <span className="font-bold text-lg text-blue-600">Rs. {billData.currentBill?.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">{t.dueDate}:</span>
+                      <span className="font-medium text-gray-900">{billData.dueDate ? new Date(billData.dueDate).toLocaleDateString() : ''}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">{t.billStatus}:</span>
+                      <span className={`font-medium ${
+                        billData.status === 'paid' ? 'text-green-600' : 
+                        billData.status === 'overdue' ? 'text-red-600' : 
+                        'text-orange-600'
+                      }`}>
+                        {billData.status === 'paid' ? t.paid : 
+                         billData.status === 'overdue' ? t.overdue : 
+                         t.unpaid}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSltVerified(false)
+                      setBillData(null)
+                      setSltTelephoneNumber("")
+                    }}
+                    className="mt-3 text-sm text-blue-600 hover:underline"
+                  >
+                    {t.changeNumber}
+                  </button>
+                </div>
+              )}
+
+              {/* OTP Verification */}
+              {otpStep === 'idle' && (
+                <button
+                  type="button"
+                  onClick={sendOtp}
+                  disabled={otpSending || !mobileNumber || serviceTypes.length === 0}
+                  className="w-full bg-indigo-600 text-white py-3 rounded-lg font-semibold hover:bg-indigo-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+                >
+                  {otpSending ? t.sendingOTP : t.verify}
+                </button>
+              )}
+
+              {otpStep === 'sent' && (
+                <div className="p-4 border rounded-lg bg-gray-50">
+                  <OTPInput
+                    value={otpCode}
+                    onChange={setOtpCode}
+                    error={otpError}
+                    onResend={sendOtp}
+                    resendDisabled={otpSending}
+                    lang={language}
+                    onComplete={verifyOtp}
+                  />
+                </div>
+              )}
+
+              {otpStep === 'verified' && (
+                <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                  <p className="text-sm text-green-700">✓ Mobile number verified</p>
+                </div>
+              )}
+
+              {/* Book Appointment Button - Show after OTP verified */}
+              {otpStep === 'verified' && (
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+                >
+                  {loading ? t.booking : t.book}
+                </button>
+              )}
+
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={goToPreviousStep}
+                  className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg font-semibold hover:bg-gray-300 transition-colors"
+                >
+                  {t.back}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setName('')
+                    setMobileNumber('')
+                    setServiceTypes([])
+                    setPreferredLanguage('en')
+                    setOutletId('')
+                    setDatetime('')
+                    setSltTelephoneNumber('')
+                    setBillData(null)
+                    setSltVerified(false)
+                    setOtpStep('idle')
+                    setOtpCode('')
+                    setOtpToken('')
+                    setError('')
+                    setCurrentStep(1)
+                  }}
+                  className="flex-1 bg-gray-500 text-white py-3 rounded-lg font-medium hover:bg-gray-600 transition-colors"
+                >
+                  Clear
+                </button>
+              </div>
             </div>
           )}
-
-          <button type="submit" disabled={loading || !outletId || !mobileNumber || !name || !serviceTypes.length || !datetime || (otpStep === 'sent' && otpCode.length !== 4)} className="w-full bg-blue-600 text-white py-2.5 rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:bg-gray-400">
-            {loading ? t.booking : t.book}
-          </button>
         </form>
       </div>
 

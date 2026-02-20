@@ -49,21 +49,35 @@ export default function OfficerQueuePage() {
 
   const langText = {
     // Put required lang first, optional counter second (fix TS param order)
-    proceed: (lang: 'en' | 'si' | 'ta', counter?: number) => ({
-      en: `Please proceed to counter ${counter ?? ''} for your service.`,
-      si: `කරුණාකර ඔබගේ සේවා සඳහා ${counter ?? ''} කවුටරයට පැමිණෙන්න.`,
-      ta: `தயவுசெய்து உங்கள் சேவைக்காக ${counter ?? ''} கவுண்டருக்கு செல்லவும்.`,
-    })[lang],
+    proceed: (lang: 'en' | 'si' | 'ta', counter?: number, isAppointment?: boolean) => {
+      const appointmentNote = isAppointment ? {
+        en: ' Online Appointment.',
+        si: ' ඔනිනෙන් සිටුවා ඇති ඇයිතම.',
+        ta: ' ஆன்லைன் நியமனம்.',
+      }[lang] : ''
+      return ({
+        en: `Please proceed to counter ${counter ?? ''} for your service.${appointmentNote}`,
+        si: `කරුණාකර ඔබගේ සේවා සඳහා ${counter ?? ''} කවුටරයට පැමිණෙන්න.${appointmentNote}`,
+        ta: `தயவுசெய்து உங்கள் சேவைக்காக ${counter ?? ''} கவுண்டருக்கு செல்லவும்.${appointmentNote}`,
+      })[lang]
+    },
     skipped: (lang: 'en' | 'si' | 'ta') => ({
       en: `Your token has been skipped.`,
       si: `ඔබගේ ටෝකනය මඟ හැර තිබේ.`,
       ta: `உங்கள் டோக்கன் தவிர்க்கப்பட்டுள்ளது.`,
     })[lang],
-    recalled: (lang: 'en' | 'si' | 'ta', counter?: number) => ({
-      en: `You have been recalled to counter ${counter ?? ''} for your service.`,
-      si: `ඔබගේ සේවාව සඳහා ඔබව ${counter ?? ''} කවුටරයට නැවත කැඳවා ඇත.`,
-      ta: `உங்கள் சேவைக்காக ${counter ?? ''} கவுண்டருக்கு உங்களை மீண்டும் அழைத்திருக்கிறோம்.`,
-    })[lang],
+    recalled: (lang: 'en' | 'si' | 'ta', counter?: number, isAppointment?: boolean) => {
+      const appointmentNote = isAppointment ? {
+        en: ' Online Appointment.',
+        si: ' ඔනිනෙන් සිටුවා ඇති ඇයිතම.',
+        ta: ' ஆன்லைன் நியமனம்.',
+      }[lang] : ''
+      return ({
+        en: `You have been recalled to counter ${counter ?? ''} for your service.${appointmentNote}`,
+        si: `ඔබගේ සේවාව සඳහා ඔබව ${counter ?? ''} කවුටරයට නැවත කැඳවා ඇත.${appointmentNote}`,
+        ta: `உங்கள் சேவைக்காக ${counter ?? ''} கவுண்டருக்கு உங்களை மீண்டும் அழைத்திருக்கிறோம்.${appointmentNote}`,
+      })[lang]
+    },
     completed: (
       ref: string | null,
       _track: string | null,
@@ -268,9 +282,10 @@ export default function OfficerQueuePage() {
           // Send localized proceed message
           try {
             const lang = pickLang(picked)
+            const isAppointment = (picked as any)?.fromAppointment ?? false
             const resp = await api.post('/twilio/test', {
               to: TWILIO_TO_NUMBER,
-              body: langText.proceed(lang, officer.counterNumber),
+              body: langText.proceed(lang, officer.counterNumber, isAppointment),
             })
             if (resp.data?.success) {
               console.log('[TEST SMS][PROCEED][UNMATCHED]', resp.data)
@@ -300,9 +315,10 @@ export default function OfficerQueuePage() {
           // Send localized proceed message
           try {
             const lang = pickLang(picked)
+            const isAppointment = (picked as any)?.fromAppointment ?? false
             const resp = await api.post('/twilio/test', {
               to: TWILIO_TO_NUMBER,
-              body: langText.proceed(lang, officer.counterNumber),
+              body: langText.proceed(lang, officer.counterNumber, isAppointment),
             })
             if (resp.data?.success) {
               console.log('[TEST SMS][PROCEED]', resp.data)
@@ -323,9 +339,10 @@ export default function OfficerQueuePage() {
         const picked = response.data.token
         try {
           const lang = pickLang(picked)
+          const isAppointment = (picked as any)?.fromAppointment ?? false
           const resp = await api.post('/twilio/test', {
             to: TWILIO_TO_NUMBER,
-            body: langText.proceed(lang, officer.counterNumber),
+            body: langText.proceed(lang, officer.counterNumber, isAppointment),
           })
           if (resp.data?.success) {
             console.log('[TEST SMS][PROCEED]', resp.data)
@@ -439,9 +456,10 @@ export default function OfficerQueuePage() {
         ? currentToken
         : (queue?.waiting || []).find(t => t.id === tokenId)
       const lang = pickLang(tokenObj)
+      const isAppointment = (tokenObj as any)?.fromAppointment ?? false
       const resp = await api.post('/twilio/test', {
         to: TWILIO_TO_NUMBER,
-        body: langText.recalled(lang, officer.counterNumber),
+        body: langText.recalled(lang, officer.counterNumber, isAppointment),
       })
       if (resp.data?.success) {
         console.log('[TEST SMS][RECALL]', resp.data)
@@ -461,6 +479,44 @@ export default function OfficerQueuePage() {
       fetchQueue(officer.outletId)
     } catch (err) {
       console.error('failed to recall token', err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleSetPriority = async (tokenId: string) => {
+    if (!officer) return
+    setLoading(true)
+    try {
+      const response = await api.post('/officer/set-priority', { tokenId })
+      if (response.data.success) {
+        const isPriority = response.data.token.isPriority
+        
+        // If marking as priority, automatically call the customer to counter
+        if (isPriority) {
+          try {
+            const callResponse = await api.post('/officer/call-token', { 
+              officerId: officer.id, 
+              tokenId 
+            })
+            if (callResponse.data.token) {
+              setCurrentToken(callResponse.data.token)
+              setAccountRef("")
+            }
+            alert('Customer marked as VIP priority and called to counter!')
+          } catch (callErr: any) {
+            console.error('Failed to call customer:', callErr)
+            alert('Customer marked as VIP priority, but failed to call to counter')
+          }
+        } else {
+          alert('Priority removed from customer')
+        }
+        
+        fetchQueue(officer.outletId)
+      }
+    } catch (err: any) {
+      console.error('Failed to set priority:', err)
+      alert('Failed to set priority: ' + (err.response?.data?.error || err.message || 'Unknown error'))
     } finally {
       setLoading(false)
     }
@@ -810,17 +866,23 @@ export default function OfficerQueuePage() {
                         const langs = Array.isArray((officer as any)?.languages) ? (officer as any).languages : []
                         const hasLanguageMatch = prefs.length === 0 || langs.length === 0 || prefs.some((p: any) => langs.includes(p))
                         return hasServiceMatch && hasLanguageMatch
+                      }).sort((a, b) => {
+                        // Sort priority customers to the front
+                        if (a.isPriority && !b.isPriority) return -1
+                        if (!a.isPriority && b.isPriority) return 1
+                        // Then by creation time (oldest first)
+                        return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
                       }).map((t) => {
                         const waitTime = Math.floor((Date.now() - new Date(t.createdAt).getTime()) / 60000)
-                        const isPriority = String(t.tokenNumber)?.startsWith('P')
+                        const isPriority = t.isPriority === true
                         const isSkipped = t.status === 'skipped'
 
                         return (
-                          <div key={t.id} className={`grid grid-cols-12 gap-4 px-4 py-4 hover:bg-gray-50 transition-colors ${isSkipped ? 'bg-orange-50 rounded-lg' : ''}`}>
+                          <div key={t.id} className={`grid grid-cols-12 gap-4 px-4 py-4 hover:bg-gray-50 transition-colors ${isSkipped ? 'bg-orange-50 rounded-lg' : isPriority ? 'bg-yellow-50 rounded-lg border-l-4 border-yellow-400' : ''}`}>
                             <div className="col-span-2 flex items-center gap-2">
                               {isPriority ? (
                                 <span className="inline-flex items-center px-2 py-1 rounded-md bg-yellow-100 text-yellow-800 text-sm font-semibold">
-                                  {t.tokenNumber} Priority
+                                  {t.tokenNumber} ★ Priority
                                 </span>
                               ) : (
                                 <span className="text-gray-900 font-semibold">{t.tokenNumber}</span>
@@ -859,23 +921,36 @@ export default function OfficerQueuePage() {
                               </span>
                             </div>
                             <div className="col-span-2">
-                              {isSkipped ? (
+                              <div className="flex flex-col gap-2">
+                                {isSkipped ? (
+                                  <button
+                                    onClick={() => handleRecall(t.id)}
+                                    disabled={loading || currentToken !== null}
+                                    className="px-2 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed whitespace-nowrap"
+                                  >
+                                    Recall
+                                  </button>
+                                ) : (
+                                  <button
+                                    onClick={() => handleSkip(t.id)}
+                                    disabled={loading || currentToken !== null}
+                                    className="px-2 py-1 bg-orange-500 text-white text-xs rounded hover:bg-orange-600 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed whitespace-nowrap"
+                                  >
+                                    Skip
+                                  </button>
+                                )}
                                 <button
-                                  onClick={() => handleRecall(t.id)}
+                                  onClick={() => handleSetPriority(t.id)}
                                   disabled={loading || currentToken !== null}
-                                  className="px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+                                  className={`px-2 py-1 text-white text-xs rounded transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed whitespace-nowrap ${
+                                    isPriority
+                                      ? 'bg-yellow-600 hover:bg-yellow-700'
+                                      : 'bg-purple-600 hover:bg-purple-700'
+                                  }`}
                                 >
-                                  Recall
+                                  {isPriority ? '★ Priority' : 'Set Priority'}
                                 </button>
-                              ) : (
-                                <button
-                                  onClick={() => handleSkip(t.id)}
-                                  disabled={loading || currentToken !== null}
-                                  className="px-3 py-1 bg-orange-500 text-white text-xs rounded hover:bg-orange-600 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
-                                >
-                                  Skip
-                                </button>
-                              )}
+                              </div>
                             </div>
                           </div>
                         )
@@ -909,15 +984,15 @@ export default function OfficerQueuePage() {
                     <div className="divide-y divide-gray-100">
                       {unmatchedTokens.map((t) => {
                         const waitTime = Math.floor((Date.now() - new Date(t.createdAt).getTime()) / 60000)
-                        const isPriority = String(t.tokenNumber)?.startsWith('P')
+                        const isPriority = t.isPriority === true
                         const isSkipped = t.status === 'skipped'
 
                         return (
-                          <div key={t.id} className={`grid grid-cols-12 gap-4 px-4 py-4 hover:bg-gray-50 transition-colors ${isSkipped ? 'bg-orange-50 rounded-lg' : ''}`}>
+                          <div key={t.id} className={`grid grid-cols-12 gap-4 px-4 py-4 hover:bg-gray-50 transition-colors ${isSkipped ? 'bg-orange-50 rounded-lg' : isPriority ? 'bg-yellow-50 rounded-lg border-l-4 border-yellow-400' : ''}`}>
                             <div className="col-span-2 flex items-center gap-2">
                               {isPriority ? (
                                 <span className="inline-flex items-center px-2 py-1 rounded-md bg-yellow-100 text-yellow-800 text-sm font-semibold">
-                                  {t.tokenNumber} Priority
+                                  {t.tokenNumber} ★ Priority
                                 </span>
                               ) : (
                                 <span className="text-gray-900 font-semibold">{t.tokenNumber}</span>
@@ -956,23 +1031,36 @@ export default function OfficerQueuePage() {
                               </span>
                             </div>
                             <div className="col-span-2">
-                              {isSkipped ? (
+                              <div className="flex flex-col gap-2">
+                                {isSkipped ? (
+                                  <button
+                                    onClick={() => handleRecall(t.id)}
+                                    disabled={loading || currentToken !== null}
+                                    className="px-2 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed whitespace-nowrap"
+                                  >
+                                    Recall
+                                  </button>
+                                ) : (
+                                  <button
+                                    onClick={() => handleSkip(t.id)}
+                                    disabled={loading || currentToken !== null}
+                                    className="px-2 py-1 bg-orange-500 text-white text-xs rounded hover:bg-orange-600 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed whitespace-nowrap"
+                                  >
+                                    Skip
+                                  </button>
+                                )}
                                 <button
-                                  onClick={() => handleRecall(t.id)}
+                                  onClick={() => handleSetPriority(t.id)}
                                   disabled={loading || currentToken !== null}
-                                  className="px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+                                  className={`px-2 py-1 text-white text-xs rounded transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed whitespace-nowrap ${
+                                    isPriority
+                                      ? 'bg-yellow-600 hover:bg-yellow-700'
+                                      : 'bg-purple-600 hover:bg-purple-700'
+                                  }`}
                                 >
-                                  Recall
+                                  {isPriority ? '★ Priority' : 'Set Priority'}
                                 </button>
-                              ) : (
-                                <button
-                                  onClick={() => handleSkip(t.id)}
-                                  disabled={loading || currentToken !== null}
-                                  className="px-3 py-1 bg-orange-500 text-white text-xs rounded hover:bg-orange-600 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
-                                >
-                                  Skip
-                                </button>
-                              )}
+                              </div>
                             </div>
                           </div>
                         )

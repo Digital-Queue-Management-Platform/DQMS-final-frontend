@@ -25,15 +25,19 @@ const ANNOUNCEMENT_TEMPLATES = {
     wait: 'Please wait for your turn.'
   },
   si: {
-    call: (tokenNumber: number, customerName: string, counterNumber?: number) =>
-      `${customerName} මහත්මයා, අංක ${tokenNumber} ගැණුම්කරු ${counterNumber || 'නියම කළ'} කවුන්ටරයට පැමිණෙන්න. ${customerName} මහත්මයා, අංක ${tokenNumber}, කවුන්ටරය ${counterNumber || 'නියම කළ'}.`,
+    call: (tokenNumber: number, customerName: string, counterNumber?: number) => {
+      // First announce name in English for CSO clarity (they click the button), then in Sinhala
+      return `${customerName}. ${customerName}. අංක ${tokenNumber}. කවුන්ටරය ${counterNumber || 'නියම කළ'}. ${customerName}, අංක ${tokenNumber}, කවුන්ටරය ${counterNumber || 'නියම කළ'}.`
+    },
     welcome: 'අපගේ සේවා මධ්‍යස්ථානයට සාදරයෙන් පිළිගනිමු.',
     next: 'ඊළඟ පාරිභෝගිකයා කරුණාකර.',
     wait: 'කරුණාකර ඔබේ වාරය සඳහා රැඳී සිටින්න.'
   },
   ta: {
-    call: (tokenNumber: number, customerName: string, counterNumber?: number) =>
-      `${customerName} அவர்களே, எண் ${tokenNumber}, தயவுசெய்து கவுண்டர் ${counterNumber || 'ஒதுக்கப்பட்ட'} க்கு வாருங்கள். ${customerName} அவர்களே, எண் ${tokenNumber}, கவுண்டர் ${counterNumber || 'ஒதுக்கப்பட்ட'}.`,
+    call: (tokenNumber: number, customerName: string, counterNumber?: number) => {
+      // First announce name in English for CSO clarity (they click the button), then in Tamil
+      return `${customerName}. ${customerName}. எண் ${tokenNumber}. கவுண்டர் ${counterNumber || 'ஒதுக்கப்பட்ட'}. ${customerName}, எண் ${tokenNumber}, கவுண்டர் ${counterNumber || 'ஒதுக்கப்பட்ட'}.`
+    },
     welcome: 'எங்கள் சேவை மையத்திற்கு வரவேற்கிறோம்.',
     next: 'அடுத்த வாடிக்கையாளர், தயவுசெய்து.',
     wait: 'தயவுசெய்து உங்கள் முறைக்கு காத்திருங்கள்.'
@@ -159,7 +163,8 @@ export default function IPSpeaker({ token, counterNumber, onCall }: IPSpeakerPro
       }
 
       utterance.volume = volume
-      utterance.rate = 0.9 // Slightly slower for clarity
+      // For Sinhala and Tamil names, use slower rate for better clarity
+      utterance.rate = (language === 'si' || language === 'ta') ? 0.7 : 0.9
       utterance.pitch = 1.0
 
       utterance.onstart = () => setIsPlaying(true)

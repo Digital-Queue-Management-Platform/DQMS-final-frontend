@@ -17,6 +17,7 @@ export interface Token {
   preferredLanguages?: string[]
   accountRef?: string
   status: string
+  isPriority?: boolean
   outletId: string
   outlet?: Outlet
   assignedTo?: string

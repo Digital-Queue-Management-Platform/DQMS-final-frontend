@@ -136,7 +136,7 @@ export default function ProLoginLanding() {
                     onClick={() => navigate('/kiosk/login')}
                     className="px-5 py-2.5 bg-purple-600 text-white font-semibold rounded-lg hover:bg-purple-700 transition-all shadow-sm whitespace-nowrap"
                 >
-                    Walk-in Kiosk
+                    Walk-in Appoinment
                 </button>
                 </div>
                 <p className="mt-2 text-xs text-gray-500">Use mobile number on “My Appointments” to view bookings, or your reference number to check service status.</p>

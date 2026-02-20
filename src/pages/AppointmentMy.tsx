@@ -14,9 +14,18 @@ type Appt = {
   status: string
   serviceTypes: string[]
   preferredLanguage?: string | null
+  sltTelephoneNumber?: string | null
   appointmentAt: string
   queuedAt?: string | null
   createdAt: string
+}
+
+type BillData = {
+  accountName: string
+  accountAddress?: string
+  currentBill: number
+  dueDate?: string
+  status?: string
 }
 
 export default function AppointmentMy() {
@@ -26,6 +35,7 @@ export default function AppointmentMy() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const [appts, setAppts] = useState<Appt[]>([])
+  const [billDataMap, setBillDataMap] = useState<Record<string, BillData>>({})
   const [outletMap, setOutletMap] = useState<Record<string, { name: string; location?: string }>>({})
   const [language, setLanguage] = useState<'en' | 'si' | 'ta'>(() => {
     try {
@@ -69,7 +79,25 @@ export default function AppointmentMy() {
     setLoading(true)
     try {
       const res = await api.get(`/appointment/my`, { params: { mobileNumber: mobile } })
-      setAppts(res.data?.appointments || [])
+      const appointments = res.data?.appointments || []
+      setAppts(appointments)
+      
+      // Fetch bill data for appointments with SLT telephone numbers
+      const billMap: Record<string, BillData> = {}
+      for (const appt of appointments) {
+        if (appt.sltTelephoneNumber && appt.serviceTypes.includes('BILL_PAYMENT')) {
+          try {
+            const billRes = await api.get(`/bills/verify/${appt.sltTelephoneNumber}`)
+            if (billRes.data?.success && billRes.data?.bill) {
+              billMap[appt.id] = billRes.data.bill
+            }
+          } catch (e) {
+            // Best-effort - skip if bill fetch fails
+            console.warn(`Failed to fetch bill for appointment ${appt.id}`, e)
+          }
+        }
+      }
+      setBillDataMap(billMap)
     } catch (e: any) {
       setError(e?.response?.data?.error || t.failedToLoad)
     } finally {
@@ -102,6 +130,15 @@ export default function AppointmentMy() {
       english: 'English',
       sinhala: 'Sinhala',
       tamil: 'Tamil',
+      sltTelephone: 'SLT Telephone Number',
+      accountName: 'Account Name',
+      accountAddress: 'Billing Address',
+      billAmount: 'Bill Amount',
+      dueDate: 'Due Date',
+      billStatus: 'Status',
+      unpaid: 'Unpaid',
+      paid: 'Paid',
+      overdue: 'Overdue',
     },
     si: {
       title: 'මගේ ඇප්පොයින්ට්මන්ට්',
@@ -124,6 +161,15 @@ export default function AppointmentMy() {
       english: 'English',
       sinhala: 'සිංහල',
       tamil: 'தமிழ்',
+      sltTelephone: 'SLT දුරකථන අංකය',
+      accountName: 'ගිණුම් නම',
+      accountAddress: 'බිල්පත් ලිපිනය',
+      billAmount: 'බිල්පත් මුදල',
+      dueDate: 'ගෙවිය යුතු දිනය',
+      billStatus: 'තත්ත්වය',
+      unpaid: 'නොගෙවූ',
+      paid: 'ගෙවූ',
+      overdue: 'කල් ඉකුත් වූ',
     },
     ta: {
       title: 'எனது நேரங்கள்',
@@ -146,6 +192,15 @@ export default function AppointmentMy() {
       english: 'English',
       sinhala: 'සිංහල',
       tamil: 'தமிழ்',
+      sltTelephone: 'SLT தொலைபேசி எண்',
+      accountName: 'கணக்கு பெயர்',
+      accountAddress: 'பில் முகவரி',
+      billAmount: 'பில் தொகை',
+      dueDate: 'செலுத்த வேண்டிய தேதி',
+      billStatus: 'நிலை',
+      unpaid: 'செலுத்தப்படாதது',
+      paid: 'செலுத்தப்பட்டது',
+      overdue: 'தாமதமானது',
     },
   } as const
 
@@ -250,6 +305,53 @@ export default function AppointmentMy() {
                   </div>
                   {a.preferredLanguage && (
                     <div className="text-xs text-gray-500">{t.languageLabel}: {a.preferredLanguage}</div>
+                  )}
+                  
+                  {/* Bill Details - Show if BILL_PAYMENT service and bill data exists */}
+                  {a.serviceTypes.includes('BILL_PAYMENT') && a.sltTelephoneNumber && (
+                    <div className="mt-3 pt-3 border-t">
+                      <div className="text-xs font-medium text-gray-500 mb-2">
+                        {t.sltTelephone}: {a.sltTelephoneNumber}
+                      </div>
+                      {billDataMap[a.id] ? (
+                        <div className="bg-blue-50 rounded-lg p-3 space-y-2 text-sm">
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">{t.accountName}:</span>
+                            <span className="font-medium text-gray-900">{billDataMap[a.id].accountName}</span>
+                          </div>
+                          {billDataMap[a.id].accountAddress && (
+                            <div className="flex justify-between">
+                              <span className="text-gray-600">{t.accountAddress}:</span>
+                              <span className="font-medium text-gray-900 text-right max-w-[60%]">{billDataMap[a.id].accountAddress}</span>
+                            </div>
+                          )}
+                          <div className="flex justify-between border-t pt-2">
+                            <span className="text-gray-600">{t.billAmount}:</span>
+                            <span className="font-bold text-lg text-blue-600">Rs. {billDataMap[a.id].currentBill?.toFixed(2)}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">{t.dueDate}:</span>
+                            <span className="font-medium text-gray-900">
+                              {billDataMap[a.id].dueDate ? new Date(billDataMap[a.id].dueDate!).toLocaleDateString() : ''}
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">{t.billStatus}:</span>
+                            <span className={`font-medium ${
+                              billDataMap[a.id].status === 'paid' ? 'text-green-600' : 
+                              billDataMap[a.id].status === 'overdue' ? 'text-red-600' : 
+                              'text-orange-600'
+                            }`}>
+                              {billDataMap[a.id].status === 'paid' ? t.paid : 
+                               billDataMap[a.id].status === 'overdue' ? t.overdue : 
+                               t.unpaid}
+                            </span>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="text-xs text-gray-500 italic">Loading bill details...</div>
+                      )}
+                    </div>
                   )}
                 </div>
               ))}
