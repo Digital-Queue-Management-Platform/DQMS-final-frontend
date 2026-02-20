@@ -49,21 +49,35 @@ export default function OfficerQueuePage() {
 
   const langText = {
     // Put required lang first, optional counter second (fix TS param order)
-    proceed: (lang: 'en' | 'si' | 'ta', counter?: number) => ({
-      en: `Please proceed to counter ${counter ?? ''} for your service.`,
-      si: `කරුණාකර ඔබගේ සේවා සඳහා ${counter ?? ''} කවුටරයට පැමිණෙන්න.`,
-      ta: `தயவுசெய்து உங்கள் சேவைக்காக ${counter ?? ''} கவுண்டருக்கு செல்லவும்.`,
-    })[lang],
+    proceed: (lang: 'en' | 'si' | 'ta', counter?: number, isAppointment?: boolean) => {
+      const appointmentNote = isAppointment ? {
+        en: ' Online Appointment.',
+        si: ' ඔනිනෙන් සිටුවා ඇති ඇයිතම.',
+        ta: ' ஆன்லைன் நியமனம்.',
+      }[lang] : ''
+      return ({
+        en: `Please proceed to counter ${counter ?? ''} for your service.${appointmentNote}`,
+        si: `කරුණාකර ඔබගේ සේවා සඳහා ${counter ?? ''} කවුටරයට පැමිණෙන්න.${appointmentNote}`,
+        ta: `தயவுசெய்து உங்கள் சேவைக்காக ${counter ?? ''} கவுண்டருக்கு செல்லவும்.${appointmentNote}`,
+      })[lang]
+    },
     skipped: (lang: 'en' | 'si' | 'ta') => ({
       en: `Your token has been skipped.`,
       si: `ඔබගේ ටෝකනය මඟ හැර තිබේ.`,
       ta: `உங்கள் டோக்கன் தவிர்க்கப்பட்டுள்ளது.`,
     })[lang],
-    recalled: (lang: 'en' | 'si' | 'ta', counter?: number) => ({
-      en: `You have been recalled to counter ${counter ?? ''} for your service.`,
-      si: `ඔබගේ සේවාව සඳහා ඔබව ${counter ?? ''} කවුටරයට නැවත කැඳවා ඇත.`,
-      ta: `உங்கள் சேவைக்காக ${counter ?? ''} கவுண்டருக்கு உங்களை மீண்டும் அழைத்திருக்கிறோம்.`,
-    })[lang],
+    recalled: (lang: 'en' | 'si' | 'ta', counter?: number, isAppointment?: boolean) => {
+      const appointmentNote = isAppointment ? {
+        en: ' Online Appointment.',
+        si: ' ඔනිනෙන් සිටුවා ඇති ඇයිතම.',
+        ta: ' ஆன்லைன் நியமனம்.',
+      }[lang] : ''
+      return ({
+        en: `You have been recalled to counter ${counter ?? ''} for your service.${appointmentNote}`,
+        si: `ඔබගේ සේවාව සඳහා ඔබව ${counter ?? ''} කවුටරයට නැවත කැඳවා ඇත.${appointmentNote}`,
+        ta: `உங்கள் சேவைக்காக ${counter ?? ''} கவுண்டருக்கு உங்களை மீண்டும் அழைத்திருக்கிறோம்.${appointmentNote}`,
+      })[lang]
+    },
     completed: (
       ref: string | null,
       _track: string | null,
@@ -268,9 +282,10 @@ export default function OfficerQueuePage() {
           // Send localized proceed message
           try {
             const lang = pickLang(picked)
+            const isAppointment = (picked as any)?.fromAppointment ?? false
             const resp = await api.post('/twilio/test', {
               to: TWILIO_TO_NUMBER,
-              body: langText.proceed(lang, officer.counterNumber),
+              body: langText.proceed(lang, officer.counterNumber, isAppointment),
             })
             if (resp.data?.success) {
               console.log('[TEST SMS][PROCEED][UNMATCHED]', resp.data)
@@ -300,9 +315,10 @@ export default function OfficerQueuePage() {
           // Send localized proceed message
           try {
             const lang = pickLang(picked)
+            const isAppointment = (picked as any)?.fromAppointment ?? false
             const resp = await api.post('/twilio/test', {
               to: TWILIO_TO_NUMBER,
-              body: langText.proceed(lang, officer.counterNumber),
+              body: langText.proceed(lang, officer.counterNumber, isAppointment),
             })
             if (resp.data?.success) {
               console.log('[TEST SMS][PROCEED]', resp.data)
@@ -323,9 +339,10 @@ export default function OfficerQueuePage() {
         const picked = response.data.token
         try {
           const lang = pickLang(picked)
+          const isAppointment = (picked as any)?.fromAppointment ?? false
           const resp = await api.post('/twilio/test', {
             to: TWILIO_TO_NUMBER,
-            body: langText.proceed(lang, officer.counterNumber),
+            body: langText.proceed(lang, officer.counterNumber, isAppointment),
           })
           if (resp.data?.success) {
             console.log('[TEST SMS][PROCEED]', resp.data)
@@ -439,9 +456,10 @@ export default function OfficerQueuePage() {
         ? currentToken
         : (queue?.waiting || []).find(t => t.id === tokenId)
       const lang = pickLang(tokenObj)
+      const isAppointment = (tokenObj as any)?.fromAppointment ?? false
       const resp = await api.post('/twilio/test', {
         to: TWILIO_TO_NUMBER,
-        body: langText.recalled(lang, officer.counterNumber),
+        body: langText.recalled(lang, officer.counterNumber, isAppointment),
       })
       if (resp.data?.success) {
         console.log('[TEST SMS][RECALL]', resp.data)
