@@ -466,6 +466,44 @@ export default function OfficerQueuePage() {
     }
   }
 
+  const handleSetPriority = async (tokenId: string) => {
+    if (!officer) return
+    setLoading(true)
+    try {
+      const response = await api.post('/officer/set-priority', { tokenId })
+      if (response.data.success) {
+        const isPriority = response.data.token.isPriority
+        
+        // If marking as priority, automatically call the customer to counter
+        if (isPriority) {
+          try {
+            const callResponse = await api.post('/officer/call-token', { 
+              officerId: officer.id, 
+              tokenId 
+            })
+            if (callResponse.data.token) {
+              setCurrentToken(callResponse.data.token)
+              setAccountRef("")
+            }
+            alert('Customer marked as VIP priority and called to counter!')
+          } catch (callErr: any) {
+            console.error('Failed to call customer:', callErr)
+            alert('Customer marked as VIP priority, but failed to call to counter')
+          }
+        } else {
+          alert('Priority removed from customer')
+        }
+        
+        fetchQueue(officer.outletId)
+      }
+    } catch (err: any) {
+      console.error('Failed to set priority:', err)
+      alert('Failed to set priority: ' + (err.response?.data?.error || err.message || 'Unknown error'))
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const handleRefresh = async () => {
     if (officer?.outletId) {
       setRefreshing(true)
@@ -810,17 +848,23 @@ export default function OfficerQueuePage() {
                         const langs = Array.isArray((officer as any)?.languages) ? (officer as any).languages : []
                         const hasLanguageMatch = prefs.length === 0 || langs.length === 0 || prefs.some((p: any) => langs.includes(p))
                         return hasServiceMatch && hasLanguageMatch
+                      }).sort((a, b) => {
+                        // Sort priority customers to the front
+                        if (a.isPriority && !b.isPriority) return -1
+                        if (!a.isPriority && b.isPriority) return 1
+                        // Then by creation time (oldest first)
+                        return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
                       }).map((t) => {
                         const waitTime = Math.floor((Date.now() - new Date(t.createdAt).getTime()) / 60000)
-                        const isPriority = String(t.tokenNumber)?.startsWith('P')
+                        const isPriority = t.isPriority === true
                         const isSkipped = t.status === 'skipped'
 
                         return (
-                          <div key={t.id} className={`grid grid-cols-12 gap-4 px-4 py-4 hover:bg-gray-50 transition-colors ${isSkipped ? 'bg-orange-50 rounded-lg' : ''}`}>
+                          <div key={t.id} className={`grid grid-cols-12 gap-4 px-4 py-4 hover:bg-gray-50 transition-colors ${isSkipped ? 'bg-orange-50 rounded-lg' : isPriority ? 'bg-yellow-50 rounded-lg border-l-4 border-yellow-400' : ''}`}>
                             <div className="col-span-2 flex items-center gap-2">
                               {isPriority ? (
                                 <span className="inline-flex items-center px-2 py-1 rounded-md bg-yellow-100 text-yellow-800 text-sm font-semibold">
-                                  {t.tokenNumber} Priority
+                                  {t.tokenNumber} ★ Priority
                                 </span>
                               ) : (
                                 <span className="text-gray-900 font-semibold">{t.tokenNumber}</span>
@@ -859,23 +903,36 @@ export default function OfficerQueuePage() {
                               </span>
                             </div>
                             <div className="col-span-2">
-                              {isSkipped ? (
+                              <div className="flex flex-col gap-2">
+                                {isSkipped ? (
+                                  <button
+                                    onClick={() => handleRecall(t.id)}
+                                    disabled={loading || currentToken !== null}
+                                    className="px-2 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed whitespace-nowrap"
+                                  >
+                                    Recall
+                                  </button>
+                                ) : (
+                                  <button
+                                    onClick={() => handleSkip(t.id)}
+                                    disabled={loading || currentToken !== null}
+                                    className="px-2 py-1 bg-orange-500 text-white text-xs rounded hover:bg-orange-600 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed whitespace-nowrap"
+                                  >
+                                    Skip
+                                  </button>
+                                )}
                                 <button
-                                  onClick={() => handleRecall(t.id)}
+                                  onClick={() => handleSetPriority(t.id)}
                                   disabled={loading || currentToken !== null}
-                                  className="px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+                                  className={`px-2 py-1 text-white text-xs rounded transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed whitespace-nowrap ${
+                                    isPriority
+                                      ? 'bg-yellow-600 hover:bg-yellow-700'
+                                      : 'bg-purple-600 hover:bg-purple-700'
+                                  }`}
                                 >
-                                  Recall
+                                  {isPriority ? '★ Priority' : 'Set Priority'}
                                 </button>
-                              ) : (
-                                <button
-                                  onClick={() => handleSkip(t.id)}
-                                  disabled={loading || currentToken !== null}
-                                  className="px-3 py-1 bg-orange-500 text-white text-xs rounded hover:bg-orange-600 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
-                                >
-                                  Skip
-                                </button>
-                              )}
+                              </div>
                             </div>
                           </div>
                         )
@@ -909,15 +966,15 @@ export default function OfficerQueuePage() {
                     <div className="divide-y divide-gray-100">
                       {unmatchedTokens.map((t) => {
                         const waitTime = Math.floor((Date.now() - new Date(t.createdAt).getTime()) / 60000)
-                        const isPriority = String(t.tokenNumber)?.startsWith('P')
+                        const isPriority = t.isPriority === true
                         const isSkipped = t.status === 'skipped'
 
                         return (
-                          <div key={t.id} className={`grid grid-cols-12 gap-4 px-4 py-4 hover:bg-gray-50 transition-colors ${isSkipped ? 'bg-orange-50 rounded-lg' : ''}`}>
+                          <div key={t.id} className={`grid grid-cols-12 gap-4 px-4 py-4 hover:bg-gray-50 transition-colors ${isSkipped ? 'bg-orange-50 rounded-lg' : isPriority ? 'bg-yellow-50 rounded-lg border-l-4 border-yellow-400' : ''}`}>
                             <div className="col-span-2 flex items-center gap-2">
                               {isPriority ? (
                                 <span className="inline-flex items-center px-2 py-1 rounded-md bg-yellow-100 text-yellow-800 text-sm font-semibold">
-                                  {t.tokenNumber} Priority
+                                  {t.tokenNumber} ★ Priority
                                 </span>
                               ) : (
                                 <span className="text-gray-900 font-semibold">{t.tokenNumber}</span>
@@ -956,23 +1013,36 @@ export default function OfficerQueuePage() {
                               </span>
                             </div>
                             <div className="col-span-2">
-                              {isSkipped ? (
+                              <div className="flex flex-col gap-2">
+                                {isSkipped ? (
+                                  <button
+                                    onClick={() => handleRecall(t.id)}
+                                    disabled={loading || currentToken !== null}
+                                    className="px-2 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed whitespace-nowrap"
+                                  >
+                                    Recall
+                                  </button>
+                                ) : (
+                                  <button
+                                    onClick={() => handleSkip(t.id)}
+                                    disabled={loading || currentToken !== null}
+                                    className="px-2 py-1 bg-orange-500 text-white text-xs rounded hover:bg-orange-600 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed whitespace-nowrap"
+                                  >
+                                    Skip
+                                  </button>
+                                )}
                                 <button
-                                  onClick={() => handleRecall(t.id)}
+                                  onClick={() => handleSetPriority(t.id)}
                                   disabled={loading || currentToken !== null}
-                                  className="px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+                                  className={`px-2 py-1 text-white text-xs rounded transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed whitespace-nowrap ${
+                                    isPriority
+                                      ? 'bg-yellow-600 hover:bg-yellow-700'
+                                      : 'bg-purple-600 hover:bg-purple-700'
+                                  }`}
                                 >
-                                  Recall
+                                  {isPriority ? '★ Priority' : 'Set Priority'}
                                 </button>
-                              ) : (
-                                <button
-                                  onClick={() => handleSkip(t.id)}
-                                  disabled={loading || currentToken !== null}
-                                  className="px-3 py-1 bg-orange-500 text-white text-xs rounded hover:bg-orange-600 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
-                                >
-                                  Skip
-                                </button>
-                              )}
+                              </div>
                             </div>
                           </div>
                         )
