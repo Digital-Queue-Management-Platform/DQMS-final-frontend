@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { User, Phone, ChevronDown, X, Eye, EyeOff } from 'lucide-react'
+import { User, Phone, Eye, EyeOff } from 'lucide-react'
 import { API_URL } from '../config/api'
 import api from '../config/api'
 import OTPInput from '../components/OTPInput'
@@ -43,14 +43,10 @@ export default function KioskDashboard() {
   const [devOtpCode, setDevOtpCode] = useState<string>("")
 
   // Service dropdown states
-  const [isServiceDropdownOpen, setIsServiceDropdownOpen] = useState(false)
-  const serviceDropdownRef = useRef<HTMLDivElement>(null)
 
   // Bill payment specific states
   const [sltTelephoneNumber, setSltTelephoneNumber] = useState("")
   const [billData, setBillData] = useState<any>(null)
-  const [billLoading, setBillLoading] = useState(false)
-  const [billError, setBillError] = useState("")
   const [sltVerified, setSltVerified] = useState(false)
 
   // Multi-step form state
@@ -94,10 +90,6 @@ export default function KioskDashboard() {
     )
   }
 
-  const removeService = (serviceCode: string) => {
-    setSelectedServices(prev => prev.filter(code => code !== serviceCode))
-  }
-
   const getServiceTitle = (code: string) => {
     if (code === 'BILL_PAYMENT') {
       return language === 'en' ? 'Bill Payment' : language === 'si' ? 'බිල් ගෙවීම' : 'பில் செலுத்தல்'
@@ -108,20 +100,6 @@ export default function KioskDashboard() {
     const service = services.find(s => s.code === code)
     return service?.title || code
   }
-
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (serviceDropdownRef.current && !serviceDropdownRef.current.contains(event.target as Node)) {
-        setIsServiceDropdownOpen(false)
-      }
-    }
-
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside)
-    }
-  }, [])
 
   const sendOtp = async (): Promise<boolean> => {
     setOtpError("")
@@ -182,26 +160,26 @@ export default function KioskDashboard() {
   // Verify SLT telephone number and fetch bill data with auto-fill
   const verifySltNumber = async () => {
     if (!sltTelephoneNumber) {
-      setBillError("Please enter SLT telephone number")
+      setError("Please enter SLT telephone number")
       return
     }
 
     // Validate format (10 digits starting with 01, 041, or 081)
     const phoneRegex = /^(01\d{8}|041\d{7}|081\d{7})$/
     if (!phoneRegex.test(sltTelephoneNumber)) {
-      setBillError("Invalid SLT number. Must be 10 digits (01/041/081).")
+      setError("Invalid SLT number. Must be 10 digits (01/041/081).")
       return
     }
 
-    setBillLoading(true)
-    setBillError("")
+    setLoading(true)
+    setError("")
     try {
       const response = await api.get(`/bills/verify/${sltTelephoneNumber}`)
       if (response.data.success && response.data.bill) {
         const bill = response.data.bill
         setBillData(bill)
         setSltVerified(true)
-        setBillError("")
+        setError("")
         
         // Auto-fill customer details from bill data
         if (bill.accountName) {
@@ -211,15 +189,15 @@ export default function KioskDashboard() {
           setMobileNumber(bill.mobileNumber)
         }
       } else {
-        setBillError("No account found for this telephone number")
+        setError("No account found for this telephone number")
       }
     } catch (err: any) {
       console.error('Bill verification error:', err)
-      setBillError(err.response?.data?.error || "Failed to verify telephone number")
+      setError(err.response?.data?.error || "Failed to verify telephone number")
       setBillData(null)
       setSltVerified(false)
     } finally {
-      setBillLoading(false)
+      setLoading(false)
     }
   }
 
@@ -740,7 +718,7 @@ export default function KioskDashboard() {
                                 value={sltTelephoneNumber}
                                 onChange={(e) => {
                                   setSltTelephoneNumber(e.target.value)
-                                  setBillError("")
+                                  setError("")
                                   setSltVerified(false)
                                 }}
                                 className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -1001,36 +979,6 @@ export default function KioskDashboard() {
           </div>
         </div>
       </div>
-
-      {/* OTP Popup */}
-      {showOtpPopup && (
-        <OTPPopup
-          otpCode={otpCode}
-          devOtpCode={devOtpCode}
-          otpError={otpError}
-          onChange={setOtpCode}
-          onSubmit={async () => {
-            if (otpCode.length !== 4) {
-              setOtpError('Please enter 4-digit OTP')
-              return
-            }
-            const vt = await verifyOtp()
-            if (vt) {
-              setShowOtpPopup(false)
-            }
-          }}
-          onResend={() => sendOtp()}
-          onClose={() => {
-            setShowOtpPopup(false)
-            setOtpStep('idle')
-            setOtpCode('')
-            setOtpError('')
-          }}
-          resendDisabled={otpSending}
-          submitDisabled={otpSending || otpCode.length !== 4}
-          lang={language}
-        />
-      )}
 
       {/* Success Modal */}
       {successToken && (

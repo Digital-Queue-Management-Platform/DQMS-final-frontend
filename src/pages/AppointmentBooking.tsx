@@ -1,8 +1,8 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { Calendar, MapPin, User, Phone, ChevronDown, X } from "lucide-react"
+import { Calendar, MapPin, User, Phone } from "lucide-react"
 import api from "../config/api"
 import type { Outlet } from "../types"
 import OTPInput from "../components/OTPInput"
@@ -71,12 +71,7 @@ export default function AppointmentBooking() {
   // Bill payment specific states
   const [sltTelephoneNumber, setSltTelephoneNumber] = useState("")
   const [billData, setBillData] = useState<any>(null)
-  const [billLoading, setBillLoading] = useState(false)
-  const [billError, setBillError] = useState("")
   const [sltVerified, setSltVerified] = useState(false)
-
-  const dropdownRef = useRef<HTMLDivElement>(null)
-  const [openServices, setOpenServices] = useState(false)
 
   // Multi-step form state
   const [currentStep, setCurrentStep] = useState(1)
@@ -93,16 +88,6 @@ export default function AppointmentBooking() {
       setError('Failed to load outlets')
     }
   }
-
-  useEffect(() => {
-    const onClick = (e: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-        setOpenServices(false)
-      }
-    }
-    document.addEventListener('mousedown', onClick)
-    return () => document.removeEventListener('mousedown', onClick)
-  }, [])
 
   const toggleService = (code: string) => {
     setServiceTypes(prev => prev.includes(code) ? prev.filter(c => c !== code) : [...prev, code])
@@ -330,35 +315,35 @@ export default function AppointmentBooking() {
   // Verify SLT telephone number and fetch bill data
   const verifySltNumber = async () => {
     if (!sltTelephoneNumber) {
-      setBillError("Please enter SLT telephone number")
+      setError("Please enter SLT telephone number")
       return
     }
 
     // Validate format (10 digits starting with 01, 041, or 081)
     const phoneRegex = /^(01\d{8}|041\d{7}|081\d{7})$/
     if (!phoneRegex.test(sltTelephoneNumber)) {
-      setBillError("Invalid SLT number. Must be 10 digits (01/041/081).")
+      setError("Invalid SLT number. Must be 10 digits (01/041/081).")
       return
     }
 
-    setBillLoading(true)
-    setBillError("")
+    setLoading(true)
+    setError("")
     try {
       const response = await api.get(`/bills/verify/${sltTelephoneNumber}`)
       if (response.data.success && response.data.bill) {
         setBillData(response.data.bill)
         setSltVerified(true)
-        setBillError("")
+        setError("")
       } else {
-        setBillError("No account found for this telephone number")
+        setError("No account found for this telephone number")
       }
     } catch (err: any) {
       console.error('Bill verification error:', err)
-      setBillError(err.response?.data?.error || "Failed to verify telephone number")
+      setError(err.response?.data?.error || "Failed to verify telephone number")
       setBillData(null)
       setSltVerified(false)
     } finally {
-      setBillLoading(false)
+      setLoading(false)
     }
   }
 
@@ -415,7 +400,6 @@ export default function AppointmentBooking() {
     }
   }
 
-  const canSendOtp = !!(name && mobileNumber && outletId && serviceTypes.length && datetime)
 
   // Step navigation functions
   const goToNextStep = () => {
@@ -636,7 +620,7 @@ export default function AppointmentBooking() {
                             value={sltTelephoneNumber}
                             onChange={(e) => {
                               setSltTelephoneNumber(e.target.value)
-                              setBillError("")
+                              setError("")
                               setSltVerified(false)
                             }}
                             className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
