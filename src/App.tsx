@@ -1,5 +1,5 @@
 import React from "react"
-import { Routes, Route, useLocation, useNavigate } from "react-router-dom"
+import { Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom"
 // MainNav removed per request - no top navbar
 import Sidebar from "./admin/adminComponents/additionalComps/SideBar"
 //import Header from "./components/Header"
@@ -391,6 +391,10 @@ function App() {
       <Route
         element={<Layout><CustomerRegistration /></Layout>}
         path="/register/:outletId"
+      />
+      <Route
+        path="/appointment"
+        element={<Navigate to="/appointment/book" replace />}
       />
       <Route
         element={<Layout><AppointmentBooking /></Layout>}
