@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { User, Phone, Eye, EyeOff } from 'lucide-react'
 import { API_URL } from '../config/api'
@@ -48,6 +48,8 @@ export default function KioskDashboard() {
   const [sltTelephoneNumber, setSltTelephoneNumber] = useState("")
   const [billData, setBillData] = useState<any>(null)
   const [sltVerified, setSltVerified] = useState(false)
+  const [shouldAutoSubmit, setShouldAutoSubmit] = useState(false)
+  const formRef = useRef<HTMLFormElement>(null)
 
   // Multi-step form state
   const [currentStep, setCurrentStep] = useState(1)
@@ -66,6 +68,17 @@ export default function KioskDashboard() {
     setOutlet(JSON.parse(outletData))
     loadInitialData()
   }, [navigate])
+
+  // Auto-submit form after OTP verification
+  useEffect(() => {
+    if (shouldAutoSubmit && otpStep === 'verified' && otpToken) {
+      setShouldAutoSubmit(false)
+      // Submit the form immediately after OTP is verified
+      if (formRef.current) {
+        formRef.current.dispatchEvent(new Event('submit', { bubbles: true }))
+      }
+    }
+  }, [shouldAutoSubmit, otpStep, otpToken])
 
   const loadInitialData = async () => {
     try {
@@ -144,6 +157,8 @@ export default function KioskDashboard() {
           await verifySltNumber()
         }
         
+        // Trigger auto-submission of token generation
+        setShouldAutoSubmit(true)
         return res.data.verifiedMobileToken as string
       }
       setOtpError('OTP verification failed')
@@ -203,7 +218,15 @@ export default function KioskDashboard() {
 
   // Step navigation functions
   const goToNextStep = () => {
-    setCurrentStep(prev => Math.min(prev + 1, 4))
+    const newStep = Math.min(currentStep + 1, 4)
+    setCurrentStep(newStep)
+    // Reset OTP step when entering Step 4 for fresh OTP verification
+    if (newStep === 4) {
+      setOtpStep('idle')
+      setOtpCode('')
+      setOtpToken('')
+      setOtpError('')
+    }
   }
 
   const goToPreviousStep = () => {
@@ -262,11 +285,14 @@ export default function KioskDashboard() {
       })
 
       const data = await response.json()
+      console.log('API Response:', data)
+      console.log('Response Token:', data.token)
 
       if (!response.ok) {
         throw new Error(data.error || 'Failed to create token')
       }
 
+      console.log('Setting successToken to:', data.token)
       setSuccessToken(data.token)
 
       // Reset form
@@ -294,6 +320,22 @@ export default function KioskDashboard() {
 
   const closeSuccessModal = () => {
     setSuccessToken(null)
+    // Reset form to step 1
+    setName('')
+    setMobileNumber('')
+    setNicNumber('')
+    setEmail('')
+    setSelectedServices([])
+    setPreferredLanguage('en')
+    setOtpStep('idle')
+    setOtpCode('')
+    setOtpToken('')
+    setOtpError('')
+    setError('')
+    setSltTelephoneNumber('')
+    setBillData(null)
+    setSltVerified(false)
+    setCurrentStep(1)
   }
 
   const translations = {
@@ -592,7 +634,7 @@ export default function KioskDashboard() {
               <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">{error}</div>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
+            <form ref={formRef} onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
               
               {/* STEP 1: Language Selection */}
               {currentStep === 1 && (
@@ -982,8 +1024,10 @@ export default function KioskDashboard() {
 
       {/* Success Modal */}
       {successToken && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg shadow-2xl p-8 max-w-md w-full">
+        <>
+          {console.log('Rendering success modal with:', successToken)}
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-lg shadow-2xl p-8 max-w-md w-full">
             <div className="text-center">
               <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <svg className="w-12 h-12 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -995,7 +1039,14 @@ export default function KioskDashboard() {
 
               <div className="bg-blue-50 rounded-lg p-6 mb-6">
                 <div className="text-sm text-gray-600 mb-1">Your Token Number</div>
-                <div className="text-6xl font-bold text-blue-600">{successToken.tokenNumber}</div>
+                <div className="text-6xl font-bold text-blue-600">
+                  {successToken.tokenNumber || 'N/A'}
+                </div>
+                {!successToken.tokenNumber && (
+                  <div className="text-sm text-red-600 mt-2">
+                    Debug: successToken = {JSON.stringify(successToken)}
+                  </div>
+                )}
               </div>
 
               <div className="text-left bg-gray-50 rounded-lg p-4 mb-6 space-y-2 text-sm">
@@ -1021,7 +1072,8 @@ export default function KioskDashboard() {
               </button>
             </div>
           </div>
-        </div>
+          </div>
+        </>
       )}
 
       {/* OTP Popup for Demo Mode */}
