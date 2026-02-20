@@ -22,16 +22,27 @@ export default function AppointmentBooking() {
   const [serviceTypes, setServiceTypes] = useState<string[]>([])
   const [datetime, setDatetime] = useState("") // yyyy-MM-ddTHH:mm
   
-  // Get current date and time in local format for min attribute
+  // Get minimum date/time - at least 24 hours in advance
   const getMinDateTime = () => {
     const now = new Date()
-    const year = now.getFullYear()
-    const month = String(now.getMonth() + 1).padStart(2, '0')
-    const day = String(now.getDate()).padStart(2, '0')
-    const hours = String(now.getHours()).padStart(2, '0')
-    const minutes = String(now.getMinutes()).padStart(2, '0')
+    const minTime = new Date(now.getTime() + 24 * 60 * 60 * 1000) // Add 24 hours
+    const year = minTime.getFullYear()
+    const month = String(minTime.getMonth() + 1).padStart(2, '0')
+    const day = String(minTime.getDate()).padStart(2, '0')
+    const hours = String(minTime.getHours()).padStart(2, '0')
+    const minutes = String(minTime.getMinutes()).padStart(2, '0')
     return `${year}-${month}-${day}T${hours}:${minutes}`
   }
+  
+  // Validate that appointment is at least 24 hours away
+  const isValidAppointmentTime = (datetimeStr: string) => {
+    if (!datetimeStr) return true
+    const selectedTime = new Date(datetimeStr)
+    const now = new Date()
+    const hoursUntil = (selectedTime.getTime() - now.getTime()) / (1000 * 60 * 60)
+    return hoursUntil >= 24
+  }
+  
   // UI language tabs (English/Sinhala/Tamil), independent from preferredLanguage used for announcements
   const [language, setLanguage] = useState<'en' | 'si' | 'ta'>(() => {
     try {
@@ -150,7 +161,8 @@ export default function AppointmentBooking() {
       next: "Next",
       verify: "Verify Mobile",
       enterSltNumber: "Enter your SLT telephone number",
-      verifiedAccount: "Account Verified"
+      verifiedAccount: "Account Verified",
+      minBookingTime: "Appointments must be booked at least 24 hours in advance"
     },
     si: {
       title: 'වේලාවක් වෙන්කරන්න',
@@ -203,7 +215,8 @@ export default function AppointmentBooking() {
       next: "ඊළඟ",
       verify: "ජංගම අංකය තහවුරු කරන්න",
       enterSltNumber: "ඔබගේ SLT දුරකථන අංකය ඇතුළත් කරන්න",
-      verifiedAccount: "ගිණුම තහවුරු කර ඇත"
+      verifiedAccount: "ගිණුම තහවුරු කර ඇත",
+      minBookingTime: "වෙන්කරවාගැනීම් අවම වශයෙන් 24 ساعत ඉතින් වෙන්කරගත යුතුය"
     },
     ta: {
       title: 'ஒரு நேரம் பதிவு செய்யவும்',
@@ -256,7 +269,8 @@ export default function AppointmentBooking() {
       next: "அடுத்து",
       verify: "மொபைல் சரிபார்க்கவும்",
       enterSltNumber: "உங்கள் SLT தொலைபேசி எண்ணை உள்ளிடவும்",
-      verifiedAccount: "கணக்கு சரிபார்க்கப்பட்டது"
+      verifiedAccount: "கணக்கு சரிபார்க்கப்பட்டது",
+      minBookingTime: "நேரங்கள் குறைந்தபட்சம் 24 மணி நேரத்திற்கு முன் பதிவு செய்யப்பட வேண்டும்"
     },
   } as const
 
@@ -368,6 +382,12 @@ export default function AppointmentBooking() {
         return
       }
 
+      // Final validation: verify 24-hour requirement (backend will also check)
+      if (!isValidAppointmentTime(datetime)) {
+        setError(t.minBookingTime)
+        return
+      }
+
       const res = await api.post('/appointment/book', {
         name,
         mobileNumber,
@@ -410,8 +430,9 @@ export default function AppointmentBooking() {
   const canProceedFromStep2 = serviceTypes.length > 0
   const canProceedFromStep3 = () => {
     // Must have: outlet, datetime, name, mobile
+    // Datetime must be at least 24 hours in advance
     // If bill payment selected: must also have SLT number
-    const hasBasicInfo = outletId && datetime && name && mobileNumber
+    const hasBasicInfo = outletId && datetime && name && mobileNumber && isValidAppointmentTime(datetime)
     if (serviceTypes.includes('BILL_PAYMENT')) {
       return hasBasicInfo && sltTelephoneNumber
     }
@@ -659,10 +680,17 @@ export default function AppointmentBooking() {
                     value={datetime} 
                     onChange={(e) => setDatetime(e.target.value)} 
                     min={getMinDateTime()}
-                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" 
+                    className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                      datetime && !isValidAppointmentTime(datetime) 
+                        ? 'border-red-500 bg-red-50' 
+                        : 'border-gray-300'
+                    }`}
                     required 
                   />
                 </div>
+                {datetime && !isValidAppointmentTime(datetime) && (
+                  <p className="text-sm text-red-600 mt-2">⚠️ {t.minBookingTime}</p>
+                )}
               </div>
 
               {/* Customer Details */}
