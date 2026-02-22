@@ -1,5 +1,5 @@
 import React from "react"
-import { Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom"
+import { Routes, Route, useLocation, useNavigate } from "react-router-dom"
 // MainNav removed per request - no top navbar
 import Sidebar from "./admin/adminComponents/additionalComps/SideBar"
 //import Header from "./components/Header"
@@ -44,6 +44,7 @@ const TeleshopManagerServedCustomers = React.lazy(() => import("./pages/Teleshop
 const TeleshopManagerKioskSettings = React.lazy(() => import("./pages/TeleshopManagerKioskSettings"))
 const ManagerFeedback = React.lazy(() => import("./pages/ManagerFeedback"))
 const AdminFeedback = React.lazy(() => import("./pages/AdminFeedback"))
+const ManagerOfficerAssignment = React.lazy(() => import("./pages/ManagerOfficerAssignment"))
 import ManagerTeleshopManagers from "./pages/ManagerTeleshopManagers"
 import ProtectedTeleshopManagerRoute from "./components/ProtectedTeleshopManagerRoute"
 import AppointmentBooking from "./pages/AppointmentBooking"
@@ -313,7 +314,8 @@ function Layout({ children }: { children: React.ReactNode }) {
   const [officer, setOfficer] = React.useState<Officer | null>(null)
 
   React.useEffect(() => {
-    try { localStorage.setItem('sidebar_collapsed', isCollapsed ? '1' : '0') } catch {}
+    try { localStorage.setItem('sidebar_collapsed', isCollapsed ? '1' : '0') } catch {
+    }
   }, [isCollapsed])
 
   React.useEffect(() => {
@@ -384,203 +386,203 @@ function App() {
   return (
     <React.Suspense fallback={<div className="p-6 text-center text-sm text-gray-600">Loading...</div>}>
     <Routes>
-      <Route
-        element={<Layout><ProLoginLanding /></Layout>}
-        path="/"
-      />
-      <Route
-        element={<Layout><CustomerRegistration /></Layout>}
-        path="/register/:outletId"
-      />
-      <Route
-        path="/appointment"
-        element={<Navigate to="/appointment/book" replace />}
-      />
-      <Route
-        element={<Layout><AppointmentBooking /></Layout>}
-        path="/appointment/book"
-      />
-      <Route
-        element={<Layout><AppointmentMy /></Layout>}
-        path="/appointment/my"
-      />
-      <Route
-        element={<Layout><ServiceStatus /></Layout>}
-        path="/service/status"
-      />
-      <Route
-        element={<Layout><QueueStatus /></Layout>}
-        path="/queue/:tokenId"
-      />
-      <Route
-        element={<Layout><FeedbackPage /></Layout>}
-        path="/feedback/:tokenId"
-      />
-      <Route
-        element={<Layout><QRDisplay /></Layout>}
-        path="/qr/:outletId"
-      />
-      <Route
-        element={<Layout><OfficerLogin /></Layout>}
-        path="/officer/login"
-      />
-      <Route
-        element={<Layout><OfficerDashboard /></Layout>}
-        path="/officer/dashboard"
-      />
-      <Route
-        element={<Layout><OfficerQueuePage /></Layout>}
-        path="/officer/queue"
-      />
-      <Route
-        element={<Layout><IPSpeakerPage /></Layout>}
-        path="/officer/ip-speaker"
-      />
-      <Route
-        element={<Layout><OfficerServedCustomers /></Layout>}
-        path="/officer/served-customers"
-      />
-      <Route
-        element={<Layout><OfficerServiceTracking /></Layout>}
-        path="/officer/service-tracking"
-      />
-      <Route
-        element={<AdminLogin />}
-        path="/admin/login"
-      />
-      <Route
-        element={<Layout><ProtectedAdminRoute><DashboardPage /></ProtectedAdminRoute></Layout>}
-        path="/admin"
-      />
-      <Route
-        element={<Layout><ProtectedAdminRoute><AdminAppointments /></ProtectedAdminRoute></Layout>}
-        path="/admin/appointments"
-      />
-      <Route
-        element={<Layout><ProtectedAdminRoute><AdminOfficers /></ProtectedAdminRoute></Layout>}
-        path="/admin/officers"
-      />
-      <Route
-        element={<Layout><ProtectedAdminRoute><AdminAllOfficers /></ProtectedAdminRoute></Layout>}
-        path="/admin/all-officers"
-      />
-      <Route
-        element={<Layout><ProtectedAdminRoute><ServicesPage /></ProtectedAdminRoute></Layout>}
-        path="/admin/services"
-      />
-      <Route
-        element={<Layout><ProtectedAdminRoute><BranchesPage /></ProtectedAdminRoute></Layout>}
-        path="/admin/branches"
-      />
-      <Route
-        element={<Layout><ProtectedAdminRoute><ManagerManagement /></ProtectedAdminRoute></Layout>}
-        path="/admin/managers"
-      />
-      <Route
-        element={<Layout><ProtectedAdminRoute><BranchComparePage /></ProtectedAdminRoute></Layout>}
-        path="/admin/compare"
-      />
-      <Route
-        element={<Layout><ProtectedAdminRoute><AdminOutletPasswords /></ProtectedAdminRoute></Layout>}
-        path="/admin/outlet-passwords"
-      />
-      <Route
-        element={<Layout><ProtectedAdminRoute><AdminFeedback /></ProtectedAdminRoute></Layout>}
-        path="/admin/feedback"
-      />
-      <Route
-        element={<KioskLogin />}
-        path="/kiosk/login"
-      />
-      <Route
-        element={<KioskDashboard />}
-        path="/kiosk/dashboard"
-      />
-      <Route
-        element={<Layout><ManagerLogin /></Layout>}
-        path="/manager/login"
-      />
-      <Route
-        element={<Layout><ProtectedManagerRoute><ManagerDashboard /></ProtectedManagerRoute></Layout>}
-        path="/manager/dashboard"
-      />
-      <Route
-        element={<Layout><ProtectedManagerRoute><ManagerServiceTracking /></ProtectedManagerRoute></Layout>}
-        path="/manager/service-tracking"
-      />
-      <Route
-        element={<Layout><ProtectedManagerRoute><ManagerAppointments /></ProtectedManagerRoute></Layout>}
-        path="/manager/appointments"
-      />
-      <Route
-        element={<Layout><ProtectedManagerRoute><ManagerBranches /></ProtectedManagerRoute></Layout>}
-        path="/manager/branches"
-      />
-      <Route
-        element={<Layout><ProtectedManagerRoute><ManagerQRCodes /></ProtectedManagerRoute></Layout>}
-        path="/manager/qr-codes"
-      />
-      <Route
-        element={<Layout><ProtectedManagerRoute><ManagerCompare /></ProtectedManagerRoute></Layout>}
-        path="/manager/compare"
-      />
-      <Route
-        element={<Layout><ProtectedManagerRoute><ManagerBreakOversight /></ProtectedManagerRoute></Layout>}
-        path="/manager/breaks"
-      />
-      <Route
-        element={<Layout><ProtectedManagerRoute><ManagerFeedback /></ProtectedManagerRoute></Layout>}
-        path="/manager/feedback"
-      />
-      <Route
-        element={<Layout><ProtectedManagerRoute><ManagerTeleshopManagers /></ProtectedManagerRoute></Layout>}
-        path="/manager/teleshop-managers"
-      />
-      <Route
-        element={<Layout><TeleshopManagerLogin /></Layout>}
-        path="/teleshop-manager/login"
-      />
-      <Route
-        element={<Layout><ProtectedTeleshopManagerRoute><TeleshopManagerDashboard /></ProtectedTeleshopManagerRoute></Layout>}
-        path="/teleshop-manager/dashboard"
-      />
-      <Route
-        element={<Layout><ProtectedTeleshopManagerRoute><TeleshopManagerServiceTracking /></ProtectedTeleshopManagerRoute></Layout>}
-        path="/teleshop-manager/service-tracking"
-      />
-      <Route
-        element={<Layout><ProtectedTeleshopManagerRoute><TeleshopManagerAppointments /></ProtectedTeleshopManagerRoute></Layout>}
-        path="/teleshop-manager/appointments"
-      />
-      <Route
-        element={<Layout><ProtectedTeleshopManagerRoute><TeleshopManagerOfficers /></ProtectedTeleshopManagerRoute></Layout>}
-        path="/teleshop-manager/officers"
-      />
-      <Route
-        element={<Layout><ProtectedTeleshopManagerRoute><TeleshopManagerEditOfficer /></ProtectedTeleshopManagerRoute></Layout>}
-        path="/teleshop-manager/officers/:officerId/edit"
-      />
-      <Route
-        element={<Layout><ProtectedTeleshopManagerRoute><TeleshopManagerOfficerRegistration /></ProtectedTeleshopManagerRoute></Layout>}
-        path="/teleshop-manager/officers/add"
-      />
-      <Route
-        element={<Layout><ProtectedTeleshopManagerRoute><TeleshopManagerCompletedServices /></ProtectedTeleshopManagerRoute></Layout>}
-        path="/teleshop-manager/completed-services"
-      />
-      <Route
-        element={<Layout><ProtectedTeleshopManagerRoute><TeleshopManagerServedCustomers /></ProtectedTeleshopManagerRoute></Layout>}
-        path="/teleshop-manager/served-customers"
-      />
-      <Route
-        element={<Layout><ProtectedTeleshopManagerRoute><TeleshopManagerFeedback /></ProtectedTeleshopManagerRoute></Layout>}
-        path="/teleshop-manager/feedback"
-      />
-      <Route
-        element={<Layout><ProtectedTeleshopManagerRoute><TeleshopManagerKioskSettings /></ProtectedTeleshopManagerRoute></Layout>}
-        path="/teleshop-manager/kiosk-settings"
-      />
-    </Routes>
+        <Route
+          element={<Layout><ProLoginLanding /></Layout>}
+          path="/"
+        />
+        <Route
+          element={<Layout><CustomerRegistration /></Layout>}
+          path="/register/:outletId"
+        />
+        <Route
+          element={<Layout><AppointmentBooking /></Layout>}
+          path="/appointment/book"
+        />
+        <Route
+          element={<Layout><AppointmentMy /></Layout>}
+          path="/appointment/my"
+        />
+        <Route
+          element={<Layout><ServiceStatus /></Layout>}
+          path="/service/status"
+        />
+        <Route
+          element={<Layout><QueueStatus /></Layout>}
+          path="/queue/:tokenId"
+        />
+        <Route
+          element={<Layout><FeedbackPage /></Layout>}
+          path="/feedback/:tokenId"
+        />
+        <Route
+          element={<Layout><QRDisplay /></Layout>}
+          path="/qr/:outletId"
+        />
+        <Route
+          element={<Layout><OfficerLogin /></Layout>}
+          path="/officer/login"
+        />
+        <Route
+          element={<Layout><OfficerDashboard /></Layout>}
+          path="/officer/dashboard"
+        />
+        <Route
+          element={<Layout><OfficerQueuePage /></Layout>}
+          path="/officer/queue"
+        />
+        <Route
+          element={<Layout><IPSpeakerPage /></Layout>}
+          path="/officer/ip-speaker"
+        />
+        <Route
+          element={<Layout><OfficerServedCustomers /></Layout>}
+          path="/officer/served-customers"
+        />
+        <Route
+          element={<Layout><OfficerServiceTracking /></Layout>}
+          path="/officer/service-tracking"
+        />
+        <Route
+          element={<AdminLogin />}
+          path="/admin/login"
+        />
+        <Route
+          element={<Layout><ProtectedAdminRoute><DashboardPage /></ProtectedAdminRoute></Layout>}
+          path="/admin"
+        />
+        <Route
+          element={<Layout><ProtectedAdminRoute><AdminAppointments /></ProtectedAdminRoute></Layout>}
+          path="/admin/appointments"
+        />
+        <Route
+          element={<Layout><ProtectedAdminRoute><AdminOfficers /></ProtectedAdminRoute></Layout>}
+          path="/admin/officers"
+        />
+        <Route
+          element={<Layout><ProtectedAdminRoute><AdminAllOfficers /></ProtectedAdminRoute></Layout>}
+          path="/admin/all-officers"
+        />
+        <Route
+          element={<Layout><ProtectedAdminRoute><ServicesPage /></ProtectedAdminRoute></Layout>}
+          path="/admin/services"
+        />
+        <Route
+          element={<Layout><ProtectedAdminRoute><BranchesPage /></ProtectedAdminRoute></Layout>}
+          path="/admin/branches"
+        />
+        <Route
+          element={<Layout><ProtectedAdminRoute><ManagerManagement /></ProtectedAdminRoute></Layout>}
+          path="/admin/managers"
+        />
+        <Route
+          element={<Layout><ProtectedAdminRoute><BranchComparePage /></ProtectedAdminRoute></Layout>}
+          path="/admin/compare"
+        />
+        <Route
+          element={<Layout><ProtectedAdminRoute><AdminOutletPasswords /></ProtectedAdminRoute></Layout>}
+          path="/admin/outlet-passwords"
+        />
+        <Route
+          element={<Layout><ProtectedAdminRoute><AdminFeedback /></ProtectedAdminRoute></Layout>}
+          path="/admin/feedback"
+        />
+        <Route
+          element={<KioskLogin />}
+          path="/kiosk/login"
+        />
+        <Route
+          element={<KioskDashboard />}
+          path="/kiosk/dashboard"
+        />
+        <Route
+          element={<Layout><ManagerLogin /></Layout>}
+          path="/manager/login"
+        />
+        <Route
+          element={<Layout><ProtectedManagerRoute><ManagerDashboard /></ProtectedManagerRoute></Layout>}
+          path="/manager/dashboard"
+        />
+        <Route
+          element={<Layout><ProtectedManagerRoute><ManagerServiceTracking /></ProtectedManagerRoute></Layout>}
+          path="/manager/service-tracking"
+        />
+        <Route
+          element={<Layout><ProtectedManagerRoute><ManagerAppointments /></ProtectedManagerRoute></Layout>}
+          path="/manager/appointments"
+        />
+        <Route
+          element={<Layout><ProtectedManagerRoute><ManagerBranches /></ProtectedManagerRoute></Layout>}
+          path="/manager/branches"
+        />
+        <Route
+          element={<Layout><ProtectedManagerRoute><ManagerQRCodes /></ProtectedManagerRoute></Layout>}
+          path="/manager/qr-codes"
+        />
+        <Route
+          element={<Layout><ProtectedManagerRoute><ManagerCompare /></ProtectedManagerRoute></Layout>}
+          path="/manager/compare"
+        />
+        <Route
+          element={<Layout><ProtectedManagerRoute><ManagerBreakOversight /></ProtectedManagerRoute></Layout>}
+          path="/manager/breaks"
+        />
+        <Route
+          element={<Layout><ProtectedManagerRoute><ManagerFeedback /></ProtectedManagerRoute></Layout>}
+          path="/manager/feedback"
+        />
+        <Route
+          element={<Layout><ProtectedManagerRoute><ManagerTeleshopManagers /></ProtectedManagerRoute></Layout>}
+          path="/manager/teleshop-managers"
+        />
+        <Route
+          element={<Layout><ProtectedManagerRoute><ManagerOfficerAssignment /></ProtectedManagerRoute></Layout>}
+          path="/manager/officer-assignment"
+        />
+        <Route
+          element={<Layout><TeleshopManagerLogin /></Layout>}
+          path="/teleshop-manager/login"
+        />
+        <Route
+          element={<Layout><ProtectedTeleshopManagerRoute><TeleshopManagerDashboard /></ProtectedTeleshopManagerRoute></Layout>}
+          path="/teleshop-manager/dashboard"
+        />
+        <Route
+          element={<Layout><ProtectedTeleshopManagerRoute><TeleshopManagerServiceTracking /></ProtectedTeleshopManagerRoute></Layout>}
+          path="/teleshop-manager/service-tracking"
+        />
+        <Route
+          element={<Layout><ProtectedTeleshopManagerRoute><TeleshopManagerAppointments /></ProtectedTeleshopManagerRoute></Layout>}
+          path="/teleshop-manager/appointments"
+        />
+        <Route
+          element={<Layout><ProtectedTeleshopManagerRoute><TeleshopManagerOfficers /></ProtectedTeleshopManagerRoute></Layout>}
+          path="/teleshop-manager/officers"
+        />
+        <Route
+          element={<Layout><ProtectedTeleshopManagerRoute><TeleshopManagerEditOfficer /></ProtectedTeleshopManagerRoute></Layout>}
+          path="/teleshop-manager/officers/:officerId/edit"
+        />
+        <Route
+          element={<Layout><ProtectedTeleshopManagerRoute><TeleshopManagerOfficerRegistration /></ProtectedTeleshopManagerRoute></Layout>}
+          path="/teleshop-manager/officers/add"
+        />
+        <Route
+          element={<Layout><ProtectedTeleshopManagerRoute><TeleshopManagerCompletedServices /></ProtectedTeleshopManagerRoute></Layout>}
+          path="/teleshop-manager/completed-services"
+        />
+        <Route
+          element={<Layout><ProtectedTeleshopManagerRoute><TeleshopManagerServedCustomers /></ProtectedTeleshopManagerRoute></Layout>}
+          path="/teleshop-manager/served-customers"
+        />
+        <Route
+          element={<Layout><ProtectedTeleshopManagerRoute><TeleshopManagerFeedback /></ProtectedTeleshopManagerRoute></Layout>}
+          path="/teleshop-manager/feedback"
+        />
+        <Route
+          element={<Layout><ProtectedTeleshopManagerRoute><TeleshopManagerKioskSettings /></ProtectedTeleshopManagerRoute></Layout>}
+          path="/teleshop-manager/kiosk-settings"
+        />
+      </Routes>
     </React.Suspense>
   )
 }

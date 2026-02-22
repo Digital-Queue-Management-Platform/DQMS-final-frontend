@@ -75,6 +75,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed, activePa
     { name: 'Appointments', icon: Calendar, to: '/manager/appointments' },
     { name: 'Feedback (2-Star)', icon: MessageSquare, to: '/manager/feedback' },
     { name: 'Teleshop Managers', icon: Phone, to: '/manager/teleshop-managers' },
+    { name: 'Officer Assignment', icon: UserCog, to: '/manager/officer-assignment' },
     { name: 'Branches', icon: Building2, to: '/manager/branches' },
     { name: 'Break Oversight', icon: Coffee, to: '/manager/breaks' },
     { name: 'QR Codes', icon: QrCode, to: '/manager/qr-codes' },
