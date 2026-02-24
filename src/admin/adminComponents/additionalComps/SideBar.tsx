@@ -54,7 +54,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed, activePa
     //{ name: 'Home', icon: Home, to: '/' },
     { name: 'Dashboard', icon: LayoutDashboard, to: '/admin' },
     { name: 'Appointments', icon: Calendar, to: '/admin/appointments' },
-    { name: 'Critical Feedback', icon: MessageSquare, to: '/admin/feedback' },
+    { name: 'Feedbacks ', icon: MessageSquare, to: '/admin/feedback' },
     { name: 'Services', icon: Briefcase, to: '/admin/services' },
     { name: 'Branches', icon: Building2, to: '/admin/branches' },
     { name: 'RTOMs', icon: Users, to: '/admin/managers' },
