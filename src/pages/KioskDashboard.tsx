@@ -48,7 +48,6 @@ export default function KioskDashboard() {
 
   // Bill payment specific states
   const [sltTelephoneNumber, setSltTelephoneNumber] = useState("")
-  const [billData, setBillData] = useState<any>(null)
   const [sltVerified, setSltVerified] = useState(false)
   const [shouldAutoSubmit, setShouldAutoSubmit] = useState(false)
   const [notificationSent, setNotificationSent] = useState(false)
@@ -233,7 +232,6 @@ export default function KioskDashboard() {
         if (!bill.mobileNumber) {
           const hotline = import.meta.env.VITE_SLT_HOTLINE || "1213"
           setError(`⚠️ This SLT account does not have a registered mobile number. Please contact the SLT hotline at ${hotline} to register your mobile number before proceeding.`)
-          setBillData(null)
           setSltVerified(false)
           setNotificationSent(false)
           return
@@ -271,7 +269,6 @@ export default function KioskDashboard() {
     } catch (err: any) {
       console.error('Bill verification error:', err)
       setError(err.response?.data?.error || "Failed to verify telephone number")
-      setBillData(null)
       setSltVerified(false)
       setNotificationSent(false)
     } finally {
@@ -396,7 +393,6 @@ export default function KioskDashboard() {
     setOtpError('')
     setError('')
     setSltTelephoneNumber('')
-    setBillData(null)
     setSltVerified(false)
     setNotificationSent(false)
     setNotificationMessage('')
@@ -462,7 +458,8 @@ export default function KioskDashboard() {
       enterSltNumber: "Enter your SLT telephone number",
       verifiedAccount: "Account Verified",
       billSummary: "Bill Summary",
-      continueWithYourNumber: "You can continue with any mobile number to complete the service."
+      continueWithYourNumber: "You can continue with any mobile number to complete the service.",
+      notificationSent: "Notification Sent"
     },
     si: {
       title: "ඩිජිටල් පෝලිම වේදිකාව",
@@ -522,7 +519,8 @@ export default function KioskDashboard() {
       enterSltNumber: "ඔබේ SLT දුරකථන අංකය ඇතුළත් කරන්න",
       verifiedAccount: "ගිණුම තහවුරු කර ඇත",
       billSummary: "බිල් සාරාංශය",
-      continueWithYourNumber: "ඔබ සේවා ඉවරයි කිරීමට ඕනෑම ජංගම අංකයක් සමඟ ඉදිරියට යා හැක."
+      continueWithYourNumber: "ඔබ සේවා ඉවරයි කිරීමට ඕනෑම ජංගම අංකයක් සමඟ ඉදිරියට යා හැක.",
+      notificationSent: "දැනුම්දීම යැවිණි"
     },
     ta: {
       title: "டிஜிட்டல் வரிசை தளம்",
@@ -582,7 +580,8 @@ export default function KioskDashboard() {
       enterSltNumber: "உங்கள் SLT தொலைபேசி எண்ணை உள்ளிடவும்",
       verifiedAccount: "கணக்கு சரிபார்க்கப்பட்டது",
       billSummary: "பில் சுருக்கம்",
-      continueWithYourNumber: "சேவையை முடிக்க நீங்கள் எந்த மொபைல் எண்ணைக் கொண்டு தொடரலாம்."
+      continueWithYourNumber: "சேவையை முடிக்க நீங்கள் எந்த மொபைல் எண்ணைக் கொண்டு தொடரலாம்.",
+      notificationSent: "அறிவிப்பு அனுப்பப்பட்டது"
     }
   }
 

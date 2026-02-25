@@ -76,7 +76,6 @@ export default function AppointmentBooking() {
 
   // Bill payment specific states
   const [sltTelephoneNumber, setSltTelephoneNumber] = useState("")
-  const [billData, setBillData] = useState<any>(null)
   const [sltVerified, setSltVerified] = useState(false)
   const [notificationSent, setNotificationSent] = useState(false)
   const [notificationMessage, setNotificationMessage] = useState("")
@@ -182,7 +181,8 @@ export default function AppointmentBooking() {
       enterSltNumber: "Enter your SLT telephone number",
       verifiedAccount: "Account Verified",
       minBookingTime: "Appointments must be booked at least 24 hours in advance",
-      continueWithYourNumber: "You can continue with any mobile number to complete the appointment."
+      continueWithYourNumber: "You can continue with any mobile number to complete the appointment.",
+      notificationSent: "Notification Sent"
     },
     si: {
       title: 'වේලාවක් වෙන්කරන්න',
@@ -236,7 +236,9 @@ export default function AppointmentBooking() {
       verify: "ජංගම අංකය තහවුරු කරන්න",
       enterSltNumber: "ඔබගේ SLT දුරකථන අංකය ඇතුළත් කරන්න",
       verifiedAccount: "ගිණුම තහවුරු කර ඇත",
-      minBookingTime: "වෙන්කරවාගැනීම් අවම වශයෙන් 24 ساعत ඉතින් වෙන්කරගත යුතුය"
+      minBookingTime: "වෙන්කරවාගැනීම් අවම වශයෙන් 24 ساعत ඉතින් වෙන්කරගත යුතුය",
+      continueWithYourNumber: "ඔබ වෙනත් ජංගම අංකයකින් වැඩ සම්පූර්ණ කළ හැක.",
+      notificationSent: "දැනුම්දීම යවා ඇත"
     },
     ta: {
       title: 'ஒரு நேரம் பதிவு செய்யவும்',
@@ -292,7 +294,7 @@ export default function AppointmentBooking() {
       verifiedAccount: "கணக்கு சரிபார்க்கப்பட்டது",
       minBookingTime: "நேரங்கள் குறைந்தபட்சம் 24 மணி நேரத்திற்கு முன் பதிவு செய்யப்பட வேண்டும்",
       continueWithYourNumber: "சேவையை முடிக்க நீங்கள் எந்த மொபைல் எண்ணைக் கொண்டு தொடரலாம்.",
-      continueWithYourNumber: "நீங்கள் முன்பதிவை முடிக்க எந்த கைபேசி எண்ணைக் கொண்டு தொடரலாம்."
+      notificationSent: "அறிவிப்பு அனுப்பப்பட்டது"
     },
   } as const
 
@@ -381,7 +383,6 @@ export default function AppointmentBooking() {
         if (!bill.mobileNumber) {
           const hotline = import.meta.env.VITE_SLT_HOTLINE || "1213"
           setError(`⚠️ This SLT account does not have a registered mobile number. Please contact the SLT hotline at ${hotline} to register your mobile number before proceeding.`)
-          setBillData(null)
           setSltVerified(false)
           setNotificationSent(false)
           return
@@ -419,7 +420,6 @@ export default function AppointmentBooking() {
     } catch (err: any) {
       console.error('Bill verification error:', err)
       setError(err.response?.data?.error || "Failed to verify telephone number")
-      setBillData(null)
       setSltVerified(false)
       setNotificationSent(false)
     } finally {
@@ -926,7 +926,6 @@ export default function AppointmentBooking() {
                     type="button"
                     onClick={() => {
                       setSltVerified(false)
-                      setBillData(null)
                       setSltTelephoneNumber("")
                       setNotificationSent(false)
                       setNotificationMessage("")
@@ -999,7 +998,6 @@ export default function AppointmentBooking() {
                     setOutletId('')
                     setDatetime('')
                     setSltTelephoneNumber('')
-                    setBillData(null)
                     setSltVerified(false)
                     setOtpStep('idle')
                     setOtpCode('')
