@@ -966,7 +966,11 @@ export default function CustomerRegistration() {
                   </div>
 
                   {/* Bill Payment Path - Collect SLT Number (will verify after OTP) */}
-                  {serviceTypes.some(code => isSltRequiredService(code)) && (
+                  {(() => {
+                    const requiresSlt = serviceTypes.some(code => isSltRequiredService(code));
+                    console.log('Step 3 Service Check:', { serviceTypes, requiresSlt, isSltRequired: isSltRequiredService });
+                    return requiresSlt;
+                  })() && (
                     <div className="space-y-4">
                       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                         <h3 className="text-sm font-semibold text-blue-900 mb-3">{t.enterSltNumber}</h3>
