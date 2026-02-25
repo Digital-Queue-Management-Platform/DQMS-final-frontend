@@ -10,14 +10,18 @@ import OTPPopup from "../components/OTPPopup"
 import BranchClosedModal from "../components/BranchClosedModal"
 import { useBranchStatus } from "../hooks/useBranchStatus"
 
-const STATIC_SERVICES = [
-  { id: 'BILL_PAYMENT', code: 'BILL_PAYMENT', title: 'Bill Payment' },
-  { id: 'OTHERS', code: 'OTHERS', title: 'Others' },
-]
+interface Service {
+  id: string
+  code: string
+  title: string
+  description?: string
+  isActive?: boolean
+}
 
 export default function AppointmentBooking() {
   const navigate = useNavigate()
   const [outlets, setOutlets] = useState<Outlet[]>([])
+  const [services, setServices] = useState<Service[]>([])
   const [outletId, setOutletId] = useState("")
   const [name, setName] = useState("")
   const [mobileNumber, setMobileNumber] = useState("")
@@ -86,6 +90,7 @@ export default function AppointmentBooking() {
 
   useEffect(() => {
     fetchOutlets()
+    fetchServices()
   }, [])
 
   const fetchOutlets = async () => {
@@ -94,6 +99,25 @@ export default function AppointmentBooking() {
       setOutlets(res.data || [])
     } catch (e) {
       setError('Failed to load outlets')
+    }
+  }
+
+  const fetchServices = async () => {
+    try {
+      const res = await api.get('/queue/services')
+      if (res.data && Array.isArray(res.data)) {
+        // Filter to only active services
+        const activeServices = res.data.filter((s: Service) => s.isActive !== false)
+        setServices(activeServices)
+      }
+    } catch (e) {
+      console.error('Failed to load services:', e)
+      // Fallback to default services if API fails
+      const DEFAULT_SERVICES = [
+        { id: 'BILL_PAYMENT', code: 'BILL_PAYMENT', title: 'Bill Payment', isActive: true },
+        { id: 'OTHERS', code: 'OTHERS', title: 'Others', isActive: true },
+      ]
+      setServices(DEFAULT_SERVICES)
     }
   }
 
@@ -597,11 +621,11 @@ export default function AppointmentBooking() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-3">
                   {t.serviceTypesLabel}
-                  <span className="ml-2 text-xs text-gray-500">({serviceTypes.length}/{STATIC_SERVICES.length})</span>
+                  <span className="ml-2 text-xs text-gray-500">({serviceTypes.length}/{services.length})</span>
                 </label>
 
                 <div className="space-y-3">
-                  {STATIC_SERVICES.map((service) => (
+                  {services.map((service) => (
                     <label
                       key={service.id}
                       className={`flex items-center gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all hover:border-blue-400 ${serviceTypes.includes(service.code) ? 'border-blue-600 bg-blue-50' : 'border-gray-200'

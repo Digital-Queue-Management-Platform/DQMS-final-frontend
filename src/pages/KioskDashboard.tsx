@@ -89,15 +89,35 @@ export default function KioskDashboard() {
 
   const loadInitialData = async () => {
     try {
-      // Use static services like CustomerRegistration
+      const token = localStorage.getItem('kioskToken')
+      if (token) {
+        // Fetch dynamic services from API
+        const response = await fetch(`${API_URL}/kiosk/services`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        })
+        if (response.ok) {
+          const fetchedServices = await response.json()
+          setServices(fetchedServices)
+        } else {
+          // Fallback to static services if API fails
+          const STATIC_SERVICES = [
+            { id: 'BILL_PAYMENT', code: 'BILL_PAYMENT', title: 'Bill Payment', description: null },
+            { id: 'OTHERS', code: 'OTHERS', title: 'Others', description: null },
+          ]
+          setServices(STATIC_SERVICES)
+        }
+      }
+      setLoading(false)
+    } catch (err: any) {
+      console.error('Failed to load services:', err)
+      // Fallback to static services
       const STATIC_SERVICES = [
         { id: 'BILL_PAYMENT', code: 'BILL_PAYMENT', title: 'Bill Payment', description: null },
         { id: 'OTHERS', code: 'OTHERS', title: 'Others', description: null },
       ]
       setServices(STATIC_SERVICES)
-      setLoading(false)
-    } catch (err: any) {
-      setError(err.message || 'Failed to load data')
       setLoading(false)
     }
   }
