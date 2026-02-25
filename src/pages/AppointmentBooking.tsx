@@ -122,6 +122,10 @@ export default function AppointmentBooking() {
     }
   }
 
+  const isSltRequiredService = (code: string) => {
+    return code === 'BILL_PAYMENT' || code === 'SVC002'
+  }
+
   const toggleService = (code: string) => {
     // Single-select: only one service at a time
     setServiceTypes(prev => prev.includes(code) ? [] : [code])
@@ -336,7 +340,7 @@ export default function AppointmentBooking() {
         setOtpStep('verified')
 
         // Auto-verify SLT number after mobile OTP (for bill payment)
-        if (serviceTypes.includes('BILL_PAYMENT') && sltTelephoneNumber && !sltVerified) {
+        if (serviceTypes.some(code => isSltRequiredService(code)) && sltTelephoneNumber && !sltVerified) {
           await verifySltNumber()
         }
 
@@ -482,7 +486,7 @@ export default function AppointmentBooking() {
         preferredLanguage,
         appointmentAt: appointmentAt.toISOString(),
         verifiedMobileToken: tokenForSubmit,
-        sltTelephoneNumber: serviceTypes.includes('BILL_PAYMENT') ? sltTelephoneNumber : undefined,
+        sltTelephoneNumber: serviceTypes.some(code => isSltRequiredService(code)) ? sltTelephoneNumber : undefined,
       })
 
       if (res.data?.success) {
@@ -549,7 +553,7 @@ export default function AppointmentBooking() {
     // Datetime must be at least 24 hours in advance
     // If bill payment selected: must also have SLT number
     const hasBasicInfo = outletId && datetime && name && mobileNumber && isValidAppointmentTime(datetime)
-    if (serviceTypes.includes('BILL_PAYMENT')) {
+    if (serviceTypes.some(code => isSltRequiredService(code))) {
       return hasBasicInfo && sltTelephoneNumber
     }
     return hasBasicInfo
@@ -743,7 +747,7 @@ export default function AppointmentBooking() {
               </div>
 
               {/* Bill Payment - Collect SLT Number (will verify after mobile OTP) */}
-              {serviceTypes.includes('BILL_PAYMENT') && (
+              {serviceTypes.some(code => isSltRequiredService(code)) && (
                 <div className="space-y-4">
                   <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                     <h3 className="text-sm font-semibold text-blue-900 mb-3">{t.enterSltNumber}</h3>
@@ -905,7 +909,7 @@ export default function AppointmentBooking() {
                     {serviceTypes.map(code => code === 'BILL_PAYMENT' ? t.billPayment : code === 'OTHERS' ? t.others : code).join(', ')}
                   </p>
                 </div>
-                {serviceTypes.includes('BILL_PAYMENT') && sltTelephoneNumber && (
+                {serviceTypes.some(code => isSltRequiredService(code)) && sltTelephoneNumber && (
                   <div>
                     <span className="text-xs font-medium text-gray-500 uppercase">{t.sltTelephone}</span>
                     <p className="text-sm font-medium text-gray-900">{sltTelephoneNumber}</p>
@@ -934,7 +938,7 @@ export default function AppointmentBooking() {
               </div>
 
               {/* Notification Message - Show after SLT verified */}
-              {serviceTypes.includes('BILL_PAYMENT') && sltVerified && notificationSent && (
+              {serviceTypes.some(code => isSltRequiredService(code)) && sltVerified && notificationSent && (
                 <div className="bg-white rounded-lg p-4 border border-blue-200">
                   <div className="flex items-center gap-2 mb-2">
                     <div className="w-2 h-2 bg-blue-500 rounded-full"></div>

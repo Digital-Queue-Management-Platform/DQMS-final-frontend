@@ -128,6 +128,10 @@ export default function KioskDashboard() {
     }
   }
 
+  const isSltRequiredService = (code: string) => {
+    return code === 'BILL_PAYMENT' || code === 'SVC002'
+  }
+
   const handleServiceToggle = (serviceCode: string) => {
     // Single-select: only one service at a time
     setSelectedServices(prev =>
@@ -185,7 +189,7 @@ export default function KioskDashboard() {
         setOtpStep('verified')
 
         // Auto-verify SLT number after mobile OTP (for bill payment)
-        if (selectedServices.includes('BILL_PAYMENT') && sltTelephoneNumber && !sltVerified) {
+        if (selectedServices.some(code => isSltRequiredService(code)) && sltTelephoneNumber && !sltVerified) {
           await verifySltNumber()
         }
 
@@ -322,7 +326,7 @@ export default function KioskDashboard() {
   const canProceedFromStep3 = () => {
     // If bill payment is selected, need SLT number + name + mobile
     if (selectedServices.includes('BILL_PAYMENT')) {
-      return sltTelephoneNumber && name && mobileNumber
+      return (selectedServices.some(code => isSltRequiredService(code)) ? (sltTelephoneNumber && name && mobileNumber) : (name && mobileNumber))
     }
     // Otherwise just need name and mobile
     return name && mobileNumber
@@ -836,7 +840,7 @@ export default function KioskDashboard() {
                   </div>
 
                   {/* Bill Payment Path - Collect SLT Number (will verify after OTP) */}
-                  {selectedServices.includes('BILL_PAYMENT') && (
+                  {selectedServices.some(code => isSltRequiredService(code)) && (
                     <div className="space-y-4">
                       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                         <h3 className="text-sm font-semibold text-blue-900 mb-3">{t.enterSltNumber}</h3>
@@ -985,7 +989,7 @@ export default function KioskDashboard() {
                         {selectedServices.map(code => getServiceTitle(code)).join(', ')}
                       </p>
                     </div>
-                    {selectedServices.includes('BILL_PAYMENT') && sltTelephoneNumber && (
+                    {selectedServices.some(code => isSltRequiredService(code)) && sltTelephoneNumber && (
                       <div>
                         <span className="text-xs font-medium text-gray-500 uppercase">{t.sltTelephone}</span>
                         <p className="text-sm font-medium text-gray-900">{sltTelephoneNumber}</p>
