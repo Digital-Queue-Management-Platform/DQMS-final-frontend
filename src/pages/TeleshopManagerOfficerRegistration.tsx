@@ -21,23 +21,31 @@ interface OfficerSummary {
   outlet: Outlet
 }
 
-
+interface Service {
+  id: string
+  code: string
+  title: string
+  description?: string | null
+  isActive?: boolean
+}
 
 const availableLanguages = [
   { code: "en", name: "English" },
   { code: "si", name: "Sinhala" },
   { code: "ta", name: "Tamil" }
 ]
-// Use only these static services for assignment
-const STATIC_SERVICES = [
-  { id: 'BILL_PAYMENT', code: 'BILL_PAYMENT', title: 'Bill Payment', isActive: true },
-  { id: 'OTHERS', code: 'OTHERS', title: 'Others', isActive: true },
-]
+const BILL_PAYMENT_SERVICE: Service = {
+  id: 'BILL_PAYMENT',
+  code: 'BILL_PAYMENT',
+  title: 'Bill Payment',
+  isActive: true,
+}
 
 export default function TeleshopManagerOfficerRegistration() {
   const navigate = useNavigate()
   const [outlets, setOutlets] = useState<Outlet[]>([])
   const [officers, setOfficers] = useState<OfficerSummary[]>([])
+  const [services, setServices] = useState<Service[]>([])
   const [loading, setLoading] = useState(false)
   const [loadingOutlets, setLoadingOutlets] = useState(true)
   const [error, setError] = useState("")
@@ -56,7 +64,23 @@ export default function TeleshopManagerOfficerRegistration() {
   useEffect(() => {
     fetchOutlets()
     fetchOfficers()
+    fetchServices()
   }, [])
+
+  const fetchServices = async () => {
+    try {
+      const response = await api.get('/queue/services')
+      const data = Array.isArray(response.data) ? response.data : []
+      const withBillPayment = [
+        BILL_PAYMENT_SERVICE,
+        ...data.filter((s: Service) => s.code !== 'BILL_PAYMENT')
+      ]
+      setServices(withBillPayment)
+    } catch (err) {
+      console.error('Failed to load services:', err)
+      setServices([BILL_PAYMENT_SERVICE])
+    }
+  }
 
   const fetchOutlets = async () => {
     try {
@@ -361,7 +385,7 @@ export default function TeleshopManagerOfficerRegistration() {
             </h2>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {STATIC_SERVICES.map((service) => (
+              {services.map((service) => (
                 <label key={service.id} className="flex items-center">
                   <input
                     type="checkbox"
