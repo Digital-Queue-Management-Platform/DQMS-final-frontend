@@ -5,6 +5,8 @@ import { API_URL } from '../config/api'
 import api from '../config/api'
 import OTPInput from '../components/OTPInput'
 import OTPPopup from '../components/OTPPopup'
+import BranchClosedModal from '../components/BranchClosedModal'
+import { useBranchStatus } from '../hooks/useBranchStatus'
 
 interface Service {
   id: string
@@ -53,8 +55,13 @@ export default function KioskDashboard() {
 
   // Multi-step form state
   const [currentStep, setCurrentStep] = useState(1)
+  // Branch closed state
 
   const navigate = useNavigate()
+
+  // Use outlet id from localStorage for branch status check
+  const kioskOutletId = (() => { try { const d = localStorage.getItem('kioskOutlet'); return d ? JSON.parse(d)?.id : null } catch { return null } })()
+  const branchStatus = useBranchStatus(kioskOutletId)
 
   useEffect(() => {
     const token = localStorage.getItem('kioskToken')
@@ -120,13 +127,13 @@ export default function KioskDashboard() {
     try {
       const response = await api.post("/customer/otp/start", { mobileNumber, preferredLanguage })
       setOtpStep('sent')
-      
+
       // If dev mode returns the OTP code, show it in a popup
       if (response.data?.devCode) {
         setDevOtpCode(response.data.devCode)
         setShowOtpPopup(true)
       }
-      
+
       return true
     } catch (err: any) {
       const msg = err?.response?.data?.error || 'Failed to send OTP'
@@ -143,7 +150,7 @@ export default function KioskDashboard() {
       setOtpError("Please enter the 4-digit code")
       return null
     }
-    
+
     setOtpError("")
     setOtpSending(true)
     try {
@@ -151,12 +158,12 @@ export default function KioskDashboard() {
       if (res.data?.verifiedMobileToken) {
         setOtpToken(res.data.verifiedMobileToken)
         setOtpStep('verified')
-        
+
         // Auto-verify SLT number after mobile OTP (for bill payment)
         if (selectedServices.includes('BILL_PAYMENT') && sltTelephoneNumber && !sltVerified) {
           await verifySltNumber()
         }
-        
+
         // Trigger auto-submission of token generation
         setShouldAutoSubmit(true)
         return res.data.verifiedMobileToken as string
@@ -169,7 +176,7 @@ export default function KioskDashboard() {
       return null
     } finally {
       setOtpSending(false)
-    } 
+    }
   }
 
   // Verify SLT telephone number and fetch bill data with auto-fill
@@ -195,7 +202,7 @@ export default function KioskDashboard() {
         setBillData(bill)
         setSltVerified(true)
         setError("")
-        
+
         // Auto-fill customer details from bill data
         if (bill.accountName) {
           setName(bill.accountName)
@@ -533,6 +540,13 @@ export default function KioskDashboard() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+      {/* Branch Closed Modal – non-dismissable */}
+      {branchStatus.isClosed && (
+        <BranchClosedModal
+          reason={branchStatus.reason}
+          activeNotice={branchStatus.activeNotice}
+        />
+      )}
       {/* Language Switcher */}
       <div className="bg-white border-b border-gray-200 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
@@ -540,31 +554,28 @@ export default function KioskDashboard() {
           <div className="flex gap-2">
             <button
               onClick={() => setLanguage("en")}
-              className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
-                language === "en"
-                  ? "bg-blue-600 text-white"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-              }`}
+              className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${language === "en"
+                ? "bg-blue-600 text-white"
+                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                }`}
             >
               English
             </button>
             <button
               onClick={() => setLanguage("si")}
-              className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
-                language === "si"
-                  ? "bg-blue-600 text-white"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-              }`}
+              className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${language === "si"
+                ? "bg-blue-600 text-white"
+                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                }`}
             >
               සිංහල
             </button>
             <button
               onClick={() => setLanguage("ta")}
-              className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
-                language === "ta"
-                  ? "bg-blue-600 text-white"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-              }`}
+              className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${language === "ta"
+                ? "bg-blue-600 text-white"
+                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                }`}
             >
               தமிழ்
             </button>
@@ -607,19 +618,17 @@ export default function KioskDashboard() {
                 {[1, 2, 3, 4].map((step) => (
                   <div key={step} className="flex items-center">
                     <div
-                      className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold transition-colors ${
-                        currentStep >= step
-                          ? 'bg-blue-600 text-white'
-                          : 'bg-gray-200 text-gray-500'
-                      }`}
+                      className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold transition-colors ${currentStep >= step
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-200 text-gray-500'
+                        }`}
                     >
                       {step}
                     </div>
                     {step < 4 && (
                       <div
-                        className={`w-8 sm:w-12 h-1 mx-1 transition-colors ${
-                          currentStep > step ? 'bg-blue-600' : 'bg-gray-200'
-                        }`}
+                        className={`w-8 sm:w-12 h-1 mx-1 transition-colors ${currentStep > step ? 'bg-blue-600' : 'bg-gray-200'
+                          }`}
                       />
                     )}
                   </div>
@@ -635,7 +644,7 @@ export default function KioskDashboard() {
             )}
 
             <form ref={formRef} onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
-              
+
               {/* STEP 1: Language Selection */}
               {currentStep === 1 && (
                 <div className="space-y-6">
@@ -643,16 +652,15 @@ export default function KioskDashboard() {
                     <h2 className="text-xl font-bold text-gray-900 mb-2">{t.step1Title}</h2>
                     <p className="text-sm text-gray-600">{t.step1Subtitle}</p>
                   </div>
-                  
+
                   <div className="space-y-3">
                     <label className="block text-sm font-medium text-gray-700 mb-3">{t.preferredLanguage}</label>
                     <div className="grid grid-cols-1 gap-3">
                       {[{ code: 'en', label: t.english }, { code: 'si', label: t.sinhala }, { code: 'ta', label: t.tamil }].map(l => (
                         <label
                           key={l.code}
-                          className={`flex items-center gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all hover:border-blue-400 ${
-                            preferredLanguage === l.code ? 'border-blue-600 bg-blue-50' : 'border-gray-200'
-                          }`}
+                          className={`flex items-center gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all hover:border-blue-400 ${preferredLanguage === l.code ? 'border-blue-600 bg-blue-50' : 'border-gray-200'
+                            }`}
                         >
                           <input
                             type="radio"
@@ -668,7 +676,7 @@ export default function KioskDashboard() {
                     </div>
                     <p className="text-xs text-gray-500 mt-2">{t.preferredLanguageSubtitle}</p>
                   </div>
-                  
+
                   <div className="flex gap-3">
                     <button
                       type="button"
@@ -689,20 +697,19 @@ export default function KioskDashboard() {
                     <h2 className="text-xl font-bold text-gray-900 mb-2">{t.step2Title}</h2>
                     <p className="text-sm text-gray-600">{t.step2Subtitle}</p>
                   </div>
-                  
+
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-3">
                       {t.serviceType}
                       <span className="ml-2 text-xs text-gray-500">({selectedServices.length}/{services.length})</span>
                     </label>
-                    
+
                     <div className="space-y-3">
                       {services.map((service) => (
                         <label
                           key={service.id}
-                          className={`flex items-center gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all hover:border-blue-400 ${
-                            selectedServices.includes(service.code) ? 'border-blue-600 bg-blue-50' : 'border-gray-200'
-                          }`}
+                          className={`flex items-center gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all hover:border-blue-400 ${selectedServices.includes(service.code) ? 'border-blue-600 bg-blue-50' : 'border-gray-200'
+                            }`}
                         >
                           <input
                             type="checkbox"
@@ -716,7 +723,7 @@ export default function KioskDashboard() {
                     </div>
                     <p className="text-xs text-gray-500 mt-2">{t.selectServiceTypesSubtitle}</p>
                   </div>
-                  
+
                   <div className="flex gap-3">
                     <button
                       type="button"
@@ -918,7 +925,7 @@ export default function KioskDashboard() {
                         <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                         <span className="text-sm font-semibold text-green-700">{t.verifiedAccount}</span>
                       </div>
-                      
+
                       <div className="space-y-2 text-sm">
                         <div className="flex justify-between">
                           <span className="text-gray-600">{t.accountName}:</span>
@@ -1028,50 +1035,50 @@ export default function KioskDashboard() {
           {console.log('Rendering success modal with:', successToken)}
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
             <div className="bg-white rounded-lg shadow-2xl p-8 max-w-md w-full">
-            <div className="text-center">
-              <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg className="w-12 h-12 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-              </div>
-              <h2 className="text-2xl font-bold text-gray-800 mb-2">Token Generated Successfully!</h2>
-              <p className="text-gray-600 mb-6">Please remember your token number</p>
-
-              <div className="bg-blue-50 rounded-lg p-6 mb-6">
-                <div className="text-sm text-gray-600 mb-1">Your Token Number</div>
-                <div className="text-6xl font-bold text-blue-600">
-                  {successToken.tokenNumber || 'N/A'}
+              <div className="text-center">
+                <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <svg className="w-12 h-12 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
                 </div>
-                {!successToken.tokenNumber && (
-                  <div className="text-sm text-red-600 mt-2">
-                    Debug: successToken = {JSON.stringify(successToken)}
+                <h2 className="text-2xl font-bold text-gray-800 mb-2">Token Generated Successfully!</h2>
+                <p className="text-gray-600 mb-6">Please remember your token number</p>
+
+                <div className="bg-blue-50 rounded-lg p-6 mb-6">
+                  <div className="text-sm text-gray-600 mb-1">Your Token Number</div>
+                  <div className="text-6xl font-bold text-blue-600">
+                    {successToken.tokenNumber || 'N/A'}
                   </div>
-                )}
-              </div>
+                  {!successToken.tokenNumber && (
+                    <div className="text-sm text-red-600 mt-2">
+                      Debug: successToken = {JSON.stringify(successToken)}
+                    </div>
+                  )}
+                </div>
 
-              <div className="text-left bg-gray-50 rounded-lg p-4 mb-6 space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Customer:</span>
-                  <span className="font-medium">{successToken.customerName}</span>
+                <div className="text-left bg-gray-50 rounded-lg p-4 mb-6 space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Customer:</span>
+                    <span className="font-medium">{successToken.customerName}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Services:</span>
+                    <span className="font-medium">{successToken.serviceTypes.length}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Time:</span>
+                    <span className="font-medium">{new Date(successToken.createdAt).toLocaleTimeString()}</span>
+                  </div>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Services:</span>
-                  <span className="font-medium">{successToken.serviceTypes.length}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Time:</span>
-                  <span className="font-medium">{new Date(successToken.createdAt).toLocaleTimeString()}</span>
-                </div>
-              </div>
 
-              <button
-                onClick={closeSuccessModal}
-                className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 font-semibold transition-colors"
-              >
-                Generate Another Token
-              </button>
+                <button
+                  onClick={closeSuccessModal}
+                  className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 font-semibold transition-colors"
+                >
+                  Generate Another Token
+                </button>
+              </div>
             </div>
-          </div>
           </div>
         </>
       )}

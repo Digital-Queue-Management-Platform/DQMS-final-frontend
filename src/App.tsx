@@ -56,6 +56,8 @@ import ManagerServiceTracking from "./pages/ManagerServiceTracking"
 import TeleshopManagerServiceTracking from "./pages/TeleshopManagerServiceTracking"
 import KioskLogin from "./pages/KioskLogin"
 import KioskDashboard from "./pages/KioskDashboard"
+const TeleshopManagerClosureNotices = React.lazy(() => import("./pages/TeleshopManagerClosureNotices"))
+const ManagerClosureNotices = React.lazy(() => import("./pages/ManagerClosureNotices"))
 
 //import { Shield, UserCog, ArrowRight, Building2, Phone } from "lucide-react"
 import OfficerTopBar from "./components/OfficerTopBar"
@@ -350,27 +352,27 @@ function Layout({ children }: { children: React.ReactNode }) {
     try {
       const evt: any = new CustomEvent('officer:status-changed', { detail: { status } })
       window.dispatchEvent(evt)
-    } catch {}
+    } catch { }
   }, [])
 
   return (
     <div className="min-h-screen bg-gray-50">
       {showSidebar && (
-        <Sidebar 
+        <Sidebar
           isCollapsed={isCollapsed}
           setIsCollapsed={setIsCollapsed}
-          activePage={activePage} 
+          activePage={activePage}
           setActivePage={setActivePage} />
       )}
-      <div 
+      <div
         className={`flex-1 transition-all duration-300 ${showSidebar ? (isCollapsed ? 'lg:ml-16' : 'lg:ml-72') : 'ml-0'}`}
       >
         {/* Header for all dashboard pages
         {showSidebar && <Header />} */}
-        
+
         {/* Shared Officer Top Bar for all officer pages except login, dashboard, queue, ip-speaker, served-customers, and service-tracking */}
         {isOfficerPath && !isOfficerLogin && officer && !location.pathname.includes('/officer/dashboard') && !location.pathname.includes('/officer/queue') && !location.pathname.includes('/officer/ip-speaker') && !location.pathname.includes('/officer/served-customers') && !location.pathname.includes('/officer/service-tracking') && (
-          <OfficerTopBar 
+          <OfficerTopBar
             officer={officer}
             onOfficerUpdate={setOfficer as any}
             onAfterStatusChange={handleAfterStatusChange}
@@ -385,7 +387,7 @@ function Layout({ children }: { children: React.ReactNode }) {
 function App() {
   return (
     <React.Suspense fallback={<div className="p-6 text-center text-sm text-gray-600">Loading...</div>}>
-    <Routes>
+      <Routes>
         <Route
           element={<Layout><ProLoginLanding /></Layout>}
           path="/"
@@ -539,6 +541,10 @@ function App() {
           path="/manager/officer-assignment"
         />
         <Route
+          element={<Layout><ProtectedManagerRoute><ManagerClosureNotices /></ProtectedManagerRoute></Layout>}
+          path="/manager/closure-notices"
+        />
+        <Route
           element={<Layout><TeleshopManagerLogin /></Layout>}
           path="/teleshop-manager/login"
         />
@@ -581,6 +587,10 @@ function App() {
         <Route
           element={<Layout><ProtectedTeleshopManagerRoute><TeleshopManagerKioskSettings /></ProtectedTeleshopManagerRoute></Layout>}
           path="/teleshop-manager/kiosk-settings"
+        />
+        <Route
+          element={<Layout><ProtectedTeleshopManagerRoute><TeleshopManagerClosureNotices /></ProtectedTeleshopManagerRoute></Layout>}
+          path="/teleshop-manager/closure-notices"
         />
       </Routes>
     </React.Suspense>

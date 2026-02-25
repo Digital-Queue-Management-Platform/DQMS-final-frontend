@@ -7,6 +7,8 @@ import api from "../config/api"
 import type { Outlet } from "../types"
 import OTPInput from "../components/OTPInput"
 import OTPPopup from "../components/OTPPopup"
+import BranchClosedModal from "../components/BranchClosedModal"
+import { useBranchStatus } from "../hooks/useBranchStatus"
 
 const STATIC_SERVICES = [
   { id: 'BILL_PAYMENT', code: 'BILL_PAYMENT', title: 'Bill Payment' },
@@ -21,7 +23,7 @@ export default function AppointmentBooking() {
   const [mobileNumber, setMobileNumber] = useState("")
   const [serviceTypes, setServiceTypes] = useState<string[]>([])
   const [datetime, setDatetime] = useState("") // yyyy-MM-ddTHH:mm
-  
+
   // Get minimum date/time - at least 24 hours in advance
   const getMinDateTime = () => {
     const now = new Date()
@@ -33,7 +35,7 @@ export default function AppointmentBooking() {
     const minutes = String(minTime.getMinutes()).padStart(2, '0')
     return `${year}-${month}-${day}T${hours}:${minutes}`
   }
-  
+
   // Validate that appointment is at least 24 hours away
   const isValidAppointmentTime = (datetimeStr: string) => {
     if (!datetimeStr) return true
@@ -42,13 +44,13 @@ export default function AppointmentBooking() {
     const hoursUntil = (selectedTime.getTime() - now.getTime()) / (1000 * 60 * 60)
     return hoursUntil >= 24
   }
-  
+
   // UI language tabs (English/Sinhala/Tamil), independent from preferredLanguage used for announcements
   const [language, setLanguage] = useState<'en' | 'si' | 'ta'>(() => {
     try {
       const saved = localStorage.getItem('dq_lang') as 'en' | 'si' | 'ta' | null
       if (saved) return saved
-    } catch {}
+    } catch { }
     const nav = (navigator?.language || 'en').toLowerCase()
     if (nav.startsWith('si')) return 'si'
     if (nav.startsWith('ta')) return 'ta'
@@ -75,6 +77,12 @@ export default function AppointmentBooking() {
 
   // Multi-step form state
   const [currentStep, setCurrentStep] = useState(1)
+  // Branch closed dismissal (for "right now" status modal on AppointmentBooking)
+  const [closedDismissed, setClosedDismissed] = useState(false)
+  const branchStatus = useBranchStatus(outletId || null)
+  // Error shown when selected appointment date/time is on a closed day
+  const [closedOnDateError, setClosedOnDateError] = useState<string | null>(null)
+  const [checkingDate, setCheckingDate] = useState(false)
 
   useEffect(() => {
     fetchOutlets()
@@ -267,7 +275,7 @@ export default function AppointmentBooking() {
     try {
       const response = await api.post("/customer/otp/start", { mobileNumber, preferredLanguage })
       setOtpStep('sent')
-      
+
       // If dev mode returns the OTP code, show it in a popup
       if (response.data?.devCode) {
         setDevOtpCode(response.data.devCode)
@@ -286,7 +294,7 @@ export default function AppointmentBooking() {
       setOtpError("Please enter the 4-digit code")
       return null
     }
-    
+
     setOtpError("")
     setOtpSending(true)
     try {
@@ -294,12 +302,12 @@ export default function AppointmentBooking() {
       if (res.data?.verifiedMobileToken) {
         setOtpToken(res.data.verifiedMobileToken)
         setOtpStep('verified')
-        
+
         // Auto-verify SLT number after mobile OTP (for bill payment)
         if (serviceTypes.includes('BILL_PAYMENT') && sltTelephoneNumber && !sltVerified) {
           await verifySltNumber()
         }
-        
+
         return res.data.verifiedMobileToken as string
       }
       setOtpError('OTP verification failed')
@@ -402,7 +410,38 @@ export default function AppointmentBooking() {
 
 
   // Step navigation functions
-  const goToNextStep = () => {
+  /** Check if the selected appointment datetime is on a branch-closed period */
+  const checkAppointmentDateClosed = async (): Promise<string | null> => {
+    if (!outletId || !datetime) return null
+    const dt = new Date(datetime)
+    // Client-side Saturday ≥ 12:30 PM check
+    if (dt.getDay() === 6 && (dt.getHours() > 12 || (dt.getHours() === 12 && dt.getMinutes() >= 30))) {
+      return "Appointments cannot be booked on Saturdays after 12:30 PM as the branch is closed."
+    }
+    // Backend check for holidays / closure notices at the selected time
+    try {
+      const res = await api.get(`/branch-status/${outletId}`, { params: { at: dt.toISOString() } })
+      if (res.data?.isClosed) {
+        return res.data.reason || "The branch is closed on the selected date/time."
+      }
+    } catch {
+      // If network error, don't block but log silently
+      console.warn('Branch status check failed; allowing step proceed')
+    }
+    return null
+  }
+
+  const goToNextStep = async () => {
+    if (currentStep === 3) {
+      setClosedOnDateError(null)
+      setCheckingDate(true)
+      const closedMsg = await checkAppointmentDateClosed()
+      setCheckingDate(false)
+      if (closedMsg) {
+        setClosedOnDateError(closedMsg)
+        return // Block progression
+      }
+    }
     setCurrentStep(prev => Math.min(prev + 1, 4))
   }
 
@@ -425,23 +464,31 @@ export default function AppointmentBooking() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+      {/* Branch Closed Modal */}
+      {outletId && branchStatus.isClosed && !closedDismissed && (
+        <BranchClosedModal
+          reason={branchStatus.reason}
+          activeNotice={branchStatus.activeNotice}
+          onDismiss={() => setClosedDismissed(true)}
+        />
+      )}
       <div className="bg-white rounded-xl shadow-xl w-full max-w-lg p-6">
         {/* Language Tabs (same style as CustomerRegistration) */}
         <div className="flex justify-end gap-2 mb-4">
           <button
-            onClick={() => { setLanguage('en'); try { localStorage.setItem('dq_lang','en') } catch {} }}
+            onClick={() => { setLanguage('en'); try { localStorage.setItem('dq_lang', 'en') } catch { } }}
             className={`px-3 py-1 rounded-lg text-xs sm:text-sm font-medium transition-colors ${language === 'en' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600'}`}
           >
             {t.english}
           </button>
           <button
-            onClick={() => { setLanguage('si'); try { localStorage.setItem('dq_lang','si') } catch {} }}
+            onClick={() => { setLanguage('si'); try { localStorage.setItem('dq_lang', 'si') } catch { } }}
             className={`px-3 py-1 rounded-lg text-xs sm:text-sm font-medium transition-colors ${language === 'si' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600'}`}
           >
             {t.sinhala}
           </button>
           <button
-            onClick={() => { setLanguage('ta'); try { localStorage.setItem('dq_lang','ta') } catch {} }}
+            onClick={() => { setLanguage('ta'); try { localStorage.setItem('dq_lang', 'ta') } catch { } }}
             className={`px-3 py-1 rounded-lg text-xs sm:text-sm font-medium transition-colors ${language === 'ta' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600'}`}
           >
             {t.tamil}
@@ -458,13 +505,12 @@ export default function AppointmentBooking() {
               {[1, 2, 3, 4].map((step) => (
                 <div
                   key={step}
-                  className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ${
-                    currentStep === step
-                      ? 'bg-blue-600 text-white'
-                      : currentStep > step
+                  className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ${currentStep === step
+                    ? 'bg-blue-600 text-white'
+                    : currentStep > step
                       ? 'bg-green-500 text-white'
                       : 'bg-gray-200 text-gray-500'
-                  }`}
+                    }`}
                 >
                   {step}
                 </div>
@@ -495,7 +541,7 @@ export default function AppointmentBooking() {
         )}
 
         <form onSubmit={handleBook} className="space-y-4">
-          
+
           {/* STEP 1: Language Selection */}
           {currentStep === 1 && (
             <div className="space-y-6">
@@ -503,16 +549,15 @@ export default function AppointmentBooking() {
                 <h2 className="text-xl font-bold text-gray-900 mb-2">{t.step1Title}</h2>
                 <p className="text-sm text-gray-600">{t.step1Subtitle}</p>
               </div>
-              
+
               <div className="space-y-3">
                 <label className="block text-sm font-medium text-gray-700 mb-3">{t.preferredLang}</label>
                 <div className="grid grid-cols-1 gap-3">
                   {[{ code: 'en', label: t.english }, { code: 'si', label: t.sinhala }, { code: 'ta', label: t.tamil }].map(l => (
                     <label
                       key={l.code}
-                      className={`flex items-center gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all hover:border-blue-400 ${
-                        preferredLanguage === l.code ? 'border-blue-600 bg-blue-50' : 'border-gray-200'
-                      }`}
+                      className={`flex items-center gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all hover:border-blue-400 ${preferredLanguage === l.code ? 'border-blue-600 bg-blue-50' : 'border-gray-200'
+                        }`}
                     >
                       <input
                         type="radio"
@@ -527,7 +572,7 @@ export default function AppointmentBooking() {
                   ))}
                 </div>
               </div>
-              
+
               <div className="flex gap-3">
                 <button
                   type="button"
@@ -548,20 +593,19 @@ export default function AppointmentBooking() {
                 <h2 className="text-xl font-bold text-gray-900 mb-2">{t.step2Title}</h2>
                 <p className="text-sm text-gray-600">{t.step2Subtitle}</p>
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-3">
                   {t.serviceTypesLabel}
                   <span className="ml-2 text-xs text-gray-500">({serviceTypes.length}/{STATIC_SERVICES.length})</span>
                 </label>
-                
+
                 <div className="space-y-3">
                   {STATIC_SERVICES.map((service) => (
                     <label
                       key={service.id}
-                      className={`flex items-center gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all hover:border-blue-400 ${
-                        serviceTypes.includes(service.code) ? 'border-blue-600 bg-blue-50' : 'border-gray-200'
-                      }`}
+                      className={`flex items-center gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all hover:border-blue-400 ${serviceTypes.includes(service.code) ? 'border-blue-600 bg-blue-50' : 'border-gray-200'
+                        }`}
                     >
                       <input
                         type="checkbox"
@@ -576,7 +620,7 @@ export default function AppointmentBooking() {
                   ))}
                 </div>
               </div>
-              
+
               <div className="flex gap-3">
                 <button
                   type="button"
@@ -640,10 +684,10 @@ export default function AppointmentBooking() {
                 <label className="block text-sm font-medium text-gray-700 mb-2">{t.outlet}</label>
                 <div className="relative">
                   <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                  <select 
-                    value={outletId} 
-                    onChange={(e) => setOutletId(e.target.value)} 
-                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" 
+                  <select
+                    value={outletId}
+                    onChange={(e) => setOutletId(e.target.value)}
+                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     required
                   >
                     <option value="">{t.selectBranch}</option>
@@ -659,17 +703,16 @@ export default function AppointmentBooking() {
                 <label className="block text-sm font-medium text-gray-700 mb-2">{t.dateTime}</label>
                 <div className="relative">
                   <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                  <input 
-                    type="datetime-local" 
-                    value={datetime} 
-                    onChange={(e) => setDatetime(e.target.value)} 
+                  <input
+                    type="datetime-local"
+                    value={datetime}
+                    onChange={(e) => setDatetime(e.target.value)}
                     min={getMinDateTime()}
-                    className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                      datetime && !isValidAppointmentTime(datetime) 
-                        ? 'border-red-500 bg-red-50' 
-                        : 'border-gray-300'
-                    }`}
-                    required 
+                    className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${datetime && !isValidAppointmentTime(datetime)
+                      ? 'border-red-500 bg-red-50'
+                      : 'border-gray-300'
+                      }`}
+                    required
                   />
                 </div>
                 {datetime && !isValidAppointmentTime(datetime) && (
@@ -711,6 +754,14 @@ export default function AppointmentBooking() {
                 </div>
               </div>
 
+              {/* Closed-date error */}
+              {closedOnDateError && (
+                <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+                  <span className="shrink-0 mt-0.5">🚫</span>
+                  <span>{closedOnDateError}</span>
+                </div>
+              )}
+
               <div className="flex gap-3">
                 <button
                   type="button"
@@ -722,10 +773,18 @@ export default function AppointmentBooking() {
                 <button
                   type="button"
                   onClick={goToNextStep}
-                  disabled={!canProceedFromStep3()}
-                  className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+                  disabled={!canProceedFromStep3() || checkingDate}
+                  className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
-                  {t.next}
+                  {checkingDate ? (
+                    <>
+                      <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+                      </svg>
+                      Checking…
+                    </>
+                  ) : t.next}
                 </button>
               </div>
             </div>
@@ -788,7 +847,7 @@ export default function AppointmentBooking() {
                     <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                     <span className="text-sm font-semibold text-green-700">{t.verifiedAccount}</span>
                   </div>
-                  
+
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
                       <span className="text-gray-600">{t.accountName}:</span>
@@ -810,18 +869,17 @@ export default function AppointmentBooking() {
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600">{t.billStatus}:</span>
-                      <span className={`font-medium ${
-                        billData.status === 'paid' ? 'text-green-600' : 
-                        billData.status === 'overdue' ? 'text-red-600' : 
-                        'text-orange-600'
-                      }`}>
-                        {billData.status === 'paid' ? t.paid : 
-                         billData.status === 'overdue' ? t.overdue : 
-                         t.unpaid}
+                      <span className={`font-medium ${billData.status === 'paid' ? 'text-green-600' :
+                        billData.status === 'overdue' ? 'text-red-600' :
+                          'text-orange-600'
+                        }`}>
+                        {billData.status === 'paid' ? t.paid :
+                          billData.status === 'overdue' ? t.overdue :
+                            t.unpaid}
                       </span>
                     </div>
                   </div>
-                  
+
                   <button
                     type="button"
                     onClick={() => {

@@ -9,6 +9,8 @@ import api from "../config/api"
 import type { Outlet } from "../types"
 import OTPInput from "../components/OTPInput"
 import OTPPopup from "../components/OTPPopup"
+import BranchClosedModal from "../components/BranchClosedModal"
+import { useBranchStatus } from "../hooks/useBranchStatus"
 
 export default function CustomerRegistration() {
   const { outletId } = useParams()
@@ -16,7 +18,7 @@ export default function CustomerRegistration() {
   const location = useLocation()
   const [outlets, setOutlets] = useState<Outlet[]>([])
   const [selectedOutlet, setSelectedOutlet] = useState(outletId || "")
-  
+
   // Initialize all form fields to empty strings - NEVER use cached values
   const [name, setName] = useState("")
   const [mobileNumber, setMobileNumber] = useState("")
@@ -25,7 +27,7 @@ export default function CustomerRegistration() {
   const [showOptional, setShowOptional] = useState(false)
   const [nicNumber, setNicNumber] = useState("")
   const [email, setEmail] = useState("")
-  
+
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const [language, setLanguage] = useState<"en" | "si" | "ta">("en")
@@ -42,15 +44,19 @@ export default function CustomerRegistration() {
   const [showOtpPopup, setShowOtpPopup] = useState(false)
   const [devOtpCode, setDevOtpCode] = useState<string>("")
   const VITE_TWILIO_TO_NUMBER = import.meta.env.VITE_TWILIO_TO_NUMBER
-  
+
   // Bill payment specific states
   const [sltTelephoneNumber, setSltTelephoneNumber] = useState("")
   const [billData, setBillData] = useState<any>(null)
   const [sltVerified, setSltVerified] = useState(false)
-  
+
   // Multi-step form state
   const [currentStep, setCurrentStep] = useState(1)
-  
+  // Branch closed dismissal state
+
+  // Branch status check using the outlet from URL params
+  const branchStatus = useBranchStatus(selectedOutlet || outletId || null)
+
   // Add a form key to force React re-render when needed
   const [formKey, setFormKey] = useState(Date.now())
 
@@ -78,7 +84,7 @@ export default function CustomerRegistration() {
     setBillData(null)
     setError("")
     setSltVerified(false)
-    
+
     // Additional browser form clearing
     setTimeout(() => {
       const inputs = document.querySelectorAll('input[type="text"], input[type="tel"], input[type="email"]')
@@ -100,9 +106,9 @@ export default function CustomerRegistration() {
 
       const qrCodes = JSON.parse(storedQRCodes)
       const qrData = qrCodes[currentOutletId]
-      
+
       if (!qrData) return false
-      
+
       return qrData.token === token
     } catch (error) {
       console.error('Error validating manager QR token:', error)
@@ -114,7 +120,7 @@ export default function CustomerRegistration() {
     console.log('CustomerRegistration useEffect - Initial serviceTypes:', serviceTypes)
     // IMMEDIATELY clear all form data when page loads - no matter what
     clearAllFormData()
-    
+
     // Additional aggressive clearing for browser autocomplete
     setTimeout(() => {
       clearAllFormData()
@@ -130,26 +136,26 @@ export default function CustomerRegistration() {
         })
       }
     }, 100)
-    
+
     // Extra aggressive clearing for service types specifically
     setTimeout(() => {
       setServiceTypes([])
     }, 150)
-    
+
     // Final safety clear
     setTimeout(() => {
       setServiceTypes([])
     }, 200)
-    
+
     // Always fetch outlets and services first
     fetchOutlets()
     fetchServices()
-    
+
     // Clear any previous customer session data that might interfere
     // Keep only QR-related data
     const keysToPreserve = ['managerQRCodes', 'adminToken', 'officerToken', 'managerToken']
     const allKeys = Object.keys(localStorage)
-    
+
     allKeys.forEach(key => {
       if (!keysToPreserve.includes(key) && !key.startsWith('dq_')) {
         // Clear old customer-related data
@@ -158,7 +164,7 @@ export default function CustomerRegistration() {
         }
       }
     })
-    
+
     // Also clear sessionStorage completely for customer data
     try {
       const sessionKeys = Object.keys(sessionStorage)
@@ -170,7 +176,7 @@ export default function CustomerRegistration() {
     } catch (e) {
       // Ignore sessionStorage errors
     }
-    
+
     // Extract qr token from query param
     const q = new URLSearchParams(location.search)
     const token = q.get("qr") || ""
@@ -219,7 +225,7 @@ export default function CustomerRegistration() {
         // Also check localStorage as backup (for offline functionality)
         if (outletId) {
           const isManagerToken = validateManagerQRToken(token, outletId)
-          
+
           if (isManagerToken) {
             console.log('Valid manager QR token from localStorage for outlet:', outletId)
             setQrValid(true)
@@ -289,7 +295,7 @@ export default function CustomerRegistration() {
         })
       }
     }, 50)
-    
+
     // Additional aggressive clearing for service types specifically
     setTimeout(() => {
       setServiceTypes([])
@@ -356,13 +362,13 @@ export default function CustomerRegistration() {
     try {
       const response = await api.post("/customer/otp/start", { mobileNumber, preferredLanguage })
       setOtpStep('sent')
-      
+
       // If dev mode returns the OTP code, show it in a popup
       if (response.data?.devCode) {
         setDevOtpCode(response.data.devCode)
         setShowOtpPopup(true)
       }
-      
+
       return true
     } catch (err: any) {
       const msg = err?.response?.data?.error || 'Failed to send OTP'
@@ -379,7 +385,7 @@ export default function CustomerRegistration() {
       setOtpError("Please enter the 4-digit code")
       return null
     }
-    
+
     setOtpError("")
     setOtpSending(true)
     try {
@@ -387,12 +393,12 @@ export default function CustomerRegistration() {
       if (res.data?.verifiedMobileToken) {
         setOtpToken(res.data.verifiedMobileToken)
         setOtpStep('verified')
-        
+
         // Auto-verify SLT number after mobile OTP (for bill payment)
         if (serviceTypes.includes('BILL_PAYMENT') && sltTelephoneNumber && !sltVerified) {
           await verifySltNumber()
         }
-        
+
         const current = outlets.find((o) => o.id === selectedOutlet)
         // Localize the confirmation/test SMS by preferred language
         const msgByLang: Record<string, string> = {
@@ -424,7 +430,7 @@ export default function CustomerRegistration() {
       return null
     } finally {
       setOtpSending(false)
-    } 
+    }
   }
 
   // Verify SLT telephone number and fetch bill data with auto-fill
@@ -450,7 +456,7 @@ export default function CustomerRegistration() {
         setBillData(bill)
         setSltVerified(true)
         setError("")
-        
+
         // Auto-fill customer details from bill data
         if (bill.accountName) {
           setName(bill.accountName)
@@ -500,7 +506,7 @@ export default function CustomerRegistration() {
       if (response.data.success) {
         // Clear form state to prevent confusion for next user
         clearAllFormData()
-        
+
         // Extra safety: Clear browser form cache
         setTimeout(() => {
           const form = document.querySelector('form')
@@ -508,13 +514,13 @@ export default function CustomerRegistration() {
             form.reset()
           }
         }, 100)
-        
+
         // Navigate to queue status
         navigate(`/queue/${response.data.token.id}`)
       }
     } catch (err: any) {
       console.error('Registration error:', err)
-      
+
       // Handle specific error cases
       if (err.response?.status === 409) {
         setError(err.response?.data?.error || "You are already registered for this outlet")
@@ -740,6 +746,13 @@ export default function CustomerRegistration() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-3 sm:p-4 lg:p-6">
+      {/* Branch Closed Modal – non-dismissable */}
+      {branchStatus.isClosed && (
+        <BranchClosedModal
+          reason={branchStatus.reason}
+          activeNotice={branchStatus.activeNotice}
+        />
+      )}
       <div className="bg-white rounded-xl sm:rounded-2xl shadow-xl w-full max-w-sm sm:max-w-md lg:max-w-lg p-4 sm:p-6 lg:p-8">
         {loading ? (
           <div className="py-14 sm:py-16 flex flex-col items-center justify-center text-center">
@@ -751,476 +764,469 @@ export default function CustomerRegistration() {
             <p className="mt-1 text-xs text-gray-500">This usually takes just a moment.</p>
           </div>
         ) : (
-        <>
-        {!qrValid && (
-          <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg text-yellow-800 text-sm">
-            {error || "Please scan the QR code displayed at the branch to proceed."}
-          </div>
-        )}
-        {/* Language Selector */}
-        <div className="flex justify-end gap-1 sm:gap-2 mb-4 sm:mb-6">
-          <button
-            onClick={() => setLanguage("en")}
-            className={`px-2 sm:px-3 py-1 rounded-lg text-xs sm:text-sm font-medium transition-colors ${
-              language === "en" ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-600"
-            }`}
-          >
-            English
-          </button>
-          <button
-            onClick={() => setLanguage("si")}
-            className={`px-2 sm:px-3 py-1 rounded-lg text-xs sm:text-sm font-medium transition-colors ${
-              language === "si" ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-600"
-            }`}
-          >
-            සිංහල
-          </button>
-          <button
-            onClick={() => setLanguage("ta")}
-            className={`px-2 sm:px-3 py-1 rounded-lg text-xs sm:text-sm font-medium transition-colors ${
-              language === "ta" ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-600"
-            }`}
-          >
-            தமிழ்
-          </button>
-        </div>
-
-        {/* Header */}
-        <div className="text-center mb-4 sm:mb-6">
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1 sm:mb-2">{t.title}</h1>
-          <p className="text-sm sm:text-base text-gray-600">{t.subtitle}</p>
-          {/* Show current outlet just under the headers */}
-          {selectedOutlet && (
-            <div className="mt-2 text-sm text-gray-700">
-              {(() => {
-                const current = outlets.find((o) => o.id === selectedOutlet)
-                const display = current
-                  ? `${current.name} - ${current.location}`
-                  : "Loading branch..."
-                return <span>{display}</span>
-              })()}
-            </div>
-          )}
-        </div>
-
-        {/* Progress Indicator */}
-        <div className="mb-6">
-          <div className="flex items-center justify-center gap-2 mb-2">
-            {[1, 2, 3, 4].map((step) => (
-              <div key={step} className="flex items-center">
-                <div
-                  className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold transition-colors ${
-                    currentStep >= step
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-200 text-gray-500'
+          <>
+            {!qrValid && (
+              <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg text-yellow-800 text-sm">
+                {error || "Please scan the QR code displayed at the branch to proceed."}
+              </div>
+            )}
+            {/* Language Selector */}
+            <div className="flex justify-end gap-1 sm:gap-2 mb-4 sm:mb-6">
+              <button
+                onClick={() => setLanguage("en")}
+                className={`px-2 sm:px-3 py-1 rounded-lg text-xs sm:text-sm font-medium transition-colors ${language === "en" ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-600"
                   }`}
-                >
-                  {step}
-                </div>
-                {step < 4 && (
-                  <div
-                    className={`w-8 sm:w-12 h-1 mx-1 transition-colors ${
-                      currentStep > step ? 'bg-blue-600' : 'bg-gray-200'
-                    }`}
-                  />
-                )}
-              </div>
-            ))}
-          </div>
-          <p className="text-xs text-center text-gray-500">
-            {t.step} {currentStep} {t.of} 4
-          </p>
-        </div>
-
-        {error && (
-          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">{error}</div>
-        )}
-
-        <form key={formKey} onSubmit={handleSubmit} className="space-y-4 sm:space-y-6" autoComplete="off" data-form-type="other" data-1p-ignore="true" data-bwignore="true" noValidate>
-          
-          {/* STEP 1: Language Selection */}
-          {currentStep === 1 && (
-            <div className="space-y-6">
-              <div className="text-center">
-                <h2 className="text-xl font-bold text-gray-900 mb-2">{t.step1Title}</h2>
-                <p className="text-sm text-gray-600">{t.step1Subtitle}</p>
-              </div>
-              
-              <div className="space-y-3">
-                <label className="block text-sm font-medium text-gray-700 mb-3">{t.preferredLanguage}</label>
-                <div className="grid grid-cols-1 gap-3">
-                  {[{ code: 'en', label: t.english }, { code: 'si', label: t.sinhala }, { code: 'ta', label: t.tamil }].map(l => (
-                    <label
-                      key={l.code}
-                      className={`flex items-center gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all hover:border-blue-400 ${
-                        preferredLanguage === l.code ? 'border-blue-600 bg-blue-50' : 'border-gray-200'
-                      }`}
-                    >
-                      <input
-                        type="radio"
-                        name="preferredLanguage"
-                        value={l.code}
-                        checked={preferredLanguage === l.code}
-                        onChange={(e) => setPreferredLanguage(e.target.value)}
-                        className="w-5 h-5 text-blue-600"
-                      />
-                      <span className="text-base font-medium">{l.label}</span>
-                    </label>
-                  ))}
-                </div>
-                <p className="text-xs text-gray-500 mt-2">{t.preferredLanguageSubtitle}</p>
-              </div>
-              
-              <div className="flex gap-3">
-                <button
-                  type="button"
-                  onClick={goToNextStep}
-                  disabled={!canProceedFromStep1}
-                  className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
-                >
-                  {t.next}
-                </button>
-              </div>
+              >
+                English
+              </button>
+              <button
+                onClick={() => setLanguage("si")}
+                className={`px-2 sm:px-3 py-1 rounded-lg text-xs sm:text-sm font-medium transition-colors ${language === "si" ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-600"
+                  }`}
+              >
+                සිංහල
+              </button>
+              <button
+                onClick={() => setLanguage("ta")}
+                className={`px-2 sm:px-3 py-1 rounded-lg text-xs sm:text-sm font-medium transition-colors ${language === "ta" ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-600"
+                  }`}
+              >
+                தமிழ்
+              </button>
             </div>
-          )}
 
-          {/* STEP 2: Service Selection */}
-          {currentStep === 2 && (
-            <div className="space-y-6">
-              <div className="text-center">
-                <h2 className="text-xl font-bold text-gray-900 mb-2">{t.step2Title}</h2>
-                <p className="text-sm text-gray-600">{t.step2Subtitle}</p>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-3">
-                  {t.serviceType}
-                  <span className="ml-2 text-xs text-gray-500">({serviceTypes.length}/{services.length})</span>
-                </label>
-                
-                <div className="space-y-3">
-                  {services.map((service) => (
-                    <label
-                      key={service.id}
-                      className={`flex items-center gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all hover:border-blue-400 ${
-                        serviceTypes.includes(service.code) ? 'border-blue-600 bg-blue-50' : 'border-gray-200'
-                      }`}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={serviceTypes.includes(service.code)}
-                        onChange={() => handleServiceToggle(service.code)}
-                        className="w-5 h-5 text-blue-600 rounded"
-                      />
-                      <span className="text-base font-medium">{getServiceTitle(service.code)}</span>
-                    </label>
-                  ))}
+            {/* Header */}
+            <div className="text-center mb-4 sm:mb-6">
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1 sm:mb-2">{t.title}</h1>
+              <p className="text-sm sm:text-base text-gray-600">{t.subtitle}</p>
+              {/* Show current outlet just under the headers */}
+              {selectedOutlet && (
+                <div className="mt-2 text-sm text-gray-700">
+                  {(() => {
+                    const current = outlets.find((o) => o.id === selectedOutlet)
+                    const display = current
+                      ? `${current.name} - ${current.location}`
+                      : "Loading branch..."
+                    return <span>{display}</span>
+                  })()}
                 </div>
-                <p className="text-xs text-gray-500 mt-2">{t.selectServiceTypesSubtitle}</p>
-              </div>
-              
-              <div className="flex gap-3">
-                <button
-                  type="button"
-                  onClick={goToPreviousStep}
-                  className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg font-semibold hover:bg-gray-300 transition-colors"
-                >
-                  {t.back}
-                </button>
-                <button
-                  type="button"
-                  onClick={goToNextStep}
-                  disabled={!canProceedFromStep2}
-                  className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
-                >
-                  {t.next}
-                </button>
-              </div>
+              )}
             </div>
-          )}
 
-          {/* STEP 3: Customer Information */}
-          {currentStep === 3 && (
-            <div className="space-y-6">
-              <div className="text-center">
-                <h2 className="text-xl font-bold text-gray-900 mb-2">{t.step3Title}</h2>
-                <p className="text-sm text-gray-600">{t.step3Subtitle}</p>
-              </div>
-
-              {/* Bill Payment Path - Collect SLT Number (will verify after OTP) */}
-              {serviceTypes.includes('BILL_PAYMENT') && (
-                <div className="space-y-4">
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                    <h3 className="text-sm font-semibold text-blue-900 mb-3">{t.enterSltNumber}</h3>
-                    <div className="space-y-3">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">{t.sltTelephone}</label>
-                        <div className="relative">
-                          <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                          <input
-                            type="tel"
-                            value={sltTelephoneNumber}
-                            onChange={(e) => {
-                              setSltTelephoneNumber(e.target.value)
-                              setError("")
-                              setSltVerified(false)
-                            }}
-                            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            placeholder={t.sltTelephonePlaceholder}
-                            pattern="(01[0-9]{8}|041[0-9]{7}|081[0-9]{7})"
-                          />
-                        </div>
-                        <p className="text-xs text-blue-600 mt-2">🔒 We'll verify your SLT account after you verify your mobile number</p>
-                      </div>
+            {/* Progress Indicator */}
+            <div className="mb-6">
+              <div className="flex items-center justify-center gap-2 mb-2">
+                {[1, 2, 3, 4].map((step) => (
+                  <div key={step} className="flex items-center">
+                    <div
+                      className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold transition-colors ${currentStep >= step
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-200 text-gray-500'
+                        }`}
+                    >
+                      {step}
                     </div>
+                    {step < 4 && (
+                      <div
+                        className={`w-8 sm:w-12 h-1 mx-1 transition-colors ${currentStep > step ? 'bg-blue-600' : 'bg-gray-200'
+                          }`}
+                      />
+                    )}
+                  </div>
+                ))}
+              </div>
+              <p className="text-xs text-center text-gray-500">
+                {t.step} {currentStep} {t.of} 4
+              </p>
+            </div>
+
+            {error && (
+              <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">{error}</div>
+            )}
+
+            <form key={formKey} onSubmit={handleSubmit} className="space-y-4 sm:space-y-6" autoComplete="off" data-form-type="other" data-1p-ignore="true" data-bwignore="true" noValidate>
+
+              {/* STEP 1: Language Selection */}
+              {currentStep === 1 && (
+                <div className="space-y-6">
+                  <div className="text-center">
+                    <h2 className="text-xl font-bold text-gray-900 mb-2">{t.step1Title}</h2>
+                    <p className="text-sm text-gray-600">{t.step1Subtitle}</p>
+                  </div>
+
+                  <div className="space-y-3">
+                    <label className="block text-sm font-medium text-gray-700 mb-3">{t.preferredLanguage}</label>
+                    <div className="grid grid-cols-1 gap-3">
+                      {[{ code: 'en', label: t.english }, { code: 'si', label: t.sinhala }, { code: 'ta', label: t.tamil }].map(l => (
+                        <label
+                          key={l.code}
+                          className={`flex items-center gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all hover:border-blue-400 ${preferredLanguage === l.code ? 'border-blue-600 bg-blue-50' : 'border-gray-200'
+                            }`}
+                        >
+                          <input
+                            type="radio"
+                            name="preferredLanguage"
+                            value={l.code}
+                            checked={preferredLanguage === l.code}
+                            onChange={(e) => setPreferredLanguage(e.target.value)}
+                            className="w-5 h-5 text-blue-600"
+                          />
+                          <span className="text-base font-medium">{l.label}</span>
+                        </label>
+                      ))}
+                    </div>
+                    <p className="text-xs text-gray-500 mt-2">{t.preferredLanguageSubtitle}</p>
+                  </div>
+
+                  <div className="flex gap-3">
+                    <button
+                      type="button"
+                      onClick={goToNextStep}
+                      disabled={!canProceedFromStep1}
+                      className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+                    >
+                      {t.next}
+                    </button>
                   </div>
                 </div>
               )}
 
-              {/* Manual Entry Path - Always show name/mobile fields */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">{t.name}</label>
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                  <input
-                    type="text"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder={t.name}
-                    required
-                  />
-                </div>
-              </div>
+              {/* STEP 2: Service Selection */}
+              {currentStep === 2 && (
+                <div className="space-y-6">
+                  <div className="text-center">
+                    <h2 className="text-xl font-bold text-gray-900 mb-2">{t.step2Title}</h2>
+                    <p className="text-sm text-gray-600">{t.step2Subtitle}</p>
+                  </div>
 
-              {/* Mobile Number Input */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">{t.mobile}</label>
-                <div className="relative">
-                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                  <input
-                    type="tel"
-                    value={mobileNumber}
-                    onChange={(e) => setMobileNumber(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="07XXXXXXXX"
-                    pattern="[0-9]{10}"
-                    required
-                  />
-                </div>
-              </div>
-
-              {/* Optional fields toggle */}
-              <div className="flex items-center justify-between mt-1">
-                <span className="text-sm font-medium text-gray-700">{t.optionalDetails}</span>
-                <button
-                  type="button"
-                  onClick={() => setShowOptional((v) => !v)}
-                  className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900"
-                >
-                  {showOptional ? (<><EyeOff className="w-4 h-4" /> {t.hide}</>) : (<><Eye className="w-4 h-4" /> {t.show}</>)}
-                </button>
-              </div>
-
-              {showOptional && (
-                <>
-                  {/* NIC Number (optional) */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">{t.nic}</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-3">
+                      {t.serviceType}
+                      <span className="ml-2 text-xs text-gray-500">({serviceTypes.length}/{services.length})</span>
+                    </label>
+
+                    <div className="space-y-3">
+                      {services.map((service) => (
+                        <label
+                          key={service.id}
+                          className={`flex items-center gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all hover:border-blue-400 ${serviceTypes.includes(service.code) ? 'border-blue-600 bg-blue-50' : 'border-gray-200'
+                            }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={serviceTypes.includes(service.code)}
+                            onChange={() => handleServiceToggle(service.code)}
+                            className="w-5 h-5 text-blue-600 rounded"
+                          />
+                          <span className="text-base font-medium">{getServiceTitle(service.code)}</span>
+                        </label>
+                      ))}
+                    </div>
+                    <p className="text-xs text-gray-500 mt-2">{t.selectServiceTypesSubtitle}</p>
+                  </div>
+
+                  <div className="flex gap-3">
+                    <button
+                      type="button"
+                      onClick={goToPreviousStep}
+                      className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg font-semibold hover:bg-gray-300 transition-colors"
+                    >
+                      {t.back}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={goToNextStep}
+                      disabled={!canProceedFromStep2}
+                      className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+                    >
+                      {t.next}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* STEP 3: Customer Information */}
+              {currentStep === 3 && (
+                <div className="space-y-6">
+                  <div className="text-center">
+                    <h2 className="text-xl font-bold text-gray-900 mb-2">{t.step3Title}</h2>
+                    <p className="text-sm text-gray-600">{t.step3Subtitle}</p>
+                  </div>
+
+                  {/* Bill Payment Path - Collect SLT Number (will verify after OTP) */}
+                  {serviceTypes.includes('BILL_PAYMENT') && (
+                    <div className="space-y-4">
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <h3 className="text-sm font-semibold text-blue-900 mb-3">{t.enterSltNumber}</h3>
+                        <div className="space-y-3">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">{t.sltTelephone}</label>
+                            <div className="relative">
+                              <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                              <input
+                                type="tel"
+                                value={sltTelephoneNumber}
+                                onChange={(e) => {
+                                  setSltTelephoneNumber(e.target.value)
+                                  setError("")
+                                  setSltVerified(false)
+                                }}
+                                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                placeholder={t.sltTelephonePlaceholder}
+                                pattern="(01[0-9]{8}|041[0-9]{7}|081[0-9]{7})"
+                              />
+                            </div>
+                            <p className="text-xs text-blue-600 mt-2">🔒 We'll verify your SLT account after you verify your mobile number</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Manual Entry Path - Always show name/mobile fields */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">{t.name}</label>
                     <div className="relative">
                       <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                       <input
                         type="text"
-                        value={nicNumber}
-                        onChange={(e) => setNicNumber(e.target.value.toUpperCase())}
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
                         className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        placeholder={t.nicPlaceholder}
+                        placeholder={t.name}
+                        required
                       />
                     </div>
                   </div>
 
-                  {/* Email (optional) */}
+                  {/* Mobile Number Input */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">{t.email}</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">{t.mobile}</label>
                     <div className="relative">
-                      <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                      <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                       <input
-                        type="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
+                        type="tel"
+                        value={mobileNumber}
+                        onChange={(e) => setMobileNumber(e.target.value)}
                         className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        placeholder="jason@gmail.com"
+                        placeholder="07XXXXXXXX"
+                        pattern="[0-9]{10}"
+                        required
                       />
                     </div>
                   </div>
-                </>
+
+                  {/* Optional fields toggle */}
+                  <div className="flex items-center justify-between mt-1">
+                    <span className="text-sm font-medium text-gray-700">{t.optionalDetails}</span>
+                    <button
+                      type="button"
+                      onClick={() => setShowOptional((v) => !v)}
+                      className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900"
+                    >
+                      {showOptional ? (<><EyeOff className="w-4 h-4" /> {t.hide}</>) : (<><Eye className="w-4 h-4" /> {t.show}</>)}
+                    </button>
+                  </div>
+
+                  {showOptional && (
+                    <>
+                      {/* NIC Number (optional) */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">{t.nic}</label>
+                        <div className="relative">
+                          <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                          <input
+                            type="text"
+                            value={nicNumber}
+                            onChange={(e) => setNicNumber(e.target.value.toUpperCase())}
+                            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            placeholder={t.nicPlaceholder}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Email (optional) */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">{t.email}</label>
+                        <div className="relative">
+                          <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                          <input
+                            type="email"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            placeholder="jason@gmail.com"
+                          />
+                        </div>
+                      </div>
+                    </>
+                  )}
+
+                  <div className="flex gap-3">
+                    <button
+                      type="button"
+                      onClick={goToPreviousStep}
+                      className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg font-semibold hover:bg-gray-300 transition-colors"
+                    >
+                      {t.back}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={goToNextStep}
+                      disabled={!canProceedFromStep3()}
+                      className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+                    >
+                      {t.next}
+                    </button>
+                  </div>
+                </div>
               )}
 
-              <div className="flex gap-3">
-                <button
-                  type="button"
-                  onClick={goToPreviousStep}
-                  className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg font-semibold hover:bg-gray-300 transition-colors"
-                >
-                  {t.back}
-                </button>
-                <button
-                  type="button"
-                  onClick={goToNextStep}
-                  disabled={!canProceedFromStep3()}
-                  className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
-                >
-                  {t.next}
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* STEP 4: OTP Verification & Submit */}
-          {currentStep === 4 && (
-            <div className="space-y-6">
-              <div className="text-center">
-                <h2 className="text-xl font-bold text-gray-900 mb-2">{t.step4Title}</h2>
-                <p className="text-sm text-gray-600">{t.step4Subtitle}</p>
-              </div>
-
-              {/* Summary */}
-              <div className="bg-gray-50 rounded-lg p-4 space-y-3">
-                <div>
-                  <span className="text-xs font-medium text-gray-500 uppercase">{t.preferredLanguage}</span>
-                  <p className="text-sm font-medium text-gray-900">
-                    {preferredLanguage === 'en' ? t.english : preferredLanguage === 'si' ? t.sinhala : t.tamil}
-                  </p>
-                </div>
-                <div>
-                  <span className="text-xs font-medium text-gray-500 uppercase">{t.serviceType}</span>
-                  <p className="text-sm font-medium text-gray-900">
-                    {serviceTypes.map(code => getServiceTitle(code)).join(', ')}
-                  </p>
-                </div>
-                {serviceTypes.includes('BILL_PAYMENT') && sltTelephoneNumber && (
-                  <div>
-                    <span className="text-xs font-medium text-gray-500 uppercase">{t.sltTelephone}</span>
-                    <p className="text-sm font-medium text-gray-900">{sltTelephoneNumber}</p>
+              {/* STEP 4: OTP Verification & Submit */}
+              {currentStep === 4 && (
+                <div className="space-y-6">
+                  <div className="text-center">
+                    <h2 className="text-xl font-bold text-gray-900 mb-2">{t.step4Title}</h2>
+                    <p className="text-sm text-gray-600">{t.step4Subtitle}</p>
                   </div>
-                )}
-                <div>
-                  <span className="text-xs font-medium text-gray-500 uppercase">{t.name}</span>
-                  <p className="text-sm font-medium text-gray-900">{name}</p>
-                </div>
-                <div>
-                  <span className="text-xs font-medium text-gray-500 uppercase">{t.mobile}</span>
-                  <p className="text-sm font-medium text-gray-900">{mobileNumber}</p>
-                </div>
-              </div>
 
-              {/* Bill Details - Show after OTP verified and SLT verified */}
-              {serviceTypes.includes('BILL_PAYMENT') && sltVerified && billData && (
-                <div className="bg-white rounded-lg p-4 border border-green-200">
-                  <div className="flex items-center gap-2 mb-3">
-                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                    <span className="text-sm font-semibold text-green-700">{t.verifiedAccount}</span>
-                  </div>
-                  
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">{t.accountName}:</span>
-                      <span className="font-medium text-gray-900">{billData.accountName}</span>
+                  {/* Summary */}
+                  <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+                    <div>
+                      <span className="text-xs font-medium text-gray-500 uppercase">{t.preferredLanguage}</span>
+                      <p className="text-sm font-medium text-gray-900">
+                        {preferredLanguage === 'en' ? t.english : preferredLanguage === 'si' ? t.sinhala : t.tamil}
+                      </p>
                     </div>
-                    {billData.accountAddress && (
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">{t.accountAddress}:</span>
-                        <span className="font-medium text-gray-900 text-right max-w-[60%]">{billData.accountAddress}</span>
+                    <div>
+                      <span className="text-xs font-medium text-gray-500 uppercase">{t.serviceType}</span>
+                      <p className="text-sm font-medium text-gray-900">
+                        {serviceTypes.map(code => getServiceTitle(code)).join(', ')}
+                      </p>
+                    </div>
+                    {serviceTypes.includes('BILL_PAYMENT') && sltTelephoneNumber && (
+                      <div>
+                        <span className="text-xs font-medium text-gray-500 uppercase">{t.sltTelephone}</span>
+                        <p className="text-sm font-medium text-gray-900">{sltTelephoneNumber}</p>
                       </div>
                     )}
-                    <div className="flex justify-between border-t pt-2">
-                      <span className="text-gray-600">{t.billAmount}:</span>
-                      <span className="font-bold text-lg text-blue-600">Rs. {billData.currentBill?.toFixed(2)}</span>
+                    <div>
+                      <span className="text-xs font-medium text-gray-500 uppercase">{t.name}</span>
+                      <p className="text-sm font-medium text-gray-900">{name}</p>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">{t.dueDate}:</span>
-                      <span className="font-medium text-gray-900">{billData.dueDate ? new Date(billData.dueDate).toLocaleDateString() : ''}</span>
+                    <div>
+                      <span className="text-xs font-medium text-gray-500 uppercase">{t.mobile}</span>
+                      <p className="text-sm font-medium text-gray-900">{mobileNumber}</p>
                     </div>
+                  </div>
+
+                  {/* Bill Details - Show after OTP verified and SLT verified */}
+                  {serviceTypes.includes('BILL_PAYMENT') && sltVerified && billData && (
+                    <div className="bg-white rounded-lg p-4 border border-green-200">
+                      <div className="flex items-center gap-2 mb-3">
+                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                        <span className="text-sm font-semibold text-green-700">{t.verifiedAccount}</span>
+                      </div>
+
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">{t.accountName}:</span>
+                          <span className="font-medium text-gray-900">{billData.accountName}</span>
+                        </div>
+                        {billData.accountAddress && (
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">{t.accountAddress}:</span>
+                            <span className="font-medium text-gray-900 text-right max-w-[60%]">{billData.accountAddress}</span>
+                          </div>
+                        )}
+                        <div className="flex justify-between border-t pt-2">
+                          <span className="text-gray-600">{t.billAmount}:</span>
+                          <span className="font-bold text-lg text-blue-600">Rs. {billData.currentBill?.toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">{t.dueDate}:</span>
+                          <span className="font-medium text-gray-900">{billData.dueDate ? new Date(billData.dueDate).toLocaleDateString() : ''}</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* OTP Verification */}
+                  {otpStep === 'idle' && (
+                    <button
+                      type="button"
+                      onClick={sendOtp}
+                      disabled={!qrValid || otpSending || !mobileNumber || !selectedOutlet || serviceTypes.length === 0}
+                      className="w-full bg-indigo-600 text-white py-3 rounded-lg font-semibold hover:bg-indigo-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+                    >
+                      {otpSending ? t.sendingOTP : t.verify}
+                    </button>
+                  )}
+
+                  {otpStep === 'sent' && (
+                    <div className="space-y-4">
+                      <div className="p-4 border rounded-lg bg-gray-50">
+                        <OTPInput
+                          value={otpCode}
+                          onChange={setOtpCode}
+                          error={otpError}
+                          onResend={sendOtp}
+                          resendDisabled={otpSending}
+                          lang={language}
+                          onComplete={verifyOtp}
+                        />
+                        <div className="mt-3 text-xs text-gray-600 text-center">
+                          <button
+                            type="button"
+                            onClick={() => { setOtpStep('idle'); setOtpCode(''); setOtpError('') }}
+                            className="text-gray-500 hover:underline"
+                          >
+                            {t.changeNumber}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {otpStep === 'verified' && (
+                    <div className="space-y-4">
+                      <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
+                        <p className="text-green-700 font-medium mb-1">✓ {t.verified || 'Phone Verified'}</p>
+                        <p className="text-sm text-green-600">{t.readyToRegister || 'Ready to generate your token'}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {(otpStep === 'sent' || otpStep === 'verified') && (
+                    <button
+                      type="submit"
+                      disabled={!qrValid || loading || !selectedOutlet || serviceTypes.length === 0 || (otpStep === 'sent' && otpCode.length !== 4)}
+                      className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+                    >
+                      {loading ? t.registering : t.register}
+                    </button>
+                  )}
+
+                  <div className="flex gap-3">
+                    <button
+                      type="button"
+                      onClick={goToPreviousStep}
+                      className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg font-semibold hover:bg-gray-300 transition-colors"
+                    >
+                      {t.back}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={clearAllFormData}
+                      className="flex-1 bg-gray-500 text-white py-3 rounded-lg font-medium hover:bg-gray-600 transition-colors"
+                    >
+                      {t.clearForm}
+                    </button>
                   </div>
                 </div>
               )}
-
-              {/* OTP Verification */}
-              {otpStep === 'idle' && (
-                <button
-                  type="button"
-                  onClick={sendOtp}
-                  disabled={!qrValid || otpSending || !mobileNumber || !selectedOutlet || serviceTypes.length === 0}
-                  className="w-full bg-indigo-600 text-white py-3 rounded-lg font-semibold hover:bg-indigo-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
-                >
-                  {otpSending ? t.sendingOTP : t.verify}
-                </button>
-              )}
-
-              {otpStep === 'sent' && (
-                <div className="space-y-4">
-                  <div className="p-4 border rounded-lg bg-gray-50">
-                    <OTPInput
-                      value={otpCode}
-                      onChange={setOtpCode}
-                      error={otpError}
-                      onResend={sendOtp}
-                      resendDisabled={otpSending}
-                      lang={language}
-                      onComplete={verifyOtp}
-                    />
-                    <div className="mt-3 text-xs text-gray-600 text-center">
-                      <button
-                        type="button"
-                        onClick={() => { setOtpStep('idle'); setOtpCode(''); setOtpError('') }}
-                        className="text-gray-500 hover:underline"
-                      >
-                        {t.changeNumber}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {otpStep === 'verified' && (
-                <div className="space-y-4">
-                  <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
-                    <p className="text-green-700 font-medium mb-1">✓ {t.verified || 'Phone Verified'}</p>
-                    <p className="text-sm text-green-600">{t.readyToRegister || 'Ready to generate your token'}</p>
-                  </div>
-                </div>
-              )}
-
-              {(otpStep === 'sent' || otpStep === 'verified') && (
-                <button
-                  type="submit"
-                  disabled={!qrValid || loading || !selectedOutlet || serviceTypes.length === 0 || (otpStep === 'sent' && otpCode.length !== 4)}
-                  className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
-                >
-                  {loading ? t.registering : t.register}
-                </button>
-              )}
-
-              <div className="flex gap-3">
-                <button
-                  type="button"
-                  onClick={goToPreviousStep}
-                  className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg font-semibold hover:bg-gray-300 transition-colors"
-                >
-                  {t.back}
-                </button>
-                <button
-                  type="button"
-                  onClick={clearAllFormData}
-                  className="flex-1 bg-gray-500 text-white py-3 rounded-lg font-medium hover:bg-gray-600 transition-colors"
-                >
-                  {t.clearForm}
-                </button>
-              </div>
-            </div>
-          )}
-        </form>
-        </>
+            </form>
+          </>
         )}
       </div>
 
