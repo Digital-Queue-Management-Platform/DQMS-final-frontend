@@ -313,14 +313,21 @@ export default function CustomerRegistration() {
     }
   }
 
-  // Limit Services to exactly two options: Bill Payment and Others
+  // Load services from admin-managed list
   const fetchServices = async () => {
-    // Instead of calling API, we constrain to two static options as per requirement
-    const STATIC_SERVICES = [
-      { id: 'BILL_PAYMENT', code: 'BILL_PAYMENT', title: 'Bill Payment', isActive: true },
-      { id: 'OTHERS', code: 'OTHERS', title: 'Others', isActive: true },
-    ]
-    setServices(STATIC_SERVICES)
+    try {
+      const response = await api.get('/queue/services')
+      const data = Array.isArray(response.data) ? response.data : []
+      setServices(data)
+    } catch (err) {
+      console.error('Failed to fetch services:', err)
+      // Fallback to basic options if API fails
+      const STATIC_SERVICES = [
+        { id: 'BILL_PAYMENT', code: 'BILL_PAYMENT', title: 'Bill Payment', isActive: true },
+        { id: 'OTHERS', code: 'OTHERS', title: 'Others', isActive: true },
+      ]
+      setServices(STATIC_SERVICES)
+    }
   }
 
 
