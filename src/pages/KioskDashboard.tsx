@@ -288,8 +288,8 @@ export default function KioskDashboard() {
           // Owner can see the due amount directly
           setNotificationMessage(`Due amount: Rs. ${formattedAmount}`)
         } else {
-          // Non-owner: message says amount was sent to owner
-          setNotificationMessage(`Due amount (Rs. ${formattedAmount}) sent to account holder at ${maskedPhone}`)
+          // Non-owner: message says amount was sent to owner, but does NOT show the amount
+          setNotificationMessage(`Bill details have been sent to the account holder at ${maskedPhone}`)
         }
         setNotificationSent(true)
         
