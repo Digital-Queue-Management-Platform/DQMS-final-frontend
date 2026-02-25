@@ -1,5 +1,3 @@
-  const [notificationSent, setNotificationSent] = useState(false)
-  const [notificationMessage, setNotificationMessage] = useState("")
   // Removed unused billData state
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -19,6 +17,8 @@ interface Service {
 }
 
 export default function KioskDashboard() {
+  const [notificationSent, setNotificationSent] = useState(false)
+  const [notificationMessage, setNotificationMessage] = useState("")
   const [outlet, setOutlet] = useState<any>(null)
   const [services, setServices] = useState<Service[]>([])
   const [loading, setLoading] = useState(true)
