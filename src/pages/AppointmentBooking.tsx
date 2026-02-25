@@ -77,9 +77,7 @@ export default function AppointmentBooking() {
   // Bill payment specific states
   const [sltTelephoneNumber, setSltTelephoneNumber] = useState("")
   const [sltVerified, setSltVerified] = useState(false)
-  const [notificationSent, setNotificationSent] = useState(false)
-  const [notificationMessage, setNotificationMessage] = useState("")
-  const [billData, setBillData] = useState<any>(null)
+  // Removed unused notificationSent, notificationMessage, and billData state
   const [isOwnerOfAccount, setIsOwnerOfAccount] = useState(false)
 
   // Multi-step form state

@@ -50,9 +50,7 @@ export default function KioskDashboard() {
   const [sltTelephoneNumber, setSltTelephoneNumber] = useState("")
   const [sltVerified, setSltVerified] = useState(false)
   const [shouldAutoSubmit, setShouldAutoSubmit] = useState(false)
-  const [notificationSent, setNotificationSent] = useState(false)
-  const [notificationMessage, setNotificationMessage] = useState("")
-  const [billData, setBillData] = useState<any>(null)
+  // Removed unused notificationSent, notificationMessage, and billData state
   const [isOwnerOfAccount, setIsOwnerOfAccount] = useState(false)
   const formRef = useRef<HTMLFormElement>(null)
 
