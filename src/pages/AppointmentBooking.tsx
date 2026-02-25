@@ -1,6 +1,4 @@
-  const [notificationSent, setNotificationSent] = useState(false)
-  const [notificationMessage, setNotificationMessage] = useState("")
-  // Removed unused billData state
+// Removed unused billData state
 "use client"
 
 import { useEffect, useState } from "react"
@@ -22,6 +20,8 @@ interface Service {
 }
 
 export default function AppointmentBooking() {
+  const [notificationSent, setNotificationSent] = useState(false)
+  const [notificationMessage, setNotificationMessage] = useState("")
   const navigate = useNavigate()
   const [outlets, setOutlets] = useState<Outlet[]>([])
   const [services, setServices] = useState<Service[]>([])
