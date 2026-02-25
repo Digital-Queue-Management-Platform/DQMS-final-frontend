@@ -1,6 +1,6 @@
   const [notificationSent, setNotificationSent] = useState(false)
   const [notificationMessage, setNotificationMessage] = useState("")
-  const [billData, setBillData] = useState<any>(null)
+  // Removed unused billData state
 "use client"
 
 import { useEffect, useState } from "react"
@@ -409,7 +409,7 @@ export default function AppointmentBooking() {
 
         setSltVerified(true)
         setError("")
-        setBillData(bill)
+        // setBillData(bill) removed as billData is unused
 
         // Auto-fill account name from bill (but NOT the mobile number)
         // The user will enter their own mobile number separately

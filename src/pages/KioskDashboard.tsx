@@ -1,6 +1,6 @@
   const [notificationSent, setNotificationSent] = useState(false)
   const [notificationMessage, setNotificationMessage] = useState("")
-  const [billData, setBillData] = useState<any>(null)
+  // Removed unused billData state
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { User, Phone, Eye, EyeOff } from 'lucide-react'
@@ -261,7 +261,7 @@ export default function KioskDashboard() {
 
         setSltVerified(true)
         setError("")
-        setBillData(bill)
+        // setBillData(bill) removed as billData is unused
 
         // Auto-fill account name from bill (but NOT the mobile number)
         // The user will enter their own mobile number separately
