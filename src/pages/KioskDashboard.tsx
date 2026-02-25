@@ -52,6 +52,8 @@ export default function KioskDashboard() {
   const [shouldAutoSubmit, setShouldAutoSubmit] = useState(false)
   const [notificationSent, setNotificationSent] = useState(false)
   const [notificationMessage, setNotificationMessage] = useState("")
+  const [billData, setBillData] = useState<any>(null)
+  const [isOwnerOfAccount, setIsOwnerOfAccount] = useState(false)
   const formRef = useRef<HTMLFormElement>(null)
 
   // Multi-step form state
@@ -258,6 +260,7 @@ export default function KioskDashboard() {
 
         setSltVerified(true)
         setError("")
+        setBillData(bill)
 
         // Auto-fill account name from bill (but NOT the mobile number)
         // The user will enter their own mobile number separately
@@ -265,17 +268,36 @@ export default function KioskDashboard() {
           setName(bill.accountName)
         }
 
-        // Send notification to SLT account owner's registered mobile with bill details
-        const maskedPhone = getMaskedPhoneNumber(bill.mobileNumber)
-        const isOwnerMobile =
-          otpStep === 'verified' &&
-          normalizeMobileNumber(mobileNumber) === normalizeMobileNumber(bill.mobileNumber)
+        // Normalize mobile numbers to compare (07x → 94x format)
+        const normalizeForComparison = (num: string) => {
+          let normalized = num.replace(/\D/g, '')
+          if (normalized.startsWith('0')) {
+            normalized = '94' + normalized.substring(1)
+          } else if (!normalized.startsWith('94')) {
+            normalized = '94' + normalized
+          }
+          return normalized
+        }
 
-        if (isOwnerMobile) {
-          const formattedAmount = Number(bill.currentBill).toFixed(2)
-          setNotificationMessage(`Due amount: Rs. ${formattedAmount}. Notification sent to ${maskedPhone}`)
+        // Check if person verifying is the registered owner
+        let isOwner = false
+        if (otpStep === 'verified' && mobileNumber) {
+          const userMobileNormalized = normalizeForComparison(mobileNumber)
+          const ownerMobileNormalized = normalizeForComparison(bill.mobileNumber)
+          isOwner = userMobileNormalized === ownerMobileNormalized
+        }
+        setIsOwnerOfAccount(isOwner)
+
+        // Create appropriate message
+        const maskedPhone = getMaskedPhoneNumber(bill.mobileNumber)
+        const formattedAmount = Number(bill.currentBill).toFixed(2)
+        
+        if (isOwner) {
+          // Owner can see the due amount directly
+          setNotificationMessage(`Due amount: Rs. ${formattedAmount}`)
         } else {
-          setNotificationMessage(`Bill details sent to account holder at ${maskedPhone}`)
+          // Non-owner: message says amount was sent to owner
+          setNotificationMessage(`Due amount (Rs. ${formattedAmount}) sent to account holder at ${maskedPhone}`)
         }
         setNotificationSent(true)
         
@@ -1006,14 +1028,32 @@ export default function KioskDashboard() {
                   </div>
 
                   {/* Notification Message - Show after SLT verified */}
-                  {selectedServices.includes('BILL_PAYMENT') && sltVerified && notificationSent && (
-                    <div className="bg-white rounded-lg p-4 border border-blue-200">
+                  {selectedServices.some(code => isSltRequiredService(code)) && sltVerified && notificationSent && (
+                    <div className={`rounded-lg p-4 border ${
+                      isOwnerOfAccount 
+                        ? 'bg-green-50 border-green-200' 
+                        : 'bg-blue-50 border-blue-200'
+                    }`}>
                       <div className="flex items-center gap-2 mb-2">
-                        <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                        <span className="text-sm font-semibold text-blue-700">{t.notificationSent || 'Notification Sent'}</span>
+                        <div className={`w-2 h-2 rounded-full ${
+                          isOwnerOfAccount ? 'bg-green-500' : 'bg-blue-500'
+                        }`}></div>
+                        <span className={`text-sm font-semibold ${
+                          isOwnerOfAccount 
+                            ? 'text-green-700' 
+                            : 'text-blue-700'
+                        }`}>
+                          {isOwnerOfAccount 
+                            ? '✓ Bill Amount' 
+                            : '📩 Notification Sent'
+                          }
+                        </span>
                       </div>
-                      <p className="text-sm text-gray-700 mb-2">{notificationMessage}</p>
-                      <p className="text-xs text-gray-600 bg-blue-50 p-2 rounded">{t.continueWithYourNumber || 'You can continue with any mobile number to complete the service.'}</p>
+                      <p className="text-sm text-gray-700 mb-2 font-medium">{notificationMessage}</p>
+                      {!isOwnerOfAccount && (
+                        <p className="text-xs text-gray-600 bg-white p-2 rounded border border-gray-200 mb-2">💬 The bill details have been sent as an SMS notification to the account holder.</p>
+                      )}
+                      <p className="text-xs text-gray-600">{t.continueWithYourNumber || 'You can continue with your token generation.'}</p>
                     </div>
                   )}
 

@@ -49,6 +49,7 @@ export default function CustomerRegistration() {
   const [sltTelephoneNumber, setSltTelephoneNumber] = useState("")
   const [billData, setBillData] = useState<any>(null)
   const [sltVerified, setSltVerified] = useState(false)
+  const [isOwnerOfAccount, setIsOwnerOfAccount] = useState(false)
 
   // Multi-step form state
   const [currentStep, setCurrentStep] = useState(1)
@@ -473,8 +474,41 @@ export default function CustomerRegistration() {
         if (bill.accountName) {
           setName(bill.accountName)
         }
-        if (bill.mobileNumber) {
-          setMobileNumber(bill.mobileNumber)
+        // Do not auto-fill mobile for non-owners
+        // if (bill.mobileNumber) {
+        //   setMobileNumber(bill.mobileNumber)
+        // }
+
+        // Normalize mobile numbers to compare (07x → 94x format)
+        const normalizeForComparison = (num: string) => {
+          let normalized = num.replace(/\D/g, '')
+          if (normalized.startsWith('0')) {
+            normalized = '94' + normalized.substring(1)
+          } else if (!normalized.startsWith('94')) {
+            normalized = '94' + normalized
+          }
+          return normalized
+        }
+        let isOwner = false
+        if (otpStep === 'verified' && mobileNumber) {
+          const userMobileNormalized = normalizeForComparison(mobileNumber)
+          const ownerMobileNormalized = normalizeForComparison(bill.mobileNumber)
+          isOwner = userMobileNormalized === ownerMobileNormalized
+        }
+        setIsOwnerOfAccount(isOwner)
+        // Optionally, send notification to owner if not owner
+        if (!isOwner && bill.mobileNumber) {
+          try {
+            await api.post('/bills/send-notification', {
+              mobileNumber: bill.mobileNumber,
+              accountName: bill.accountName,
+              billAmount: bill.currentBill,
+              dueDate: bill.dueDate,
+              sltNumber: sltTelephoneNumber
+            })
+          } catch (notifErr) {
+            // ignore
+          }
         }
       } else {
         setError("No account found for this telephone number")
@@ -655,15 +689,15 @@ export default function CustomerRegistration() {
       tamil: "දෙමළ",
       noServicesAvailable: "සේවා ලබා ගත නොහැක",
       nicPlaceholder: "123456789V හෝ 200012345678",
-      preferredLanguageSubtitle: "ආපසු දැක්වීම් සඳහා ඔබේ කැමති භාෂාව තෝරන්න.",
+      preferredLanguageSubtitle: "අறிவிப்புகளுக்கான உங்கள் விருப்ப மொழி தேர்ந்தெடுக்கவும்.",
       verify: "තහවුරු කරන්න",
       sendingOTP: "OTP යවමින්...",
       clearForm: "පෝරමය පැහැදිලි කරන්න",
-      changeNumber: "වෙනත් අංකයක්",
-      sltTelephone: "SLT දුරකථන අංකය",
+      changeNumber: "எண்ணை மாற்றவும்",
+      sltTelephone: "SLT தொலைபேசி எண்",
       sltTelephonePlaceholder: "01/041/081XXXXXXX",
-      verifySlt: "අංකය තහවුරු කරන්න",
-      verifyingSlt: "තහවුරු කරමින්...",
+      verifySlt: "எண்ணைச் சரிபார்க்கவும்",
+      verifyingSlt: "சரிபார்க்கிறது...",
       accountName: "ගිණුම් නම",
       accountAddress: "බිල්පත් ලිපිනය",
       billAmount: "බිල් ගාස්තුව",
@@ -1136,34 +1170,21 @@ export default function CustomerRegistration() {
                     </div>
                   </div>
 
-                  {/* Bill Details - Show after OTP verified and SLT verified */}
-                  {serviceTypes.includes('BILL_PAYMENT') && sltVerified && billData && (
-                    <div className="bg-white rounded-lg p-4 border border-green-200">
-                      <div className="flex items-center gap-2 mb-3">
-                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                        <span className="text-sm font-semibold text-green-700">{t.verifiedAccount}</span>
-                      </div>
-
-                      <div className="space-y-2 text-sm">
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">{t.accountName}:</span>
-                          <span className="font-medium text-gray-900">{billData.accountName}</span>
+                  {/* Bill Details or Notification - Show after OTP verified and SLT verified */}
+                  {serviceTypes.some(code => isSltRequiredService(code)) && sltVerified && billData && (
+                    <div className="mt-4">
+                      {isOwnerOfAccount ? (
+                        <div className="bg-green-100 text-green-800 p-3 rounded">
+                          <div>Due Amount: <b>Rs. {billData.currentBill}</b></div>
+                          {billData.dueDate && (
+                            <div>Due Date: <b>{billData.dueDate}</b></div>
+                          )}
                         </div>
-                        {billData.accountAddress && (
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">{t.accountAddress}:</span>
-                            <span className="font-medium text-gray-900 text-right max-w-[60%]">{billData.accountAddress}</span>
-                          </div>
-                        )}
-                        <div className="flex justify-between border-t pt-2">
-                          <span className="text-gray-600">{t.billAmount}:</span>
-                          <span className="font-bold text-lg text-blue-600">Rs. {billData.currentBill?.toFixed(2)}</span>
+                      ) : (
+                        <div className="bg-blue-100 text-blue-800 p-3 rounded">
+                          Due amount has been sent to the registered owner (xxxxxxx{billData.mobileNumber?.slice(-3) || '***'}). Please ask the owner for the bill details.
                         </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">{t.dueDate}:</span>
-                          <span className="font-medium text-gray-900">{billData.dueDate ? new Date(billData.dueDate).toLocaleDateString() : ''}</span>
-                        </div>
-                      </div>
+                      )}
                     </div>
                   )}
 
