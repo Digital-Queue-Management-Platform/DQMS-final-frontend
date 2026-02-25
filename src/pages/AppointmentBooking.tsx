@@ -359,6 +359,17 @@ export default function AppointmentBooking() {
     return `xxxxxxx${lastThree}`
   }
 
+  const normalizeMobileNumber = (phone: string): string => {
+    if (!phone) return ''
+    let normalized = phone.replace(/\D/g, '')
+    if (normalized.startsWith('0')) {
+      normalized = `94${normalized.slice(1)}`
+    } else if (!normalized.startsWith('94')) {
+      normalized = `94${normalized}`
+    }
+    return normalized
+  }
+
   // Verify SLT telephone number and send bill notification
   const verifySltNumber = async () => {
     if (!sltTelephoneNumber) {
@@ -400,7 +411,16 @@ export default function AppointmentBooking() {
 
         // Send notification to SLT account owner's registered mobile with bill details
         const maskedPhone = getMaskedPhoneNumber(bill.mobileNumber)
-        setNotificationMessage(`Bill details sent to account holder at ${maskedPhone}`)
+        const isOwnerMobile =
+          otpStep === 'verified' &&
+          normalizeMobileNumber(mobileNumber) === normalizeMobileNumber(bill.mobileNumber)
+
+        if (isOwnerMobile) {
+          const formattedAmount = Number(bill.currentBill).toFixed(2)
+          setNotificationMessage(`Due amount: Rs. ${formattedAmount}. Notification sent to ${maskedPhone}`)
+        } else {
+          setNotificationMessage(`Bill details sent to account holder at ${maskedPhone}`)
+        }
         setNotificationSent(true)
         
         // Send SMS notification with bill information (including due amount)
