@@ -27,7 +27,7 @@ export default function KioskDashboard() {
   const [mobileNumber, setMobileNumber] = useState('')
   const [nicNumber, setNicNumber] = useState('')
   const [email, setEmail] = useState('')
-  const [selectedServices, setSelectedServices] = useState<string[]>(['BILL_PAYMENT']) // Bill Payment always included
+  const [selectedServices, setSelectedServices] = useState<string[]>([])
   const [preferredLanguage, setPreferredLanguage] = useState<string>('en')
   const [submitting, setSubmitting] = useState(false)
   const [successToken, setSuccessToken] = useState<any>(null)
@@ -129,13 +129,9 @@ export default function KioskDashboard() {
   }
 
   const handleServiceToggle = (serviceCode: string) => {
-    // Cannot uncheck BILL_PAYMENT as it's mandatory
-    if (serviceCode === 'BILL_PAYMENT') return
-    
+    // Single-select: only one service at a time
     setSelectedServices(prev =>
-      prev.includes(serviceCode)
-        ? prev.filter(s => s !== serviceCode)
-        : [...prev, serviceCode]
+      prev.includes(serviceCode) ? [] : [serviceCode]
     )
   }
 
@@ -769,25 +765,8 @@ export default function KioskDashboard() {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-3">{t.serviceType}</label>
 
-                    {/* Bill Payment - Always Selected */}
-                    <div className="mb-4 p-4 border-2 border-blue-600 bg-blue-50 rounded-lg">
-                      <div className="flex items-center gap-3">
-                        <input
-                          type="checkbox"
-                          checked={true}
-                          disabled
-                          className="w-5 h-5 text-blue-600 rounded"
-                        />
-                        <div>
-                          <span className="text-base font-semibold text-blue-900">{t.billPayment}</span>
-                          <p className="text-xs text-blue-700 mt-1">{language === 'en' ? 'Required service' : language === 'si' ? 'අවශ්‍ය සේවාව' : 'தேவையான சேவை'}</p>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Other Optional Services */}
                     <div className="space-y-3">
-                      {services.filter(s => s.code !== 'BILL_PAYMENT').map((service) => (
+                      {services.map((service) => (
                         <label
                           key={service.id}
                           className={`flex items-center gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all hover:border-blue-400 ${
@@ -795,10 +774,11 @@ export default function KioskDashboard() {
                           }`}
                         >
                           <input
-                            type="checkbox"
+                            type="radio"
+                            name="service"
                             checked={selectedServices.includes(service.code)}
                             onChange={() => handleServiceToggle(service.code)}
-                            className="w-5 h-5 text-blue-600 rounded"
+                            className="w-5 h-5 text-blue-600"
                           />
                           <span className="text-base font-medium">{getServiceTitle(service.code)}</span>
                         </label>
