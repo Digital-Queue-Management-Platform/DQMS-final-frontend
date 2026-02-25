@@ -366,16 +366,7 @@ export default function AppointmentBooking() {
     return `xxxxxxx${lastThree}`
   }
 
-  const normalizeMobileNumber = (phone: string): string => {
-    if (!phone) return ''
-    let normalized = phone.replace(/\D/g, '')
-    if (normalized.startsWith('0')) {
-      normalized = `94${normalized.slice(1)}`
-    } else if (!normalized.startsWith('94')) {
-      normalized = `94${normalized}`
-    }
-    return normalized
-  }
+  // Removed unused normalizeMobileNumber function
 
   // Verify SLT telephone number and send bill notification
   const verifySltNumber = async () => {
