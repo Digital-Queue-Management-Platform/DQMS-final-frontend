@@ -78,6 +78,8 @@ export default function AppointmentBooking() {
   const [sltTelephoneNumber, setSltTelephoneNumber] = useState("")
   const [billData, setBillData] = useState<any>(null)
   const [sltVerified, setSltVerified] = useState(false)
+  const [notificationSent, setNotificationSent] = useState(false)
+  const [notificationMessage, setNotificationMessage] = useState("")
 
   // Multi-step form state
   const [currentStep, setCurrentStep] = useState(1)
@@ -179,7 +181,8 @@ export default function AppointmentBooking() {
       verify: "Verify Mobile",
       enterSltNumber: "Enter your SLT telephone number",
       verifiedAccount: "Account Verified",
-      minBookingTime: "Appointments must be booked at least 24 hours in advance"
+      minBookingTime: "Appointments must be booked at least 24 hours in advance",
+      continueWithYourNumber: "You can continue with any mobile number to complete the appointment."
     },
     si: {
       title: 'වේලාවක් වෙන්කරන්න',
@@ -287,7 +290,9 @@ export default function AppointmentBooking() {
       verify: "மொபைல் சரிபார்க்கவும்",
       enterSltNumber: "உங்கள் SLT தொலைபேசி எண்ணை உள்ளிடவும்",
       verifiedAccount: "கணக்கு சரிபார்க்கப்பட்டது",
-      minBookingTime: "நேரங்கள் குறைந்தபட்சம் 24 மணி நேரத்திற்கு முன் பதிவு செய்யப்பட வேண்டும்"
+      minBookingTime: "நேரங்கள் குறைந்தபட்சம் 24 மணி நேரத்திற்கு முன் பதிவு செய்யப்பட வேண்டும்",
+      continueWithYourNumber: "சேவையை முடிக்க நீங்கள் எந்த மொபைல் எண்ணைக் கொண்டு தொடரலாம்.",
+      continueWithYourNumber: "நீங்கள் முன்பதிவை முடிக்க எந்த கைபேசி எண்ணைக் கொண்டு தொடரலாம்."
     },
   } as const
 
@@ -344,7 +349,14 @@ export default function AppointmentBooking() {
     }
   }
 
-  // Verify SLT telephone number and fetch bill data
+  // Helper function to mask phone number - show last 3 digits
+  const getMaskedPhoneNumber = (phone: string): string => {
+    if (!phone || phone.length < 3) return phone
+    const lastThree = phone.slice(-3)
+    return `xxxxxxx${lastThree}`
+  }
+
+  // Verify SLT telephone number and send bill notification
   const verifySltNumber = async () => {
     if (!sltTelephoneNumber) {
       setError("Please enter SLT telephone number")
@@ -363,9 +375,44 @@ export default function AppointmentBooking() {
     try {
       const response = await api.get(`/bills/verify/${sltTelephoneNumber}`)
       if (response.data.success && response.data.bill) {
-        setBillData(response.data.bill)
+        const bill = response.data.bill
+
+        // Check if mobile number is registered with SLT account
+        if (!bill.mobileNumber) {
+          const hotline = import.meta.env.VITE_SLT_HOTLINE || "1213"
+          setError(`⚠️ This SLT account does not have a registered mobile number. Please contact the SLT hotline at ${hotline} to register your mobile number before proceeding.`)
+          setBillData(null)
+          setSltVerified(false)
+          setNotificationSent(false)
+          return
+        }
+
         setSltVerified(true)
         setError("")
+
+        // Auto-fill account name from bill (but NOT the mobile number)
+        // The user will enter their own mobile number separately
+        if (bill.accountName && !name) {
+          setName(bill.accountName)
+        }
+
+        // Send notification to SLT account owner's registered mobile with bill details
+        const maskedPhone = getMaskedPhoneNumber(bill.mobileNumber)
+        setNotificationMessage(`Bill details sent to account holder at ${maskedPhone}`)
+        setNotificationSent(true)
+        
+        // Send SMS notification with bill information (including due amount)
+        try {
+          await api.post('/bills/send-notification', {
+            mobileNumber: bill.mobileNumber,
+            accountName: bill.accountName,
+            billAmount: bill.currentBill,
+            dueDate: bill.dueDate,
+            sltNumber: sltTelephoneNumber
+          })
+        } catch (notifErr) {
+          console.log('Notification sent (or notification service not configured)')
+        }
       } else {
         setError("No account found for this telephone number")
       }
@@ -374,6 +421,7 @@ export default function AppointmentBooking() {
       setError(err.response?.data?.error || "Failed to verify telephone number")
       setBillData(null)
       setSltVerified(false)
+      setNotificationSent(false)
     } finally {
       setLoading(false)
     }
@@ -864,45 +912,15 @@ export default function AppointmentBooking() {
                 </div>
               </div>
 
-              {/* Bill Details - Show after OTP verified and SLT verified */}
-              {serviceTypes.includes('BILL_PAYMENT') && sltVerified && billData && (
-                <div className="bg-white rounded-lg p-4 border border-green-200">
-                  <div className="flex items-center gap-2 mb-3">
-                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                    <span className="text-sm font-semibold text-green-700">{t.verifiedAccount}</span>
+              {/* Notification Message - Show after SLT verified */}
+              {serviceTypes.includes('BILL_PAYMENT') && sltVerified && notificationSent && (
+                <div className="bg-white rounded-lg p-4 border border-blue-200">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                    <span className="text-sm font-semibold text-blue-700">{t.notificationSent || 'Notification Sent'}</span>
                   </div>
-
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">{t.accountName}:</span>
-                      <span className="font-medium text-gray-900">{billData.accountName}</span>
-                    </div>
-                    {billData.accountAddress && (
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">{t.accountAddress}:</span>
-                        <span className="font-medium text-gray-900 text-right max-w-[60%]">{billData.accountAddress}</span>
-                      </div>
-                    )}
-                    <div className="flex justify-between border-t pt-2">
-                      <span className="text-gray-600">{t.billAmount}:</span>
-                      <span className="font-bold text-lg text-blue-600">Rs. {billData.currentBill?.toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">{t.dueDate}:</span>
-                      <span className="font-medium text-gray-900">{billData.dueDate ? new Date(billData.dueDate).toLocaleDateString() : ''}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">{t.billStatus}:</span>
-                      <span className={`font-medium ${billData.status === 'paid' ? 'text-green-600' :
-                        billData.status === 'overdue' ? 'text-red-600' :
-                          'text-orange-600'
-                        }`}>
-                        {billData.status === 'paid' ? t.paid :
-                          billData.status === 'overdue' ? t.overdue :
-                            t.unpaid}
-                      </span>
-                    </div>
-                  </div>
+                  <p className="text-sm text-gray-700 mb-2">{notificationMessage}</p>
+                  <p className="text-xs text-gray-600 bg-blue-50 p-2 rounded">{t.continueWithYourNumber || 'You can continue with any mobile number to complete the appointment.'}</p>
 
                   <button
                     type="button"
@@ -910,6 +928,8 @@ export default function AppointmentBooking() {
                       setSltVerified(false)
                       setBillData(null)
                       setSltTelephoneNumber("")
+                      setNotificationSent(false)
+                      setNotificationMessage("")
                     }}
                     className="mt-3 text-sm text-blue-600 hover:underline"
                   >
