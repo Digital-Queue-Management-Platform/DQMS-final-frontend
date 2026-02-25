@@ -24,6 +24,7 @@ import {
   Calendar,
   UserCheck,
   Monitor,
+  BellOff,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useUser } from '../../../contexts/UserContext'
@@ -54,7 +55,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed, activePa
     //{ name: 'Home', icon: Home, to: '/' },
     { name: 'Dashboard', icon: LayoutDashboard, to: '/admin' },
     { name: 'Appointments', icon: Calendar, to: '/admin/appointments' },
-    { name: 'Critical Feedback', icon: MessageSquare, to: '/admin/feedback' },
+    { name: 'Feedbacks ', icon: MessageSquare, to: '/admin/feedback' },
     { name: 'Services', icon: Briefcase, to: '/admin/services' },
     { name: 'Branches', icon: Building2, to: '/admin/branches' },
     { name: 'RTOMs', icon: Users, to: '/admin/managers' },
@@ -75,6 +76,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed, activePa
     { name: 'Appointments', icon: Calendar, to: '/manager/appointments' },
     { name: 'Feedback (2-Star)', icon: MessageSquare, to: '/manager/feedback' },
     { name: 'Teleshop Managers', icon: Phone, to: '/manager/teleshop-managers' },
+    { name: 'Officer Assignment', icon: UserCog, to: '/manager/officer-assignment' },
+    { name: 'Closure Notices', icon: BellOff, to: '/manager/closure-notices' },
     { name: 'Branches', icon: Building2, to: '/manager/branches' },
     { name: 'Break Oversight', icon: Coffee, to: '/manager/breaks' },
     { name: 'QR Codes', icon: QrCode, to: '/manager/qr-codes' },
@@ -92,6 +95,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed, activePa
     { name: 'Manage Officers', icon: Users, to: '/teleshop-manager/officers' },
     { name: 'Register Officer', icon: UserPlus, to: '/teleshop-manager/officers/add' },
     { name: 'Service Tracking', icon: MessageSquare, to: '/teleshop-manager/service-tracking' },
+    { name: 'Closure Notices', icon: BellOff, to: '/teleshop-manager/closure-notices' },
   ]
 
   // Fix flickering: prioritize URL path over role, and handle loading state

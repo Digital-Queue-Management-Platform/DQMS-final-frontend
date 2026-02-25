@@ -12,7 +12,8 @@ import {
   ChevronRight,
   Bell,
   X,
-  AlertCircle
+  AlertCircle,
+  Star
 } from "lucide-react"
 import FeedbackCard from "../components/FeedbackCard"
 import { AnimatedDropdown } from "../components/AnimatedDropdown"
@@ -40,6 +41,10 @@ interface Feedback {
       id: string
       name: string
       location: string
+      region?: {
+        id: string
+        name: string
+      }
     }
   }
   customer: {
@@ -65,6 +70,18 @@ interface Pagination {
   hasPrev: boolean
 }
 
+interface Region {
+  id: string
+  name: string
+}
+
+interface Outlet {
+  id: string
+  name: string
+  location: string
+  regionId: string
+}
+
 export default function AdminFeedback() {
   const navigate = useNavigate()
   const [feedback, setFeedback] = useState<Feedback[]>([])
@@ -77,27 +94,54 @@ export default function AdminFeedback() {
   const [showAlerts, setShowAlerts] = useState(false)
   const [error, setError] = useState("")
 
+  // Regions + outlets for filter dropdowns
+  const [regions, setRegions] = useState<Region[]>([])
+  const [outlets, setOutlets] = useState<Outlet[]>([])
+  const [filteredOutlets, setFilteredOutlets] = useState<Outlet[]>([])
+
   // Filters - separate pending and applied filters
   const [pendingFilters, setPendingFilters] = useState({
-    resolved: "", // Show all feedback by default
+    resolved: "",
     startDate: "",
-    endDate: ""
+    endDate: "",
+    rating: "",
+    regionId: "",
+    outletId: ""
   })
   const [appliedFilters, setAppliedFilters] = useState({
     resolved: "",
     startDate: "",
-    endDate: ""
+    endDate: "",
+    rating: "",
+    regionId: "",
+    outletId: ""
   })
   const [currentPage, setCurrentPage] = useState(1)
 
+  // Fetch regions and all outlets on mount
+  useEffect(() => {
+    fetchRegions()
+    fetchAllOutlets()
+  }, [])
+
+  // When pending regionId changes, filter outlets list
+  useEffect(() => {
+    if (pendingFilters.regionId) {
+      setFilteredOutlets(outlets.filter(o => o.regionId === pendingFilters.regionId))
+      // Reset outlet selection if the outlet no longer belongs to this region
+      setPendingFilters(prev => ({ ...prev, outletId: "" }))
+    } else {
+      setFilteredOutlets(outlets)
+    }
+  }, [pendingFilters.regionId, outlets])
+
   useEffect(() => {
     fetchFeedback()
-    fetchAlerts() // Fetch 1-star feedback alerts for Admin
+    fetchAlerts()
 
-    // Enhanced auto-refresh every 30 seconds
     const interval = setInterval(() => {
       fetchFeedback()
-      fetchAlerts() // Also refresh alerts
+      fetchAlerts()
     }, 30000)
 
     // WebSocket for real-time monitoring with better error handling
@@ -111,7 +155,6 @@ export default function AdminFeedback() {
       if (!isComponentMounted || connectionAttempts >= maxReconnectAttempts) return
 
       try {
-        // Check if WebSocket is already connected
         if (ws && (ws.readyState === WebSocket.CONNECTING || ws.readyState === WebSocket.OPEN)) {
           return
         }
@@ -121,7 +164,7 @@ export default function AdminFeedback() {
 
         ws.onopen = () => {
           console.log('AdminFeedback WebSocket connected')
-          connectionAttempts = 0 // Reset attempts on successful connection
+          connectionAttempts = 0
         }
 
         ws.onmessage = (event) => {
@@ -129,9 +172,8 @@ export default function AdminFeedback() {
             const data = JSON.parse(event.data)
             if (data.type === "CRITICAL_FEEDBACK_ALERT" || data.type === "NEW_TOKEN" || data.type === "TOKEN_COMPLETED") {
               fetchFeedback()
-              fetchAlerts() // Refresh alerts when new 1-star feedback arrives
+              fetchAlerts()
 
-              // Show immediate notification for 1-star feedback alerts
               if (data.type === "CRITICAL_FEEDBACK_ALERT") {
                 console.log('🚨 CRITICAL FEEDBACK ALERT (1-star):', data.data)
               }
@@ -148,7 +190,7 @@ export default function AdminFeedback() {
         ws.onclose = (event) => {
           console.log('AdminFeedback WebSocket disconnected:', event.reason)
           if (isComponentMounted && connectionAttempts < maxReconnectAttempts) {
-            const reconnectDelay = Math.min(1000 * Math.pow(2, connectionAttempts), 30000) // Exponential backoff
+            const reconnectDelay = Math.min(1000 * Math.pow(2, connectionAttempts), 30000)
             reconnectTimer = window.setTimeout(() => connectWebSocket(), reconnectDelay)
           }
         }
@@ -161,7 +203,6 @@ export default function AdminFeedback() {
       }
     }
 
-    // Delay initial connection to avoid React strict mode issues
     const initialConnectionTimer = setTimeout(() => connectWebSocket(), 1000)
 
     return () => {
@@ -175,10 +216,51 @@ export default function AdminFeedback() {
     }
   }, [currentPage, appliedFilters])
 
+  const fetchRegions = async () => {
+    try {
+      const token = localStorage.getItem("adminToken")
+      if (!token) return
+      const response = await api.get("/admin/managers", {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      if (response.data?.managers) {
+        setRegions(response.data.managers.map((r: any) => ({ id: r.id, name: r.name })))
+      }
+    } catch (err) {
+      console.error("Failed to fetch regions:", err)
+    }
+  }
+
+  const fetchAllOutlets = async () => {
+    try {
+      const token = localStorage.getItem("adminToken")
+      if (!token) return
+      const response = await api.get("/admin/outlets", {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      if (Array.isArray(response.data)) {
+        setOutlets(response.data.map((o: any) => ({
+          id: o.id,
+          name: o.name,
+          location: o.location,
+          regionId: o.regionId
+        })))
+        setFilteredOutlets(response.data.map((o: any) => ({
+          id: o.id,
+          name: o.name,
+          location: o.location,
+          regionId: o.regionId
+        })))
+      }
+    } catch (err) {
+      console.error("Failed to fetch outlets:", err)
+    }
+  }
+
   const fetchFeedback = async () => {
     try {
       setLoading(true)
-      setError("") // Clear previous errors
+      setError("")
       const token = localStorage.getItem("adminToken")
       if (!token) {
         navigate("/admin/login")
@@ -188,13 +270,19 @@ export default function AdminFeedback() {
       const params = new URLSearchParams({
         page: currentPage.toString(),
         limit: "10",
-        ...appliedFilters
       })
+
+      // Only add non-empty filters
+      if (appliedFilters.resolved) params.append("resolved", appliedFilters.resolved)
+      if (appliedFilters.startDate) params.append("startDate", appliedFilters.startDate)
+      if (appliedFilters.endDate) params.append("endDate", appliedFilters.endDate)
+      if (appliedFilters.rating) params.append("rating", appliedFilters.rating)
+      if (appliedFilters.regionId) params.append("regionId", appliedFilters.regionId)
+      if (appliedFilters.outletId) params.append("outletId", appliedFilters.outletId)
 
       const response = await api.get(`/admin/feedback?${params}`, {
         headers: { Authorization: `Bearer ${token}` }
       })
-      console.log("Admin feedbacks: ", response.data)
 
       if (response.data) {
         setFeedback(response.data.feedback || [])
@@ -213,15 +301,15 @@ export default function AdminFeedback() {
     }
   }
 
-  // Fetch alerts for Admin (1-star feedback alerts)
+  // Fetch alerts for Admin (1-star feedback alerts) — UNCHANGED
   const fetchAlerts = async () => {
     try {
       const token = localStorage.getItem("adminToken")
       if (!token) return
 
-      const params: any = { 
+      const params: any = {
         isRead: false,
-        type: "critical_feedback" // Filter for critical feedback alerts only
+        type: "critical_feedback"
       }
 
       const response = await api.get("/admin/alerts", {
@@ -234,7 +322,7 @@ export default function AdminFeedback() {
     }
   }
 
-  // Mark alert as read
+  // Mark alert as read — UNCHANGED
   const markAlertAsRead = async (alertId: string) => {
     try {
       const token = localStorage.getItem("adminToken")
@@ -243,7 +331,7 @@ export default function AdminFeedback() {
       await api.patch(`/admin/alerts/${alertId}/read`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       })
-      fetchAlerts() // Refresh alerts after marking as read
+      fetchAlerts()
     } catch (err) {
       console.error("Failed to mark alert as read:", err)
     }
@@ -263,7 +351,6 @@ export default function AdminFeedback() {
         headers: { Authorization: `Bearer ${token}` }
       })
 
-      // Refresh feedback list
       fetchFeedback()
     } catch (error: any) {
       console.error("Failed to resolve feedback:", error)
@@ -284,28 +371,41 @@ export default function AdminFeedback() {
     const defaultFilters = {
       resolved: "",
       startDate: "",
-      endDate: ""
+      endDate: "",
+      rating: "",
+      regionId: "",
+      outletId: ""
     }
     setPendingFilters(defaultFilters)
+    setAppliedFilters(defaultFilters)
     setCurrentPage(1)
   }
 
-  // Calculate unread alert count for notification badge
+  // Render star display
+  const renderStars = (rating: number) => {
+    return Array.from({ length: 5 }, (_, i) => (
+      <Star
+        key={i}
+        className={`w-3 h-3 inline ${i < rating ? "text-yellow-400 fill-yellow-400" : "text-gray-300"}`}
+      />
+    ))
+  }
+
   const unreadAlertCount = alerts.filter((a) => !a.isRead).length
 
   return (
     <div className="p-4">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-4">
-          <h1 className="text-2xl font-bold text-gray-900">Critical Customer Feedback (1-Star)</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Customer Feedback</h1>
         </div>
 
-        {/* 1-Star Feedback Alerts Notification Bell */}
+        {/* 1-Star Feedback Alerts Notification Bell — UNCHANGED */}
         <div className="flex items-center gap-4">
           <button
             onClick={() => setShowAlerts(!showAlerts)}
             className="relative p-2 bg-white rounded-lg hover:bg-gray-50 transition-colors border border-gray-200 shadow-sm"
-            title="Critical Feedback Alerts"
+            title="Critical Feedback Alerts (1-Star)"
           >
             <Bell className="w-5 h-5 text-gray-700" />
             {unreadAlertCount > 0 && (
@@ -321,7 +421,7 @@ export default function AdminFeedback() {
       <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <div className="bg-white p-6 rounded-xl border border-gray-200">
           <div className="flex items-center">
-            <MessageSquare className="w-8 h-8 text-red-600 mr-3" />
+            <MessageSquare className="w-8 h-8 text-blue-600 mr-3" />
             <div>
               <h3 className="text-sm font-medium text-gray-600 mb-1">Total Feedback</h3>
               <p className="text-2xl font-bold text-gray-900">{stats?.totalFeedback || 0}</p>
@@ -348,29 +448,76 @@ export default function AdminFeedback() {
         </div>
         <div className="bg-white p-6 rounded-xl border border-gray-200">
           <div className="flex items-center">
-            <Calendar className="w-8 h-8 text-red-600 mr-3" />
+            <Calendar className="w-8 h-8 text-blue-600 mr-3" />
             <div>
               <h3 className="text-sm font-medium text-gray-600 mb-1">Today</h3>
-              <p className="text-2xl font-bold text-red-600">{stats?.todayFeedback || 0}</p>
+              <p className="text-2xl font-bold text-blue-600">{stats?.todayFeedback || 0}</p>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Filters */}
-      <div className="p-2 rounded-lg mb-6 border border-gray-200">
-        <div className="flex items-center gap-3">
-          {/* Status Dropdown */}
-          <div className="w-48">
+      {/* Enhanced Filters */}
+      <div className="p-3 rounded-lg mb-6 border border-gray-200 bg-gray-50">
+        <div className="flex flex-wrap items-center gap-3">
+
+          {/* Rating Filter */}
+          <div className="w-44">
+            <AnimatedDropdown
+              value={pendingFilters.rating}
+              onChange={(value) => handleFilterChange("rating", value)}
+              options={[
+                { value: "", label: "All Ratings" },
+                { value: "1", label: "⭐ 1 Star" },
+                { value: "2", label: "⭐⭐ 2 Stars" },
+                { value: "3", label: "⭐⭐⭐ 3 Stars" },
+                { value: "4", label: "⭐⭐⭐⭐ 4 Stars" },
+                { value: "5", label: "⭐⭐⭐⭐⭐ 5 Stars" }
+              ]}
+              placeholder="All Ratings"
+              icon={<Star className="w-4 h-4" />}
+            />
+          </div>
+
+          {/* Status Filter */}
+          <div className="w-44">
             <AnimatedDropdown
               value={pendingFilters.resolved}
               onChange={(value) => handleFilterChange("resolved", value)}
               options={[
+                { value: "", label: "All Status" },
                 { value: "false", label: "Unresolved Only" },
-                { value: "true", label: "Resolved Only" },
-                { value: "", label: "All Feedback" }
+                { value: "true", label: "Resolved Only" }
               ]}
-              placeholder="Select status"
+              placeholder="All Status"
+              icon={<Filter className="w-4 h-4" />}
+            />
+          </div>
+
+          {/* RTOM (Region) Filter */}
+          <div className="w-48">
+            <AnimatedDropdown
+              value={pendingFilters.regionId}
+              onChange={(value) => handleFilterChange("regionId", value)}
+              options={[
+                { value: "", label: "All RTOMs" },
+                ...regions.map(r => ({ value: r.id, label: r.name }))
+              ]}
+              placeholder="All RTOMs"
+              icon={<Filter className="w-4 h-4" />}
+            />
+          </div>
+
+          {/* Teleshop (Branch/Outlet) Filter */}
+          <div className="w-48">
+            <AnimatedDropdown
+              value={pendingFilters.outletId}
+              onChange={(value) => handleFilterChange("outletId", value)}
+              options={[
+                { value: "", label: "All Branches" },
+                ...filteredOutlets.map(o => ({ value: o.id, label: o.name }))
+              ]}
+              placeholder="All Branches"
               icon={<Filter className="w-4 h-4" />}
             />
           </div>
@@ -382,7 +529,7 @@ export default function AdminFeedback() {
               type="date"
               value={pendingFilters.startDate}
               onChange={(e) => handleFilterChange("startDate", e.target.value)}
-              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
+              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
 
@@ -392,7 +539,7 @@ export default function AdminFeedback() {
               type="date"
               value={pendingFilters.endDate}
               onChange={(e) => handleFilterChange("endDate", e.target.value)}
-              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
+              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
 
@@ -400,7 +547,7 @@ export default function AdminFeedback() {
           <div className="flex gap-2 ml-auto">
             <button
               onClick={applyFilters}
-              className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 text-sm transition-colors"
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 text-sm transition-colors"
             >
               Apply Filters
             </button>
@@ -408,18 +555,46 @@ export default function AdminFeedback() {
               onClick={clearFilters}
               className="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 text-sm transition-colors"
             >
-              Clear Filters
+              Clear
             </button>
           </div>
         </div>
+
+        {/* Active filter pills */}
+        {(appliedFilters.rating || appliedFilters.regionId || appliedFilters.outletId || appliedFilters.resolved) && (
+          <div className="flex flex-wrap gap-2 mt-2 pt-2 border-t border-gray-200">
+            <span className="text-xs text-gray-500 self-center">Active filters:</span>
+            {appliedFilters.rating && (
+              <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs font-medium">
+                {appliedFilters.rating}★ only
+              </span>
+            )}
+            {appliedFilters.regionId && (
+              <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
+                RTOM: {regions.find(r => r.id === appliedFilters.regionId)?.name || appliedFilters.regionId}
+              </span>
+            )}
+            {appliedFilters.outletId && (
+              <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium">
+                Branch: {outlets.find(o => o.id === appliedFilters.outletId)?.name || appliedFilters.outletId}
+              </span>
+            )}
+            {appliedFilters.resolved === "false" && (
+              <span className="px-2 py-1 bg-red-100 text-red-800 rounded-full text-xs font-medium">Unresolved</span>
+            )}
+            {appliedFilters.resolved === "true" && (
+              <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium">Resolved</span>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Feedback List */}
       {loading ? (
         <div className="bg-white rounded-lg shadow border border-gray-100 p-12">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto"></div>
-            <p className="mt-4 text-gray-600">Loading critical feedback...</p>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+            <p className="mt-4 text-gray-600">Loading feedback...</p>
           </div>
         </div>
       ) : error ? (
@@ -439,13 +614,23 @@ export default function AdminFeedback() {
         </div>
       ) : feedback.length > 0 ? (
         <>
+          {/* Results summary */}
+          <div className="text-sm text-gray-500 mb-3">
+            Showing {feedback.length} of {pagination?.total || 0} feedback entries
+          </div>
           <div className="space-y-4 mb-6">
             {feedback.map((item) => (
-              <FeedbackCard
-                key={item.id}
-                feedback={item}
-                onResolve={!item.isResolved ? handleResolveFeedback : undefined}
-              />
+              <div key={item.id} className="relative">
+                {/* Star rating badge */}
+                <div className="absolute top-3 right-3 z-10 flex items-center gap-1 bg-white border border-gray-200 rounded-full px-2 py-1 shadow-sm">
+                  {renderStars(item.rating)}
+                  <span className="text-xs text-gray-600 ml-1 font-medium">{item.rating}/5</span>
+                </div>
+                <FeedbackCard
+                  feedback={item}
+                  onResolve={!item.isResolved ? handleResolveFeedback : undefined}
+                />
+              </div>
             ))}
           </div>
 
@@ -483,20 +668,20 @@ export default function AdminFeedback() {
       ) : (
         <div className="text-center py-12 bg-white rounded-lg shadow border border-gray-100">
           <MessageSquare className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-          <div className="text-gray-500 mb-2">No critical feedback found</div>
+          <div className="text-gray-500 mb-2">No feedback found</div>
           <p className="text-sm text-gray-400">
-            1-star customer feedback from all outlets will appear here for immediate admin attention
+            Try adjusting your filters or check back later.
           </p>
         </div>
       )}
 
-      {/* Admin Alerts Panel */}
+      {/* Admin Alerts Panel — UNCHANGED */}
       {showAlerts && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-20 flex items-start justify-center sm:justify-end p-2 sm:p-4">
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm sm:max-w-md max-h-[90vh] sm:max-h-[80vh] overflow-y-auto">
             <div className="sticky top-0 bg-white border-b border-gray-200 p-3 sm:p-4">
               <div className="flex items-center justify-between">
-                <h2 className="text-base sm:text-lg font-bold text-gray-900">Critical Feedback Alerts</h2>
+                <h2 className="text-base sm:text-lg font-bold text-gray-900">Critical Feedback Alerts (1★)</h2>
                 <button onClick={() => setShowAlerts(false)} className="text-gray-500 hover:text-gray-700 p-1">
                   <X className="w-5 h-5" />
                 </button>
