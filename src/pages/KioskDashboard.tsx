@@ -27,7 +27,7 @@ export default function KioskDashboard() {
   const [mobileNumber, setMobileNumber] = useState('')
   const [nicNumber, setNicNumber] = useState('')
   const [email, setEmail] = useState('')
-  const [selectedServices, setSelectedServices] = useState<string[]>([])
+  const [selectedServices, setSelectedServices] = useState<string[]>(['BILL_PAYMENT']) // Bill Payment always included
   const [preferredLanguage, setPreferredLanguage] = useState<string>('en')
   const [submitting, setSubmitting] = useState(false)
   const [successToken, setSuccessToken] = useState<any>(null)
@@ -100,9 +100,14 @@ export default function KioskDashboard() {
         })
         if (response.ok) {
           const fetchedServices = await response.json()
-          setServices(fetchedServices)
+          // Always include BILL_PAYMENT as mandatory service
+          const withBillPayment = [
+            { id: 'BILL_PAYMENT', code: 'BILL_PAYMENT', title: 'Bill Payment', description: null },
+            ...fetchedServices.filter((s: any) => s.code !== 'BILL_PAYMENT')
+          ]
+          setServices(withBillPayment)
         } else {
-          // Fallback to static services if API fails
+          // Fallback to Bill Payment + Other option
           const STATIC_SERVICES = [
             { id: 'BILL_PAYMENT', code: 'BILL_PAYMENT', title: 'Bill Payment', description: null },
             { id: 'OTHERS', code: 'OTHERS', title: 'Others', description: null },
@@ -113,7 +118,7 @@ export default function KioskDashboard() {
       setLoading(false)
     } catch (err: any) {
       console.error('Failed to load services:', err)
-      // Fallback to static services
+      // Fallback to Bill Payment + Other option
       const STATIC_SERVICES = [
         { id: 'BILL_PAYMENT', code: 'BILL_PAYMENT', title: 'Bill Payment', description: null },
         { id: 'OTHERS', code: 'OTHERS', title: 'Others', description: null },
@@ -124,6 +129,9 @@ export default function KioskDashboard() {
   }
 
   const handleServiceToggle = (serviceCode: string) => {
+    // Cannot uncheck BILL_PAYMENT as it's mandatory
+    if (serviceCode === 'BILL_PAYMENT') return
+    
     setSelectedServices(prev =>
       prev.includes(serviceCode)
         ? prev.filter(s => s !== serviceCode)
@@ -759,17 +767,32 @@ export default function KioskDashboard() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-3">
-                      {t.serviceType}
-                      <span className="ml-2 text-xs text-gray-500">({selectedServices.length}/{services.length})</span>
-                    </label>
+                    <label className="block text-sm font-medium text-gray-700 mb-3">{t.serviceType}</label>
 
+                    {/* Bill Payment - Always Selected */}
+                    <div className="mb-4 p-4 border-2 border-blue-600 bg-blue-50 rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="checkbox"
+                          checked={true}
+                          disabled
+                          className="w-5 h-5 text-blue-600 rounded"
+                        />
+                        <div>
+                          <span className="text-base font-semibold text-blue-900">{t.billPayment}</span>
+                          <p className="text-xs text-blue-700 mt-1">{language === 'en' ? 'Required service' : language === 'si' ? 'අවශ්‍ය සේවාව' : 'தேவையான சேவை'}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Other Optional Services */}
                     <div className="space-y-3">
-                      {services.map((service) => (
+                      {services.filter(s => s.code !== 'BILL_PAYMENT').map((service) => (
                         <label
                           key={service.id}
-                          className={`flex items-center gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all hover:border-blue-400 ${selectedServices.includes(service.code) ? 'border-blue-600 bg-blue-50' : 'border-gray-200'
-                            }`}
+                          className={`flex items-center gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all hover:border-blue-400 ${
+                            selectedServices.includes(service.code) ? 'border-blue-600 bg-blue-50' : 'border-gray-200'
+                          }`}
                         >
                           <input
                             type="checkbox"

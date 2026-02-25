@@ -25,7 +25,7 @@ export default function AppointmentBooking() {
   const [outletId, setOutletId] = useState("")
   const [name, setName] = useState("")
   const [mobileNumber, setMobileNumber] = useState("")
-  const [serviceTypes, setServiceTypes] = useState<string[]>([])
+  const [serviceTypes, setServiceTypes] = useState<string[]>(['BILL_PAYMENT']) // Bill Payment always included
   const [datetime, setDatetime] = useState("") // yyyy-MM-ddTHH:mm
 
   // Get minimum date/time - at least 24 hours in advance
@@ -123,6 +123,9 @@ export default function AppointmentBooking() {
   }
 
   const toggleService = (code: string) => {
+    // Cannot uncheck BILL_PAYMENT as it's mandatory
+    if (code === 'BILL_PAYMENT') return
+    
     setServiceTypes(prev => prev.includes(code) ? prev.filter(c => c !== code) : [...prev, code])
   }
 
@@ -669,11 +672,27 @@ export default function AppointmentBooking() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-3">
                   {t.serviceTypesLabel}
-                  <span className="ml-2 text-xs text-gray-500">({serviceTypes.length}/{services.length})</span>
                 </label>
 
+                {/* Bill Payment - Always Selected */}
+                <div className="mb-4 p-4 border-2 border-blue-600 bg-blue-50 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="checkbox"
+                      checked={true}
+                      disabled
+                      className="w-5 h-5 text-blue-600 rounded"
+                    />
+                    <div>
+                      <span className="text-base font-semibold text-blue-900">{t.billPayment}</span>
+                      <p className="text-xs text-blue-700 mt-1">{language === 'en' ? 'Required service' : language === 'si' ? 'අවශ්‍ය සේවාව' : 'தேவையான சேவை'}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Other Optional Services */}
                 <div className="space-y-3">
-                  {services.map((service) => (
+                  {services.filter(s => s.code !== 'BILL_PAYMENT').map((service) => (
                     <label
                       key={service.id}
                       className={`flex items-center gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all hover:border-blue-400 ${serviceTypes.includes(service.code) ? 'border-blue-600 bg-blue-50' : 'border-gray-200'
@@ -686,7 +705,7 @@ export default function AppointmentBooking() {
                         className="w-5 h-5 text-blue-600 rounded"
                       />
                       <span className="text-base font-medium">
-                        {service.code === 'BILL_PAYMENT' ? t.billPayment : service.code === 'OTHERS' ? t.others : service.title}
+                        {service.code === 'OTHERS' ? t.others : service.title}
                       </span>
                     </label>
                   ))}
@@ -993,7 +1012,7 @@ export default function AppointmentBooking() {
                   onClick={() => {
                     setName('')
                     setMobileNumber('')
-                    setServiceTypes([])
+                    setServiceTypes(['BILL_PAYMENT']) // Reset with BILL_PAYMENT always included
                     setPreferredLanguage('en')
                     setOutletId('')
                     setDatetime('')
