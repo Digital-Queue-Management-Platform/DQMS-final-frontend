@@ -1,3 +1,6 @@
+  const [notificationSent, setNotificationSent] = useState(false)
+  const [notificationMessage, setNotificationMessage] = useState("")
+  const [billData, setBillData] = useState<any>(null)
 "use client"
 
 import { useEffect, useState } from "react"

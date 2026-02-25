@@ -1,3 +1,6 @@
+  const [notificationSent, setNotificationSent] = useState(false)
+  const [notificationMessage, setNotificationMessage] = useState("")
+  const [billData, setBillData] = useState<any>(null)
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { User, Phone, Eye, EyeOff } from 'lucide-react'
