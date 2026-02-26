@@ -103,36 +103,21 @@ export default function KioskDashboard() {
         })
         if (response.ok) {
           const fetchedServices = await response.json()
-          // Always include BILL_PAYMENT as mandatory service
-          const withBillPayment = [
-            { id: 'BILL_PAYMENT', code: 'BILL_PAYMENT', title: 'Bill Payment', description: null },
-            ...fetchedServices.filter((s: any) => s.code !== 'BILL_PAYMENT')
-          ]
-          setServices(withBillPayment)
+          setServices(fetchedServices)
         } else {
-          // Fallback to Bill Payment + Other option
-          const STATIC_SERVICES = [
-            { id: 'BILL_PAYMENT', code: 'BILL_PAYMENT', title: 'Bill Payment', description: null },
-            { id: 'OTHERS', code: 'OTHERS', title: 'Others', description: null },
-          ]
-          setServices(STATIC_SERVICES)
+          setServices([])
         }
       }
       setLoading(false)
     } catch (err: any) {
       console.error('Failed to load services:', err)
-      // Fallback to Bill Payment + Other option
-      const STATIC_SERVICES = [
-        { id: 'BILL_PAYMENT', code: 'BILL_PAYMENT', title: 'Bill Payment', description: null },
-        { id: 'OTHERS', code: 'OTHERS', title: 'Others', description: null },
-      ]
-      setServices(STATIC_SERVICES)
+      setServices([])
       setLoading(false)
     }
   }
 
   const isSltRequiredService = (code: string) => {
-    return code === 'BILL_PAYMENT' || code === 'SVC002'
+    return code === 'SVC002'
   }
 
   const handleServiceToggle = (serviceCode: string) => {
@@ -143,12 +128,6 @@ export default function KioskDashboard() {
   }
 
   const getServiceTitle = (code: string) => {
-    if (code === 'BILL_PAYMENT') {
-      return language === 'en' ? 'Bill Payment' : language === 'si' ? 'බිල් ගෙවීම' : 'பில் செலுத்தல்'
-    }
-    if (code === 'OTHERS') {
-      return language === 'en' ? 'Other Services' : language === 'si' ? 'වෙනත් සේවා' : 'மற்ற சேவைகள்'
-    }
     const service = services.find(s => s.code === code)
     return service?.title || code
   }
@@ -338,9 +317,9 @@ export default function KioskDashboard() {
   const canProceedFromStep1 = preferredLanguage !== ''
   const canProceedFromStep2 = selectedServices.length > 0
   const canProceedFromStep3 = () => {
-    // If bill payment is selected, need SLT number + name + mobile
-    if (selectedServices.includes('BILL_PAYMENT')) {
-      return (selectedServices.some(code => isSltRequiredService(code)) ? (sltTelephoneNumber && name && mobileNumber) : (name && mobileNumber))
+    // Check if any selected service requires SLT telephone number
+    if (selectedServices.some(code => isSltRequiredService(code))) {
+      return sltTelephoneNumber && name && mobileNumber
     }
     // Otherwise just need name and mobile
     return name && mobileNumber
