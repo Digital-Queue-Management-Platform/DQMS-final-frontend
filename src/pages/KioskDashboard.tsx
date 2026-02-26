@@ -1,7 +1,7 @@
   // Removed unused billData state
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { User, Phone, Eye, EyeOff } from 'lucide-react'
+import { User, Phone, Eye, EyeOff, Send, MessageSquare, CheckCircle } from 'lucide-react'
 import { API_URL } from '../config/api'
 import api from '../config/api'
 import OTPInput from '../components/OTPInput'
@@ -1015,14 +1015,17 @@ export default function KioskDashboard() {
                             : 'text-blue-700'
                         }`}>
                           {isOwnerOfAccount 
-                            ? '✓ Bill Amount' 
-                            : '📩 Notification Sent'
+                            ? <><CheckCircle className="w-3 h-3 inline-block mr-1" /> Bill Amount</>
+                            : <><Send className="w-3 h-3 inline-block mr-1" /> Notification Sent</>
                           }
                         </span>
                       </div>
                       <p className="text-sm text-gray-700 mb-2 font-medium">{notificationMessage}</p>
                       {!isOwnerOfAccount && (
-                        <p className="text-xs text-gray-600 bg-white p-2 rounded border border-gray-200 mb-2">💬 The bill details have been sent as an SMS notification to the account holder.</p>
+                        <p className="text-xs text-gray-600 bg-white p-2 rounded border border-gray-200 mb-2 flex items-start gap-2">
+                          <MessageSquare className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                          <span>The bill details have been sent as an SMS notification to the account holder.</span>
+                        </p>
                       )}
                       <p className="text-xs text-gray-600">{t.continueWithYourNumber || 'You can continue with your token generation.'}</p>
                     </div>

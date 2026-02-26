@@ -3,7 +3,7 @@
 
 import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { Calendar, MapPin, User, Phone } from "lucide-react"
+import { Calendar, MapPin, User, Phone, Send, MessageSquare, CheckCircle } from "lucide-react"
 import api from "../config/api"
 import type { Outlet } from "../types"
 import OTPInput from "../components/OTPInput"
@@ -968,14 +968,17 @@ export default function AppointmentBooking() {
                         : 'text-blue-700'
                     }`}>
                       {isOwnerOfAccount 
-                        ? '✓ Bill Amount' 
-                        : '📩 Notification Sent'
+                        ? <><CheckCircle className="w-3 h-3 inline-block mr-1" /> Bill Amount</>
+                        : <><Send className="w-3 h-3 inline-block mr-1" /> Notification Sent</>
                       }
                     </span>
                   </div>
                   <p className="text-sm text-gray-700 mb-2 font-medium">{notificationMessage}</p>
                   {!isOwnerOfAccount && (
-                    <p className="text-xs text-gray-600 bg-white p-2 rounded border border-gray-200 mb-2">💬 The bill details have been sent as an SMS notification to the account holder.</p>
+                    <p className="text-xs text-gray-600 bg-white p-2 rounded border border-gray-200 mb-2 flex items-start gap-2">
+                      <MessageSquare className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                      <span>The bill details have been sent as an SMS notification to the account holder.</span>
+                    </p>
                   )}
                   <p className="text-xs text-gray-600">{t.continueWithYourNumber || 'You can continue booking your appointment.'}</p>
 
