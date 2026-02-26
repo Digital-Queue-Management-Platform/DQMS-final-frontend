@@ -22,7 +22,7 @@ export default function CustomerRegistration() {
   // Initialize all form fields to empty strings - NEVER use cached values
   const [name, setName] = useState("")
   const [mobileNumber, setMobileNumber] = useState("")
-  const [serviceTypes, setServiceTypes] = useState<string[]>([])
+  const [selectedService, setSelectedService] = useState<string>("") 
   // Optional fields section toggle
   const [showOptional, setShowOptional] = useState(false)
   const [nicNumber, setNicNumber] = useState("")
@@ -63,10 +63,10 @@ export default function CustomerRegistration() {
 
   // Force clear all form fields whenever component mounts (every time page loads)
   const clearAllFormData = () => {
-    console.log('clearAllFormData called - clearing serviceTypes from:', serviceTypes)
+    console.log('clearAllFormData called - clearing selectedService from:', selectedService)
     setName("")
     setMobileNumber("")
-    setServiceTypes([])
+    setSelectedService("")
     setNicNumber("")
     setEmail("")
     setPreferredLanguage('en')
@@ -118,7 +118,7 @@ export default function CustomerRegistration() {
   }
 
   useEffect(() => {
-    console.log('CustomerRegistration useEffect - Initial serviceTypes:', serviceTypes)
+    console.log('CustomerRegistration useEffect - Initial selectedService:', selectedService)
     // IMMEDIATELY clear all form data when page loads - no matter what
     clearAllFormData()
 
@@ -140,12 +140,12 @@ export default function CustomerRegistration() {
 
     // Extra aggressive clearing for service types specifically
     setTimeout(() => {
-      setServiceTypes([])
+      setSelectedService("")
     }, 150)
 
     // Final safety clear
     setTimeout(() => {
-      setServiceTypes([])
+      setSelectedService("")
     }, 200)
 
     // Always fetch outlets and services first
@@ -299,7 +299,7 @@ export default function CustomerRegistration() {
 
     // Additional aggressive clearing for service types specifically
     setTimeout(() => {
-      setServiceTypes([])
+      setSelectedService("")
     }, 100)
   }, [location.pathname, location.search])
 
@@ -333,16 +333,9 @@ export default function CustomerRegistration() {
 
 
   // Handle service selection
-  const handleServiceToggle = (serviceCode: string) => {
-    if (serviceTypes.includes(serviceCode)) {
-      const newTypes = serviceTypes.filter(code => code !== serviceCode)
-      console.log('Removing service:', serviceCode, 'New types:', newTypes)
-      setServiceTypes(newTypes)
-    } else {
-      const newTypes = [...serviceTypes, serviceCode]
-      console.log('Adding service:', serviceCode, 'New types:', newTypes)
-      setServiceTypes(newTypes)
-    }
+  const handleServiceSelect = (serviceCode: string) => {
+    console.log('Selecting service:', serviceCode)
+    setSelectedService(serviceCode)
   }
 
   // Check if service requires SLT number (Bill Payment or Billing Inquiry)
@@ -408,7 +401,7 @@ export default function CustomerRegistration() {
         setOtpStep('verified')
 
         // Auto-verify SLT number after mobile OTP (for bill payment)
-        if (serviceTypes.some(code => isSltRequiredService(code)) && sltTelephoneNumber && !sltVerified) {
+        if (isSltRequiredService(selectedService) && sltTelephoneNumber && !sltVerified) {
           await verifySltNumber()
         }
 
@@ -470,10 +463,9 @@ export default function CustomerRegistration() {
         setSltVerified(true)
         setError("")
 
-        // Auto-fill customer details from bill data
-        if (bill.accountName) {
-          setName(bill.accountName)
-        }
+        // DO NOT auto-fill name from bill - allow user to enter their own name
+        // This is important because sometimes the person paying (e.g., driver)
+        // is not the account owner, and we want their name in the system
         // Do not auto-fill mobile for non-owners
         // if (bill.mobileNumber) {
         //   setMobileNumber(bill.mobileNumber)
@@ -542,7 +534,7 @@ export default function CustomerRegistration() {
         mobileNumber,
         nicNumber: nicNumber || undefined,
         email: email || undefined,
-        serviceTypes,
+        serviceTypes: [selectedService],
         outletId: selectedOutlet,
         qrToken,
         verifiedMobileToken: tokenForSubmit,
@@ -592,11 +584,11 @@ export default function CustomerRegistration() {
   }
 
   const canProceedFromStep1 = preferredLanguage !== ''
-  const canProceedFromStep2 = serviceTypes.length > 0
+  const canProceedFromStep2 = selectedService !== ""
   const canProceedFromStep3 = () => {
     // If bill payment is selected, need SLT number + name + mobile
-    if (serviceTypes.includes('BILL_PAYMENT')) {
-      return (serviceTypes.some(code => isSltRequiredService(code)) ? (sltTelephoneNumber && name && mobileNumber) : (name && mobileNumber))
+    if (selectedService === 'BILL_PAYMENT' || isSltRequiredService(selectedService)) {
+      return sltTelephoneNumber && name && mobileNumber
     }
     // Otherwise just need name and mobile
     return name && mobileNumber
@@ -620,9 +612,9 @@ export default function CustomerRegistration() {
       email: "Email (Optional)",
       show: "Show",
       hide: "Hide",
-      selectServiceTypes: "Select service types...",
+      selectServiceTypes: "Select a service...",
       preferredLanguage: "Preferred Language",
-      selectServiceTypesSubtitle: "Select one or more services.",
+      selectServiceTypesSubtitle: "Choose one service.",
       english: "English",
       sinhala: "Sinhala",
       tamil: "Tamil",
@@ -681,9 +673,9 @@ export default function CustomerRegistration() {
       email: "ඊමේල් (විකල්ප)",
       show: "පෙන්වන්න",
       hide: "සඟවන්න",
-      selectServiceTypes: "සේවා වර්ගය තෝරන්න...",
+      selectServiceTypes: "සේවාවක් තෝරන්න...",
       preferredLanguage: "භාෂාව තෝරාගන්න",
-      selectServiceTypesSubtitle: "සේවාවන් එකක් හෝ වැඩිදුර තෝරන්න.",
+      selectServiceTypesSubtitle: "සේවාවක් තෝරන්න.",
       english: "ඉංග්‍රීසි",
       sinhala: "සිංහල",
       tamil: "දෙමළ",
@@ -742,9 +734,9 @@ export default function CustomerRegistration() {
       email: "மின்னஞ்சல் (விருப்பம்)",
       show: "காட்டு",
       hide: "மறைக்க",
-      selectServiceTypes: "சேவை வகை தேர்ந்தெடுக்கவும்...",
+      selectServiceTypes: "ஒரு சேவையைத் தேர்ந்தெடுக்கவும்...",
       preferredLanguage: "விருப்ப மொழி",
-      selectServiceTypesSubtitle: "ஒரு அல்லது அதற்கு மேற்பட்ட சேவைகளைத் தேர்ந்தெடுக்கவும்.",
+      selectServiceTypesSubtitle: "ஒரு சேவையைத் தேர்வுசெய்க.",
       english: "ஆங்கிலம்",
       sinhala: "சிங்களம்",
       tamil: "தமிழ்",
@@ -948,27 +940,28 @@ export default function CustomerRegistration() {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-3">
                       {t.serviceType}
-                      <span className="ml-2 text-xs text-gray-500">({serviceTypes.length}/{services.length})</span>
+                      <span className="ml-2 text-xs text-red-500">*Required</span>
                     </label>
 
                     <div className="space-y-3">
                       {services.map((service) => (
                         <label
                           key={service.id}
-                          className={`flex items-center gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all hover:border-blue-400 ${serviceTypes.includes(service.code) ? 'border-blue-600 bg-blue-50' : 'border-gray-200'
+                          className={`flex items-center gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all hover:border-blue-400 ${selectedService === service.code ? 'border-blue-600 bg-blue-50' : 'border-gray-200'
                             }`}
                         >
                           <input
-                            type="checkbox"
-                            checked={serviceTypes.includes(service.code)}
-                            onChange={() => handleServiceToggle(service.code)}
-                            className="w-5 h-5 text-blue-600 rounded"
+                            type="radio"
+                            name="serviceType"
+                            checked={selectedService === service.code}
+                            onChange={() => handleServiceSelect(service.code)}
+                            className="w-5 h-5 text-blue-600"
                           />
                           <span className="text-base font-medium">{getServiceTitle(service.code)}</span>
                         </label>
                       ))}
                     </div>
-                    <p className="text-xs text-gray-500 mt-2">{t.selectServiceTypesSubtitle}</p>
+                    <p className="text-xs text-gray-500 mt-2">{t.selectOneService}</p>
                   </div>
 
                   <div className="flex gap-3">
@@ -1001,8 +994,8 @@ export default function CustomerRegistration() {
 
                   {/* Bill Payment Path - Collect SLT Number (will verify after OTP) */}
                   {(() => {
-                    const requiresSlt = serviceTypes.some(code => isSltRequiredService(code));
-                    console.log('Step 3 Service Check:', { serviceTypes, requiresSlt, isSltRequired: isSltRequiredService });
+                    const requiresSlt = isSltRequiredService(selectedService);
+                    console.log('Step 3 Service Check:', { selectedService, requiresSlt, isSltRequired: isSltRequiredService });
                     return requiresSlt;
                   })() && (
                     <div className="space-y-4">
@@ -1151,10 +1144,10 @@ export default function CustomerRegistration() {
                     <div>
                       <span className="text-xs font-medium text-gray-500 uppercase">{t.serviceType}</span>
                       <p className="text-sm font-medium text-gray-900">
-                        {serviceTypes.map(code => getServiceTitle(code)).join(', ')}
+                        {getServiceTitle(selectedService)}
                       </p>
                     </div>
-                    {serviceTypes.some(code => isSltRequiredService(code)) && sltTelephoneNumber && (
+                    {isSltRequiredService(selectedService) && sltTelephoneNumber && (
                       <div>
                         <span className="text-xs font-medium text-gray-500 uppercase">{t.sltTelephone}</span>
                         <p className="text-sm font-medium text-gray-900">{sltTelephoneNumber}</p>
@@ -1171,7 +1164,7 @@ export default function CustomerRegistration() {
                   </div>
 
                   {/* Bill Details or Notification - Show after OTP verified and SLT verified */}
-                  {serviceTypes.some(code => isSltRequiredService(code)) && sltVerified && billData && (
+                  {isSltRequiredService(selectedService) && sltVerified && billData && (
                     <div className="mt-4">
                       {isOwnerOfAccount ? (
                         <div className="bg-green-100 text-green-800 p-3 rounded">
@@ -1193,7 +1186,7 @@ export default function CustomerRegistration() {
                     <button
                       type="button"
                       onClick={sendOtp}
-                      disabled={!qrValid || otpSending || !mobileNumber || !selectedOutlet || serviceTypes.length === 0}
+                      disabled={!qrValid || otpSending || !mobileNumber || !selectedOutlet || !selectedService}
                       className="w-full bg-indigo-600 text-white py-3 rounded-lg font-semibold hover:bg-indigo-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
                     >
                       {otpSending ? t.sendingOTP : t.verify}
@@ -1237,7 +1230,7 @@ export default function CustomerRegistration() {
                   {(otpStep === 'sent' || otpStep === 'verified') && (
                     <button
                       type="submit"
-                      disabled={!qrValid || loading || !selectedOutlet || serviceTypes.length === 0 || (otpStep === 'sent' && otpCode.length !== 4)}
+                      disabled={!qrValid || loading || !selectedOutlet || !selectedService || (otpStep === 'sent' && otpCode.length !== 4)}
                       className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
                     >
                       {loading ? t.registering : t.register}
