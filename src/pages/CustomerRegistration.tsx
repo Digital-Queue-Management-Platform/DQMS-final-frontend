@@ -470,10 +470,9 @@ export default function CustomerRegistration() {
         setSltVerified(true)
         setError("")
 
-        // Auto-fill customer details from bill data
-        if (bill.accountName) {
-          setName(bill.accountName)
-        }
+        // DO NOT auto-fill name from bill - allow user to enter their own name
+        // This is important because sometimes the person paying (e.g., driver)
+        // is not the account owner, and we want their name in the system
         // Do not auto-fill mobile for non-owners
         // if (bill.mobileNumber) {
         //   setMobileNumber(bill.mobileNumber)

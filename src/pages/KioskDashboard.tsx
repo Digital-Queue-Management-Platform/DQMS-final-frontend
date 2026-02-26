@@ -233,11 +233,9 @@ export default function KioskDashboard() {
         setError("")
         // setBillData(bill) removed as billData is unused
 
-        // Auto-fill account name from bill (but NOT the mobile number)
-        // The user will enter their own mobile number separately
-        if (bill.accountName) {
-          setName(bill.accountName)
-        }
+        // DO NOT auto-fill name from bill - allow user to enter their own name
+        // This is important because sometimes the person paying (e.g., driver)
+        // is not the account owner, and we want their name in the system
 
         // Normalize mobile numbers to compare (07x → 94x format)
         const normalizeForComparison = (num: string) => {
