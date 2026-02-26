@@ -30,7 +30,7 @@ export default function KioskDashboard() {
   const [mobileNumber, setMobileNumber] = useState('')
   const [nicNumber, setNicNumber] = useState('')
   const [email, setEmail] = useState('')
-  const [selectedServices, setSelectedServices] = useState<string[]>([])
+  const [selectedService, setSelectedService] = useState<string>('')
   const [preferredLanguage, setPreferredLanguage] = useState<string>('en')
   const [submitting, setSubmitting] = useState(false)
   const [successToken, setSuccessToken] = useState<any>(null)
@@ -120,11 +120,8 @@ export default function KioskDashboard() {
     return code === 'SVC002'
   }
 
-  const handleServiceToggle = (serviceCode: string) => {
-    // Single-select: only one service at a time
-    setSelectedServices(prev =>
-      prev.includes(serviceCode) ? [] : [serviceCode]
-    )
+  const handleServiceSelect = (serviceCode: string) => {
+    setSelectedService(serviceCode)
   }
 
   const getServiceTitle = (code: string) => {
@@ -171,7 +168,7 @@ export default function KioskDashboard() {
         setOtpStep('verified')
 
         // Auto-verify SLT number after mobile OTP (for bill payment)
-        if (selectedServices.some(code => isSltRequiredService(code)) && sltTelephoneNumber && !sltVerified) {
+        if (isSltRequiredService(selectedService) && sltTelephoneNumber && !sltVerified) {
           await verifySltNumber()
         }
 
@@ -313,10 +310,10 @@ export default function KioskDashboard() {
   }
 
   const canProceedFromStep1 = preferredLanguage !== ''
-  const canProceedFromStep2 = selectedServices.length > 0
+  const canProceedFromStep2 = selectedService !== ''
   const canProceedFromStep3 = () => {
     // Check if any selected service requires SLT telephone number
-    if (selectedServices.some(code => isSltRequiredService(code))) {
+    if (isSltRequiredService(selectedService)) {
       return sltTelephoneNumber && name && mobileNumber
     }
     // Otherwise just need name and mobile
@@ -357,7 +354,7 @@ export default function KioskDashboard() {
           mobileNumber,
           nicNumber: nicNumber || undefined,
           email: email || undefined,
-          serviceTypes: selectedServices,
+          serviceTypes: [selectedService],
           preferredLanguages: preferredLanguage ? [preferredLanguage] : undefined,
           verifiedMobileToken: tokenForSubmit,
         }),
@@ -379,7 +376,7 @@ export default function KioskDashboard() {
       setMobileNumber('')
       setNicNumber('')
       setEmail('')
-      setSelectedServices([])
+      setSelectedService('')
       setPreferredLanguage('en')
       setOtpStep('idle')
       setOtpCode('')
@@ -404,7 +401,7 @@ export default function KioskDashboard() {
     setMobileNumber('')
     setNicNumber('')
     setEmail('')
-    setSelectedServices([])
+    setSelectedService('')
     setPreferredLanguage('en')
     setOtpStep('idle')
     setOtpCode('')
@@ -434,9 +431,9 @@ export default function KioskDashboard() {
       email: "Email (Optional)",
       show: "Show",
       hide: "Hide",
-      selectServiceTypes: "Select service types...",
+      selectServiceTypes: "Select a service...",
       preferredLanguage: "Preferred Language",
-      selectServiceTypesSubtitle: "Select one or more services.",
+      selectServiceTypesSubtitle: "Choose one service.",
       english: "English",
       sinhala: "Sinhala",
       tamil: "Tamil",
@@ -495,9 +492,9 @@ export default function KioskDashboard() {
       email: "ඊමේල් (විකල්ප)",
       show: "පෙන්වන්න",
       hide: "සඟවන්න",
-      selectServiceTypes: "සේවා වර්ගය තෝරන්න...",
+      selectServiceTypes: "සේවාවක් තෝරන්න...",
       preferredLanguage: "භාෂාව තෝරාගන්න",
-      selectServiceTypesSubtitle: "සේවාවන් එකක් හෝ වැඩිදුර තෝරන්න.",
+      selectServiceTypesSubtitle: "සේවාවක් තෝරන්න.",
       english: "ඉංග්‍රීසි",
       sinhala: "සිංහල",
       tamil: "දෙමළ",
@@ -556,9 +553,9 @@ export default function KioskDashboard() {
       email: "மின்னஞ்சல் (விருப்பம்)",
       show: "காட்டு",
       hide: "மறை",
-      selectServiceTypes: "சேவை வகைகளைத் தேர்ந்தெடுக்கவும்...",
+      selectServiceTypes: "ஒரு சேவையைத் தேர்ந்தெடுக்கவும்...",
       preferredLanguage: "விருப்ப மொழி",
-      selectServiceTypesSubtitle: "ஒன்று அல்லது அதற்கு மேற்பட்ட சேவைகளைத் தேர்ந்தெடுக்கவும்.",
+      selectServiceTypesSubtitle: "ஒரு சேவையைத் தேர்வுசெய்க.",
       english: "ஆங்கிலம்",
       sinhala: "சிங்களம்",
       tamil: "தமிழ்",
@@ -785,14 +782,14 @@ export default function KioskDashboard() {
                         <label
                           key={service.id}
                           className={`flex items-center gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all hover:border-blue-400 ${
-                            selectedServices.includes(service.code) ? 'border-blue-600 bg-blue-50' : 'border-gray-200'
+                            selectedService === service.code ? 'border-blue-600 bg-blue-50' : 'border-gray-200'
                           }`}
                         >
                           <input
                             type="radio"
                             name="service"
-                            checked={selectedServices.includes(service.code)}
-                            onChange={() => handleServiceToggle(service.code)}
+                            checked={selectedService === service.code}
+                            onChange={() => handleServiceSelect(service.code)}
                             className="w-5 h-5 text-blue-600"
                           />
                           <span className="text-base font-medium">{getServiceTitle(service.code)}</span>
@@ -831,7 +828,7 @@ export default function KioskDashboard() {
                   </div>
 
                   {/* Bill Payment Path - Collect SLT Number (will verify after OTP) */}
-                  {selectedServices.some(code => isSltRequiredService(code)) && (
+                  {isSltRequiredService(selectedService) && (
                     <div className="space-y-4">
                       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                         <h3 className="text-sm font-semibold text-blue-900 mb-3">{t.enterSltNumber}</h3>
@@ -977,10 +974,10 @@ export default function KioskDashboard() {
                     <div>
                       <span className="text-xs font-medium text-gray-500 uppercase">{t.serviceType}</span>
                       <p className="text-sm font-medium text-gray-900">
-                        {selectedServices.map(code => getServiceTitle(code)).join(', ')}
+                        {getServiceTitle(selectedService)}
                       </p>
                     </div>
-                    {selectedServices.some(code => isSltRequiredService(code)) && sltTelephoneNumber && (
+                    {isSltRequiredService(selectedService) && sltTelephoneNumber && (
                       <div>
                         <span className="text-xs font-medium text-gray-500 uppercase">{t.sltTelephone}</span>
                         <p className="text-sm font-medium text-gray-900">{sltTelephoneNumber}</p>
@@ -997,7 +994,7 @@ export default function KioskDashboard() {
                   </div>
 
                   {/* Notification Message - Show after SLT verified */}
-                  {selectedServices.some(code => isSltRequiredService(code)) && sltVerified && notificationSent && (
+                  {isSltRequiredService(selectedService) && sltVerified && notificationSent && (
                     <div className={`rounded-lg p-4 border ${
                       isOwnerOfAccount 
                         ? 'bg-green-50 border-green-200' 
@@ -1034,7 +1031,7 @@ export default function KioskDashboard() {
                     <button
                       type="button"
                       onClick={sendOtp}
-                      disabled={otpSending || !mobileNumber || selectedServices.length === 0}
+                      disabled={otpSending || !mobileNumber || !selectedService}
                       className="w-full bg-indigo-600 text-white py-3 rounded-lg font-semibold hover:bg-indigo-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
                     >
                       {otpSending ? t.sendingOTP : t.verify}
@@ -1066,7 +1063,7 @@ export default function KioskDashboard() {
 
                       <button
                         type="submit"
-                        disabled={submitting || selectedServices.length === 0 || otpCode.length !== 4}
+                        disabled={submitting || !selectedService || otpCode.length !== 4}
                         className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
                       >
                         {submitting ? t.generating : t.generateToken}
@@ -1089,7 +1086,7 @@ export default function KioskDashboard() {
                         setMobileNumber('')
                         setNicNumber('')
                         setEmail('')
-                        setSelectedServices([])
+                        setSelectedService('')
                         setPreferredLanguage('en')
                         setOtpStep('idle')
                         setOtpCode('')

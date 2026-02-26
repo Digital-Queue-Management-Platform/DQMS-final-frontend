@@ -28,7 +28,7 @@ export default function AppointmentBooking() {
   const [outletId, setOutletId] = useState("")
   const [name, setName] = useState("")
   const [mobileNumber, setMobileNumber] = useState("")
-  const [serviceTypes, setServiceTypes] = useState<string[]>([])
+  const [selectedService, setSelectedService] = useState<string>('')
   const [datetime, setDatetime] = useState("") // yyyy-MM-ddTHH:mm
 
   // Get minimum date/time - at least 24 hours in advance
@@ -129,9 +129,8 @@ export default function AppointmentBooking() {
     return code === 'BILL_PAYMENT' || code === 'SVC002'
   }
 
-  const toggleService = (code: string) => {
-    // Single-select: only one service at a time
-    setServiceTypes(prev => prev.includes(code) ? [] : [code])
+  const handleServiceSelect = (code: string) => {
+    setSelectedService(code)
   }
 
   // Translations for UI labels/buttons
@@ -146,7 +145,7 @@ export default function AppointmentBooking() {
       outlet: 'Outlet',
       selectBranch: 'Select a branch',
       dateTime: 'Date & Time',
-      serviceTypesLabel: 'Service Types',
+      serviceTypesLabel: 'Service Type',
       selected: 'selected',
       selectServices: 'Select services...',
       billPayment: 'Bill Payment',
@@ -202,7 +201,7 @@ export default function AppointmentBooking() {
       outlet: 'ශාඛාව',
       selectBranch: 'ශාඛාවක් තෝරන්න',
       dateTime: 'දිනය හා වේලාව',
-      serviceTypesLabel: 'සේවා වර්ග',
+      serviceTypesLabel: 'සේවා වර්ගය',
       selected: 'තෝරාගෙන ඇත',
       selectServices: 'සේවාවන් තෝරන්න...',
       billPayment: 'බිල් ගෙවීම',
@@ -258,7 +257,7 @@ export default function AppointmentBooking() {
       outlet: 'கிளை',
       selectBranch: 'ஒரு கிளையைத் தேர்ந்தெடுக்கவும்',
       dateTime: 'தேதி & நேரம்',
-      serviceTypesLabel: 'சேவை வகைகள்',
+      serviceTypesLabel: 'சேவை வகை',
       selected: 'தேர்வு செய்யப்பட்டது',
       selectServices: 'சேவைகளைத் தேர்ந்தெடுக்கவும்...',
       billPayment: 'பில் செலுத்துதல்',
@@ -343,7 +342,7 @@ export default function AppointmentBooking() {
         setOtpStep('verified')
 
         // Auto-verify SLT number after mobile OTP (for bill payment)
-        if (serviceTypes.some(code => isSltRequiredService(code)) && sltTelephoneNumber && !sltVerified) {
+        if (isSltRequiredService(selectedService) && sltTelephoneNumber && !sltVerified) {
           await verifySltNumber()
         }
 
@@ -496,11 +495,11 @@ export default function AppointmentBooking() {
         name,
         mobileNumber,
         outletId,
-        serviceTypes,
+        serviceTypes: [selectedService],
         preferredLanguage,
         appointmentAt: appointmentAt.toISOString(),
         verifiedMobileToken: tokenForSubmit,
-        sltTelephoneNumber: serviceTypes.some(code => isSltRequiredService(code)) ? sltTelephoneNumber : undefined,
+        sltTelephoneNumber: isSltRequiredService(selectedService) ? sltTelephoneNumber : undefined,
       })
 
       if (res.data?.success) {
@@ -561,13 +560,13 @@ export default function AppointmentBooking() {
   }
 
   const canProceedFromStep1 = preferredLanguage !== ''
-  const canProceedFromStep2 = serviceTypes.length > 0
+  const canProceedFromStep2 = selectedService !== ''
   const canProceedFromStep3 = () => {
     // Must have: outlet, datetime, name, mobile
     // Datetime must be at least 24 hours in advance
     // If bill payment selected: must also have SLT number
     const hasBasicInfo = outletId && datetime && name && mobileNumber && isValidAppointmentTime(datetime)
-    if (serviceTypes.some(code => isSltRequiredService(code))) {
+    if (isSltRequiredService(selectedService)) {
       return hasBasicInfo && sltTelephoneNumber
     }
     return hasBasicInfo
@@ -714,14 +713,14 @@ export default function AppointmentBooking() {
                   {services.map((service) => (
                     <label
                       key={service.id}
-                      className={`flex items-center gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all hover:border-blue-400 ${serviceTypes.includes(service.code) ? 'border-blue-600 bg-blue-50' : 'border-gray-200'
+                      className={`flex items-center gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all hover:border-blue-400 ${selectedService === service.code ? 'border-blue-600 bg-blue-50' : 'border-gray-200'
                         }`}
                     >
                       <input
                         type="radio"
                         name="service"
-                        checked={serviceTypes.includes(service.code)}
-                        onChange={() => toggleService(service.code)}
+                        checked={selectedService === service.code}
+                        onChange={() => handleServiceSelect(service.code)}
                         className="w-5 h-5 text-blue-600"
                       />
                       <span className="text-base font-medium">
@@ -761,7 +760,7 @@ export default function AppointmentBooking() {
               </div>
 
               {/* Bill Payment - Collect SLT Number (will verify after mobile OTP) */}
-              {serviceTypes.some(code => isSltRequiredService(code)) && (
+              {isSltRequiredService(selectedService) && (
                 <div className="space-y-4">
                   <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                     <h3 className="text-sm font-semibold text-blue-900 mb-3">{t.enterSltNumber}</h3>
@@ -920,10 +919,10 @@ export default function AppointmentBooking() {
                 <div>
                   <span className="text-xs font-medium text-gray-500 uppercase">{t.serviceTypesLabel}</span>
                   <p className="text-sm font-medium text-gray-900">
-                    {serviceTypes.map(code => code === 'BILL_PAYMENT' ? t.billPayment : code === 'OTHERS' ? t.others : code).join(', ')}
+                    {selectedService === 'BILL_PAYMENT' ? t.billPayment : selectedService === 'OTHERS' ? t.others : selectedService}
                   </p>
                 </div>
-                {serviceTypes.some(code => isSltRequiredService(code)) && sltTelephoneNumber && (
+                {isSltRequiredService(selectedService) && sltTelephoneNumber && (
                   <div>
                     <span className="text-xs font-medium text-gray-500 uppercase">{t.sltTelephone}</span>
                     <p className="text-sm font-medium text-gray-900">{sltTelephoneNumber}</p>
@@ -952,7 +951,7 @@ export default function AppointmentBooking() {
               </div>
 
               {/* Notification Message - Show after SLT verified */}
-              {serviceTypes.some(code => isSltRequiredService(code)) && sltVerified && notificationSent && (
+              {isSltRequiredService(selectedService) && sltVerified && notificationSent && (
                 <div className={`rounded-lg p-4 border ${
                   isOwnerOfAccount 
                     ? 'bg-green-50 border-green-200' 
@@ -1002,7 +1001,7 @@ export default function AppointmentBooking() {
                 <button
                   type="button"
                   onClick={sendOtp}
-                  disabled={otpSending || !mobileNumber || serviceTypes.length === 0}
+                  disabled={otpSending || !mobileNumber || !selectedService}
                   className="w-full bg-indigo-600 text-white py-3 rounded-lg font-semibold hover:bg-indigo-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
                 >
                   {otpSending ? t.sendingOTP : t.verify}
@@ -1053,7 +1052,7 @@ export default function AppointmentBooking() {
                   onClick={() => {
                     setName('')
                     setMobileNumber('')
-                    setServiceTypes([])
+                    setSelectedService('')
                     setPreferredLanguage('en')
                     setOutletId('')
                     setDatetime('')
