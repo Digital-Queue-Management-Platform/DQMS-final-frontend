@@ -131,11 +131,11 @@ export default function ManagerOfficers() {
     setSelectedOfficer({ ...officer, languages: langs })
   }
 
-  const toggleService = (serviceId: string) => {
+  const toggleService = (serviceCode: string) => {
     if (!selectedOfficer) return
     const assigned = selectedOfficer.assignedServices || []
-    const exists = assigned.includes(serviceId)
-    const next = exists ? assigned.filter((s: string) => s !== serviceId) : [...assigned, serviceId]
+    const exists = assigned.includes(serviceCode)
+    const next = exists ? assigned.filter((s: string) => s !== serviceCode) : [...assigned, serviceCode]
     setSelectedOfficer({ ...selectedOfficer, assignedServices: next })
   }
 
@@ -384,10 +384,10 @@ export default function ManagerOfficers() {
                   ) : (
                     <div className="space-y-2">
                       {services.map((s) => {
-                        const assigned = (selectedOfficer.assignedServices || []).includes(s.id)
+                        const assigned = (selectedOfficer.assignedServices || []).includes(s.code)
                         return (
                           <label key={s.id} className="flex items-center gap-3 p-3 bg-white rounded-lg border border-slate-200 hover:border-purple-300 cursor-pointer transition-colors">
-                            <input type="checkbox" checked={assigned} onChange={() => toggleService(s.id)} className="w-4 h-4 text-purple-600 rounded focus:ring-2 focus:ring-purple-500" />
+                            <input type="checkbox" checked={assigned} onChange={() => toggleService(s.code)} className="w-4 h-4 text-purple-600 rounded focus:ring-2 focus:ring-purple-500" />
                             <span className="text-sm font-medium text-slate-700 flex-1">{s.title}</span>
                             {assigned && (<CheckCircle2 className="w-4 h-4 text-purple-600" />)}
                           </label>

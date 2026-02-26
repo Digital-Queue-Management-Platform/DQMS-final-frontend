@@ -184,12 +184,12 @@ export default function TeleshopManagerEditOfficer() {
       setSaving(false)
     }
   }
-  const toggleService = (serviceId: string) => {
+  const toggleService = (serviceCode: string) => {
     setFormData(prev => ({
       ...prev,
-      assignedServices: prev.assignedServices.includes(serviceId)
-        ? prev.assignedServices.filter(s => s !== serviceId)
-        : [...prev.assignedServices, serviceId]
+      assignedServices: prev.assignedServices.includes(serviceCode)
+        ? prev.assignedServices.filter(s => s !== serviceCode)
+        : [...prev.assignedServices, serviceCode]
     }))
   }
 
@@ -359,8 +359,8 @@ export default function TeleshopManagerEditOfficer() {
                 <label key={service.id} className="flex items-center">
                   <input
                     type="checkbox"
-                    checked={formData.assignedServices.includes(service.id)}
-                    onChange={() => toggleService(service.id)}
+                    checked={formData.assignedServices.includes(service.code)}
+                    onChange={() => toggleService(service.code)}
                     className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                   />
                   <span className="ml-2 text-sm text-gray-700">{service.title}</span>
