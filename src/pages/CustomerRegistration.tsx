@@ -961,7 +961,7 @@ export default function CustomerRegistration() {
                         </label>
                       ))}
                     </div>
-                    <p className="text-xs text-gray-500 mt-2">{t.selectOneService}</p>
+                    <p className="text-xs text-gray-500 mt-2">{t.selectServiceTypesSubtitle}</p>
                   </div>
 
                   <div className="flex gap-3">
