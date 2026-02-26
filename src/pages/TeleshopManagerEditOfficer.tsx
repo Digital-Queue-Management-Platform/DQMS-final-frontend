@@ -12,6 +12,8 @@ import {
   CheckCircle
 } from "lucide-react"
 import api from "../config/api"
+import { Briefcase } from "lucide-react"
+
 
 interface Officer {
   id: string
@@ -23,6 +25,14 @@ interface Officer {
     name: string
     location: string
   }
+  assignedServices?: string[]
+}
+interface Service {
+  id: string
+  code: string
+  title: string
+  description?: string | null
+  isActive?: boolean
 }
 
 interface Outlet {
@@ -44,17 +54,29 @@ export default function TeleshopManagerEditOfficer() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
-  
+  const [services, setServices] = useState<Service[]>([])
+
   const [formData, setFormData] = useState({
     name: "",
     counterNumber: "",
-    outletId: ""
+    outletId: "",
+    assignedServices: [] as string[],
   })
 
   useEffect(() => {
     fetchOfficerData()
     fetchOutlets()
+    fetchServices()
   }, [officerId])
+  const fetchServices = async () => {
+    try {
+      const response = await api.get('/queue/services')
+      const data = Array.isArray(response.data) ? response.data : []
+      setServices(data)
+    } catch (err) {
+      setServices([])
+    }
+  }
 
   const fetchOfficerData = async () => {
     try {
@@ -77,7 +99,8 @@ export default function TeleshopManagerEditOfficer() {
           setFormData({
             name: foundOfficer.name,
             counterNumber: foundOfficer.counterNumber?.toString() || "",
-            outletId: foundOfficer.outlet.id
+            outletId: foundOfficer.outlet.id,
+            assignedServices: foundOfficer.assignedServices || [],
           })
         } else {
           setError("Officer not found")
@@ -128,7 +151,8 @@ export default function TeleshopManagerEditOfficer() {
       }
 
       const updateData: any = {
-        name: formData.name.trim()
+        name: formData.name.trim(),
+        assignedServices: formData.assignedServices,
       }
 
       if (formData.counterNumber) {
@@ -159,6 +183,14 @@ export default function TeleshopManagerEditOfficer() {
     } finally {
       setSaving(false)
     }
+  }
+  const toggleService = (serviceId: string) => {
+    setFormData(prev => ({
+      ...prev,
+      assignedServices: prev.assignedServices.includes(serviceId)
+        ? prev.assignedServices.filter(s => s !== serviceId)
+        : [...prev.assignedServices, serviceId]
+    }))
   }
 
   const handleInputChange = (field: string, value: string) => {
@@ -314,6 +346,27 @@ export default function TeleshopManagerEditOfficer() {
             {!formData.outletId && (
               <p className="text-sm text-gray-500 mt-1">Select an outlet first</p>
             )}
+          </div>
+
+          {/* Assigned Services */}
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
+              <Briefcase className="w-4 h-4 mr-2 text-blue-600" />
+              Assigned Services
+            </label>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {services.map((service) => (
+                <label key={service.id} className="flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={formData.assignedServices.includes(service.id)}
+                    onChange={() => toggleService(service.id)}
+                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  <span className="ml-2 text-sm text-gray-700">{service.title}</span>
+                </label>
+              ))}
+            </div>
           </div>
 
           {/* Submit Button */}
