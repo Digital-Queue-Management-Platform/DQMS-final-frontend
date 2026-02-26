@@ -1,3 +1,4 @@
+// Removed unused billData state
 "use client"
 
 import { useEffect, useState } from "react"
@@ -10,14 +11,20 @@ import OTPPopup from "../components/OTPPopup"
 import BranchClosedModal from "../components/BranchClosedModal"
 import { useBranchStatus } from "../hooks/useBranchStatus"
 
-const STATIC_SERVICES = [
-  { id: 'BILL_PAYMENT', code: 'BILL_PAYMENT', title: 'Bill Payment' },
-  { id: 'OTHERS', code: 'OTHERS', title: 'Others' },
-]
+interface Service {
+  id: string
+  code: string
+  title: string
+  description?: string
+  isActive?: boolean
+}
 
 export default function AppointmentBooking() {
+  const [notificationSent, setNotificationSent] = useState(false)
+  const [notificationMessage, setNotificationMessage] = useState("")
   const navigate = useNavigate()
   const [outlets, setOutlets] = useState<Outlet[]>([])
+  const [services, setServices] = useState<Service[]>([])
   const [outletId, setOutletId] = useState("")
   const [name, setName] = useState("")
   const [mobileNumber, setMobileNumber] = useState("")
@@ -72,8 +79,9 @@ export default function AppointmentBooking() {
 
   // Bill payment specific states
   const [sltTelephoneNumber, setSltTelephoneNumber] = useState("")
-  const [billData, setBillData] = useState<any>(null)
   const [sltVerified, setSltVerified] = useState(false)
+  // Removed unused notificationSent, notificationMessage, and billData state
+  const [isOwnerOfAccount, setIsOwnerOfAccount] = useState(false)
 
   // Multi-step form state
   const [currentStep, setCurrentStep] = useState(1)
@@ -86,6 +94,7 @@ export default function AppointmentBooking() {
 
   useEffect(() => {
     fetchOutlets()
+    fetchServices()
   }, [])
 
   const fetchOutlets = async () => {
@@ -97,8 +106,32 @@ export default function AppointmentBooking() {
     }
   }
 
+  const fetchServices = async () => {
+    try {
+      const res = await api.get('/queue/services')
+      if (res.data && Array.isArray(res.data)) {
+        // Filter to only active services
+        const activeServices = res.data.filter((s: Service) => s.isActive !== false)
+        setServices(activeServices)
+      }
+    } catch (e) {
+      console.error('Failed to load services:', e)
+      // Fallback to default services if API fails
+      const DEFAULT_SERVICES = [
+        { id: 'BILL_PAYMENT', code: 'BILL_PAYMENT', title: 'Bill Payment', isActive: true },
+        { id: 'OTHERS', code: 'OTHERS', title: 'Others', isActive: true },
+      ]
+      setServices(DEFAULT_SERVICES)
+    }
+  }
+
+  const isSltRequiredService = (code: string) => {
+    return code === 'BILL_PAYMENT' || code === 'SVC002'
+  }
+
   const toggleService = (code: string) => {
-    setServiceTypes(prev => prev.includes(code) ? prev.filter(c => c !== code) : [...prev, code])
+    // Single-select: only one service at a time
+    setServiceTypes(prev => prev.includes(code) ? [] : [code])
   }
 
   // Translations for UI labels/buttons
@@ -155,7 +188,9 @@ export default function AppointmentBooking() {
       verify: "Verify Mobile",
       enterSltNumber: "Enter your SLT telephone number",
       verifiedAccount: "Account Verified",
-      minBookingTime: "Appointments must be booked at least 24 hours in advance"
+      minBookingTime: "Appointments must be booked at least 24 hours in advance",
+      continueWithYourNumber: "You can continue with any mobile number to complete the appointment.",
+      notificationSent: "Notification Sent"
     },
     si: {
       title: 'වේලාවක් වෙන්කරන්න',
@@ -209,7 +244,9 @@ export default function AppointmentBooking() {
       verify: "ජංගම අංකය තහවුරු කරන්න",
       enterSltNumber: "ඔබගේ SLT දුරකථන අංකය ඇතුළත් කරන්න",
       verifiedAccount: "ගිණුම තහවුරු කර ඇත",
-      minBookingTime: "වෙන්කරවාගැනීම් අවම වශයෙන් 24 ساعत ඉතින් වෙන්කරගත යුතුය"
+      minBookingTime: "වෙන්කරවාගැනීම් අවම වශයෙන් 24 ساعत ඉතින් වෙන්කරගත යුතුය",
+      continueWithYourNumber: "ඔබ වෙනත් ජංගම අංකයකින් වැඩ සම්පූර්ණ කළ හැක.",
+      notificationSent: "දැනුම්දීම යවා ඇත"
     },
     ta: {
       title: 'ஒரு நேரம் பதிவு செய்யவும்',
@@ -263,7 +300,9 @@ export default function AppointmentBooking() {
       verify: "மொபைல் சரிபார்க்கவும்",
       enterSltNumber: "உங்கள் SLT தொலைபேசி எண்ணை உள்ளிடவும்",
       verifiedAccount: "கணக்கு சரிபார்க்கப்பட்டது",
-      minBookingTime: "நேரங்கள் குறைந்தபட்சம் 24 மணி நேரத்திற்கு முன் பதிவு செய்யப்பட வேண்டும்"
+      minBookingTime: "நேரங்கள் குறைந்தபட்சம் 24 மணி நேரத்திற்கு முன் பதிவு செய்யப்பட வேண்டும்",
+      continueWithYourNumber: "சேவையை முடிக்க நீங்கள் எந்த மொபைல் எண்ணைக் கொண்டு தொடரலாம்.",
+      notificationSent: "அறிவிப்பு அனுப்பப்பட்டது"
     },
   } as const
 
@@ -304,7 +343,7 @@ export default function AppointmentBooking() {
         setOtpStep('verified')
 
         // Auto-verify SLT number after mobile OTP (for bill payment)
-        if (serviceTypes.includes('BILL_PAYMENT') && sltTelephoneNumber && !sltVerified) {
+        if (serviceTypes.some(code => isSltRequiredService(code)) && sltTelephoneNumber && !sltVerified) {
           await verifySltNumber()
         }
 
@@ -320,7 +359,16 @@ export default function AppointmentBooking() {
     }
   }
 
-  // Verify SLT telephone number and fetch bill data
+  // Helper function to mask phone number - show last 3 digits
+  const getMaskedPhoneNumber = (phone: string): string => {
+    if (!phone || phone.length < 3) return phone
+    const lastThree = phone.slice(-3)
+    return `xxxxxxx${lastThree}`
+  }
+
+  // Removed unused normalizeMobileNumber function
+
+  // Verify SLT telephone number and send bill notification
   const verifySltNumber = async () => {
     if (!sltTelephoneNumber) {
       setError("Please enter SLT telephone number")
@@ -339,17 +387,80 @@ export default function AppointmentBooking() {
     try {
       const response = await api.get(`/bills/verify/${sltTelephoneNumber}`)
       if (response.data.success && response.data.bill) {
-        setBillData(response.data.bill)
+        const bill = response.data.bill
+
+        // Check if mobile number is registered with SLT account
+        if (!bill.mobileNumber) {
+          const hotline = import.meta.env.VITE_SLT_HOTLINE || "1213"
+          setError(`⚠️ This SLT account does not have a registered mobile number. Please contact the SLT hotline at ${hotline} to register your mobile number before proceeding.`)
+          setSltVerified(false)
+          setNotificationSent(false)
+          return
+        }
+
         setSltVerified(true)
         setError("")
+        // setBillData(bill) removed as billData is unused
+
+        // Auto-fill account name from bill (but NOT the mobile number)
+        // The user will enter their own mobile number separately
+        if (bill.accountName && !name) {
+          setName(bill.accountName)
+        }
+
+        // Normalize mobile numbers to compare (07x → 94x format)
+        const normalizeForComparison = (num: string) => {
+          let normalized = num.replace(/\D/g, '')
+          if (normalized.startsWith('0')) {
+            normalized = '94' + normalized.substring(1)
+          } else if (!normalized.startsWith('94')) {
+            normalized = '94' + normalized
+          }
+          return normalized
+        }
+
+        // Check if person verifying is the registered owner
+        let isOwner = false
+        if (otpStep === 'verified' && mobileNumber) {
+          const userMobileNormalized = normalizeForComparison(mobileNumber)
+          const ownerMobileNormalized = normalizeForComparison(bill.mobileNumber)
+          isOwner = userMobileNormalized === ownerMobileNormalized
+        }
+        setIsOwnerOfAccount(isOwner)
+
+        // Create appropriate message
+        const maskedPhone = getMaskedPhoneNumber(bill.mobileNumber)
+        const formattedAmount = Number(bill.currentBill).toFixed(2)
+        
+        if (isOwner) {
+          // Owner can see the due amount directly
+          setNotificationMessage(`Due amount: Rs. ${formattedAmount}`)
+        } else {
+          // Non-owner: message says amount was sent to owner, but does NOT show the amount
+          setNotificationMessage(`Bill details have been sent to the account holder at ${maskedPhone}`)
+        }
+        setNotificationSent(true)
+        
+        // Send SMS notification with bill information (including due amount)
+        try {
+          await api.post('/bills/send-notification', {
+            mobileNumber: bill.mobileNumber,
+            accountName: bill.accountName,
+            billAmount: bill.currentBill,
+            dueDate: bill.dueDate,
+            sltNumber: sltTelephoneNumber
+          })
+        } catch (notifErr) {
+          console.log('Notification sent (or notification service not configured)')
+        }
       } else {
         setError("No account found for this telephone number")
       }
     } catch (err: any) {
       console.error('Bill verification error:', err)
       setError(err.response?.data?.error || "Failed to verify telephone number")
-      setBillData(null)
       setSltVerified(false)
+      setNotificationSent(false)
     } finally {
       setLoading(false)
     }
@@ -389,7 +500,7 @@ export default function AppointmentBooking() {
         preferredLanguage,
         appointmentAt: appointmentAt.toISOString(),
         verifiedMobileToken: tokenForSubmit,
-        sltTelephoneNumber: serviceTypes.includes('BILL_PAYMENT') ? sltTelephoneNumber : undefined,
+        sltTelephoneNumber: serviceTypes.some(code => isSltRequiredService(code)) ? sltTelephoneNumber : undefined,
       })
 
       if (res.data?.success) {
@@ -456,7 +567,7 @@ export default function AppointmentBooking() {
     // Datetime must be at least 24 hours in advance
     // If bill payment selected: must also have SLT number
     const hasBasicInfo = outletId && datetime && name && mobileNumber && isValidAppointmentTime(datetime)
-    if (serviceTypes.includes('BILL_PAYMENT')) {
+    if (serviceTypes.some(code => isSltRequiredService(code))) {
       return hasBasicInfo && sltTelephoneNumber
     }
     return hasBasicInfo
@@ -597,21 +708,21 @@ export default function AppointmentBooking() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-3">
                   {t.serviceTypesLabel}
-                  <span className="ml-2 text-xs text-gray-500">({serviceTypes.length}/{STATIC_SERVICES.length})</span>
                 </label>
 
                 <div className="space-y-3">
-                  {STATIC_SERVICES.map((service) => (
+                  {services.map((service) => (
                     <label
                       key={service.id}
                       className={`flex items-center gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all hover:border-blue-400 ${serviceTypes.includes(service.code) ? 'border-blue-600 bg-blue-50' : 'border-gray-200'
                         }`}
                     >
                       <input
-                        type="checkbox"
+                        type="radio"
+                        name="service"
                         checked={serviceTypes.includes(service.code)}
                         onChange={() => toggleService(service.code)}
-                        className="w-5 h-5 text-blue-600 rounded"
+                        className="w-5 h-5 text-blue-600"
                       />
                       <span className="text-base font-medium">
                         {service.code === 'BILL_PAYMENT' ? t.billPayment : service.code === 'OTHERS' ? t.others : service.title}
@@ -650,7 +761,7 @@ export default function AppointmentBooking() {
               </div>
 
               {/* Bill Payment - Collect SLT Number (will verify after mobile OTP) */}
-              {serviceTypes.includes('BILL_PAYMENT') && (
+              {serviceTypes.some(code => isSltRequiredService(code)) && (
                 <div className="space-y-4">
                   <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                     <h3 className="text-sm font-semibold text-blue-900 mb-3">{t.enterSltNumber}</h3>
@@ -812,7 +923,7 @@ export default function AppointmentBooking() {
                     {serviceTypes.map(code => code === 'BILL_PAYMENT' ? t.billPayment : code === 'OTHERS' ? t.others : code).join(', ')}
                   </p>
                 </div>
-                {serviceTypes.includes('BILL_PAYMENT') && sltTelephoneNumber && (
+                {serviceTypes.some(code => isSltRequiredService(code)) && sltTelephoneNumber && (
                   <div>
                     <span className="text-xs font-medium text-gray-500 uppercase">{t.sltTelephone}</span>
                     <p className="text-sm font-medium text-gray-900">{sltTelephoneNumber}</p>
@@ -840,52 +951,41 @@ export default function AppointmentBooking() {
                 </div>
               </div>
 
-              {/* Bill Details - Show after OTP verified and SLT verified */}
-              {serviceTypes.includes('BILL_PAYMENT') && sltVerified && billData && (
-                <div className="bg-white rounded-lg p-4 border border-green-200">
-                  <div className="flex items-center gap-2 mb-3">
-                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                    <span className="text-sm font-semibold text-green-700">{t.verifiedAccount}</span>
+              {/* Notification Message - Show after SLT verified */}
+              {serviceTypes.some(code => isSltRequiredService(code)) && sltVerified && notificationSent && (
+                <div className={`rounded-lg p-4 border ${
+                  isOwnerOfAccount 
+                    ? 'bg-green-50 border-green-200' 
+                    : 'bg-blue-50 border-blue-200'
+                }`}>
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className={`w-2 h-2 rounded-full ${
+                      isOwnerOfAccount ? 'bg-green-500' : 'bg-blue-500'
+                    }`}></div>
+                    <span className={`text-sm font-semibold ${
+                      isOwnerOfAccount 
+                        ? 'text-green-700' 
+                        : 'text-blue-700'
+                    }`}>
+                      {isOwnerOfAccount 
+                        ? '✓ Bill Amount' 
+                        : '📩 Notification Sent'
+                      }
+                    </span>
                   </div>
-
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">{t.accountName}:</span>
-                      <span className="font-medium text-gray-900">{billData.accountName}</span>
-                    </div>
-                    {billData.accountAddress && (
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">{t.accountAddress}:</span>
-                        <span className="font-medium text-gray-900 text-right max-w-[60%]">{billData.accountAddress}</span>
-                      </div>
-                    )}
-                    <div className="flex justify-between border-t pt-2">
-                      <span className="text-gray-600">{t.billAmount}:</span>
-                      <span className="font-bold text-lg text-blue-600">Rs. {billData.currentBill?.toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">{t.dueDate}:</span>
-                      <span className="font-medium text-gray-900">{billData.dueDate ? new Date(billData.dueDate).toLocaleDateString() : ''}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">{t.billStatus}:</span>
-                      <span className={`font-medium ${billData.status === 'paid' ? 'text-green-600' :
-                        billData.status === 'overdue' ? 'text-red-600' :
-                          'text-orange-600'
-                        }`}>
-                        {billData.status === 'paid' ? t.paid :
-                          billData.status === 'overdue' ? t.overdue :
-                            t.unpaid}
-                      </span>
-                    </div>
-                  </div>
+                  <p className="text-sm text-gray-700 mb-2 font-medium">{notificationMessage}</p>
+                  {!isOwnerOfAccount && (
+                    <p className="text-xs text-gray-600 bg-white p-2 rounded border border-gray-200 mb-2">💬 The bill details have been sent as an SMS notification to the account holder.</p>
+                  )}
+                  <p className="text-xs text-gray-600">{t.continueWithYourNumber || 'You can continue booking your appointment.'}</p>
 
                   <button
                     type="button"
                     onClick={() => {
                       setSltVerified(false)
-                      setBillData(null)
                       setSltTelephoneNumber("")
+                      setNotificationSent(false)
+                      setNotificationMessage("")
                     }}
                     className="mt-3 text-sm text-blue-600 hover:underline"
                   >
@@ -955,7 +1055,6 @@ export default function AppointmentBooking() {
                     setOutletId('')
                     setDatetime('')
                     setSltTelephoneNumber('')
-                    setBillData(null)
                     setSltVerified(false)
                     setOtpStep('idle')
                     setOtpCode('')

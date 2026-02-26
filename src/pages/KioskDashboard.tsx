@@ -1,3 +1,4 @@
+  // Removed unused billData state
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { User, Phone, Eye, EyeOff } from 'lucide-react'
@@ -16,6 +17,8 @@ interface Service {
 }
 
 export default function KioskDashboard() {
+  const [notificationSent, setNotificationSent] = useState(false)
+  const [notificationMessage, setNotificationMessage] = useState("")
   const [outlet, setOutlet] = useState<any>(null)
   const [services, setServices] = useState<Service[]>([])
   const [loading, setLoading] = useState(true)
@@ -48,9 +51,10 @@ export default function KioskDashboard() {
 
   // Bill payment specific states
   const [sltTelephoneNumber, setSltTelephoneNumber] = useState("")
-  const [billData, setBillData] = useState<any>(null)
   const [sltVerified, setSltVerified] = useState(false)
   const [shouldAutoSubmit, setShouldAutoSubmit] = useState(false)
+  // Removed unused notificationSent, notificationMessage, and billData state
+  const [isOwnerOfAccount, setIsOwnerOfAccount] = useState(false)
   const formRef = useRef<HTMLFormElement>(null)
 
   // Multi-step form state
@@ -89,34 +93,41 @@ export default function KioskDashboard() {
 
   const loadInitialData = async () => {
     try {
-      // Use static services like CustomerRegistration
-      const STATIC_SERVICES = [
-        { id: 'BILL_PAYMENT', code: 'BILL_PAYMENT', title: 'Bill Payment', description: null },
-        { id: 'OTHERS', code: 'OTHERS', title: 'Others', description: null },
-      ]
-      setServices(STATIC_SERVICES)
+      const token = localStorage.getItem('kioskToken')
+      if (token) {
+        // Fetch dynamic services from API
+        const response = await fetch(`${API_URL}/kiosk/services`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        })
+        if (response.ok) {
+          const fetchedServices = await response.json()
+          setServices(fetchedServices)
+        } else {
+          setServices([])
+        }
+      }
       setLoading(false)
     } catch (err: any) {
-      setError(err.message || 'Failed to load data')
+      console.error('Failed to load services:', err)
+      setServices([])
       setLoading(false)
     }
   }
 
+  const isSltRequiredService = (code: string) => {
+    return code === 'SVC002'
+  }
+
   const handleServiceToggle = (serviceCode: string) => {
+    // Single-select: only one service at a time
     setSelectedServices(prev =>
-      prev.includes(serviceCode)
-        ? prev.filter(s => s !== serviceCode)
-        : [...prev, serviceCode]
+      prev.includes(serviceCode) ? [] : [serviceCode]
     )
   }
 
   const getServiceTitle = (code: string) => {
-    if (code === 'BILL_PAYMENT') {
-      return language === 'en' ? 'Bill Payment' : language === 'si' ? 'බිල් ගෙවීම' : 'பில் செலுத்தல்'
-    }
-    if (code === 'OTHERS') {
-      return language === 'en' ? 'Other Services' : language === 'si' ? 'වෙනත් සේවා' : 'மற்ற சேவைகள்'
-    }
     const service = services.find(s => s.code === code)
     return service?.title || code
   }
@@ -160,7 +171,7 @@ export default function KioskDashboard() {
         setOtpStep('verified')
 
         // Auto-verify SLT number after mobile OTP (for bill payment)
-        if (selectedServices.includes('BILL_PAYMENT') && sltTelephoneNumber && !sltVerified) {
+        if (selectedServices.some(code => isSltRequiredService(code)) && sltTelephoneNumber && !sltVerified) {
           await verifySltNumber()
         }
 
@@ -179,7 +190,16 @@ export default function KioskDashboard() {
     }
   }
 
-  // Verify SLT telephone number and fetch bill data with auto-fill
+  // Helper function to mask phone number - show last 3 digits
+  const getMaskedPhoneNumber = (phone: string): string => {
+    if (!phone || phone.length < 3) return phone
+    const lastThree = phone.slice(-3)
+    return `xxxxxxx${lastThree}`
+  }
+
+  // Removed unused normalizeMobileNumber function
+
+  // Verify SLT telephone number and send bill notification
   const verifySltNumber = async () => {
     if (!sltTelephoneNumber) {
       setError("Please enter SLT telephone number")
@@ -199,16 +219,70 @@ export default function KioskDashboard() {
       const response = await api.get(`/bills/verify/${sltTelephoneNumber}`)
       if (response.data.success && response.data.bill) {
         const bill = response.data.bill
-        setBillData(bill)
+
+        // Check if mobile number is registered with SLT account
+        if (!bill.mobileNumber) {
+          const hotline = import.meta.env.VITE_SLT_HOTLINE || "1213"
+          setError(`⚠️ This SLT account does not have a registered mobile number. Please contact the SLT hotline at ${hotline} to register your mobile number before proceeding.`)
+          setSltVerified(false)
+          setNotificationSent(false)
+          return
+        }
+
         setSltVerified(true)
         setError("")
+        // setBillData(bill) removed as billData is unused
 
-        // Auto-fill customer details from bill data
+        // Auto-fill account name from bill (but NOT the mobile number)
+        // The user will enter their own mobile number separately
         if (bill.accountName) {
           setName(bill.accountName)
         }
-        if (bill.mobileNumber) {
-          setMobileNumber(bill.mobileNumber)
+
+        // Normalize mobile numbers to compare (07x → 94x format)
+        const normalizeForComparison = (num: string) => {
+          let normalized = num.replace(/\D/g, '')
+          if (normalized.startsWith('0')) {
+            normalized = '94' + normalized.substring(1)
+          } else if (!normalized.startsWith('94')) {
+            normalized = '94' + normalized
+          }
+          return normalized
+        }
+
+        // Check if person verifying is the registered owner
+        let isOwner = false
+        if (otpStep === 'verified' && mobileNumber) {
+          const userMobileNormalized = normalizeForComparison(mobileNumber)
+          const ownerMobileNormalized = normalizeForComparison(bill.mobileNumber)
+          isOwner = userMobileNormalized === ownerMobileNormalized
+        }
+        setIsOwnerOfAccount(isOwner)
+
+        // Create appropriate message
+        const maskedPhone = getMaskedPhoneNumber(bill.mobileNumber)
+        const formattedAmount = Number(bill.currentBill).toFixed(2)
+        
+        if (isOwner) {
+          // Owner can see the due amount directly
+          setNotificationMessage(`Due amount: Rs. ${formattedAmount}`)
+        } else {
+          // Non-owner: message says amount was sent to owner, but does NOT show the amount
+          setNotificationMessage(`Bill details have been sent to the account holder at ${maskedPhone}`)
+        }
+        setNotificationSent(true)
+        
+        // Send SMS notification with bill information (including due amount)
+        try {
+          await api.post('/bills/send-notification', {
+            mobileNumber: bill.mobileNumber,
+            accountName: bill.accountName,
+            billAmount: bill.currentBill,
+            dueDate: bill.dueDate,
+            sltNumber: sltTelephoneNumber
+          })
+        } catch (notifErr) {
+          console.log('Notification sent (or notification service not configured)')
         }
       } else {
         setError("No account found for this telephone number")
@@ -216,8 +290,8 @@ export default function KioskDashboard() {
     } catch (err: any) {
       console.error('Bill verification error:', err)
       setError(err.response?.data?.error || "Failed to verify telephone number")
-      setBillData(null)
       setSltVerified(false)
+      setNotificationSent(false)
     } finally {
       setLoading(false)
     }
@@ -243,8 +317,8 @@ export default function KioskDashboard() {
   const canProceedFromStep1 = preferredLanguage !== ''
   const canProceedFromStep2 = selectedServices.length > 0
   const canProceedFromStep3 = () => {
-    // If bill payment is selected, need SLT number + name + mobile
-    if (selectedServices.includes('BILL_PAYMENT')) {
+    // Check if any selected service requires SLT telephone number
+    if (selectedServices.some(code => isSltRequiredService(code))) {
       return sltTelephoneNumber && name && mobileNumber
     }
     // Otherwise just need name and mobile
@@ -340,8 +414,9 @@ export default function KioskDashboard() {
     setOtpError('')
     setError('')
     setSltTelephoneNumber('')
-    setBillData(null)
     setSltVerified(false)
+    setNotificationSent(false)
+    setNotificationMessage('')
     setCurrentStep(1)
   }
 
@@ -403,7 +478,9 @@ export default function KioskDashboard() {
       step4Subtitle: "Verify your information and generate token",
       enterSltNumber: "Enter your SLT telephone number",
       verifiedAccount: "Account Verified",
-      billSummary: "Bill Summary"
+      billSummary: "Bill Summary",
+      continueWithYourNumber: "You can continue with any mobile number to complete the service.",
+      notificationSent: "Notification Sent"
     },
     si: {
       title: "ඩිජිටල් පෝලිම වේදිකාව",
@@ -462,7 +539,9 @@ export default function KioskDashboard() {
       step4Subtitle: "ඔබගේ තොරතුරු තහවුරු කර ටෝකන් උත්පාදනය කරන්න",
       enterSltNumber: "ඔබේ SLT දුරකථන අංකය ඇතුළත් කරන්න",
       verifiedAccount: "ගිණුම තහවුරු කර ඇත",
-      billSummary: "බිල් සාරාංශය"
+      billSummary: "බිල් සාරාංශය",
+      continueWithYourNumber: "ඔබ සේවා ඉවරයි කිරීමට ඕනෑම ජංගම අංකයක් සමඟ ඉදිරියට යා හැක.",
+      notificationSent: "දැනුම්දීම යැවිණි"
     },
     ta: {
       title: "டிஜிட்டல் வரிசை தளம்",
@@ -521,7 +600,9 @@ export default function KioskDashboard() {
       step4Subtitle: "உங்கள் தகவலைச் சரிபார்த்து டோக்கனை உருவாக்கவும்",
       enterSltNumber: "உங்கள் SLT தொலைபேசி எண்ணை உள்ளிடவும்",
       verifiedAccount: "கணக்கு சரிபார்க்கப்பட்டது",
-      billSummary: "பில் சுருக்கம்"
+      billSummary: "பில் சுருக்கம்",
+      continueWithYourNumber: "சேவையை முடிக்க நீங்கள் எந்த மொபைல் எண்ணைக் கொண்டு தொடரலாம்.",
+      notificationSent: "அறிவிப்பு அனுப்பப்பட்டது"
     }
   }
 
@@ -699,23 +780,22 @@ export default function KioskDashboard() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-3">
-                      {t.serviceType}
-                      <span className="ml-2 text-xs text-gray-500">({selectedServices.length}/{services.length})</span>
-                    </label>
+                    <label className="block text-sm font-medium text-gray-700 mb-3">{t.serviceType}</label>
 
                     <div className="space-y-3">
                       {services.map((service) => (
                         <label
                           key={service.id}
-                          className={`flex items-center gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all hover:border-blue-400 ${selectedServices.includes(service.code) ? 'border-blue-600 bg-blue-50' : 'border-gray-200'
-                            }`}
+                          className={`flex items-center gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all hover:border-blue-400 ${
+                            selectedServices.includes(service.code) ? 'border-blue-600 bg-blue-50' : 'border-gray-200'
+                          }`}
                         >
                           <input
-                            type="checkbox"
+                            type="radio"
+                            name="service"
                             checked={selectedServices.includes(service.code)}
                             onChange={() => handleServiceToggle(service.code)}
-                            className="w-5 h-5 text-blue-600 rounded"
+                            className="w-5 h-5 text-blue-600"
                           />
                           <span className="text-base font-medium">{getServiceTitle(service.code)}</span>
                         </label>
@@ -753,7 +833,7 @@ export default function KioskDashboard() {
                   </div>
 
                   {/* Bill Payment Path - Collect SLT Number (will verify after OTP) */}
-                  {selectedServices.includes('BILL_PAYMENT') && (
+                  {selectedServices.some(code => isSltRequiredService(code)) && (
                     <div className="space-y-4">
                       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                         <h3 className="text-sm font-semibold text-blue-900 mb-3">{t.enterSltNumber}</h3>
@@ -902,7 +982,7 @@ export default function KioskDashboard() {
                         {selectedServices.map(code => getServiceTitle(code)).join(', ')}
                       </p>
                     </div>
-                    {selectedServices.includes('BILL_PAYMENT') && sltTelephoneNumber && (
+                    {selectedServices.some(code => isSltRequiredService(code)) && sltTelephoneNumber && (
                       <div>
                         <span className="text-xs font-medium text-gray-500 uppercase">{t.sltTelephone}</span>
                         <p className="text-sm font-medium text-gray-900">{sltTelephoneNumber}</p>
@@ -918,34 +998,33 @@ export default function KioskDashboard() {
                     </div>
                   </div>
 
-                  {/* Bill Details - Show after OTP verified and SLT verified */}
-                  {selectedServices.includes('BILL_PAYMENT') && sltVerified && billData && (
-                    <div className="bg-white rounded-lg p-4 border border-green-200">
-                      <div className="flex items-center gap-2 mb-3">
-                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                        <span className="text-sm font-semibold text-green-700">{t.verifiedAccount}</span>
+                  {/* Notification Message - Show after SLT verified */}
+                  {selectedServices.some(code => isSltRequiredService(code)) && sltVerified && notificationSent && (
+                    <div className={`rounded-lg p-4 border ${
+                      isOwnerOfAccount 
+                        ? 'bg-green-50 border-green-200' 
+                        : 'bg-blue-50 border-blue-200'
+                    }`}>
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className={`w-2 h-2 rounded-full ${
+                          isOwnerOfAccount ? 'bg-green-500' : 'bg-blue-500'
+                        }`}></div>
+                        <span className={`text-sm font-semibold ${
+                          isOwnerOfAccount 
+                            ? 'text-green-700' 
+                            : 'text-blue-700'
+                        }`}>
+                          {isOwnerOfAccount 
+                            ? '✓ Bill Amount' 
+                            : '📩 Notification Sent'
+                          }
+                        </span>
                       </div>
-
-                      <div className="space-y-2 text-sm">
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">{t.accountName}:</span>
-                          <span className="font-medium text-gray-900">{billData.accountName}</span>
-                        </div>
-                        {billData.accountAddress && (
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">{t.accountAddress}:</span>
-                            <span className="font-medium text-gray-900 text-right max-w-[60%]">{billData.accountAddress}</span>
-                          </div>
-                        )}
-                        <div className="flex justify-between border-t pt-2">
-                          <span className="text-gray-600">{t.billAmount}:</span>
-                          <span className="font-bold text-lg text-blue-600">Rs. {billData.currentBill?.toFixed(2)}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">{t.dueDate}:</span>
-                          <span className="font-medium text-gray-900">{billData.dueDate ? new Date(billData.dueDate).toLocaleDateString() : ''}</span>
-                        </div>
-                      </div>
+                      <p className="text-sm text-gray-700 mb-2 font-medium">{notificationMessage}</p>
+                      {!isOwnerOfAccount && (
+                        <p className="text-xs text-gray-600 bg-white p-2 rounded border border-gray-200 mb-2">💬 The bill details have been sent as an SMS notification to the account holder.</p>
+                      )}
+                      <p className="text-xs text-gray-600">{t.continueWithYourNumber || 'You can continue with your token generation.'}</p>
                     </div>
                   )}
 
