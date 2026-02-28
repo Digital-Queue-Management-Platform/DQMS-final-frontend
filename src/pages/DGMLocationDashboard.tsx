@@ -63,7 +63,7 @@ export default function DGMLocationDashboard() {
             const start = new Date(); start.setHours(0, 0, 0, 0)
             const end = new Date(); end.setHours(23, 59, 59, 999)
 
-            const res = await api.get("/admin/analytics", {
+            const res = await api.get("/dgm/analytics", {
                 params: { outletId, startDate: start.toISOString(), endDate: end.toISOString() }
             })
             const a = res.data || {}
@@ -89,7 +89,7 @@ export default function DGMLocationDashboard() {
                 const s = new Date(start); s.setHours(h, 0, 0, 0)
                 const e2 = new Date(start); e2.setHours(h, 59, 59, 999)
                 try {
-                    const r = await api.get("/admin/analytics", { params: { outletId, startDate: s.toISOString(), endDate: e2.toISOString() } })
+                    const r = await api.get("/dgm/analytics", { params: { outletId, startDate: s.toISOString(), endDate: e2.toISOString() } })
                     hours.push({ hour: `${String(h).padStart(2, "0")}:00`, issued: r.data.totalTokens || 0, completed: r.data.totalTokens || 0 })
                 } catch { hours.push({ hour: `${String(h).padStart(2, "0")}:00`, issued: 0, completed: 0 }) }
             }
@@ -151,7 +151,7 @@ export default function DGMLocationDashboard() {
                 <>
                     <OverviewCards data={overview} />
                     <div className="mt-6">
-                        <AnalyticsCharts data={analyticsData} tokenData={tokenFlow} outletId={selectedId} />
+                        <AnalyticsCharts data={analyticsData} tokenData={tokenFlow} outletId={selectedId} apiEndpoint="/dgm/analytics" />
                         <AgentPerformance agents={agents} />
                     </div>
                 </>

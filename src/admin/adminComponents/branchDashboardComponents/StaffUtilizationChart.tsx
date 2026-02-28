@@ -18,7 +18,7 @@ interface DataPoint {
 
 import api from '../../../config/api'
 
-const StaffUtilizationChart: React.FC<{ outletId?: string | null }> = ({ outletId = null }) => {
+const StaffUtilizationChart: React.FC<{ outletId?: string | null; apiEndpoint?: string }> = ({ outletId = null, apiEndpoint = '/admin/analytics' }) => {
   const [showCustomerDemand, setShowCustomerDemand] = useState<boolean>(false)
   const [data, setData] = useState<DataPoint[]>([])
   const [isMobile, setIsMobile] = useState<boolean>(false)
@@ -47,7 +47,7 @@ const StaffUtilizationChart: React.FC<{ outletId?: string | null }> = ({ outletI
         const e = new Date(todayStart)
         e.setHours(hour,59,59,999)
         try {
-          const res = await api.get('/admin/analytics', { params: { outletId, startDate: s.toISOString(), endDate: e.toISOString() } })
+          const res = await api.get(apiEndpoint, { params: { outletId, startDate: s.toISOString(), endDate: e.toISOString() } })
           const a = res.data || {}
           // a.officerPerformance may contain tokensHandled per officer; active counters = number of distinct officers active in that hour (best-effort)
           let activeCounters = 0
@@ -69,7 +69,7 @@ const StaffUtilizationChart: React.FC<{ outletId?: string | null }> = ({ outletI
     }
 
     build()
-  }, [outletId])
+  }, [outletId, apiEndpoint])
 
   const handleToggle = (): void => {
     setShowCustomerDemand(!showCustomerDemand)
