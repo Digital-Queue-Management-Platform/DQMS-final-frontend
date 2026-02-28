@@ -4,7 +4,7 @@ const isLocal = typeof window !== 'undefined' && (/localhost|127\.0\.0\.1/).test
 
 const API_BASE_URL = isLocal
   ? "http://localhost:3001/api"
-  : (import.meta.env.VITE_API_URL || "https://dqms-final-backend.onrender.com/api")
+  : (import.meta.env.VITE_API_URL || "https://dpdlab1.slt.lk:8447/dqms-api/api")
 
 export const api = axios.create({
   baseURL: API_BASE_URL,
@@ -115,7 +115,7 @@ api.interceptors.response.use(
 // WebSocket connection
 export const WS_URL = isLocal
   ? "ws://localhost:3001"
-  : (import.meta.env.VITE_WS_URL || "wss://dqms-final-backend.onrender.com")
+  : (import.meta.env.VITE_WS_URL || "wss://dpdlab1.slt.lk:8447/dqms-api")
 
 // Export API_URL for use in fetch calls
 export const API_URL = API_BASE_URL
