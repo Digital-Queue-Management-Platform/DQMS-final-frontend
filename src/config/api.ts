@@ -49,6 +49,22 @@ api.interceptors.request.use(
       }
     }
     
+    // Check for GM token for GM routes
+    if (config.url?.startsWith('/gm/')) {
+      const gmToken = localStorage.getItem('gmToken')
+      if (gmToken) {
+        config.headers.Authorization = `Bearer ${gmToken}`
+      }
+    }
+    
+    // Check for DGM token for DGM routes
+    if (config.url?.startsWith('/dgm/')) {
+      const dgmToken = localStorage.getItem('dgmToken')
+      if (dgmToken) {
+        config.headers.Authorization = `Bearer ${dgmToken}`
+      }
+    }
+    
     return config
   },
   (error) => {
@@ -87,6 +103,18 @@ api.interceptors.response.use(
         localStorage.removeItem('dq_role')
         localStorage.removeItem('dq_user')
       }
+      else if (requestUrl.startsWith('/gm/') || currentPath.startsWith('/gm')) {
+        localStorage.removeItem('gm')
+        localStorage.removeItem('gmToken')
+        localStorage.removeItem('dq_role')
+        localStorage.removeItem('dq_user')
+      }
+      else if (requestUrl.startsWith('/dgm/') || currentPath.startsWith('/dgm')) {
+        localStorage.removeItem('dgm')
+        localStorage.removeItem('dgmToken')
+        localStorage.removeItem('dq_role')
+        localStorage.removeItem('dq_user')
+      }
       else {
         // Default: check user role from localStorage and clear appropriate tokens
         const userRole = localStorage.getItem('dq_role')
@@ -105,6 +133,16 @@ api.interceptors.response.use(
         } else if (userRole === 'officer') {
           localStorage.removeItem('officer')
           localStorage.removeItem('officerToken')
+        } else if (userRole === 'gm') {
+          localStorage.removeItem('gm')
+          localStorage.removeItem('gmToken')
+          localStorage.removeItem('dq_role')
+          localStorage.removeItem('dq_user')
+        } else if (userRole === 'dgm') {
+          localStorage.removeItem('dgm')
+          localStorage.removeItem('dgmToken')
+          localStorage.removeItem('dq_role')
+          localStorage.removeItem('dq_user')
         }
       }
     }
