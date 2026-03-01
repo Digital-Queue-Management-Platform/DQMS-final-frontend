@@ -25,6 +25,9 @@ import {
   UserCheck,
   Monitor,
   BellOff,
+  Briefcase as BriefcaseIcon,
+  UserCheck as UserCheckIcon,
+  BarChart2,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useUser } from '../../../contexts/UserContext'
@@ -54,13 +57,15 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed, activePa
   const adminItems: NavigationItem[] = [
     //{ name: 'Home', icon: Home, to: '/' },
     { name: 'Dashboard', icon: LayoutDashboard, to: '/admin' },
+    { name: 'Branches', icon: Building2, to: '/admin/branches' },
+    { name: 'Services', icon: Briefcase, to: '/admin/services' },
+    { name: 'GMs', icon: BriefcaseIcon, to: '/admin/gms' },
+    { name: 'DGMs', icon: UserCheckIcon, to: '/admin/dgms' },
+    { name: 'RTOMs', icon: Users, to: '/admin/managers' },
+    { name: 'All Officers', icon: UserCog, to: '/admin/all-officers' },
     { name: 'Appointments', icon: Calendar, to: '/admin/appointments' },
     { name: 'Feedbacks ', icon: MessageSquare, to: '/admin/feedback' },
-    { name: 'Services', icon: Briefcase, to: '/admin/services' },
-    { name: 'Branches', icon: Building2, to: '/admin/branches' },
-    { name: 'RTOMs', icon: Users, to: '/admin/managers' },
     { name: 'Compare', icon: Scale3D, to: '/admin/compare' },
-    { name: 'All Officers', icon: UserCog, to: '/admin/all-officers' },
   ]
   // Officer navigation items - Queue is now the primary page (first in order)
   const officerItems: NavigationItem[] = [
@@ -103,23 +108,49 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed, activePa
   const onAdminPath = location.pathname.startsWith('/admin')
   const onManagerPath = location.pathname.startsWith('/manager')
   const onTeleshopManagerPath = location.pathname.startsWith('/teleshop-manager')
+  const onGMPath = location.pathname.startsWith('/gm')
+  const onDGMPath = location.pathname.startsWith('/dgm')
   const role = (currentUser?.role || '').toLowerCase()
+
+  const gmItems: NavigationItem[] = [
+    { name: 'Dashboard', icon: LayoutDashboard, to: '/gm/dashboard' },
+    { name: 'Manage DGMs', icon: UserCheckIcon, to: '/gm/manage-dgms' },
+    { name: 'Location Dashboard', icon: BarChart2, to: '/gm/location-dashboard' },
+    { name: 'Feedbacks', icon: MessageSquare, to: '/gm/feedback' },
+    { name: 'Closure Notices', icon: BellOff, to: '/gm/closure-notices' },
+  ]
+
+  const dgmItems: NavigationItem[] = [
+    { name: 'Dashboard', icon: LayoutDashboard, to: '/dgm/dashboard' },
+    { name: 'Manage RTOMs', icon: Users, to: '/dgm/manage-rtoms' },
+    { name: 'Location Dashboard', icon: BarChart2, to: '/dgm/location-dashboard' },
+    { name: 'Feedbacks', icon: MessageSquare, to: '/dgm/feedback' },
+    { name: 'Closure Notices', icon: BellOff, to: '/dgm/closure-notices' },
+  ]
 
   const navigationItems: NavigationItem[] = onOfficerPath
     ? officerItems
     : onAdminPath
-      ? adminItems // Always show admin items on admin paths
+      ? adminItems
       : onManagerPath
-        ? regionManagerItems // Always show manager items on manager paths
+        ? regionManagerItems
         : onTeleshopManagerPath
-          ? teleshopManagerItems // Always show teleshop manager items on teleshop manager paths
-          : role === 'admin' || role === '' || loading
-            ? adminItems // Default to admin while loading or for admin role
-            : role === 'officer'
-              ? officerItems
-              : role === 'region_manager' || role === 'manager' || role === 'regionalmanager'
-                ? regionManagerItems
-                : adminItems // fallback
+          ? teleshopManagerItems
+          : onGMPath
+            ? gmItems
+            : onDGMPath
+              ? dgmItems
+              : role === 'admin' || role === '' || loading
+                ? adminItems
+                : role === 'officer'
+                  ? officerItems
+                  : role === 'region_manager' || role === 'manager' || role === 'regionalmanager'
+                    ? regionManagerItems
+                    : role === 'gm'
+                      ? gmItems
+                      : role === 'dgm'
+                        ? dgmItems
+                        : adminItems
 
   const handleNavClick = (itemName: string): void => {
     setActivePage(itemName);
@@ -173,6 +204,26 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed, activePa
         regionName: teleshopManager?.regionName,
         officerCount: teleshopManager?.officers?.length || 0
       }
+    } else if (onGMPath) {
+      const storedGM = localStorage.getItem('gm')
+      const gm = storedGM ? JSON.parse(storedGM) : null
+      const gmName = gm?.name || 'GM'
+      return {
+        name: gmName,
+        role: 'General Manager',
+        initials: gmName ? gmName.split(' ').map((n: string) => n[0]).join('').toUpperCase() : 'GM',
+        regionCount: gm?.regionIds?.length || 0
+      }
+    } else if (onDGMPath) {
+      const storedDGM = localStorage.getItem('dgm')
+      const dgm = storedDGM ? JSON.parse(storedDGM) : null
+      const dgmName = dgm?.name || 'DGM'
+      return {
+        name: dgmName,
+        role: 'Deputy General Manager',
+        initials: dgmName ? dgmName.split(' ').map((n: string) => n[0]).join('').toUpperCase() : 'DGM',
+        outletCount: dgm?.outletIds?.length || 0
+      }
     } else {
       // Admin path
       const admin = storedUser ? JSON.parse(storedUser) : null
@@ -208,6 +259,10 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed, activePa
         await api.post('/manager/logout')
       } else if (onTeleshopManagerPath) {
         await api.post('/teleshop-manager/logout')
+      } else if (onGMPath) {
+        await api.post('/gm/logout')
+      } else if (onDGMPath) {
+        await api.post('/dgm/logout')
       } else if (onAdminPath) {
         // No server cookie for admin in this app, just clear tokens
       }
@@ -229,6 +284,12 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed, activePa
       // Teleshop manager-specific
       localStorage.removeItem('teleshopManager')
       localStorage.removeItem('teleshopManagerToken')
+      // GM-specific
+      localStorage.removeItem('gm')
+      localStorage.removeItem('gmToken')
+      // DGM-specific
+      localStorage.removeItem('dgm')
+      localStorage.removeItem('dgmToken')
     } catch { }
 
     try {

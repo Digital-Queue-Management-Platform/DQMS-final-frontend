@@ -4,7 +4,7 @@ const isLocal = typeof window !== 'undefined' && (/localhost|127\.0\.0\.1/).test
 
 const API_BASE_URL = isLocal
   ? "http://localhost:3001/api"
-  : (import.meta.env.VITE_API_URL || "https://dqms-final-backend.onrender.com/api")
+  : (import.meta.env.VITE_API_URL || "https://dpdlab1.slt.lk:8447/dqms-api/api")
 
 export const api = axios.create({
   baseURL: API_BASE_URL,
@@ -49,6 +49,22 @@ api.interceptors.request.use(
       }
     }
     
+    // Check for GM token for GM routes
+    if (config.url?.startsWith('/gm/')) {
+      const gmToken = localStorage.getItem('gmToken')
+      if (gmToken) {
+        config.headers.Authorization = `Bearer ${gmToken}`
+      }
+    }
+    
+    // Check for DGM token for DGM routes
+    if (config.url?.startsWith('/dgm/')) {
+      const dgmToken = localStorage.getItem('dgmToken')
+      if (dgmToken) {
+        config.headers.Authorization = `Bearer ${dgmToken}`
+      }
+    }
+    
     return config
   },
   (error) => {
@@ -87,6 +103,18 @@ api.interceptors.response.use(
         localStorage.removeItem('dq_role')
         localStorage.removeItem('dq_user')
       }
+      else if (requestUrl.startsWith('/gm/') || currentPath.startsWith('/gm')) {
+        localStorage.removeItem('gm')
+        localStorage.removeItem('gmToken')
+        localStorage.removeItem('dq_role')
+        localStorage.removeItem('dq_user')
+      }
+      else if (requestUrl.startsWith('/dgm/') || currentPath.startsWith('/dgm')) {
+        localStorage.removeItem('dgm')
+        localStorage.removeItem('dgmToken')
+        localStorage.removeItem('dq_role')
+        localStorage.removeItem('dq_user')
+      }
       else {
         // Default: check user role from localStorage and clear appropriate tokens
         const userRole = localStorage.getItem('dq_role')
@@ -105,6 +133,16 @@ api.interceptors.response.use(
         } else if (userRole === 'officer') {
           localStorage.removeItem('officer')
           localStorage.removeItem('officerToken')
+        } else if (userRole === 'gm') {
+          localStorage.removeItem('gm')
+          localStorage.removeItem('gmToken')
+          localStorage.removeItem('dq_role')
+          localStorage.removeItem('dq_user')
+        } else if (userRole === 'dgm') {
+          localStorage.removeItem('dgm')
+          localStorage.removeItem('dgmToken')
+          localStorage.removeItem('dq_role')
+          localStorage.removeItem('dq_user')
         }
       }
     }
@@ -115,7 +153,7 @@ api.interceptors.response.use(
 // WebSocket connection
 export const WS_URL = isLocal
   ? "ws://localhost:3001"
-  : (import.meta.env.VITE_WS_URL || "wss://dqms-final-backend.onrender.com")
+  : (import.meta.env.VITE_WS_URL || "wss://dpdlab1.slt.lk:8447/dqms-api")
 
 // Export API_URL for use in fetch calls
 export const API_URL = API_BASE_URL

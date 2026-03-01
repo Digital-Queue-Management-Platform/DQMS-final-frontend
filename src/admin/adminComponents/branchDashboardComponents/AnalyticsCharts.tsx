@@ -51,11 +51,12 @@ interface AnalyticsChartsProps {
   data: AnalyticsData;
   tokenData: TokenDataItem[];
   outletId?: string | null;
+  apiEndpoint?: string;
 }
 
 type TimeRange = 'daily' | 'weekly' | 'monthly';
 
-const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ data, tokenData, outletId = null }) => {
+const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ data, tokenData, outletId = null, apiEndpoint = '/admin/analytics' }) => {
   const [timeRange, setTimeRange] = useState<TimeRange>('daily');
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
 
@@ -206,7 +207,7 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ data, tokenData, outl
       </div>
 
       <div className="mt-14">
-        <StaffUtilizationChart outletId={outletId} />
+        <StaffUtilizationChart outletId={outletId} apiEndpoint={apiEndpoint} />
       </div>
 
       {/* Pie Chart */}

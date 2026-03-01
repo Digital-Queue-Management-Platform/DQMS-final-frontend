@@ -58,6 +58,22 @@ import KioskLogin from "./pages/KioskLogin"
 import KioskDashboard from "./pages/KioskDashboard"
 const TeleshopManagerClosureNotices = React.lazy(() => import("./pages/TeleshopManagerClosureNotices"))
 const ManagerClosureNotices = React.lazy(() => import("./pages/ManagerClosureNotices"))
+const AdminGMs = React.lazy(() => import("./admin/adminPages/AdminGMs"))
+const AdminDGMs = React.lazy(() => import("./admin/adminPages/AdminDGMs"))
+import GMLogin from "./pages/GMLogin"
+import DGMLogin from "./pages/DGMLogin"
+const GMDashboard = React.lazy(() => import("./pages/GMDashboard"))
+const GMFeedback = React.lazy(() => import("./pages/GMFeedback"))
+const GMClosureNotices = React.lazy(() => import("./pages/GMClosureNotices"))
+const DGMDashboard = React.lazy(() => import("./pages/DGMDashboard"))
+const DGMFeedback = React.lazy(() => import("./pages/DGMFeedback"))
+const DGMClosureNotices = React.lazy(() => import("./pages/DGMClosureNotices"))
+const GMManageDGMs = React.lazy(() => import("./pages/GMManageDGMs"))
+const DGMManageRTOMs = React.lazy(() => import("./pages/DGMManageRTOMs"))
+const GMLocationDashboard = React.lazy(() => import("./pages/GMLocationDashboard"))
+const DGMLocationDashboard = React.lazy(() => import("./pages/DGMLocationDashboard"))
+import ProtectedGMRoute from "./components/ProtectedGMRoute"
+import ProtectedDGMRoute from "./components/ProtectedDGMRoute"
 
 //import { Shield, UserCog, ArrowRight, Building2, Phone } from "lucide-react"
 import OfficerTopBar from "./components/OfficerTopBar"
@@ -302,11 +318,15 @@ function Layout({ children }: { children: React.ReactNode }) {
   const isOfficerPath = location.pathname.startsWith('/officer')
   const isManagerPath = location.pathname.startsWith('/manager')
   const isTeleshopManagerPath = location.pathname.startsWith('/teleshop-manager')
+  const isGMPath = location.pathname.startsWith('/gm')
+  const isDGMPath = location.pathname.startsWith('/dgm')
   const isOfficerLogin = location.pathname === '/officer/login'
   const isManagerLogin = location.pathname === '/manager/login'
   const isTeleshopManagerLogin = location.pathname === '/teleshop-manager/login'
+  const isGMLogin = location.pathname === '/gm/login'
+  const isDGMLogin = location.pathname === '/dgm/login'
   // Ensure sidebar is visible on admin, officer, manager, and teleshop manager routes (but not on login pages)
-  const showSidebar = isAdminPath || (isOfficerPath && !isOfficerLogin) || (isManagerPath && !isManagerLogin) || (isTeleshopManagerPath && !isTeleshopManagerLogin)
+  const showSidebar = isAdminPath || (isOfficerPath && !isOfficerLogin) || (isManagerPath && !isManagerLogin) || (isTeleshopManagerPath && !isTeleshopManagerLogin) || (isGMPath && !isGMLogin) || (isDGMPath && !isDGMLogin)
   const [activePage, setActivePage] = React.useState<string>('')
   const [isCollapsed, setIsCollapsed] = React.useState<boolean>(() => {
     try { return localStorage.getItem('sidebar_collapsed') === '1' } catch { return false }
@@ -489,6 +509,14 @@ function App() {
           path="/admin/feedback"
         />
         <Route
+          element={<Layout><ProtectedAdminRoute><AdminGMs /></ProtectedAdminRoute></Layout>}
+          path="/admin/gms"
+        />
+        <Route
+          element={<Layout><ProtectedAdminRoute><AdminDGMs /></ProtectedAdminRoute></Layout>}
+          path="/admin/dgms"
+        />
+        <Route
           element={<KioskLogin />}
           path="/kiosk/login"
         />
@@ -591,6 +619,48 @@ function App() {
         <Route
           element={<Layout><ProtectedTeleshopManagerRoute><TeleshopManagerClosureNotices /></ProtectedTeleshopManagerRoute></Layout>}
           path="/teleshop-manager/closure-notices"
+        />
+        <Route element={<GMLogin />} path="/gm/login" />
+        <Route
+          element={<Layout><ProtectedGMRoute><GMDashboard /></ProtectedGMRoute></Layout>}
+          path="/gm/dashboard"
+        />
+        <Route
+          element={<Layout><ProtectedGMRoute><GMFeedback /></ProtectedGMRoute></Layout>}
+          path="/gm/feedback"
+        />
+        <Route
+          element={<Layout><ProtectedGMRoute><GMClosureNotices /></ProtectedGMRoute></Layout>}
+          path="/gm/closure-notices"
+        />
+        <Route
+          element={<Layout><ProtectedGMRoute><GMManageDGMs /></ProtectedGMRoute></Layout>}
+          path="/gm/manage-dgms"
+        />
+        <Route
+          element={<Layout><ProtectedGMRoute><GMLocationDashboard /></ProtectedGMRoute></Layout>}
+          path="/gm/location-dashboard"
+        />
+        <Route element={<DGMLogin />} path="/dgm/login" />
+        <Route
+          element={<Layout><ProtectedDGMRoute><DGMDashboard /></ProtectedDGMRoute></Layout>}
+          path="/dgm/dashboard"
+        />
+        <Route
+          element={<Layout><ProtectedDGMRoute><DGMFeedback /></ProtectedDGMRoute></Layout>}
+          path="/dgm/feedback"
+        />
+        <Route
+          element={<Layout><ProtectedDGMRoute><DGMClosureNotices /></ProtectedDGMRoute></Layout>}
+          path="/dgm/closure-notices"
+        />
+        <Route
+          element={<Layout><ProtectedDGMRoute><DGMManageRTOMs /></ProtectedDGMRoute></Layout>}
+          path="/dgm/manage-rtoms"
+        />
+        <Route
+          element={<Layout><ProtectedDGMRoute><DGMLocationDashboard /></ProtectedDGMRoute></Layout>}
+          path="/dgm/location-dashboard"
         />
       </Routes>
     </React.Suspense>

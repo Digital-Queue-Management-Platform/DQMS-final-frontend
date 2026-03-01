@@ -18,7 +18,7 @@ const BranchesPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('')
   const [viewMode, setViewMode] = useState<'outlets' | 'regions'>('outlets')
 
-  // form state
+  // Outlet form state
   const [name, setName] = useState('')
   const [location, setLocation] = useState('')
   const [regionId, setRegionId] = useState('')
@@ -26,15 +26,11 @@ const BranchesPage: React.FC = () => {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [regions, setRegions] = useState<any[]>([])
   const [showForm, setShowForm] = useState(false)
-  
-  // Region form state
+
+  // Region form state — name only
   const [showRegionForm, setShowRegionForm] = useState(false)
   const [regionName, setRegionName] = useState('')
-  const [managerName, setManagerName] = useState('')
-  const [managerEmail, setManagerEmail] = useState('')
-  const [managerMobile, setManagerMobile] = useState('')
   const [regionLoading, setRegionLoading] = useState(false)
-  const [generatedCredentials, setGeneratedCredentials] = useState<{email: string, mobileNumber?: string} | null>(null)
 
   useEffect(() => {
     fetchOutlets()
@@ -77,11 +73,10 @@ const BranchesPage: React.FC = () => {
         const res = await api.post('/queue/outlets', { name, location, regionId, counterCount })
         setOutlets((prev) => [res.data.outlet, ...prev])
       }
-
-  setName('')
-  setLocation('')
-  setRegionId('')
-  setCounterCount(0)
+      setName('')
+      setLocation('')
+      setRegionId('')
+      setCounterCount(0)
       setShowForm(false)
     } catch (err: any) {
       console.error('Failed to save outlet', err)
@@ -121,38 +116,15 @@ const BranchesPage: React.FC = () => {
 
   const handleCreateRegion = async (e?: React.FormEvent) => {
     if (e) e.preventDefault()
-    if (!regionName) return setError('Region name is required')
-    if (!managerEmail) return setError('RTOM email is required')
-    
+    if (!regionName.trim()) return setError('Region name is required')
     setRegionLoading(true)
     setError('')
     try {
-      const response = await api.post('/admin/register-region', {
-        name: regionName,
-        managerName,
-        managerEmail,
-        managerMobile,
-      })
-      
-      // Show generated credentials to admin
-      if (response.data.credentials) {
-        setGeneratedCredentials({
-          email: response.data.credentials.email,
-          mobileNumber: response.data.credentials.mobileNumber
-        })
-      }
-      
-      // Refresh regions list
+      await api.post('/admin/register-region', { name: regionName })
       await fetchRegions()
-      
-      // Reset form but keep credentials dialog open
       setRegionName('')
-      setManagerName('')
-      setManagerEmail('')
-      setManagerMobile('')
       setShowRegionForm(false)
     } catch (err: any) {
-      console.error('Failed to create region', err)
       const msg = err?.response?.data?.error || err.message || 'Unknown error'
       setError('Failed to create region: ' + msg)
     } finally {
@@ -162,9 +134,6 @@ const BranchesPage: React.FC = () => {
 
   const handleCancelRegion = () => {
     setRegionName('')
-    setManagerName('')
-    setManagerEmail('')
-    setManagerMobile('')
     setShowRegionForm(false)
     setError('')
   }
@@ -173,7 +142,6 @@ const BranchesPage: React.FC = () => {
     if (!confirm(`Are you sure you want to delete "${regionName}" region? This will also affect all outlets in this region.`)) return
     try {
       await api.delete(`/admin/regions/${regionId}`)
-      // Refresh both regions and outlets lists
       await Promise.all([fetchRegions(), fetchOutlets()])
     } catch (err: any) {
       console.error('Failed to delete region', err)
@@ -182,15 +150,14 @@ const BranchesPage: React.FC = () => {
     }
   }
 
-  const filteredOutlets = outlets.filter(o => 
+  const filteredOutlets = outlets.filter(o =>
     o.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     o.location.toLowerCase().includes(searchTerm.toLowerCase()) ||
     o.region?.name.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
-  const filteredRegions = regions.filter(r => 
+  const filteredRegions = regions.filter(r =>
     r.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    r.managerEmail?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     r.managerId?.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
@@ -224,7 +191,7 @@ const BranchesPage: React.FC = () => {
               </div>
             </div>
           </div>
-          
+
           <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 sm:p-6">
             <div className="flex items-center justify-between">
               <div>
@@ -240,7 +207,7 @@ const BranchesPage: React.FC = () => {
 
         {/* Main Content */}
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 sm:gap-6">
-          {/* Form Section */}
+          {/* Outlet Form Section */}
           {showForm && (
             <div className="xl:col-span-1 order-1 xl:order-none">
               <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 sm:p-6">
@@ -248,10 +215,7 @@ const BranchesPage: React.FC = () => {
                   <h2 className="text-lg sm:text-xl font-semibold text-slate-800">
                     {editingId ? 'Edit Outlet' : 'New Outlet'}
                   </h2>
-                  <button 
-                    onClick={handleCancel}
-                    className="p-1 hover:bg-slate-100 rounded-lg transition-colors"
-                  >
+                  <button onClick={handleCancel} className="p-1 hover:bg-slate-100 rounded-lg transition-colors">
                     <X className="w-4 h-4 sm:w-5 sm:h-5 text-slate-400" />
                   </button>
                 </div>
@@ -264,71 +228,40 @@ const BranchesPage: React.FC = () => {
 
                 <form onSubmit={handleCreateOrUpdate} className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
-                      Outlet Name
-                    </label>
-                    <input 
-                      value={name} 
-                      onChange={(e) => setName(e.target.value)}
-                      placeholder="Enter outlet name"
-                      className="w-full px-3 sm:px-4 py-2 sm:py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all text-sm sm:text-base"
-                    />
+                    <label className="block text-sm font-medium text-slate-700 mb-2">Outlet Name</label>
+                    <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Enter outlet name"
+                      className="w-full px-3 sm:px-4 py-2 sm:py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all text-sm sm:text-base" />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
-                      Location
-                    </label>
-                    <input 
-                      value={location} 
-                      onChange={(e) => setLocation(e.target.value)}
-                      placeholder="Enter location address"
-                      className="w-full px-3 sm:px-4 py-2 sm:py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all text-sm sm:text-base"
-                    />
+                    <label className="block text-sm font-medium text-slate-700 mb-2">Location</label>
+                    <input value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Enter location address"
+                      className="w-full px-3 sm:px-4 py-2 sm:py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all text-sm sm:text-base" />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
-                      Region
-                    </label>
-                    <select 
-                      value={regionId} 
-                      onChange={(e) => setRegionId(e.target.value)}
-                      className="w-full px-3 sm:px-4 py-2 sm:py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all bg-white text-sm sm:text-base"
-                    >
+                    <label className="block text-sm font-medium text-slate-700 mb-2">Region</label>
+                    <select value={regionId} onChange={(e) => setRegionId(e.target.value)}
+                      className="w-full px-3 sm:px-4 py-2 sm:py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all bg-white text-sm sm:text-base">
                       <option value="">Select a region</option>
-                      {regions.map((r) => (
-                        <option key={r.id} value={r.id}>{r.name}</option>
-                      ))}
+                      {regions.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
                     </select>
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
-                      Counters
-                    </label>
-                    <input
-                      type="number"
-                      min={0}
-                      value={counterCount}
+                    <label className="block text-sm font-medium text-slate-700 mb-2">Counters</label>
+                    <input type="number" min={0} value={counterCount}
                       onChange={(e) => setCounterCount(Math.max(0, parseInt(e.target.value || '0')))}
                       placeholder="Number of counters"
-                      className="w-full px-3 sm:px-4 py-2 sm:py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all text-sm sm:text-base"
-                    />
+                      className="w-full px-3 sm:px-4 py-2 sm:py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all text-sm sm:text-base" />
                   </div>
 
                   <div className="flex flex-col sm:flex-row gap-3 pt-2">
-                    <button 
-                      type="submit"
-                      className="flex-1 bg-indigo-600 text-white px-4 py-2.5 rounded-lg font-medium hover:bg-indigo-700 transition-colors text-sm sm:text-base"
-                    >
+                    <button type="submit" className="flex-1 bg-indigo-600 text-white px-4 py-2.5 rounded-lg font-medium hover:bg-indigo-700 transition-colors text-sm sm:text-base">
                       {editingId ? 'Update Outlet' : 'Create Outlet'}
                     </button>
-                    <button 
-                      type="button"
-                      onClick={handleCancel}
-                      className="px-4 py-2.5 border border-slate-300 text-slate-700 rounded-lg font-medium hover:bg-slate-50 transition-colors text-sm sm:text-base"
-                    >
+                    <button type="button" onClick={handleCancel}
+                      className="px-4 py-2.5 border border-slate-300 text-slate-700 rounded-lg font-medium hover:bg-slate-50 transition-colors text-sm sm:text-base">
                       Cancel
                     </button>
                   </div>
@@ -337,39 +270,31 @@ const BranchesPage: React.FC = () => {
             </div>
           )}
 
-          {/* Outlets List */}
+          {/* List */}
           <div className={showForm ? "xl:col-span-2 order-2 xl:order-none" : "xl:col-span-3"}>
             <div className="bg-white rounded-xl shadow-sm border border-slate-200">
-              {/* Search Header */}
               <div className="p-4 sm:p-6 border-b border-slate-200">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-3 sm:gap-0">
                   <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
                     <h2 className="text-lg sm:text-xl font-semibold text-slate-800">
                       {viewMode === 'outlets' ? 'All Outlets' : 'All Regions'}
                     </h2>
-                    <select
-                      value={viewMode}
-                      onChange={(e) => setViewMode(e.target.value as 'outlets' | 'regions')}
-                      className="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white w-full sm:w-auto"
-                    >
+                    <select value={viewMode} onChange={(e) => setViewMode(e.target.value as 'outlets' | 'regions')}
+                      className="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white w-full sm:w-auto">
                       <option value="outlets">View Outlets</option>
                       <option value="regions">View Regions</option>
                     </select>
                   </div>
                   {!showForm && (
                     <div className="flex flex-col sm:flex-row gap-2">
-                      <button 
-                        onClick={() => setShowRegionForm(true)}
-                        className="bg-green-600 text-white px-3 sm:px-4 py-2 rounded-lg font-medium hover:bg-green-700 transition-colors flex items-center justify-center gap-2 text-sm sm:text-base"
-                      >
+                      <button onClick={() => setShowRegionForm(true)}
+                        className="bg-green-600 text-white px-3 sm:px-4 py-2 rounded-lg font-medium hover:bg-green-700 transition-colors flex items-center justify-center gap-2 text-sm sm:text-base">
                         <Plus className="w-4 h-4" />
                         <span className="hidden sm:inline">Add Region</span>
                         <span className="sm:hidden">Region</span>
                       </button>
-                      <button 
-                        onClick={() => setShowForm(true)}
-                        className="bg-indigo-600 text-white px-3 sm:px-4 py-2 rounded-lg font-medium hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2 text-sm sm:text-base"
-                      >
+                      <button onClick={() => setShowForm(true)}
+                        className="bg-indigo-600 text-white px-3 sm:px-4 py-2 rounded-lg font-medium hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2 text-sm sm:text-base">
                         <Plus className="w-4 h-4" />
                         <span className="hidden sm:inline">Add Outlet</span>
                         <span className="sm:hidden">Outlet</span>
@@ -377,20 +302,16 @@ const BranchesPage: React.FC = () => {
                     </div>
                   )}
                 </div>
-                
+
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-slate-400" />
-                  <input
-                    type="text"
-                    placeholder={viewMode === 'outlets' ? "Search outlets by name, location, or region..." : "Search regions by name, RTOM email..."}
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-9 sm:pl-10 pr-3 sm:pr-4 py-2 sm:py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm sm:text-base"
-                  />
+                  <input type="text"
+                    placeholder={viewMode === 'outlets' ? "Search outlets by name, location, or region..." : "Search regions by name or RTOM..."}
+                    value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pl-9 sm:pl-10 pr-3 sm:pr-4 py-2 sm:py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm sm:text-base" />
                 </div>
               </div>
 
-              {/* Content List */}
               <div className="p-4 sm:p-6">
                 {loading ? (
                   <div className="text-center py-12">
@@ -398,7 +319,6 @@ const BranchesPage: React.FC = () => {
                     <p className="text-slate-600 mt-3 text-sm sm:text-base">Loading {viewMode}...</p>
                   </div>
                 ) : viewMode === 'outlets' ? (
-                  // Outlets View
                   filteredOutlets.length === 0 ? (
                     <div className="text-center py-12">
                       <Building2 className="w-10 h-10 sm:w-12 sm:h-12 text-slate-300 mx-auto mb-3" />
@@ -406,10 +326,7 @@ const BranchesPage: React.FC = () => {
                         {searchTerm ? 'No outlets found matching your search' : 'No outlets yet'}
                       </p>
                       {!searchTerm && !showForm && (
-                        <button 
-                          onClick={() => setShowForm(true)}
-                          className="mt-4 text-indigo-600 hover:text-indigo-700 font-medium text-sm sm:text-base"
-                        >
+                        <button onClick={() => setShowForm(true)} className="mt-4 text-indigo-600 hover:text-indigo-700 font-medium text-sm sm:text-base">
                           Create your first outlet
                         </button>
                       )}
@@ -417,15 +334,10 @@ const BranchesPage: React.FC = () => {
                   ) : (
                     <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4">
                       {filteredOutlets.map((o) => (
-                        <div 
-                          key={o.id} 
-                          className="group bg-slate-50 border border-slate-200 rounded-lg p-4 sm:p-5 hover:shadow-md hover:border-indigo-300 transition-all"
-                        >
+                        <div key={o.id} className="group bg-slate-50 border border-slate-200 rounded-lg p-4 sm:p-5 hover:shadow-md hover:border-indigo-300 transition-all">
                           <div className="flex items-start justify-between mb-3">
                             <div className="flex-1 min-w-0">
-                              <h3 className="font-semibold text-slate-800 text-base sm:text-lg mb-1 truncate">
-                                {o.name}
-                              </h3>
+                              <h3 className="font-semibold text-slate-800 text-base sm:text-lg mb-1 truncate">{o.name}</h3>
                               <div className="flex items-center gap-1.5 text-sm text-slate-600 mb-1">
                                 <MapPin className="w-3 h-3 sm:w-4 sm:h-4 text-slate-400 flex-shrink-0" />
                                 <span className="truncate">{o.location}</span>
@@ -440,21 +352,14 @@ const BranchesPage: React.FC = () => {
                               </div>
                             </div>
                           </div>
-
                           <div className="flex gap-2 mt-4 pt-4 border-t border-slate-200">
-                            <button 
-                              onClick={() => handleEdit(o)}
-                              className="flex-1 flex items-center justify-center gap-1.5 px-2 sm:px-3 py-2 bg-white border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors text-xs sm:text-sm font-medium"
-                            >
-                              <Edit2 className="w-3 h-3 sm:w-4 sm:h-4" />
-                              Edit
+                            <button onClick={() => handleEdit(o)}
+                              className="flex-1 flex items-center justify-center gap-1.5 px-2 sm:px-3 py-2 bg-white border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors text-xs sm:text-sm font-medium">
+                              <Edit2 className="w-3 h-3 sm:w-4 sm:h-4" /> Edit
                             </button>
-                            <button 
-                              onClick={() => handleDelete(o.id)}
-                              className="flex-1 flex items-center justify-center gap-1.5 px-2 sm:px-3 py-2 bg-red-50 border border-red-200 text-red-600 rounded-lg hover:bg-red-100 transition-colors text-xs sm:text-sm font-medium"
-                            >
-                              <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
-                              Delete
+                            <button onClick={() => handleDelete(o.id)}
+                              className="flex-1 flex items-center justify-center gap-1.5 px-2 sm:px-3 py-2 bg-red-50 border border-red-200 text-red-600 rounded-lg hover:bg-red-100 transition-colors text-xs sm:text-sm font-medium">
+                              <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" /> Delete
                             </button>
                           </div>
                         </div>
@@ -462,7 +367,6 @@ const BranchesPage: React.FC = () => {
                     </div>
                   )
                 ) : (
-                  // Regions View
                   filteredRegions.length === 0 ? (
                     <div className="text-center py-12">
                       <MapPin className="w-10 h-10 sm:w-12 sm:h-12 text-slate-300 mx-auto mb-3" />
@@ -470,10 +374,7 @@ const BranchesPage: React.FC = () => {
                         {searchTerm ? 'No regions found matching your search' : 'No regions yet'}
                       </p>
                       {!searchTerm && (
-                        <button 
-                          onClick={() => setShowRegionForm(true)}
-                          className="mt-4 text-green-600 hover:text-green-700 font-medium text-sm sm:text-base"
-                        >
+                        <button onClick={() => setShowRegionForm(true)} className="mt-4 text-green-600 hover:text-green-700 font-medium text-sm sm:text-base">
                           Create your first region
                         </button>
                       )}
@@ -481,69 +382,37 @@ const BranchesPage: React.FC = () => {
                   ) : (
                     <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4">
                       {filteredRegions.map((r) => (
-                        <div 
-                          key={r.id} 
-                          className="group bg-slate-50 border border-slate-200 rounded-lg p-4 sm:p-5 hover:shadow-md hover:border-green-300 transition-all"
-                        >
+                        <div key={r.id} className="group bg-slate-50 border border-slate-200 rounded-lg p-4 sm:p-5 hover:shadow-md hover:border-green-300 transition-all">
                           <div className="flex items-start justify-between mb-3">
                             <div className="flex-1 min-w-0">
-                              <h3 className="font-semibold text-slate-800 text-base sm:text-lg mb-1 truncate">
-                                {r.name}
-                                {r.managerEmail ? (
-                                  <span className="ml-2 inline-block px-2 py-1 bg-green-100 text-green-700 text-xs font-medium rounded-full">
-                                    Manager Assigned
-                                  </span>
+                              <div className="flex items-center gap-2 mb-2">
+                                <h3 className="font-semibold text-slate-800 text-base sm:text-lg truncate">{r.name}</h3>
+                                {r.managerId ? (
+                                  <span className="shrink-0 inline-block px-2 py-1 bg-green-100 text-green-700 text-xs font-medium rounded-full">RTOM Assigned</span>
                                 ) : (
-                                  <span className="ml-2 inline-block px-2 py-1 bg-orange-100 text-orange-700 text-xs font-medium rounded-full">
-                                    No Manager
-                                  </span>
-                                )}
-                              </h3>
-                              <div className="text-sm text-slate-600 mb-2">
-                                <div className="flex items-center gap-1.5 mb-1">
-                                  <span className="font-medium">RTOM:</span> 
-                                  <span className="truncate">{r.managerId || 'Not assigned'}</span>
-                                </div>
-                                {r.managerEmail && (
-                                  <div className="flex items-center gap-1.5 mb-1">
-                                    <span className="font-medium">Email:</span> 
-                                    <span className="truncate">{r.managerEmail}</span>
-                                  </div>
-                                )}
-                                {r.managerMobile && (
-                                  <div className="flex items-center gap-1.5 mb-1">
-                                    <span className="font-medium">Mobile:</span> 
-                                    <span className="truncate">{r.managerMobile}</span>
-                                  </div>
+                                  <span className="shrink-0 inline-block px-2 py-1 bg-orange-100 text-orange-700 text-xs font-medium rounded-full">No RTOM</span>
                                 )}
                               </div>
-                              <div className="flex items-center gap-4 text-sm text-slate-600">
-                                <span>
-                                  <span className="font-medium text-slate-800">
-                                    {outlets.filter(o => o.region?.id === r.id).length}
-                                  </span> outlets
-                                </span>
+                              {r.managerId && (
+                                <div className="text-sm text-slate-600 space-y-0.5">
+                                  <div><span className="font-medium">RTOM:</span> {r.managerId}</div>
+                                  {r.managerMobile && <div><span className="font-medium">Mobile:</span> {r.managerMobile}</div>}
+                                </div>
+                              )}
+                              <div className="flex items-center gap-4 text-sm text-slate-600 mt-2">
+                                <span><span className="font-medium text-slate-800">{outlets.filter(o => o.region?.id === r.id).length}</span> outlets</span>
                               </div>
                             </div>
                           </div>
-
                           <div className="flex gap-2 mt-4 pt-4 border-t border-slate-200">
-                            <button 
-                              onClick={() => {
-                                // Filter outlets for this region and switch to outlets view
-                                setSearchTerm(r.name)
-                                setViewMode('outlets')
-                              }}
-                              className="flex-1 flex items-center justify-center gap-1.5 px-2 sm:px-3 py-2 bg-white border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors text-xs sm:text-sm font-medium"
-                            >
+                            <button onClick={() => { setSearchTerm(r.name); setViewMode('outlets') }}
+                              className="flex-1 flex items-center justify-center gap-1.5 px-2 sm:px-3 py-2 bg-white border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors text-xs sm:text-sm font-medium">
                               <Building2 className="w-3 h-3 sm:w-4 sm:h-4" />
                               <span className="hidden sm:inline">View Outlets</span>
                               <span className="sm:hidden">Outlets</span>
                             </button>
-                            <button 
-                              onClick={() => handleDeleteRegion(r.id, r.name)}
-                              className="px-2 sm:px-3 py-2 bg-red-50 border border-red-200 text-red-600 rounded-lg hover:bg-red-100 transition-colors text-xs sm:text-sm font-medium"
-                            >
+                            <button onClick={() => handleDeleteRegion(r.id, r.name)}
+                              className="px-2 sm:px-3 py-2 bg-red-50 border border-red-200 text-red-600 rounded-lg hover:bg-red-100 transition-colors text-xs sm:text-sm font-medium">
                               <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
                             </button>
                           </div>
@@ -558,210 +427,43 @@ const BranchesPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Region Registration Modal */}
+      {/* Region Creation Modal — name only */}
       {showRegionForm && (
         <>
-          {/* Backdrop */}
-          <div 
-            className="fixed inset-0 bg-black/30 backdrop-blur-sm z-40"
-            onClick={handleCancelRegion}
-          />
-          
-          {/* Modal */}
+          <div className="fixed inset-0 bg-black/30 backdrop-blur-sm z-40" onClick={handleCancelRegion} />
           <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-xl shadow-2xl w-full max-w-md">
-              <div className="p-6 border-b border-slate-200">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-xl font-semibold text-slate-800">Register New Region</h2>
-                  <button
-                    onClick={handleCancelRegion}
-                    className="p-1 hover:bg-slate-100 rounded-lg transition-colors"
-                  >
-                    <X className="w-5 h-5 text-slate-400" />
-                  </button>
-                </div>
+            <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm">
+              <div className="p-6 border-b border-slate-200 flex items-center justify-between">
+                <h2 className="text-xl font-semibold text-slate-800">Add New Region</h2>
+                <button onClick={handleCancelRegion} className="p-1 hover:bg-slate-100 rounded-lg transition-colors">
+                  <X className="w-5 h-5 text-slate-400" />
+                </button>
               </div>
-
               <div className="p-6">
                 {error && (
                   <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
                     <p className="text-sm text-red-600">{error}</p>
                   </div>
                 )}
-
                 <form onSubmit={handleCreateRegion} className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
-                      Region Name *
-                    </label>
-                    <input 
-                      value={regionName} 
-                      onChange={(e) => setRegionName(e.target.value)}
-                      placeholder="Enter region name"
-                      className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
-                      required
-                    />
+                    <label className="block text-sm font-medium text-slate-700 mb-2">Region Name *</label>
+                    <input value={regionName} onChange={(e) => setRegionName(e.target.value)}
+                      placeholder="e.g. Western Province" autoFocus required
+                      className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all" />
+                    <p className="text-xs text-slate-500 mt-1.5">RTOMs can be assigned to this region later via the DGM portal.</p>
                   </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
-                      RTOM Name
-                    </label>
-                    <input 
-                      value={managerName} 
-                      onChange={(e) => setManagerName(e.target.value)}
-                      placeholder="Enter RTOM name"
-                      className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
-                      RTOM Email *
-                    </label>
-                    <input 
-                      type="email"
-                      value={managerEmail} 
-                      onChange={(e) => setManagerEmail(e.target.value)}
-                      placeholder="Enter RTOM email"
-                      required
-                      className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
-                      RTOM Mobile
-                    </label>
-                    <input 
-                      value={managerMobile} 
-                      onChange={(e) => setManagerMobile(e.target.value)}
-                      placeholder="Enter RTOM mobile"
-                      className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
-                    />
-                  </div>
-
                   <div className="flex gap-3 pt-2">
-                    <button 
-                      type="button"
-                      onClick={handleCancelRegion}
-                      className="flex-1 px-4 py-2.5 border border-slate-300 text-slate-700 rounded-lg font-medium hover:bg-slate-50 transition-colors"
-                    >
+                    <button type="button" onClick={handleCancelRegion}
+                      className="flex-1 px-4 py-2.5 border border-slate-300 text-slate-700 rounded-lg font-medium hover:bg-slate-50 transition-colors">
                       Cancel
                     </button>
-                    <button 
-                      type="submit"
-                      disabled={regionLoading}
-                      className="flex-1 bg-green-600 text-white px-4 py-2.5 rounded-lg font-medium hover:bg-green-700 transition-colors disabled:opacity-50"
-                    >
+                    <button type="submit" disabled={regionLoading}
+                      className="flex-1 bg-green-600 text-white px-4 py-2.5 rounded-lg font-medium hover:bg-green-700 transition-colors disabled:opacity-50">
                       {regionLoading ? 'Creating...' : 'Create Region'}
                     </button>
                   </div>
                 </form>
-              </div>
-            </div>
-          </div>
-        </>
-      )}
-
-      {/* Manager Credentials Dialog */}
-      {generatedCredentials && (
-        <>
-          <div className="fixed inset-0 bg-black bg-opacity-50 z-50" onClick={() => setGeneratedCredentials(null)} />
-          <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4">
-              <div className="p-6">
-                <div className="flex items-center justify-center w-12 h-12 mx-auto bg-green-100 rounded-full mb-4">
-                  <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                </div>
-                
-                <h2 className="text-xl font-semibold text-slate-800 text-center mb-4">
-                  RTOM Account Created Successfully!
-                </h2>
-                
-                <p className="text-slate-600 text-center mb-6">
-                  Login credentials have been emailed to the RTOM. They can login using their mobile number.
-                </p>
-                
-                <div className="bg-slate-50 rounded-lg p-4 mb-6">
-                  <div className="space-y-3">
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">RTOM Registered Mobile Number</label>
-                      <div className="flex items-center">
-                        <input 
-                          type="text" 
-                          value={generatedCredentials.mobileNumber || 'Not provided'} 
-                          readOnly 
-                          className="flex-1 px-3 py-2 border border-slate-300 rounded-md bg-white text-slate-900 font-mono"
-                        />
-                        <button
-                          onClick={() => navigator.clipboard.writeText(generatedCredentials.mobileNumber || '')}
-                          className="ml-2 p-2 text-slate-500 hover:text-slate-700"
-                          title="Copy mobile number"
-                        >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                          </svg>
-                        </button>
-                      </div>
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">Email (For Notifications)</label>
-                      <div className="flex items-center">
-                        <input 
-                          type="text" 
-                          value={generatedCredentials.email} 
-                          readOnly 
-                          className="flex-1 px-3 py-2 border border-slate-300 rounded-md bg-white text-slate-900"
-                        />
-                        <button
-                          onClick={() => navigator.clipboard.writeText(generatedCredentials.email)}
-                          className="ml-2 p-2 text-slate-500 hover:text-slate-700"
-                          title="Copy email"
-                        >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                          </svg>
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-                  <div className="flex">
-                    <svg className="w-5 h-5 text-blue-400 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <div>
-                      <p className="text-sm font-medium text-blue-800">Login Instructions:</p>
-                      <p className="text-sm text-blue-700 mt-1">
-                        The RTOM can login directly using their mobile number - no password required. A welcome email has been sent with complete instructions.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="flex gap-3">
-                  <button
-                    onClick={() => {
-                      const text = `RTOM Login Info:\nMobile Number: ${generatedCredentials.mobileNumber || 'Not provided'}\nEmail: ${generatedCredentials.email}\nLogin Method: Mobile number only - no password required`;
-                      navigator.clipboard.writeText(text);
-                    }}
-                    className="flex-1 px-4 py-2.5 border border-slate-300 text-slate-700 rounded-lg font-medium hover:bg-slate-50 transition-colors"
-                  >
-                    Copy Info
-                  </button>
-                  <button
-                    onClick={() => setGeneratedCredentials(null)}
-                    className="flex-1 bg-green-600 text-white px-4 py-2.5 rounded-lg font-medium hover:bg-green-700 transition-colors"
-                  >
-                    Done
-                  </button>
-                </div>
               </div>
             </div>
           </div>

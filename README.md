@@ -129,8 +129,8 @@ VITE_WS_URL=ws://localhost:3001
 
 #### `.env.production`
 ```env
-VITE_API_URL=https://dqms-final-backend.onrender.com/api
-VITE_WS_URL=wss://dqms-final-backend.onrender.com
+VITE_API_URL=https://dpdlab1.slt.lk:8447/dqms-api/api
+VITE_WS_URL=wss://dpdlab1.slt.lk:8447/dqms-api
 ```
 
 ### 3. Start Development Server
