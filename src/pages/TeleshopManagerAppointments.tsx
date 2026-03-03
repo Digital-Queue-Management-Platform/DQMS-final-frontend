@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react"
 import { Filter, RefreshCw, Languages, Search } from "lucide-react"
 import api from "../config/api"
 import { AnimatedDropdown } from "../components/AnimatedDropdown"
+import ServiceName from "../components/ServiceName"
 
 type Outlet = { id: string; name: string; location: string; region?: { id: string } }
 type Appointment = {
@@ -310,7 +311,14 @@ export default function TeleshopManagerAppointments() {
                     <div className="px-3 py-3">{formatLanguage(r.preferredLanguage)}</div>
                     <div className="px-3 py-3">{r.mobileNumber}</div>
                     {/*<div className="px-3 py-3 whitespace-nowrap">{r.outletName || r.outletId}{r.outletLocation ? ` — ${r.outletLocation}` : ''}</div>*/}
-                    <div className="px-3 py-3">{Array.isArray(r.serviceTypes) ? r.serviceTypes.join(', ') : ''}</div>
+                    <div className="px-3 py-3">
+                      {Array.isArray(r.serviceTypes) ? r.serviceTypes.map((type, i) => (
+                        <span key={i}>
+                          <ServiceName serviceType={type} />
+                          {i < r.serviceTypes.length - 1 ? ', ' : ''}
+                        </span>
+                      )) : ''}
+                    </div>
                     <div className="px-3 py-3">
                       <span className={`text-xs px-2 py-1 rounded-full font-medium ${r.status === 'queued' ? 'bg-green-100 text-green-700' :
                         r.status === 'booked' ? 'bg-yellow-100 text-yellow-700' :

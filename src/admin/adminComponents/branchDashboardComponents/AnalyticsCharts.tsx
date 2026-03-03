@@ -70,6 +70,20 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ data, tokenData, outl
     dropOffs: item.issued - item.completed,
   }));
 
+  const [formattedServiceTypes, setFormattedServiceTypes] = useState<ServiceType[]>(data.serviceTypes);
+
+  React.useEffect(() => {
+    const formatServices = async () => {
+      const { getServiceDisplayName } = await import('../../../utils/sharedServiceCache');
+      const formatted = await Promise.all(data.serviceTypes.map(async st => ({
+        name: await getServiceDisplayName(st.name),
+        count: st.count
+      })));
+      setFormattedServiceTypes(formatted);
+    };
+    formatServices();
+  }, [data.serviceTypes]);
+
   return (
     <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
       <div className="flex justify-between items-center mb-6">
@@ -78,31 +92,28 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ data, tokenData, outl
         </h2>
         <div className="flex space-x-2">
           <button
-            className={`px-3 py-1 text-sm rounded-md ${
-              timeRange === 'daily'
+            className={`px-3 py-1 text-sm rounded-md ${timeRange === 'daily'
                 ? 'bg-blue-100 text-blue-700'
                 : 'bg-gray-100 text-gray-600'
-            }`}
+              }`}
             onClick={() => setTimeRange('daily')}
           >
             Daily
           </button>
           <button
-            className={`px-3 py-1 text-sm rounded-md ${
-              timeRange === 'weekly'
+            className={`px-3 py-1 text-sm rounded-md ${timeRange === 'weekly'
                 ? 'bg-blue-100 text-blue-700'
                 : 'bg-gray-100 text-gray-600'
-            }`}
+              }`}
             onClick={() => setTimeRange('weekly')}
           >
             Weekly
           </button>
           <button
-            className={`px-3 py-1 text-sm rounded-md ${
-              timeRange === 'monthly'
+            className={`px-3 py-1 text-sm rounded-md ${timeRange === 'monthly'
                 ? 'bg-blue-100 text-blue-700'
                 : 'bg-gray-100 text-gray-600'
-            }`}
+              }`}
             onClick={() => setTimeRange('monthly')}
           >
             Monthly
@@ -142,7 +153,7 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ data, tokenData, outl
           </h3>
           <div className="h-64 mt-6">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={data.serviceTypes}>
+              <BarChart data={formattedServiceTypes}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} />
                 <XAxis dataKey="name" />
                 <YAxis />

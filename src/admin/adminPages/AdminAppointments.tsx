@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react"
 import { Calendar, Filter, RefreshCwIcon, Search } from "lucide-react"
 import api, { WS_URL } from "../../config/api"
+import ServiceName from "../../components/ServiceName"
 
 type Outlet = { id: string; name: string; location: string }
 type Appointment = {
@@ -26,7 +27,7 @@ const SERVICE_OPTIONS = [
 export default function AdminAppointments() {
   const [outlets, setOutlets] = useState<Outlet[]>([])
   const [selectedOutlet, setSelectedOutlet] = useState<string>('all')
-  const [date, setDate] = useState<string>(() => new Date().toISOString().slice(0,10))
+  const [date, setDate] = useState<string>(() => new Date().toISOString().slice(0, 10))
   // We only show booked appointments (queued ones will disappear from this pool)
   const [services, setServices] = useState<string[]>([])
   const [q, setQ] = useState<string>('')
@@ -34,9 +35,9 @@ export default function AdminAppointments() {
   const [error, setError] = useState('')
   const [rows, setRows] = useState<(Appointment & { outletName?: string; outletLocation?: string })[]>([])
 
-  useEffect(() => { 
+  useEffect(() => {
     fetchOutlets()
-    
+
     // Auto-refresh every 30 seconds
     const interval = setInterval(() => {
       if (outlets.length) loadData()
@@ -46,17 +47,17 @@ export default function AdminAppointments() {
     let ws: WebSocket | null = null
     let reconnectTimer: number | null = null
     let isComponentMounted = true
-    
+
     const connectWebSocket = () => {
       if (!isComponentMounted) return
-      
+
       try {
         ws = new WebSocket(WS_URL)
-        
+
         ws.onopen = () => {
           console.log('AdminAppointments WebSocket connected')
         }
-        
+
         ws.onmessage = (event) => {
           try {
             const data = JSON.parse(event.data)
@@ -71,7 +72,7 @@ export default function AdminAppointments() {
         ws.onerror = (error) => {
           console.error('AdminAppointments WebSocket error:', error)
         }
-        
+
         ws.onclose = (event) => {
           console.log('AdminAppointments WebSocket disconnected:', event.reason)
           if (!event.wasClean && isComponentMounted) {
@@ -147,7 +148,7 @@ export default function AdminAppointments() {
       data = data.filter(r => r.name?.toLowerCase().includes(qq) || r.mobileNumber?.includes(qq))
     }
     // sort by appointmentAt ASC
-    data.sort((a,b) => new Date(a.appointmentAt).getTime() - new Date(b.appointmentAt).getTime())
+    data.sort((a, b) => new Date(a.appointmentAt).getTime() - new Date(b.appointmentAt).getTime())
     return data
   }, [rows, status, services, q])
 
@@ -171,7 +172,7 @@ export default function AdminAppointments() {
               Last updated: {new Date().toLocaleTimeString()}
             </div>
             <button onClick={loadData} disabled={loading} className="inline-flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 flex-shrink-0 disabled:bg-gray-400">
-              <RefreshCwIcon className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} /> 
+              <RefreshCwIcon className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
               <span className="hidden sm:inline">Refresh</span>
             </button>
           </div>
@@ -274,20 +275,29 @@ export default function AdminAppointments() {
                       </td>
                       <td className="px-3 py-3 hidden md:table-cell">
                         <div className="text-sm text-gray-900">
-                          {Array.isArray(r.serviceTypes) ? r.serviceTypes.join(', ') : ''}
+                          {Array.isArray(r.serviceTypes) ? r.serviceTypes.map((type, i) => (
+                            <span key={i}>
+                              <ServiceName serviceType={type} />
+                              {i < r.serviceTypes.length - 1 ? ', ' : ''}
+                            </span>
+                          )) : ''}
                         </div>
                       </td>
                       <td className="px-3 py-3">
-                        <span className={`text-xs px-2 py-1 rounded-full font-medium ${
-                          r.status === 'queued' ? 'bg-green-100 text-green-700' :
+                        <span className={`text-xs px-2 py-1 rounded-full font-medium ${r.status === 'queued' ? 'bg-green-100 text-green-700' :
                           r.status === 'booked' ? 'bg-yellow-100 text-yellow-700' :
-                          r.status === 'completed' ? 'bg-blue-100 text-blue-700' :
-                          r.status === 'cancelled' ? 'bg-red-100 text-red-700' :
-                          'bg-gray-100 text-gray-700'
-                        }`}>{r.status.toUpperCase()}</span>
+                            r.status === 'completed' ? 'bg-blue-100 text-blue-700' :
+                              r.status === 'cancelled' ? 'bg-red-100 text-red-700' :
+                                'bg-gray-100 text-gray-700'
+                          }`}>{r.status.toUpperCase()}</span>
                         <div className="md:hidden mt-1">
                           <div className="text-xs text-gray-500">
-                            {Array.isArray(r.serviceTypes) ? r.serviceTypes.join(', ') : ''}
+                            {Array.isArray(r.serviceTypes) ? r.serviceTypes.map((type, i) => (
+                              <span key={i}>
+                                <ServiceName serviceType={type} />
+                                {i < r.serviceTypes.length - 1 ? ', ' : ''}
+                              </span>
+                            )) : ''}
                           </div>
                         </div>
                       </td>

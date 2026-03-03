@@ -35,8 +35,18 @@ interface CompletedServiceCardProps {
 
 import React from 'react'
 function CompletedServiceCardComponent({ service }: CompletedServiceCardProps) {
+  const calculateDuration = (service: any) => {
+    // If explicit duration exists
+    if (service.duration) return service.duration;
+    // Otherwise calculate from startedAt and completedAt if available remotely
+    if (service.startedAt && service.completedAt) {
+      return Math.floor((new Date(service.completedAt).getTime() - new Date(service.startedAt).getTime()) / 60000);
+    }
+    return undefined;
+  };
+
   const formatDuration = (minutes?: number) => {
-    if (!minutes) return "N/A"
+    if (!minutes && minutes !== 0) return "N/A"
     const hours = Math.floor(minutes / 60)
     const mins = minutes % 60
     if (hours > 0) {
@@ -93,7 +103,7 @@ function CompletedServiceCardComponent({ service }: CompletedServiceCardProps) {
         <div className="text-right">
           <div className="flex items-center gap-1 text-sm text-gray-600 mb-1">
             <Clock className="w-4 h-4" />
-            <span>{formatDuration(service.duration)}</span>
+            <span>{formatDuration(calculateDuration(service))}</span>
           </div>
           <p className="text-xs text-gray-500">
             {new Date(service.completedAt).toLocaleDateString()}
