@@ -137,7 +137,7 @@ export default function TeleshopManagerServedCustomers() {
     if (caseDetails[refNumber]) return
     setLoadingCase(refNumber)
     try {
-      const res = await api.get(`/service-case/${encodeURIComponent(refNumber)}`)
+      const res = await api.get(`/service-case/${refNumber}`)
       setCaseDetails(prev => ({ ...prev, [refNumber]: res.data }))
     } catch (e: any) {
       console.error('Failed to load case details:', e)

@@ -122,7 +122,7 @@ export default function OfficerServedCustomers() {
     if (caseDetails[refNumber]) return // Already loaded
     setLoadingCase(refNumber)
     try {
-      const res = await api.get(`/service-case/${encodeURIComponent(refNumber)}`)
+      const res = await api.get(`/service-case/${refNumber}`)
       setCaseDetails(prev => ({ ...prev, [refNumber]: res.data }))
     } catch (e: any) {
       console.error('Failed to load case details:', e)

@@ -30,7 +30,7 @@ export default function OfficerServiceTracking() {
     setLoading(true)
     try {
       const token = localStorage.getItem('officerToken')
-      const res = await api.get(`/officer/service-case/${encodeURIComponent(ref.trim())}`, token ? { headers: { Authorization: `Bearer ${token}` } } : undefined)
+      const res = await api.get(`/officer/service-case/${ref.trim()}`, token ? { headers: { Authorization: `Bearer ${token}` } } : undefined)
       setData(res.data)
     } catch (e: any) {
       const status = e?.response?.status
