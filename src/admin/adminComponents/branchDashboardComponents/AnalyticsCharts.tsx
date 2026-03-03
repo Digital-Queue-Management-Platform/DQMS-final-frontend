@@ -70,7 +70,7 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ data, tokenData, outl
     dropOffs: item.issued - item.completed,
   }));
 
-  const [formattedServiceTypes, setFormattedServiceTypes] = useState<ServiceType[]>(data.serviceTypes);
+  const [formattedServiceTypes, setFormattedServiceTypes] = useState<ServiceType[]>([]);
 
   React.useEffect(() => {
     const formatServices = async () => {

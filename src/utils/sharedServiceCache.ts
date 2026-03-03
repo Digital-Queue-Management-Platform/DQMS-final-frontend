@@ -27,12 +27,6 @@ const staticServiceMap: { [key: string]: string } = {
   'maintenance': 'Maintenance Request',
   'installation': 'Installation',
   'repair': 'Repair Request',
-  // Add common service codes as fallbacks
-  'SVC001': 'Bill Payments',
-  'SVC002': 'New Connections', 
-  'SVC003': 'Plan Changes',
-  'SVC004': 'Device Issues',
-  'SVC005': 'Account Management'
 }
 
 // Load services from API and cache them globally
