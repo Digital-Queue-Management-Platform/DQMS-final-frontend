@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react"
 import { Calendar, Filter, RefreshCwIcon, Search } from "lucide-react"
 import api, { WS_URL } from "../config/api"
+import ServiceName from "../components/ServiceName"
 
 type Outlet = { id: string; name: string; location: string; regionId?: string }
 type Appointment = {
@@ -26,16 +27,16 @@ const SERVICE_OPTIONS = [
 export default function ManagerAppointments() {
   const [outlets, setOutlets] = useState<Outlet[]>([])
   const [selectedOutlet, setSelectedOutlet] = useState<string>('all')
-  const [date, setDate] = useState<string>(() => new Date().toISOString().slice(0,10))
+  const [date, setDate] = useState<string>(() => new Date().toISOString().slice(0, 10))
   const [services, setServices] = useState<string[]>([])
   const [q, setQ] = useState<string>('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [rows, setRows] = useState<(Appointment & { outletName?: string; outletLocation?: string })[]>([])
 
-  useEffect(() => { 
+  useEffect(() => {
     fetchOutlets()
-    
+
     // Auto-refresh every 30 seconds
     // Auto-refresh every 30 seconds
     const interval = setInterval(() => {
@@ -46,17 +47,17 @@ export default function ManagerAppointments() {
     let ws: WebSocket | null = null
     let reconnectTimer: number | null = null
     let isComponentMounted = true
-    
+
     const connectWebSocket = () => {
       if (!isComponentMounted) return
-      
+
       try {
         ws = new WebSocket(WS_URL)
-        
+
         ws.onopen = () => {
           console.log('ManagerAppointments WebSocket connected')
         }
-        
+
         ws.onmessage = (event) => {
           try {
             const data = JSON.parse(event.data)
@@ -71,7 +72,7 @@ export default function ManagerAppointments() {
         ws.onerror = (error) => {
           console.error('ManagerAppointments WebSocket error:', error)
         }
-        
+
         ws.onclose = (event) => {
           console.log('ManagerAppointments WebSocket disconnected:', event.reason)
           if (!event.wasClean && isComponentMounted) {
@@ -153,7 +154,7 @@ export default function ManagerAppointments() {
       const qq = q.trim().toLowerCase()
       data = data.filter(r => r.name?.toLowerCase().includes(qq) || r.mobileNumber?.includes(qq))
     }
-    data.sort((a,b) => new Date(a.appointmentAt).getTime() - new Date(b.appointmentAt).getTime())
+    data.sort((a, b) => new Date(a.appointmentAt).getTime() - new Date(b.appointmentAt).getTime())
     return data
   }, [rows, services, q])
 
@@ -254,15 +255,21 @@ export default function ManagerAppointments() {
                     <td className="px-3 py-2">{r.name}</td>
                     <td className="px-3 py-2">{r.mobileNumber}</td>
                     <td className="px-3 py-2 whitespace-nowrap">{r.outletName || r.outletId}{r.outletLocation ? ` — ${r.outletLocation}` : ''}</td>
-                    <td className="px-3 py-2">{Array.isArray(r.serviceTypes) ? r.serviceTypes.join(', ') : ''}</td>
                     <td className="px-3 py-2">
-                      <span className={`text-xs px-2 py-1 rounded-full font-medium ${
-                        r.status === 'queued' ? 'bg-green-100 text-green-700' :
+                      {Array.isArray(r.serviceTypes) ? r.serviceTypes.map((type, i) => (
+                        <span key={i}>
+                          <ServiceName serviceType={type} />
+                          {i < r.serviceTypes.length - 1 ? ', ' : ''}
+                        </span>
+                      )) : ''}
+                    </td>
+                    <td className="px-3 py-2">
+                      <span className={`text-xs px-2 py-1 rounded-full font-medium ${r.status === 'queued' ? 'bg-green-100 text-green-700' :
                         r.status === 'booked' ? 'bg-yellow-100 text-yellow-700' :
-                        r.status === 'completed' ? 'bg-blue-100 text-blue-700' :
-                        r.status === 'cancelled' ? 'bg-red-100 text-red-700' :
-                        'bg-gray-100 text-gray-700'
-                      }`}>{r.status.toUpperCase()}</span>
+                          r.status === 'completed' ? 'bg-blue-100 text-blue-700' :
+                            r.status === 'cancelled' ? 'bg-red-100 text-red-700' :
+                              'bg-gray-100 text-gray-700'
+                        }`}>{r.status.toUpperCase()}</span>
                     </td>
                     <td className="px-3 py-2 whitespace-nowrap">{formatDate(r.createdAt)} {formatTime(r.createdAt)}</td>
                   </tr>
