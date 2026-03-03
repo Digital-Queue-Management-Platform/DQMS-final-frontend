@@ -31,7 +31,7 @@ export default function ManagerServiceTracking() {
     setError('')
     setLoading(true)
     try {
-      const res = await api.get(`/service-case/${encodeURIComponent(ref.trim())}`)
+      const res = await api.get(`/service-case/${ref.trim()}`)
       setData(res.data)
     } catch (e: any) {
       setError(e?.response?.data?.error || 'Reference not found')
