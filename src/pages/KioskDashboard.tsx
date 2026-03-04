@@ -117,7 +117,7 @@ export default function KioskDashboard() {
   }
 
   const isSltRequiredService = (code: string) => {
-    return code === 'SVC002'
+    return code === 'BILL_PAYMENT' || code === 'SVC001' || code === 'SVC002'
   }
 
   const handleServiceSelect = (serviceCode: string) => {
