@@ -74,6 +74,7 @@ const GMLocationDashboard = React.lazy(() => import("./pages/GMLocationDashboard
 const DGMLocationDashboard = React.lazy(() => import("./pages/DGMLocationDashboard"))
 import ProtectedGMRoute from "./components/ProtectedGMRoute"
 import ProtectedDGMRoute from "./components/ProtectedDGMRoute"
+import ShortUrlResolver from "./components/ShortUrlResolver"
 
 //import { Shield, UserCog, ArrowRight, Building2, Phone } from "lucide-react"
 import OfficerTopBar from "./components/OfficerTopBar"
@@ -431,6 +432,10 @@ function App() {
         <Route
           element={<Layout><QueueStatus /></Layout>}
           path="/queue/:tokenId"
+        />
+        <Route
+          element={<Layout><ShortUrlResolver /></Layout>}
+          path="/t/:shortId"
         />
         <Route
           element={<Layout><FeedbackPage /></Layout>}
