@@ -126,7 +126,7 @@ export default function AppointmentBooking() {
   }
 
   const isSltRequiredService = (code: string) => {
-    return code === 'BILL_PAYMENT' || code === 'SVC002'
+    return code === 'BILL_PAYMENT' || code === 'SVC001' || code === 'SVC002'
   }
 
   const handleServiceSelect = (code: string) => {

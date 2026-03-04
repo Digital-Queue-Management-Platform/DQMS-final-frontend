@@ -340,7 +340,7 @@ export default function CustomerRegistration() {
 
   // Check if service requires SLT number (Bill Payment or Billing Inquiry)
   const isSltRequiredService = (code: string) => {
-    return code === 'BILL_PAYMENT' || code === 'SVC002'
+    return code === 'BILL_PAYMENT' || code === 'SVC001' || code === 'SVC002'
   }
 
   // Get service title by code (localized for the two allowed services)
