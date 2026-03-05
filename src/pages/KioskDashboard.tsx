@@ -1125,9 +1125,13 @@ export default function KioskDashboard() {
                     <span className="text-gray-600">Customer:</span>
                     <span className="font-medium">{successToken.customerName}</span>
                   </div>
-                  <div className="flex justify-between">
+                  <div className="flex justify-between items-start">
                     <span className="text-gray-600">Services:</span>
-                    <span className="font-medium">{successToken.serviceTypes.length}</span>
+                    <div className="text-right">
+                      {successToken.serviceTypes.map((code: string) => (
+                        <div key={code} className="font-medium text-blue-700">{getServiceTitle(code)}</div>
+                      ))}
+                    </div>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">Time:</span>
