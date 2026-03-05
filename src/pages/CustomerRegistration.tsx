@@ -608,7 +608,8 @@ export default function CustomerRegistration() {
       verifiedAccount: "Account Verified",
       billSummary: "Bill Summary",
       verified: "Phone Verified",
-      readyToRegister: "Ready to generate your token"
+      readyToRegister: "Ready to generate your token",
+      billSentNotification: "Due amount has been sent to the registered owner ({mobile}). Please ask the owner for the bill details."
     },
     si: {
       title: "ඩිජිටල් පෝලිම වේදිකාව",
@@ -669,7 +670,8 @@ export default function CustomerRegistration() {
       verifiedAccount: "ගිණුම තහවුරු කර ඇත",
       billSummary: "බිල් සාරාංශය",
       verified: "දුරකථන තහවුරු විය",
-      readyToRegister: "ටෝකන් උත්පාදනය කිරීමට සූදානම්"
+      readyToRegister: "ටෝකන් උත්පාදනය කිරීමට සූදානම්",
+      billSentNotification: "ගෙවිය යුතු මුදල ලියාපදිංචි අයිතිකරුට ({mobile}) යවා ඇත. කරුණාකර බිල්පතේ විස්තර අයිතිකරුගෙන් විමසන්න."
     },
     ta: {
       title: "டிஜிட்டல் வரிசை மேடை",
@@ -730,7 +732,8 @@ export default function CustomerRegistration() {
       verifiedAccount: "கணக்கு சரிபார்க்கப்பட்டது",
       billSummary: "பில் சுருக்கம்",
       verified: "தொலைபேசி சரிபார்க்கப்பட்டது",
-      readyToRegister: "டோக்கன் உருவாக்க தயாரானது"
+      readyToRegister: "டோக்கன் உருவாக்க தயாரானது",
+      billSentNotification: "செலுத்த வேண்டிய தொகை பதிவு செய்யப்பட்ட உரிமையாளருக்கு ({mobile}) அனுப்பப்பட்டுள்ளது. பில் விவரங்களை உரிமையாளரிடம் கேளுங்கள்."
     },
   }
 
@@ -1114,15 +1117,13 @@ export default function CustomerRegistration() {
                       <p className="text-sm font-medium text-gray-900">{mobileNumber}</p>
                     </div>
                   </div>
-
-                  {/* Bill Details or Notification - Show after OTP verified and SLT verified */}
+                  {/* Bill Notification - Show after SLT verified */}
                   {isSltRequiredService(selectedService) && sltVerified && billData && (
                     <div className="mt-4">
-                      <div className="bg-green-100 text-green-800 p-3 rounded">
-                        <div>Due Amount: <b>Rs. {billData.currentBill}</b></div>
-                        {billData.dueDate && (
-                          <div>Due Date: <b>{billData.dueDate}</b></div>
-                        )}
+                      <div className="bg-blue-100 text-blue-800 p-3 rounded border border-blue-200">
+                        <p className="text-sm">
+                          {t.billSentNotification.replace('{mobile}', billData.mobileNumber || '***')}
+                        </p>
                       </div>
                     </div>
                   )}
