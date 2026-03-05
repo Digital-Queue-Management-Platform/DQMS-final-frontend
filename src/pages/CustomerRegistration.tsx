@@ -22,7 +22,7 @@ export default function CustomerRegistration() {
   // Initialize all form fields to empty strings - NEVER use cached values
   const [name, setName] = useState("")
   const [mobileNumber, setMobileNumber] = useState("")
-  const [selectedService, setSelectedService] = useState<string>("") 
+  const [selectedService, setSelectedService] = useState<string>("")
   // Optional fields section toggle
   const [showOptional, setShowOptional] = useState(false)
   const [nicNumber, setNicNumber] = useState("")
@@ -49,7 +49,6 @@ export default function CustomerRegistration() {
   const [sltTelephoneNumber, setSltTelephoneNumber] = useState("")
   const [billData, setBillData] = useState<any>(null)
   const [sltVerified, setSltVerified] = useState(false)
-  const [isOwnerOfAccount, setIsOwnerOfAccount] = useState(false)
 
   // Multi-step form state
   const [currentStep, setCurrentStep] = useState(1)
@@ -446,12 +445,7 @@ export default function CustomerRegistration() {
       return
     }
 
-    // Validate format (10 digits starting with 01, 041, or 081)
-    const phoneRegex = /^(01\d{8}|041\d{7}|081\d{7})$/
-    if (!phoneRegex.test(sltTelephoneNumber)) {
-      setError("Invalid SLT number. Must be 10 digits (01/041/081).")
-      return
-    }
+    /* Removed pattern validation */
 
     setLoading(true)
     setError("")
@@ -462,46 +456,6 @@ export default function CustomerRegistration() {
         setBillData(bill)
         setSltVerified(true)
         setError("")
-
-        // DO NOT auto-fill name from bill - allow user to enter their own name
-        // This is important because sometimes the person paying (e.g., driver)
-        // is not the account owner, and we want their name in the system
-        // Do not auto-fill mobile for non-owners
-        // if (bill.mobileNumber) {
-        //   setMobileNumber(bill.mobileNumber)
-        // }
-
-        // Normalize mobile numbers to compare (07x → 94x format)
-        const normalizeForComparison = (num: string) => {
-          let normalized = num.replace(/\D/g, '')
-          if (normalized.startsWith('0')) {
-            normalized = '94' + normalized.substring(1)
-          } else if (!normalized.startsWith('94')) {
-            normalized = '94' + normalized
-          }
-          return normalized
-        }
-        let isOwner = false
-        if (otpStep === 'verified' && mobileNumber) {
-          const userMobileNormalized = normalizeForComparison(mobileNumber)
-          const ownerMobileNormalized = normalizeForComparison(bill.mobileNumber)
-          isOwner = userMobileNormalized === ownerMobileNormalized
-        }
-        setIsOwnerOfAccount(isOwner)
-        // Optionally, send notification to owner if not owner
-        if (!isOwner && bill.mobileNumber) {
-          try {
-            await api.post('/bills/send-notification', {
-              mobileNumber: bill.mobileNumber,
-              accountName: bill.accountName,
-              billAmount: bill.currentBill,
-              dueDate: bill.dueDate,
-              sltNumber: sltTelephoneNumber
-            })
-          } catch (notifErr) {
-            // ignore
-          }
-        }
       } else {
         setError("No account found for this telephone number")
       }
@@ -998,33 +952,32 @@ export default function CustomerRegistration() {
                     console.log('Step 3 Service Check:', { selectedService, requiresSlt, isSltRequired: isSltRequiredService });
                     return requiresSlt;
                   })() && (
-                    <div className="space-y-4">
-                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                        <h3 className="text-sm font-semibold text-blue-900 mb-3">{t.enterSltNumber}</h3>
-                        <div className="space-y-3">
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">{t.sltTelephone}</label>
-                            <div className="relative">
-                              <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                              <input
-                                type="tel"
-                                value={sltTelephoneNumber}
-                                onChange={(e) => {
-                                  setSltTelephoneNumber(e.target.value)
-                                  setError("")
-                                  setSltVerified(false)
-                                }}
-                                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                placeholder={t.sltTelephonePlaceholder}
-                                pattern="(01[0-9]{8}|041[0-9]{7}|081[0-9]{7})"
-                              />
+                      <div className="space-y-4">
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                          <h3 className="text-sm font-semibold text-blue-900 mb-3">{t.enterSltNumber}</h3>
+                          <div className="space-y-3">
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-2">{t.sltTelephone}</label>
+                              <div className="relative">
+                                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                                <input
+                                  type="tel"
+                                  value={sltTelephoneNumber}
+                                  onChange={(e) => {
+                                    setSltTelephoneNumber(e.target.value)
+                                    setError("")
+                                    setSltVerified(false)
+                                  }}
+                                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                  placeholder={t.sltTelephonePlaceholder}
+                                />
+                              </div>
+                              <p className="text-xs text-blue-600 mt-2">🔒 We'll verify your SLT account after you verify your mobile number</p>
                             </div>
-                            <p className="text-xs text-blue-600 mt-2">🔒 We'll verify your SLT account after you verify your mobile number</p>
                           </div>
                         </div>
                       </div>
-                    </div>
-                  )}
+                    )}
 
                   {/* Manual Entry Path - Always show name/mobile fields */}
                   <div>
@@ -1053,7 +1006,6 @@ export default function CustomerRegistration() {
                         onChange={(e) => setMobileNumber(e.target.value)}
                         className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         placeholder="07XXXXXXXX"
-                        pattern="[0-9]{10}"
                         required
                       />
                     </div>
@@ -1166,18 +1118,12 @@ export default function CustomerRegistration() {
                   {/* Bill Details or Notification - Show after OTP verified and SLT verified */}
                   {isSltRequiredService(selectedService) && sltVerified && billData && (
                     <div className="mt-4">
-                      {isOwnerOfAccount ? (
-                        <div className="bg-green-100 text-green-800 p-3 rounded">
-                          <div>Due Amount: <b>Rs. {billData.currentBill}</b></div>
-                          {billData.dueDate && (
-                            <div>Due Date: <b>{billData.dueDate}</b></div>
-                          )}
-                        </div>
-                      ) : (
-                        <div className="bg-blue-100 text-blue-800 p-3 rounded">
-                          Due amount has been sent to the registered owner (xxxxxxx{billData.mobileNumber?.slice(-3) || '***'}). Please ask the owner for the bill details.
-                        </div>
-                      )}
+                      <div className="bg-green-100 text-green-800 p-3 rounded">
+                        <div>Due Amount: <b>Rs. {billData.currentBill}</b></div>
+                        {billData.dueDate && (
+                          <div>Due Date: <b>{billData.dueDate}</b></div>
+                        )}
+                      </div>
                     </div>
                   )}
 
@@ -1222,7 +1168,6 @@ export default function CustomerRegistration() {
                     <div className="space-y-4">
                       <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
                         <p className="text-green-700 font-medium mb-1">✓ {t.verified || 'Phone Verified'}</p>
-                        <p className="text-sm text-green-600">{t.readyToRegister || 'Ready to generate your token'}</p>
                       </div>
                     </div>
                   )}

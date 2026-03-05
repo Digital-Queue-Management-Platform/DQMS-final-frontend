@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import api from '../../config/api'
-import { Plus, Edit2, Trash2, Save, X, Package, Search, ArrowUp, ArrowDown } from 'lucide-react'
+import { Plus, Edit2, Trash2, Save, X, Package, Search } from 'lucide-react'
 
 interface Service {
   id: string
@@ -91,7 +91,7 @@ const ServicesPage: React.FC = () => {
     try {
       await api.patch(`/queue/services/${id}`, { isActive })
       // Update the service status in local state
-      setServices((prev) => prev.map(s => 
+      setServices((prev) => prev.map(s =>
         s.id === id ? { ...s, isActive } : s
       ))
     } catch (err) {
@@ -109,7 +109,7 @@ const ServicesPage: React.FC = () => {
     setError('')
   }
 
-  const filteredServices = services.filter(s => 
+  const filteredServices = services.filter(s =>
     s.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
     s.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
     s.description?.toLowerCase().includes(searchTerm.toLowerCase())
@@ -163,14 +163,14 @@ const ServicesPage: React.FC = () => {
                 {editingId ? 'Edit Service' : 'Create New Service'}
               </h2>
             </div>
-            
+
             <div className="p-4 sm:p-6">
               {error && (
                 <div className="mb-4 p-3 sm:p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
                   {error}
                 </div>
               )}
-              
+
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-4 sm:mb-6">
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
@@ -184,7 +184,7 @@ const ServicesPage: React.FC = () => {
                     className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition disabled:bg-gray-100 disabled:cursor-not-allowed text-sm sm:text-base"
                   />
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
                     Service Title *
@@ -196,7 +196,7 @@ const ServicesPage: React.FC = () => {
                     className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition text-sm sm:text-base"
                   />
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
                     Display Order
@@ -211,7 +211,7 @@ const ServicesPage: React.FC = () => {
                   <p className="text-xs text-gray-500 mt-1">Lower numbers appear first (e.g., 1 = first position)</p>
                 </div>
               </div>
-              
+
               <div className="mb-4 sm:mb-6">
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
                   Description
@@ -224,7 +224,7 @@ const ServicesPage: React.FC = () => {
                   className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition resize-none text-sm sm:text-base"
                 />
               </div>
-              
+
               <div className="flex flex-col sm:flex-row gap-3">
                 <button
                   onClick={(e) => handleCreateOrUpdate(e)}
@@ -269,23 +269,23 @@ const ServicesPage: React.FC = () => {
               Showing {indexOfFirstService + 1}-{Math.min(indexOfLastService, filteredServices.length)} of {filteredServices.length} services
             </span>
           </div>
-          
+
           <div className="flex items-center justify-center space-x-2">
-            <button 
-              onClick={goToPrevPage} 
+            <button
+              onClick={goToPrevPage}
               disabled={currentPage === 1}
               className="px-2 sm:px-3 py-1.5 bg-white border border-gray-300 rounded-lg sm:rounded-xl text-xs sm:text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               <span className="hidden sm:inline">Previous</span>
               <span className="sm:hidden">Prev</span>
             </button>
-            
+
             <div className="flex items-center px-2 sm:px-3 py-1.5 text-xs sm:text-sm font-medium text-gray-700">
               {currentPage} of {totalPages}
             </div>
-            
-            <button 
-              onClick={goToNextPage} 
+
+            <button
+              onClick={goToNextPage}
               disabled={currentPage === totalPages}
               className="px-2 sm:px-3 py-1.5 bg-white border border-gray-300 rounded-lg sm:rounded-xl text-xs sm:text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
@@ -377,11 +377,10 @@ const ServicesPage: React.FC = () => {
                         <select
                           value={service.isActive !== false ? 'active' : 'inactive'}
                           onChange={(e) => handleStatusChange(service.id, e.target.value === 'active')}
-                          className={`px-2 sm:px-3 py-1 text-xs font-semibold rounded-full border-0 focus:ring-2 focus:ring-blue-500 cursor-pointer transition-colors ${
-                            service.isActive !== false
+                          className={`px-2 sm:px-3 py-1 text-xs font-semibold rounded-full border-0 focus:ring-2 focus:ring-blue-500 cursor-pointer transition-colors ${service.isActive !== false
                               ? 'bg-green-100 text-green-700 hover:bg-green-200'
                               : 'bg-red-100 text-red-700 hover:bg-red-200'
-                          }`}
+                            }`}
                         >
                           <option value="active" className="bg-white text-black">Active</option>
                           <option value="inactive" className="bg-white text-black">Inactive</option>
