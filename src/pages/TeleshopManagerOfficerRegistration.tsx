@@ -34,12 +34,6 @@ const availableLanguages = [
   { code: "si", name: "Sinhala" },
   { code: "ta", name: "Tamil" }
 ]
-const BILL_PAYMENT_SERVICE: Service = {
-  id: 'BILL_PAYMENT',
-  code: 'BILL_PAYMENT',
-  title: 'Bill Payment',
-  isActive: true,
-}
 
 export default function TeleshopManagerOfficerRegistration() {
   const navigate = useNavigate()
@@ -71,14 +65,10 @@ export default function TeleshopManagerOfficerRegistration() {
     try {
       const response = await api.get('/queue/services')
       const data = Array.isArray(response.data) ? response.data : []
-      const withBillPayment = [
-        BILL_PAYMENT_SERVICE,
-        ...data.filter((s: Service) => s.code !== 'BILL_PAYMENT')
-      ]
-      setServices(withBillPayment)
+      setServices(data)
     } catch (err) {
       console.error('Failed to load services:', err)
-      setServices([BILL_PAYMENT_SERVICE])
+      setServices([])
     }
   }
 

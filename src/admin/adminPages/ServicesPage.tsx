@@ -7,6 +7,7 @@ interface Service {
   code: string
   title: string
   description?: string
+  order?: number
   isActive?: boolean
 }
 
@@ -21,6 +22,7 @@ const ServicesPage: React.FC = () => {
   const [code, setCode] = useState('')
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
+  const [order, setOrder] = useState<number>(999)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [showForm, setShowForm] = useState(false)
 
@@ -48,11 +50,11 @@ const ServicesPage: React.FC = () => {
 
     try {
       if (editingId) {
-        const res = await api.patch(`/queue/services/${editingId}`, { title, description })
+        const res = await api.patch(`/queue/services/${editingId}`, { title, description, order })
         setServices((prev) => prev.map((s) => (s.id === editingId ? res.data.service : s)))
         setEditingId(null)
       } else {
-        const res = await api.post('/queue/services', { code, title, description })
+        const res = await api.post('/queue/services', { code, title, description, order })
         setServices((prev) => [res.data.service, ...prev])
       }
 
@@ -69,6 +71,7 @@ const ServicesPage: React.FC = () => {
     setCode(s.code)
     setTitle(s.title)
     setDescription(s.description || '')
+    setOrder(s.order || 999)
     setShowForm(true)
   }
 
@@ -88,7 +91,7 @@ const ServicesPage: React.FC = () => {
     try {
       await api.patch(`/queue/services/${id}`, { isActive })
       // Update the service status in local state
-      setServices((prev) => prev.map(s => 
+      setServices((prev) => prev.map(s =>
         s.id === id ? { ...s, isActive } : s
       ))
     } catch (err) {
@@ -101,11 +104,12 @@ const ServicesPage: React.FC = () => {
     setCode('')
     setTitle('')
     setDescription('')
+    setOrder(999)
     setEditingId(null)
     setError('')
   }
 
-  const filteredServices = services.filter(s => 
+  const filteredServices = services.filter(s =>
     s.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
     s.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
     s.description?.toLowerCase().includes(searchTerm.toLowerCase())
@@ -159,14 +163,14 @@ const ServicesPage: React.FC = () => {
                 {editingId ? 'Edit Service' : 'Create New Service'}
               </h2>
             </div>
-            
+
             <div className="p-4 sm:p-6">
               {error && (
                 <div className="mb-4 p-3 sm:p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
                   {error}
                 </div>
               )}
-              
+
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-4 sm:mb-6">
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
@@ -180,7 +184,7 @@ const ServicesPage: React.FC = () => {
                     className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition disabled:bg-gray-100 disabled:cursor-not-allowed text-sm sm:text-base"
                   />
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
                     Service Title *
@@ -192,8 +196,22 @@ const ServicesPage: React.FC = () => {
                     className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition text-sm sm:text-base"
                   />
                 </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Display Order
+                  </label>
+                  <input
+                    type="number"
+                    value={order}
+                    onChange={(e) => setOrder(parseInt(e.target.value) || 999)}
+                    placeholder="e.g., 1, 2, 3..."
+                    className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition text-sm sm:text-base"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Lower numbers appear first (e.g., 1 = first position)</p>
+                </div>
               </div>
-              
+
               <div className="mb-4 sm:mb-6">
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
                   Description
@@ -206,7 +224,7 @@ const ServicesPage: React.FC = () => {
                   className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition resize-none text-sm sm:text-base"
                 />
               </div>
-              
+
               <div className="flex flex-col sm:flex-row gap-3">
                 <button
                   onClick={(e) => handleCreateOrUpdate(e)}
@@ -251,23 +269,23 @@ const ServicesPage: React.FC = () => {
               Showing {indexOfFirstService + 1}-{Math.min(indexOfLastService, filteredServices.length)} of {filteredServices.length} services
             </span>
           </div>
-          
+
           <div className="flex items-center justify-center space-x-2">
-            <button 
-              onClick={goToPrevPage} 
+            <button
+              onClick={goToPrevPage}
               disabled={currentPage === 1}
               className="px-2 sm:px-3 py-1.5 bg-white border border-gray-300 rounded-lg sm:rounded-xl text-xs sm:text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               <span className="hidden sm:inline">Previous</span>
               <span className="sm:hidden">Prev</span>
             </button>
-            
+
             <div className="flex items-center px-2 sm:px-3 py-1.5 text-xs sm:text-sm font-medium text-gray-700">
               {currentPage} of {totalPages}
             </div>
-            
-            <button 
-              onClick={goToNextPage} 
+
+            <button
+              onClick={goToNextPage}
               disabled={currentPage === totalPages}
               className="px-2 sm:px-3 py-1.5 bg-white border border-gray-300 rounded-lg sm:rounded-xl text-xs sm:text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
@@ -282,6 +300,9 @@ const ServicesPage: React.FC = () => {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-black">
                 <tr>
+                  <th className="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">
+                    Order
+                  </th>
                   <th className="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">
                     Code
                   </th>
@@ -302,7 +323,7 @@ const ServicesPage: React.FC = () => {
               <tbody className="bg-white divide-y divide-gray-200">
                 {loading ? (
                   <tr>
-                    <td colSpan={5} className="text-center py-12">
+                    <td colSpan={6} className="text-center py-12">
                       <div className="flex items-center justify-center">
                         <div className="w-6 h-6 sm:w-8 sm:h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
                         <span className="ml-3 text-gray-600 text-sm sm:text-base">Loading services...</span>
@@ -311,7 +332,7 @@ const ServicesPage: React.FC = () => {
                   </tr>
                 ) : currentServices.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="text-center py-12">
+                    <td colSpan={6} className="text-center py-12">
                       <Package className="w-12 h-12 sm:w-16 sm:h-16 text-gray-300 mx-auto mb-4" />
                       <p className="text-gray-500 text-base sm:text-lg">
                         {searchTerm ? 'No services match your search' : 'No services available'}
@@ -329,6 +350,11 @@ const ServicesPage: React.FC = () => {
                 ) : (
                   currentServices.map((service) => (
                     <tr key={service.id} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
+                        <span className="text-sm font-semibold text-gray-700">
+                          {service.order || 999}
+                        </span>
+                      </td>
                       <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
                         <span className="px-2 sm:px-3 py-1 bg-blue-100 text-blue-700 text-xs font-semibold rounded-full">
                           {service.code}
@@ -351,11 +377,10 @@ const ServicesPage: React.FC = () => {
                         <select
                           value={service.isActive !== false ? 'active' : 'inactive'}
                           onChange={(e) => handleStatusChange(service.id, e.target.value === 'active')}
-                          className={`px-2 sm:px-3 py-1 text-xs font-semibold rounded-full border-0 focus:ring-2 focus:ring-blue-500 cursor-pointer transition-colors ${
-                            service.isActive !== false
+                          className={`px-2 sm:px-3 py-1 text-xs font-semibold rounded-full border-0 focus:ring-2 focus:ring-blue-500 cursor-pointer transition-colors ${service.isActive !== false
                               ? 'bg-green-100 text-green-700 hover:bg-green-200'
                               : 'bg-red-100 text-red-700 hover:bg-red-200'
-                          }`}
+                            }`}
                         >
                           <option value="active" className="bg-white text-black">Active</option>
                           <option value="inactive" className="bg-white text-black">Inactive</option>

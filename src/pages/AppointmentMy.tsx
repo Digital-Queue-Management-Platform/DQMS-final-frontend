@@ -85,7 +85,7 @@ export default function AppointmentMy() {
       // Fetch bill data for appointments with SLT telephone numbers
       const billMap: Record<string, BillData> = {}
       for (const appt of appointments) {
-        if (appt.sltTelephoneNumber && appt.serviceTypes.includes('BILL_PAYMENT')) {
+        if (appt.sltTelephoneNumber && (appt.serviceTypes.includes('SVC002') || appt.serviceTypes.includes('BILL_PAYMENT'))) {
           try {
             const billRes = await api.get(`/bills/verify/${appt.sltTelephoneNumber}`)
             if (billRes.data?.success && billRes.data?.bill) {
@@ -307,8 +307,8 @@ export default function AppointmentMy() {
                     <div className="text-xs text-gray-500">{t.languageLabel}: {a.preferredLanguage}</div>
                   )}
                   
-                  {/* Bill Details - Show if BILL_PAYMENT service and bill data exists */}
-                  {a.serviceTypes.includes('BILL_PAYMENT') && a.sltTelephoneNumber && (
+                  {/* Bill Details - Show if SVC002 (Bill Payment) service and bill data exists */}
+                  {(a.serviceTypes.includes('SVC002') || a.serviceTypes.includes('BILL_PAYMENT')) && a.sltTelephoneNumber && (
                     <div className="mt-3 pt-3 border-t">
                       <div className="text-xs font-medium text-gray-500 mb-2">
                         {t.sltTelephone}: {a.sltTelephoneNumber}

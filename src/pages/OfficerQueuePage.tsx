@@ -21,8 +21,14 @@ export default function OfficerQueuePage() {
   const [currentDateTime, setCurrentDateTime] = useState(new Date())
   const [queueLoading, setQueueLoading] = useState(false)
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date())
-  const [activeTab, setActiveTab] = useState<'my-queue' | 'unmatched'>('my-queue')
+  const [activeTab, setActiveTab] = useState<'my-queue' | 'transferred' | 'unmatched'>('my-queue')
   const [unmatchedTokens, setUnmatchedTokens] = useState<Token[]>([])
+  const [isTransferModalOpen, setIsTransferModalOpen] = useState(false)
+  const [transferServices, setTransferServices] = useState<string[]>([])
+  const [allServices, setAllServices] = useState<any[]>([])
+  const [counters, setCounters] = useState<any[]>([])
+  const [targetCounter, setTargetCounter] = useState<number | null>(null)
+  const [transferNotes, setTransferNotes] = useState("")
   const TWILIO_TO_NUMBER = import.meta.env.VITE_TWILIO_TO_NUMBER
 
   // Helpers for language selection from a token's preferredLanguages
@@ -94,13 +100,13 @@ export default function OfficerQueuePage() {
         ? `உங்கள் சேவை முடிந்தது. அதிகாரி: ${extra?.officerName ?? ''} | கிளை: ${extra?.outletName ?? ''} | சேவைகள்: ${extra?.servicesStr ?? ''} | குறிப்பு: ${ref}. கண்காணிப்பு: ${track ?? ''}`
         : `சேவை முடிந்தது. வருகைக்கு நன்றி.`,*/
       en: ref
-        ? `Your service is completed |Ref: ${ref}.}`
+        ? `Your service is completed | Ref: ${ref}.`
         : `Service completed. Thank you for visiting.`,
       si: ref
-        ? `ඔබගේ සේවාව සම්පූර්ණ විය | යොමු අංකය: ${ref}.}`
+        ? `ඔබගේ සේවාව සම්පූර්ණ විය | යොමු අංකය: ${ref}.`
         : `සේවාව සම්පූර්ණයි. පැමිණියේට ස්තුති.`,
       ta: ref
-        ? `உங்கள் சேவை முடிந்தது | குறிப்பு: ${ref}.}`
+        ? `உங்கள் சேவை முடிந்தது | குறிப்பு: ${ref}.`
         : `சேவை முடிந்தது. வருகைக்கு நன்றி.`,
     })[lang],
   }
@@ -130,13 +136,13 @@ export default function OfficerQueuePage() {
       if (!mounted) return
       const me: Officer = res.data.officer
       setOfficer(me)
-      fetchQueue(me.outletId)
+      fetchQueue(me.outletId, me.id)
       fetchCurrentToken(me.id)
       fetchUnmatchedTokens(me.outletId)
 
       // Auto-refresh every 15 seconds for critical queue updates
       const interval = setInterval(() => {
-        fetchQueue(me.outletId)
+        fetchQueue(me.outletId, me.id)
         fetchCurrentToken(me.id)
         fetchUnmatchedTokens(me.outletId)
       }, 15000)
@@ -161,10 +167,15 @@ export default function OfficerQueuePage() {
           if (data.type === "NEW_TOKEN" || data.type === "TOKEN_COMPLETED" || data.type === 'TOKEN_SKIPPED' || data.type === 'TOKEN_CALLED' || data.type === 'TOKEN_RECALLED') {
             // Add a small delay to ensure database consistency
             setTimeout(() => {
-              fetchQueue(me.outletId)
+              fetchQueue(me.outletId, me.id)
               fetchCurrentToken(me.id)
               fetchUnmatchedTokens(me.outletId)
             }, 100)
+          }
+
+          if (data.type === "OFFICER_UPDATED" && data.data.officerId === me.id) {
+            console.log('Officer updated, updating local state:', data.data)
+            setOfficer(prev => prev ? { ...prev, counterNumber: data.data.counterNumber } : prev)
           }
         } catch (error) {
           console.error('Error parsing WebSocket message:', error)
@@ -212,11 +223,16 @@ export default function OfficerQueuePage() {
   }, [])
 
 
-  const fetchQueue = async (outletId?: string) => {
+  const fetchQueue = async (outletId?: string, officerId?: string) => {
     if (!outletId) return
     try {
       setQueueLoading(true)
-      const res = await api.get(`/queue/outlet/${outletId}`)
+      const params = new URLSearchParams()
+      if (officerId) {
+        params.append('officerId', officerId)
+      }
+      const query = params.toString()
+      const res = await api.get(`/queue/outlet/${outletId}${query ? `?${query}` : ''}`)
       setQueue(res.data)
       setLastUpdated(new Date())
     } catch (e) {
@@ -247,6 +263,80 @@ export default function OfficerQueuePage() {
       setUnmatchedTokens([])
     }
   }
+
+  const fetchServices = async () => {
+    try {
+      const resp = await api.get('/queue/services')
+      setAllServices(resp.data || [])
+    } catch (err) {
+      console.error('failed to fetch services', err)
+    }
+  }
+
+  const fetchCounters = async (outletId: string) => {
+    try {
+      const resp = await api.get(`/queue/outlet/${outletId}/counters`)
+      setCounters(resp.data || [])
+    } catch (err) {
+      console.error('failed to fetch counters', err)
+    }
+  }
+
+  const handleTransfer = async () => {
+    if (!officer || !currentToken) return
+    if (transferServices.length === 0 && !targetCounter) {
+      alert('Please select at least one service or a target counter')
+      return
+    }
+
+    try {
+      setLoading(true)
+      const res = await api.post('/officer/transfer-token', {
+        officerId: officer.id,
+        tokenId: currentToken.id,
+        newServiceTypes: transferServices.length > 0 ? transferServices : currentToken.serviceTypes,
+        targetCounterNumber: targetCounter,
+        notes: transferNotes || accountRef || "(Transferred)"
+      })
+
+      if (res.data.success) {
+        setIsTransferModalOpen(false)
+        setTransferServices([])
+        setTargetCounter(null)
+        setTransferNotes("")
+
+        // Notify customer via SMS if available
+        try {
+          // Send transfer SMS
+          await api.post('/twilio/test', {
+            to: TWILIO_TO_NUMBER,
+            body: targetCounter
+              ? `Your token #${currentToken.tokenNumber} has been transferred to Counter #${targetCounter}. Please proceed there when called.`
+              : `Your token #${currentToken.tokenNumber} has been transferred to another service. Please wait for your call.`
+          })
+        } catch (smsErr) {
+          console.error('Transfer SMS failed:', smsErr)
+        }
+
+        setCurrentToken(null)
+        setAccountRef("")
+        // Refresh queue
+          fetchQueue(officer.outletId, officer.id)
+        alert("Customer successfully transferred!")
+      } else {
+        alert(res.data.error || 'Failed to transfer customer')
+      }
+    } catch (err: any) {
+      console.error('Transfer error:', err)
+      alert('Transfer failed: ' + (err.response?.data?.error || err.message || 'Unknown error'))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchServices()
+  }, [])
 
   const handleNextToken = async () => {
     if (!officer) return
@@ -298,7 +388,7 @@ export default function OfficerQueuePage() {
           }
           setCurrentToken(picked)
           setAccountRef("")
-          fetchQueue(officer.outletId)
+          fetchQueue(officer.outletId, officer.id)
         }
         setLoading(false)
         return
@@ -331,7 +421,7 @@ export default function OfficerQueuePage() {
           }
           setCurrentToken(picked)
           setAccountRef("")
-          fetchQueue(officer.outletId)
+          fetchQueue(officer.outletId, officer.id)
         }
       } else if (response.data.token) {
         console.log('Received token data:', response.data.token)
@@ -355,7 +445,7 @@ export default function OfficerQueuePage() {
         }
         setCurrentToken(picked)
         setAccountRef("")
-        fetchQueue(officer.outletId)
+        fetchQueue(officer.outletId, officer.id)
       }
     } catch (err) {
       console.error('failed to get next token', err)
@@ -401,7 +491,7 @@ export default function OfficerQueuePage() {
 
       setCurrentToken(null)
       setAccountRef("")
-      fetchQueue(officer.outletId)
+      fetchQueue(officer.outletId, officer.id)
     } catch (err) {
       console.error('failed to complete service', err)
     } finally {
@@ -439,7 +529,7 @@ export default function OfficerQueuePage() {
       if (!tokenId) {
         setCurrentToken(null)
       }
-      fetchQueue(officer.outletId)
+      fetchQueue(officer.outletId, officer.id)
     } catch (err) {
       console.error('failed to skip token', err)
     } finally {
@@ -476,7 +566,7 @@ export default function OfficerQueuePage() {
         setCurrentToken(response.data.token)
         setAccountRef("")
       }
-      fetchQueue(officer.outletId)
+      fetchQueue(officer.outletId, officer.id)
     } catch (err) {
       console.error('failed to recall token', err)
     } finally {
@@ -491,13 +581,13 @@ export default function OfficerQueuePage() {
       const response = await api.post('/officer/set-priority', { tokenId })
       if (response.data.success) {
         const isPriority = response.data.token.isPriority
-        
+
         // If marking as priority, automatically call the customer to counter
         if (isPriority) {
           try {
-            const callResponse = await api.post('/officer/call-token', { 
-              officerId: officer.id, 
-              tokenId 
+            const callResponse = await api.post('/officer/call-token', {
+              officerId: officer.id,
+              tokenId
             })
             if (callResponse.data.token) {
               setCurrentToken(callResponse.data.token)
@@ -511,8 +601,7 @@ export default function OfficerQueuePage() {
         } else {
           alert('Priority removed from customer')
         }
-        
-        fetchQueue(officer.outletId)
+        fetchQueue(officer.outletId, officer.id)
       }
     } catch (err: any) {
       console.error('Failed to set priority:', err)
@@ -526,7 +615,7 @@ export default function OfficerQueuePage() {
     if (officer?.outletId) {
       setRefreshing(true)
       console.log('Manual refresh triggered')
-      await fetchQueue(officer.outletId)
+      await fetchQueue(officer.outletId, officer.id)
       await fetchCurrentToken(officer.id)
       setRefreshing(false)
     }
@@ -540,7 +629,7 @@ export default function OfficerQueuePage() {
         setOfficer((prev) => (prev ? { ...prev, status } as any : prev))
       }
       if (officer?.outletId) {
-        try { await fetchQueue(officer.outletId) } catch { }
+        try { await fetchQueue(officer.outletId, officer.id) } catch { }
       }
     }
     window.addEventListener('officer:status-changed', onStatus)
@@ -609,6 +698,31 @@ export default function OfficerQueuePage() {
                   )}
                 </div>
               </button>
+
+              <button
+                onClick={() => setActiveTab('transferred')}
+                className={`px-6 py-2.5 font-medium text-sm transition-colors ${activeTab === 'transferred'
+                  ? 'border-b-2 border-blue-600 bg-white rounded-full hover:bg-gray-50'
+                  : 'bg-white text-gray-500 hover:text-gray-700 hover:bg-gray-50 border border-gray-300 rounded-full'
+                  }`}
+              >
+                <div className="flex items-center justify-center gap-2">
+                  <span>Transferred Tokens</span>
+                  {queue && (
+                    <span className="px-1.5 py-0.5 bg-blue-600 text-white rounded-full text-xs font-semibold">
+                      {queue.waiting.filter((t) => {
+                        if ((t as any).isTransferred !== true) return false
+                        const tokenServices = Array.isArray(t.serviceTypes) ? t.serviceTypes : []
+                        const officerServices = Array.isArray((officer as any)?.assignedServices) ? (officer as any).assignedServices : []
+                        const counterMatch = (t as any).counterNumber === officer.counterNumber
+                        const serviceMatch = tokenServices.some(s => officerServices.includes(s))
+                        return counterMatch || serviceMatch
+                      }).length}
+                    </span>
+                  )}
+                </div>
+              </button>
+
               <button
                 onClick={() => setActiveTab('unmatched')}
                 className={`px-6 py-2.5 font-medium text-sm transition-colors ${activeTab === 'unmatched'
@@ -782,6 +896,17 @@ export default function OfficerQueuePage() {
                     </button>
 
                     <button
+                      onClick={() => {
+                        setIsTransferModalOpen(true)
+                        if (officer) fetchCounters(officer.outletId)
+                      }}
+                      disabled={loading}
+                      className="px-4 py-2.5 bg-blue-500 text-white font-bold border-b-2 border-black rounded-full text-sm hover:bg-gray-50 hover:text-blue-500 transition-colors disabled:bg-gray-200 disabled:border-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed"
+                    >
+                      Transfer
+                    </button>
+
+                    <button
                       onClick={handleCompleteService}
                       disabled={loading}
                       className="px-6 py-2.5 bg-green-500 text-white font-bold border-b-2 border-black rounded-full text-sm hover:bg-gray-50 hover:text-green-500 transition-colors disabled:bg-gray-200 disabled:border-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed"
@@ -796,7 +921,9 @@ export default function OfficerQueuePage() {
             {/* Queue List Section - Right Side (2/3 width) */}
             <div className="w-2/3 bg-white rounded-xl shadow-sm p-4">
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-lg font-bold text-gray-900">{activeTab === 'my-queue' ? 'My Queue' : 'Unmatched Tokens'}</h2>
+                <h2 className="text-lg font-bold text-gray-900">
+                  {activeTab === 'my-queue' ? 'My Queue' : activeTab === 'transferred' ? 'Transferred Tokens' : 'Unmatched Tokens'}
+                </h2>
                 {queue && (
                   <div className="text-sm text-gray-500">
                     Total waiting: {queue.waiting.length} |
@@ -829,6 +956,7 @@ export default function OfficerQueuePage() {
                     <p className="text-gray-500">Loading queue...</p>
                   </div>
                 ) : queue.waiting.filter((t) => {
+                  if ((t as any).isTransferred === true) return false
                   const tokenServices = Array.isArray(t.serviceTypes) ? t.serviceTypes : []
                   const officerServices = Array.isArray((officer as any)?.assignedServices) ? (officer as any).assignedServices : []
                   const hasServiceMatch = tokenServices.length === 0 || officerServices.length === 0 || tokenServices.some((s: any) => officerServices.includes(s))
@@ -859,6 +987,7 @@ export default function OfficerQueuePage() {
                     {/* Queue Items */}
                     <div className="divide-y divide-gray-100">
                       {queue.waiting.filter((t) => {
+                        if ((t as any).isTransferred === true) return false
                         const tokenServices = Array.isArray(t.serviceTypes) ? t.serviceTypes : []
                         const officerServices = Array.isArray((officer as any)?.assignedServices) ? (officer as any).assignedServices : []
                         const hasServiceMatch = tokenServices.length === 0 || officerServices.length === 0 || tokenServices.some((s: any) => officerServices.includes(s))
@@ -942,15 +1071,109 @@ export default function OfficerQueuePage() {
                                 <button
                                   onClick={() => handleSetPriority(t.id)}
                                   disabled={loading || currentToken !== null}
-                                  className={`px-2 py-1 text-white text-xs rounded transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed whitespace-nowrap ${
-                                    isPriority
-                                      ? 'bg-yellow-600 hover:bg-yellow-700'
-                                      : 'bg-purple-600 hover:bg-purple-700'
-                                  }`}
+                                  className={`px-2 py-1 text-white text-xs rounded transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed whitespace-nowrap ${isPriority
+                                    ? 'bg-yellow-600 hover:bg-yellow-700'
+                                    : 'bg-purple-600 hover:bg-purple-700'
+                                    }`}
                                 >
                                   {isPriority ? '★ Priority' : 'Set Priority'}
                                 </button>
                               </div>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </>
+                )
+              ) : activeTab === 'transferred' ? (
+                // TRANSFERRED TOKENS TAB
+                !queue ? (
+                  <div className="text-center py-12">
+                    <p className="text-gray-500">Loading transferred tokens...</p>
+                  </div>
+                ) : queue.waiting.filter((t) => {
+                  if ((t as any).isTransferred !== true) return false
+                  const tokenServices = Array.isArray(t.serviceTypes) ? t.serviceTypes : []
+                  const officerServices = Array.isArray((officer as any)?.assignedServices) ? (officer as any).assignedServices : []
+                  const counterMatch = (t as any).counterNumber === officer.counterNumber
+                  const serviceMatch = tokenServices.some(s => officerServices.includes(s))
+                  return counterMatch || serviceMatch
+                }).length === 0 ? (
+                  <div className="text-center py-12">
+                    <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <RefreshCwIcon className="w-8 h-8 text-blue-400" />
+                    </div>
+                    <p className="text-gray-500">No transferred tokens for you</p>
+                    <p className="text-xs text-gray-400 mt-2">Tokens transferred to your services or counter will appear here</p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="grid grid-cols-12 gap-4 px-4 py-2.5 bg-blue-900 border-b text-sm text-white rounded-full mb-3">
+                      <div className="col-span-2">TOKEN</div>
+                      <div className="col-span-2">CUSTOMER</div>
+                      <div className="col-span-2">SERVICE TYPE</div>
+                      <div className="col-span-2">WAITED TIME</div>
+                      <div className="col-span-2">STATUS</div>
+                      <div className="col-span-2">ACTION</div>
+                    </div>
+                    <div className="divide-y divide-gray-100">
+                      {queue.waiting.filter((t) => {
+                        if ((t as any).isTransferred !== true) return false
+                        const tokenServices = Array.isArray(t.serviceTypes) ? t.serviceTypes : []
+                        const officerServices = Array.isArray((officer as any)?.assignedServices) ? (officer as any).assignedServices : []
+                        const counterMatch = (t as any).counterNumber === officer.counterNumber
+                        const serviceMatch = tokenServices.some(s => officerServices.includes(s))
+                        return counterMatch || serviceMatch
+                      }).sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()).map((t) => {
+                        const waitTime = Math.floor((Date.now() - new Date(t.createdAt).getTime()) / 60000)
+                        return (
+                          <div key={t.id} className="grid grid-cols-12 gap-4 px-4 py-4 hover:bg-blue-50 transition-colors bg-blue-50/30 rounded-lg border-l-4 border-blue-400 mb-2">
+                            <div className="col-span-2 flex items-center gap-2">
+                              <span className="inline-flex items-center px-2 py-1 rounded-md bg-blue-100 text-blue-800 text-sm font-semibold">
+                                {t.tokenNumber}
+                              </span>
+                            </div>
+                            <div className="col-span-2">
+                              <span className="text-gray-900 font-medium">{t.customer.name}</span>
+                            </div>
+                            <div className="col-span-2">
+                              <div className="flex flex-col gap-1">
+                                {t.serviceTypes.map((stype: string) => (
+                                  <span key={stype} className={`px-2 py-1 rounded-full text-xs font-medium ${getServiceColor(stype)}`}>
+                                    <ServiceName serviceType={stype} />
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                            <div className="col-span-2 text-gray-900">{waitTime} min</div>
+                            <div className="col-span-2">
+                              <span className="inline-flex items-center px-2 py-1 rounded-md bg-blue-100 text-blue-800 text-xs font-semibold font-mono">
+                                TRANSFERRED
+                              </span>
+                            </div>
+                            <div className="col-span-2 flex flex-col gap-2">
+                              <button
+                                onClick={() => {
+                                  if (!officer || currentToken) {
+                                    alert("Please complete or skip the current customer first.")
+                                    return
+                                  }
+                                  setCurrentToken(t)
+                                  setAccountRef("")
+                                }}
+                                disabled={loading || currentToken !== null}
+                                className="px-2 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 disabled:bg-gray-400 font-bold"
+                              >
+                                Call Customer
+                              </button>
+                              <button
+                                onClick={() => handleSkip(t.id)}
+                                disabled={loading}
+                                className="px-2 py-1 bg-orange-500 text-white text-xs rounded hover:bg-orange-600 disabled:bg-gray-400"
+                              >
+                                Skip
+                              </button>
                             </div>
                           </div>
                         )
@@ -1052,11 +1275,10 @@ export default function OfficerQueuePage() {
                                 <button
                                   onClick={() => handleSetPriority(t.id)}
                                   disabled={loading || currentToken !== null}
-                                  className={`px-2 py-1 text-white text-xs rounded transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed whitespace-nowrap ${
-                                    isPriority
-                                      ? 'bg-yellow-600 hover:bg-yellow-700'
-                                      : 'bg-purple-600 hover:bg-purple-700'
-                                  }`}
+                                  className={`px-2 py-1 text-white text-xs rounded transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed whitespace-nowrap ${isPriority
+                                    ? 'bg-yellow-600 hover:bg-yellow-700'
+                                    : 'bg-purple-600 hover:bg-purple-700'
+                                    }`}
                                 >
                                   {isPriority ? '★ Priority' : 'Set Priority'}
                                 </button>
@@ -1073,6 +1295,116 @@ export default function OfficerQueuePage() {
           </div>
         </div>
       </div>
+
+      {/* Transfer Modal */}
+      {isTransferModalOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl shadow-xl max-w-lg w-full p-6 animate-in zoom-in duration-200">
+            <h2 className="text-xl font-bold text-gray-900 mb-2">Transfer Customer</h2>
+            <p className="text-sm text-gray-600 mb-6">Select a new service or a specific counter to transfer the customer.</p>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+              {/* Service Selection */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-3">Service Types</label>
+                <div className="space-y-2 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
+                  {allServices.map((service) => (
+                    <label key={service.id} className={`flex items-start gap-3 p-2.5 rounded-xl border cursor-pointer transition-all group ${transferServices.includes(service.code) ? 'bg-blue-50 border-blue-200' : 'bg-gray-50 border-gray-100'}`}>
+                      <input
+                        type="checkbox"
+                        className="mt-1 w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                        checked={transferServices.includes(service.code)}
+                        onChange={(e) => {
+                          if (e.target.checked) setTransferServices([...transferServices, service.code])
+                          else setTransferServices(transferServices.filter(s => s !== service.code))
+                        }}
+                      />
+                      <div className="flex-1">
+                        <div className={`text-xs font-semibold ${transferServices.includes(service.code) ? 'text-blue-700' : 'text-gray-900'}`}>{service.title}</div>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* Counter Selection */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-3">Target Counter (Optional)</label>
+                <div className="space-y-1.5 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
+                  <button
+                    onClick={() => setTargetCounter(null)}
+                    className={`w-full text-left p-2.5 rounded-xl border text-xs font-medium transition-all ${targetCounter === null ? 'bg-blue-50 border-blue-200 text-blue-700' : 'bg-gray-50 border-gray-100 text-gray-700 hover:bg-gray-100'}`}
+                  >
+                    Any Counter (General Queue)
+                  </button>
+                  {counters.map((c) => (
+                    <button
+                      key={c.number}
+                      onClick={() => setTargetCounter(c.number)}
+                      className={`w-full text-left p-2.5 rounded-xl border text-xs font-medium transition-all group flex justify-between items-center ${targetCounter === c.number ? 'bg-blue-50 border-blue-200 text-blue-700' : 'bg-gray-50 border-gray-100 text-gray-700 hover:bg-gray-100'}`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span>Counter #{c.number}</span>
+                        {c.isStaffed ? (
+                          <span className="flex items-center gap-1 text-[10px] text-green-600 bg-green-50 px-1.5 py-0.5 rounded-full font-bold">
+                            Active
+                          </span>
+                        ) : (
+                          <span className="flex items-center gap-1 text-[10px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded-full font-bold">
+                            Idle
+                          </span>
+                        )}
+                      </div>
+                      {c.isStaffed && <span className="text-[10px] text-gray-500 font-normal">({c.officer.name})</span>}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Transfer Notes */}
+            <div className="mb-8">
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Transfer Notes</label>
+              <textarea
+                value={transferNotes}
+                onChange={(e) => setTransferNotes(e.target.value)}
+                placeholder="Brief reason for transfer (e.g., requires manager override)"
+                className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none resize-none"
+                rows={2}
+              />
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setIsTransferModalOpen(false)
+                  setTargetCounter(null)
+                  setTransferServices([])
+                  setTransferNotes("")
+                }}
+                className="flex-1 px-4 py-3 bg-gray-100 text-gray-700 font-bold border-b-2 border-gray-300 rounded-2xl text-sm hover:bg-gray-200 transition-colors"
+                disabled={loading}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleTransfer}
+                disabled={loading || (transferServices.length === 0 && !targetCounter)}
+                className="flex-[2] px-4 py-3 bg-blue-600 text-white font-bold border-b-2 border-black rounded-2xl text-sm hover:bg-blue-700 shadow-lg shadow-blue-200 transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:translate-y-[-1px] active:translate-y-[1px]"
+              >
+                {loading ? (
+                  <div className="flex items-center justify-center gap-2">
+                    <RefreshCwIcon className="w-4 h-4 animate-spin" />
+                    Processing...
+                  </div>
+                ) : (
+                  "Initiate Transfer"
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useParams, useNavigate } from "react-router-dom"
-import { Clock, Users, CheckCircle, AlertTriangle } from "lucide-react"
+import { Users, CheckCircle, AlertTriangle } from "lucide-react"
 import api, { WS_URL } from "../config/api"
 import type { Token } from "../types"
 import ServiceName from "../components/ServiceName"
@@ -12,7 +12,6 @@ export default function QueueStatus() {
   const navigate = useNavigate()
   const [token, setToken] = useState<Token | null>(null)
   const [position, setPosition] = useState(0)
-  const [estimatedWait, setEstimatedWait] = useState(0)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -44,7 +43,6 @@ export default function QueueStatus() {
       const response = await api.get(`/customer/token/${tokenId}`)
       setToken(response.data.token)
       setPosition(response.data.position)
-      setEstimatedWait(response.data.estimatedWaitMinutes)
 
       // Redirect to feedback if completed
       if (response.data.token.status === "completed") {
@@ -93,23 +91,16 @@ export default function QueueStatus() {
         <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl p-8 text-center mb-8">
           <p className="text-white text-sm font-medium mb-2">Your Token Number</p>
           <p className="text-white text-7xl font-bold mb-2">{token.tokenNumber}</p>
-          <p className="text-blue-100 text-sm">Token ID: {token.id.slice(0, 8)}</p>
         </div>
 
         {/* Status Display */}
         {token.status === "waiting" && (
           <div className="space-y-6">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="bg-blue-50 rounded-xl p-6 text-center">
+            <div className="flex justify-center">
+              <div className="bg-blue-50 rounded-xl p-6 text-center w-full max-w-[240px]">
                 <Users className="w-8 h-8 text-blue-600 mx-auto mb-2" />
                 <p className="text-sm text-gray-600 mb-1">Position in Queue</p>
                 <p className="text-3xl font-bold text-gray-900">{position}</p>
-              </div>
-              <div className="bg-indigo-50 rounded-xl p-6 text-center">
-                <Clock className="w-8 h-8 text-indigo-600 mx-auto mb-2" />
-                <p className="text-sm text-gray-600 mb-1">Estimated Wait</p>
-                <p className="text-3xl font-bold text-gray-900">{estimatedWait}</p>
-                <p className="text-sm text-gray-600">minutes</p>
               </div>
             </div>
 
