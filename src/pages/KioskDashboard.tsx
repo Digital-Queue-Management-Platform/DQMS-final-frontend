@@ -93,21 +93,12 @@ export default function KioskDashboard() {
 
   const loadInitialData = async () => {
     try {
-      const token = localStorage.getItem('kioskToken')
-      if (token) {
-        // Fetch dynamic services from API
-        const response = await fetch(`${API_URL}/kiosk/services`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-        })
-        if (response.ok) {
-          const fetchedServices = await response.json()
-          setServices(fetchedServices)
-        } else {
-          setServices([])
-        }
-      }
+      // Fetch active services from public endpoint (already ordered correctly)
+      const response = await api.get('/queue/services')
+      const allServices = response.data || []
+      // Filter only active services
+      const activeServices = allServices.filter((s: any) => s.isActive !== false)
+      setServices(activeServices)
       setLoading(false)
     } catch (err: any) {
       console.error('Failed to load services:', err)
@@ -117,7 +108,8 @@ export default function KioskDashboard() {
   }
 
   const isSltRequiredService = (code: string) => {
-    return code === 'BILL_PAYMENT' || code === 'SVC001' || code === 'SVC002'
+    // Only SVC002 (Bill Payment) requires SLT telephone number
+    return code === 'SVC002'
   }
 
   const handleServiceSelect = (serviceCode: string) => {

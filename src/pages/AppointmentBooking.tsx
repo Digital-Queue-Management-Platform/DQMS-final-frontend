@@ -126,7 +126,8 @@ export default function AppointmentBooking() {
   }
 
   const isSltRequiredService = (code: string) => {
-    return code === 'BILL_PAYMENT' || code === 'SVC001' || code === 'SVC002'
+    // Only SVC002 (Bill Payment) requires SLT telephone number
+    return code === 'SVC002'
   }
 
   const handleServiceSelect = (code: string) => {
