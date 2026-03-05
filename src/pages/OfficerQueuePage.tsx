@@ -136,13 +136,13 @@ export default function OfficerQueuePage() {
       if (!mounted) return
       const me: Officer = res.data.officer
       setOfficer(me)
-      fetchQueue(me.outletId)
+      fetchQueue(me.outletId, me.id)
       fetchCurrentToken(me.id)
       fetchUnmatchedTokens(me.outletId)
 
       // Auto-refresh every 15 seconds for critical queue updates
       const interval = setInterval(() => {
-        fetchQueue(me.outletId)
+        fetchQueue(me.outletId, me.id)
         fetchCurrentToken(me.id)
         fetchUnmatchedTokens(me.outletId)
       }, 15000)
@@ -167,7 +167,7 @@ export default function OfficerQueuePage() {
           if (data.type === "NEW_TOKEN" || data.type === "TOKEN_COMPLETED" || data.type === 'TOKEN_SKIPPED' || data.type === 'TOKEN_CALLED' || data.type === 'TOKEN_RECALLED') {
             // Add a small delay to ensure database consistency
             setTimeout(() => {
-              fetchQueue(me.outletId)
+              fetchQueue(me.outletId, me.id)
               fetchCurrentToken(me.id)
               fetchUnmatchedTokens(me.outletId)
             }, 100)
@@ -223,11 +223,16 @@ export default function OfficerQueuePage() {
   }, [])
 
 
-  const fetchQueue = async (outletId?: string) => {
+  const fetchQueue = async (outletId?: string, officerId?: string) => {
     if (!outletId) return
     try {
       setQueueLoading(true)
-      const res = await api.get(`/queue/outlet/${outletId}`)
+      const params = new URLSearchParams()
+      if (officerId) {
+        params.append('officerId', officerId)
+      }
+      const query = params.toString()
+      const res = await api.get(`/queue/outlet/${outletId}${query ? `?${query}` : ''}`)
       setQueue(res.data)
       setLastUpdated(new Date())
     } catch (e) {
@@ -316,7 +321,7 @@ export default function OfficerQueuePage() {
         setCurrentToken(null)
         setAccountRef("")
         // Refresh queue
-        fetchQueue(officer.outletId)
+          fetchQueue(officer.outletId, officer.id)
         alert("Customer successfully transferred!")
       } else {
         alert(res.data.error || 'Failed to transfer customer')
@@ -383,7 +388,7 @@ export default function OfficerQueuePage() {
           }
           setCurrentToken(picked)
           setAccountRef("")
-          fetchQueue(officer.outletId)
+          fetchQueue(officer.outletId, officer.id)
         }
         setLoading(false)
         return
@@ -416,7 +421,7 @@ export default function OfficerQueuePage() {
           }
           setCurrentToken(picked)
           setAccountRef("")
-          fetchQueue(officer.outletId)
+          fetchQueue(officer.outletId, officer.id)
         }
       } else if (response.data.token) {
         console.log('Received token data:', response.data.token)
@@ -440,7 +445,7 @@ export default function OfficerQueuePage() {
         }
         setCurrentToken(picked)
         setAccountRef("")
-        fetchQueue(officer.outletId)
+        fetchQueue(officer.outletId, officer.id)
       }
     } catch (err) {
       console.error('failed to get next token', err)
@@ -486,7 +491,7 @@ export default function OfficerQueuePage() {
 
       setCurrentToken(null)
       setAccountRef("")
-      fetchQueue(officer.outletId)
+      fetchQueue(officer.outletId, officer.id)
     } catch (err) {
       console.error('failed to complete service', err)
     } finally {
@@ -524,7 +529,7 @@ export default function OfficerQueuePage() {
       if (!tokenId) {
         setCurrentToken(null)
       }
-      fetchQueue(officer.outletId)
+      fetchQueue(officer.outletId, officer.id)
     } catch (err) {
       console.error('failed to skip token', err)
     } finally {
@@ -561,7 +566,7 @@ export default function OfficerQueuePage() {
         setCurrentToken(response.data.token)
         setAccountRef("")
       }
-      fetchQueue(officer.outletId)
+      fetchQueue(officer.outletId, officer.id)
     } catch (err) {
       console.error('failed to recall token', err)
     } finally {
@@ -596,8 +601,7 @@ export default function OfficerQueuePage() {
         } else {
           alert('Priority removed from customer')
         }
-
-        fetchQueue(officer.outletId)
+        fetchQueue(officer.outletId, officer.id)
       }
     } catch (err: any) {
       console.error('Failed to set priority:', err)
@@ -611,46 +615,11 @@ export default function OfficerQueuePage() {
     if (officer?.outletId) {
       setRefreshing(true)
       console.log('Manual refresh triggered')
-      await fetchQueue(officer.outletId)
+      await fetchQueue(officer.outletId, officer.id)
       await fetchCurrentToken(officer.id)
       setRefreshing(false)
     }
   }
-
-  const handleCallToken = async (tokenId: string) => {
-    if (!officer) return
-    if (currentToken) {
-      alert("Please complete or skip the current customer first.")
-      return
-    }
-    setLoading(true)
-    try {
-      const response = await api.post('/officer/call-token', { officerId: officer.id, tokenId })
-      if (response.data.token) {
-        const picked = response.data.token
-        // Send localized proceed message
-        try {
-          const lang = pickLang(picked)
-          const isAppointment = (picked as any)?.fromAppointment ?? false
-          await api.post('/twilio/test', {
-            to: TWILIO_TO_NUMBER,
-            body: langText.proceed(lang, officer.counterNumber, isAppointment),
-          })
-        } catch (smsErr) {
-          console.error('Call SMS failed:', smsErr)
-        }
-        setCurrentToken(picked)
-        setAccountRef("")
-        fetchQueue(officer.outletId)
-      }
-    } catch (err: any) {
-      console.error('Manual call error:', err)
-      alert('Call failed: ' + (err.response?.data?.error || err.message || 'Unknown error'))
-    } finally {
-      setLoading(false)
-    }
-  }
-
 
   // React to status changes broadcast by Layout's top bar
   useEffect(() => {
@@ -660,7 +629,7 @@ export default function OfficerQueuePage() {
         setOfficer((prev) => (prev ? { ...prev, status } as any : prev))
       }
       if (officer?.outletId) {
-        try { await fetchQueue(officer.outletId) } catch { }
+        try { await fetchQueue(officer.outletId, officer.id) } catch { }
       }
     }
     window.addEventListener('officer:status-changed', onStatus)
@@ -717,8 +686,6 @@ export default function OfficerQueuePage() {
                   {queue && (
                     <span className="px-1.5 py-0.5 bg-black text-white rounded-full text-xs font-semibold">
                       {queue.waiting.filter((t) => {
-                        const isTransferred = (t as any).isTransferred === true
-                        if (isTransferred) return false // Put in separate tab
                         const tokenServices = Array.isArray(t.serviceTypes) ? t.serviceTypes : []
                         const officerServices = Array.isArray((officer as any)?.assignedServices) ? (officer as any).assignedServices : []
                         const hasServiceMatch = tokenServices.length === 0 || officerServices.length === 0 || tokenServices.some(s => officerServices.includes(s))
@@ -735,7 +702,7 @@ export default function OfficerQueuePage() {
               <button
                 onClick={() => setActiveTab('transferred')}
                 className={`px-6 py-2.5 font-medium text-sm transition-colors ${activeTab === 'transferred'
-                  ? 'border-b-2 border-black bg-white rounded-full hover:bg-gray-50'
+                  ? 'border-b-2 border-blue-600 bg-white rounded-full hover:bg-gray-50'
                   : 'bg-white text-gray-500 hover:text-gray-700 hover:bg-gray-50 border border-gray-300 rounded-full'
                   }`}
               >
@@ -744,11 +711,9 @@ export default function OfficerQueuePage() {
                   {queue && (
                     <span className="px-1.5 py-0.5 bg-blue-600 text-white rounded-full text-xs font-semibold">
                       {queue.waiting.filter((t) => {
-                        const isTransferred = (t as any).isTransferred === true
-                        if (!isTransferred) return false
+                        if ((t as any).isTransferred !== true) return false
                         const tokenServices = Array.isArray(t.serviceTypes) ? t.serviceTypes : []
                         const officerServices = Array.isArray((officer as any)?.assignedServices) ? (officer as any).assignedServices : []
-                        // Matches if explicitly sent to this counter OR if it's for one of this officer's services
                         const counterMatch = (t as any).counterNumber === officer.counterNumber
                         const serviceMatch = tokenServices.some(s => officerServices.includes(s))
                         return counterMatch || serviceMatch
@@ -1166,7 +1131,7 @@ export default function OfficerQueuePage() {
                           <div key={t.id} className="grid grid-cols-12 gap-4 px-4 py-4 hover:bg-blue-50 transition-colors bg-blue-50/30 rounded-lg border-l-4 border-blue-400 mb-2">
                             <div className="col-span-2 flex items-center gap-2">
                               <span className="inline-flex items-center px-2 py-1 rounded-md bg-blue-100 text-blue-800 text-sm font-semibold">
-                                {t.tokenNumber} (T)
+                                {t.tokenNumber}
                               </span>
                             </div>
                             <div className="col-span-2">
@@ -1189,7 +1154,14 @@ export default function OfficerQueuePage() {
                             </div>
                             <div className="col-span-2 flex flex-col gap-2">
                               <button
-                                onClick={() => handleCallToken(t.id)}
+                                onClick={() => {
+                                  if (!officer || currentToken) {
+                                    alert("Please complete or skip the current customer first.")
+                                    return
+                                  }
+                                  setCurrentToken(t)
+                                  setAccountRef("")
+                                }}
                                 disabled={loading || currentToken !== null}
                                 className="px-2 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 disabled:bg-gray-400 font-bold"
                               >
