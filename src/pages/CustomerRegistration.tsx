@@ -339,7 +339,7 @@ export default function CustomerRegistration() {
 
   // Check if service requires SLT number (Bill Payment or Billing Inquiry)
   const isSltRequiredService = (code: string) => {
-    return code === 'BILL_PAYMENT' || code === 'SVC001' || code === 'SVC002'
+    return code === 'BILL_PAYMENT' || code === 'SVC002'
   }
 
   // Get service title by code (localized for the two allowed services)
@@ -580,7 +580,7 @@ export default function CustomerRegistration() {
       clearForm: "Clear Form",
       changeNumber: "Change number",
       sltTelephone: "SLT Telephone Number",
-      sltTelephonePlaceholder: "01/041/081XXXXXXX",
+      sltTelephonePlaceholder: "011XXXXXXX",
       verifySlt: "Verify Number",
       verifyingSlt: "Verifying...",
       accountName: "Account Name",
@@ -642,7 +642,7 @@ export default function CustomerRegistration() {
       clearForm: "පෝරමය පැහැදිලි කරන්න",
       changeNumber: "எண்ணை மாற்றவும்",
       sltTelephone: "SLT தொலைபேசி எண்",
-      sltTelephonePlaceholder: "01/041/081XXXXXXX",
+      sltTelephonePlaceholder: "011XXXXXXX",
       verifySlt: "எண்ணைச் சரிபார்க்கவும்",
       verifyingSlt: "சரிபார்க்கிறது...",
       accountName: "ගිණුම් නම",
@@ -704,7 +704,7 @@ export default function CustomerRegistration() {
       clearForm: "படிவத்தை அழிக்கவும்",
       changeNumber: "எண்ணை மாற்றவும்",
       sltTelephone: "SLT தொலைபேசி எண்",
-      sltTelephonePlaceholder: "01/041/081XXXXXXX",
+      sltTelephonePlaceholder: "011XXXXXXX",
       verifySlt: "எண்ணைச் சரிபார்க்கவும்",
       verifyingSlt: "சரிபார்க்கிறது...",
       accountName: "கணக்கு பெயர்",
@@ -975,7 +975,7 @@ export default function CustomerRegistration() {
                                   placeholder={t.sltTelephonePlaceholder}
                                 />
                               </div>
-                              <p className="text-xs text-blue-600 mt-2">🔒 We'll verify your SLT account after you verify your mobile number</p>
+                              <p className="text-xs text-blue-600 mt-2"> We'll verify your SLT account after you verify your mobile number</p>
                             </div>
                           </div>
                         </div>

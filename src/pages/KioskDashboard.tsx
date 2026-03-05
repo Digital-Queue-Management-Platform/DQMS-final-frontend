@@ -1,4 +1,4 @@
-  // Removed unused billData state
+// Removed unused billData state
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { User, Phone, Eye, EyeOff, Send, MessageSquare, CheckCircle } from 'lucide-react'
@@ -108,8 +108,8 @@ export default function KioskDashboard() {
   }
 
   const isSltRequiredService = (code: string) => {
-    // Only SVC002 (Bill Payment) requires SLT telephone number
-    return code === 'SVC002'
+    // SVC002 and BILL_PAYMENT require SLT telephone number
+    return code === 'SVC002' || code === 'BILL_PAYMENT'
   }
 
   const handleServiceSelect = (serviceCode: string) => {
@@ -195,10 +195,10 @@ export default function KioskDashboard() {
       return
     }
 
-    // Validate format (10 digits starting with 01, 041, or 081)
-    const phoneRegex = /^(01\d{8}|041\d{7}|081\d{7})$/
+    // Relaxed validation: Just check for 10 digits
+    const phoneRegex = /^\d{10}$/
     if (!phoneRegex.test(sltTelephoneNumber)) {
-      setError("Invalid SLT number. Must be 10 digits (01/041/081).")
+      setError("Invalid telephone number. Must be 10 digits.")
       return
     }
 
@@ -249,7 +249,7 @@ export default function KioskDashboard() {
         // Create appropriate message
         const maskedPhone = getMaskedPhoneNumber(bill.mobileNumber)
         const formattedAmount = Number(bill.currentBill).toFixed(2)
-        
+
         if (isOwner) {
           // Owner can see the due amount directly
           setNotificationMessage(`Due amount: Rs. ${formattedAmount}`)
@@ -258,7 +258,7 @@ export default function KioskDashboard() {
           setNotificationMessage(`Bill details have been sent to the account holder at ${maskedPhone}`)
         }
         setNotificationSent(true)
-        
+
         // Send SMS notification with bill information (including due amount)
         try {
           await api.post('/bills/send-notification', {
@@ -439,7 +439,7 @@ export default function KioskDashboard() {
       kiosk: "Walk-in Token Generation",
       logout: "Logout",
       sltTelephone: "SLT Telephone Number",
-      sltTelephonePlaceholder: "01/041/081XXXXXXX",
+      sltTelephonePlaceholder: "011XXXXXXX",
       verifySlt: "Verify Number",
       verifyingSlt: "Verifying...",
       accountName: "Account Name",
@@ -500,7 +500,7 @@ export default function KioskDashboard() {
       kiosk: "පදිකයින් සඳහා ටෝකන් නිකුත් කිරීම",
       logout: "ඉවත් වන්න",
       sltTelephone: "SLT දුරකථන අංකය",
-      sltTelephonePlaceholder: "01/041/081XXXXXXX",
+      sltTelephonePlaceholder: "011XXXXXXX",
       verifySlt: "අංකය තහවුරු කරන්න",
       verifyingSlt: "තහවුරු කරමින්...",
       accountName: "ගිණුම් නම",
@@ -561,7 +561,7 @@ export default function KioskDashboard() {
       kiosk: "நடந்து வருபவர்களுக்கான டோக்கன்",
       logout: "வெளியேறு",
       sltTelephone: "SLT தொலைபேசி எண்",
-      sltTelephonePlaceholder: "01/041/081XXXXXXX",
+      sltTelephonePlaceholder: "011XXXXXXX",
       verifySlt: "எண்ணைச் சரிபார்க்கவும்",
       verifyingSlt: "சரிபார்க்கிறது...",
       accountName: "கணக்கு பெயர்",
@@ -773,9 +773,8 @@ export default function KioskDashboard() {
                       {services.map((service) => (
                         <label
                           key={service.id}
-                          className={`flex items-center gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all hover:border-blue-400 ${
-                            selectedService === service.code ? 'border-blue-600 bg-blue-50' : 'border-gray-200'
-                          }`}
+                          className={`flex items-center gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all hover:border-blue-400 ${selectedService === service.code ? 'border-blue-600 bg-blue-50' : 'border-gray-200'
+                            }`}
                         >
                           <input
                             type="radio"
@@ -839,10 +838,9 @@ export default function KioskDashboard() {
                                 }}
                                 className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                 placeholder={t.sltTelephonePlaceholder}
-                                pattern="(01[0-9]{8}|041[0-9]{7}|081[0-9]{7})"
                               />
                             </div>
-                            <p className="text-xs text-blue-600 mt-2">🔒 We'll verify your SLT account after you verify your mobile number</p>
+                            <p className="text-xs text-blue-600 mt-2"> We'll verify your SLT account after you verify your mobile number</p>
                           </div>
                         </div>
                       </div>
@@ -987,21 +985,18 @@ export default function KioskDashboard() {
 
                   {/* Notification Message - Show after SLT verified */}
                   {isSltRequiredService(selectedService) && sltVerified && notificationSent && (
-                    <div className={`rounded-lg p-4 border ${
-                      isOwnerOfAccount 
-                        ? 'bg-green-50 border-green-200' 
-                        : 'bg-blue-50 border-blue-200'
-                    }`}>
+                    <div className={`rounded-lg p-4 border ${isOwnerOfAccount
+                      ? 'bg-green-50 border-green-200'
+                      : 'bg-blue-50 border-blue-200'
+                      }`}>
                       <div className="flex items-center gap-2 mb-2">
-                        <div className={`w-2 h-2 rounded-full ${
-                          isOwnerOfAccount ? 'bg-green-500' : 'bg-blue-500'
-                        }`}></div>
-                        <span className={`text-sm font-semibold ${
-                          isOwnerOfAccount 
-                            ? 'text-green-700' 
-                            : 'text-blue-700'
-                        }`}>
-                          {isOwnerOfAccount 
+                        <div className={`w-2 h-2 rounded-full ${isOwnerOfAccount ? 'bg-green-500' : 'bg-blue-500'
+                          }`}></div>
+                        <span className={`text-sm font-semibold ${isOwnerOfAccount
+                          ? 'text-green-700'
+                          : 'text-blue-700'
+                          }`}>
+                          {isOwnerOfAccount
                             ? <><CheckCircle className="w-3 h-3 inline-block mr-1" /> Bill Amount</>
                             : <><Send className="w-3 h-3 inline-block mr-1" /> Notification Sent</>
                           }
