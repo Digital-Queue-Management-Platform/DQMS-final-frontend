@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom"
 import { Phone, User, MapPin, Languages, Briefcase } from "lucide-react"
 import api from "../config/api"
 import { AnimatedDropdown } from "../components/AnimatedDropdown"
+import { useOfficerDuplicateCheck } from "../hooks/useOfficerDuplicateCheck"
 
 interface Outlet {
   id: string
@@ -37,6 +38,7 @@ const availableLanguages = [
 
 export default function TeleshopManagerOfficerRegistration() {
   const navigate = useNavigate()
+  const { checkMobile, checkEmail } = useOfficerDuplicateCheck()
   const [outlets, setOutlets] = useState<Outlet[]>([])
   const [officers, setOfficers] = useState<OfficerSummary[]>([])
   const [services, setServices] = useState<Service[]>([])
@@ -48,6 +50,7 @@ export default function TeleshopManagerOfficerRegistration() {
   const validateMobile = (v: string) => /^0[0-9]{9}$/.test(v.replace(/\s/g, ''))
   const validateEmail = (v: string) => !v || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim())
   const clearFieldError = (field: string) => setFieldErrors(prev => ({ ...prev, [field]: '' }))
+  const setFieldError = (field: string, msg: string) => setFieldErrors(prev => ({ ...prev, [field]: msg }))
 
 
   const [formData, setFormData] = useState({
@@ -176,7 +179,6 @@ export default function TeleshopManagerOfficerRegistration() {
       }
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || "Failed to create officer"
-      console.error("Officer creation error:", errorMessage)
       // 409 = duplicate mobile number — show on the field
       if (err.response?.status === 409) {
         setFieldErrors(prev => ({ ...prev, mobileNumber: errorMessage }))
@@ -297,7 +299,11 @@ export default function TeleshopManagerOfficerRegistration() {
                   <input
                     type="tel"
                     value={formData.mobileNumber}
-                    onChange={(e) => { handleInputChange("mobileNumber", e.target.value); clearFieldError('mobileNumber') }}
+                    onChange={(e) => {
+                      handleInputChange("mobileNumber", e.target.value)
+                      clearFieldError('mobileNumber')
+                      checkMobile(e.target.value, (msg) => setFieldError('mobileNumber', msg))
+                    }}
                     className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${fieldErrors.mobileNumber ? 'border-red-500' : 'border-gray-300'}`}
                     placeholder="070XXXXXXX"
                     maxLength={10}
@@ -314,7 +320,11 @@ export default function TeleshopManagerOfficerRegistration() {
                 <input
                   type="email"
                   value={formData.email}
-                  onChange={(e) => { handleInputChange("email", e.target.value); clearFieldError('email') }}
+                  onChange={(e) => {
+                    handleInputChange("email", e.target.value)
+                    clearFieldError('email')
+                    checkEmail(e.target.value, (msg) => setFieldError('email', msg))
+                  }}
                   className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${fieldErrors.email ? 'border-red-500' : 'border-gray-300'}`}
                   placeholder="officer@slt.lk"
                 />

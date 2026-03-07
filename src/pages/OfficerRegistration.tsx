@@ -3,8 +3,10 @@
 import React, { useState, useEffect } from "react"
 import api from "../config/api"
 import type { Outlet } from "../types"
+import { useOfficerDuplicateCheck } from "../hooks/useOfficerDuplicateCheck"
 
 export default function OfficerRegistration() {
+  const { checkMobile, checkEmail } = useOfficerDuplicateCheck()
   const [name, setName] = useState("")
   const [mobileNumber, setMobileNumber] = useState("")
   const [outlets, setOutlets] = useState<Outlet[]>([])
@@ -19,6 +21,7 @@ export default function OfficerRegistration() {
 
   const validateMobile = (v: string) => /^0[0-9]{9}$/.test(v.replace(/\s/g, ''))
   const validateEmail = (v: string) => !v || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim())
+  const setFieldError = (field: string, msg: string) => setValidationErrors(prev => ({ ...prev, [field]: msg }))
 
   useEffect(() => {
     fetchOutlets()
@@ -97,13 +100,21 @@ export default function OfficerRegistration() {
 
         <div>
           <label className="block text-sm font-medium text-gray-700">Mobile number *</label>
-          <input value={mobileNumber} onChange={(e) => { setMobileNumber(e.target.value); setValidationErrors(p => ({ ...p, mobileNumber: '' })) }} required className={`w-full px-3 py-2 border rounded ${validationErrors.mobileNumber ? 'border-red-500' : ''}`} placeholder="07XXXXXXXX" maxLength={10} />
+          <input value={mobileNumber} onChange={(e) => {
+            setMobileNumber(e.target.value)
+            setValidationErrors(p => ({ ...p, mobileNumber: '' }))
+            checkMobile(e.target.value, (msg) => setFieldError('mobileNumber', msg))
+          }} required className={`w-full px-3 py-2 border rounded ${validationErrors.mobileNumber ? 'border-red-500' : ''}`} placeholder="07XXXXXXXX" maxLength={10} />
           {validationErrors.mobileNumber && <p className="text-xs text-red-600 mt-1">{validationErrors.mobileNumber}</p>}
         </div>
 
         <div>
           <label className="block text-sm font-medium text-gray-700">Email (Optional)</label>
-          <input type="email" value={email} onChange={(e) => { setEmail(e.target.value); setValidationErrors(p => ({ ...p, email: '' })) }} className={`w-full px-3 py-2 border rounded ${validationErrors.email ? 'border-red-500' : ''}`} placeholder="officer@slt.lk" />
+          <input type="email" value={email} onChange={(e) => {
+            setEmail(e.target.value)
+            setValidationErrors(p => ({ ...p, email: '' }))
+            checkEmail(e.target.value, (msg) => setFieldError('email', msg))
+          }} className={`w-full px-3 py-2 border rounded ${validationErrors.email ? 'border-red-500' : ''}`} placeholder="officer@slt.lk" />
           <p className="text-xs text-gray-400 mt-1">If provided, login credentials will be emailed.</p>
           {validationErrors.email && <p className="text-xs text-red-600 mt-1">{validationErrors.email}</p>}
         </div>
