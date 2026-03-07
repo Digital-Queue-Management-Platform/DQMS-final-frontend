@@ -525,10 +525,8 @@ export default function AppointmentBooking() {
   const checkAppointmentDateClosed = async (): Promise<string | null> => {
     if (!outletId || !datetime) return null
     const dt = new Date(datetime)
-    // Client-side Saturday ≥ 12:30 PM check
-    if (dt.getDay() === 6 && (dt.getHours() > 12 || (dt.getHours() === 12 && dt.getMinutes() >= 30))) {
-      return "Appointments cannot be booked on Saturdays after 12:30 PM as the branch is closed."
-    }
+    // Client-side Saturday ≥ 12:30 PM check REMOVED as requested.
+    // Branch status is now controlled dynamically via 'Closure Notices' on the backend.
     // Backend check for holidays / closure notices at the selected time
     try {
       const res = await api.get(`/branch-status/${outletId}`, { params: { at: dt.toISOString() } })

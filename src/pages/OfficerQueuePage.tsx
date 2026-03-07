@@ -86,7 +86,7 @@ export default function OfficerQueuePage() {
           const data = JSON.parse(event.data)
           console.log('WebSocket message received:', data)
 
-          if (data.type === "NEW_TOKEN" || data.type === "TOKEN_COMPLETED" || data.type === 'TOKEN_SKIPPED' || data.type === 'TOKEN_CALLED' || data.type === 'TOKEN_RECALLED' || data.type === 'TOKEN_UPDATED' || data.type === 'TOKEN_PRIORITY_UPDATED') {
+          if (data.type === "NEW_TOKEN" || data.type === "TOKEN_COMPLETED" || data.type === "TOKEN_SKIPPED" || data.type === "TOKEN_CALLED" || data.type === "TOKEN_RECALLED" || data.type === "TOKEN_UPDATED" || data.type === "TOKEN_PRIORITY_UPDATED" || data.type === "TOKEN_CANCELLED") {
             // Add a small delay to ensure database consistency
             setTimeout(() => {
               if (mounted) {
@@ -409,6 +409,32 @@ export default function OfficerQueuePage() {
     }
   }
 
+  const handleCallToken = async (tokenId: string) => {
+    if (!officer) return
+    if (currentToken && currentToken.id !== tokenId) {
+      alert("Please complete or skip the current customer first.")
+      return
+    }
+    setLoading(true)
+    try {
+      const response = await api.post('/officer/call-token', {
+        officerId: officer.id,
+        tokenId
+      })
+      if (response.data.token) {
+        setCurrentToken(response.data.token)
+        setAccountRef("")
+        // Refresh queue
+        fetchQueue(officer.outletId, officer.id)
+      }
+    } catch (err: any) {
+      console.error('failed to call token', err)
+      alert('Failed to call token: ' + (err.response?.data?.error || err.message || 'Unknown error'))
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const handleRefresh = async () => {
     if (officer?.outletId) {
       setRefreshing(true)
@@ -484,6 +510,7 @@ export default function OfficerQueuePage() {
                   {queue && (
                     <span className="px-1.5 py-0.5 bg-black text-white rounded-full text-xs font-semibold">
                       {queue.waiting.filter((t) => {
+                        if ((t as any).isTransferred === true) return false
                         const tokenServices = Array.isArray(t.serviceTypes) ? t.serviceTypes : []
                         const officerServices = Array.isArray((officer as any)?.assignedServices) ? (officer as any).assignedServices : []
                         const hasServiceMatch = tokenServices.length === 0 || officerServices.length === 0 || tokenServices.some(s => officerServices.includes(s))
@@ -562,24 +589,24 @@ export default function OfficerQueuePage() {
                     </div>
                     <h3 className="text-2xl font-bold text-gray-900 mb-3">Ready to Serve</h3>
                     <p className="text-gray-600 mb-8 text-sm">Click the button below to call the next customer</p>
-                    {/* Disable only when there are no callable (non-skipped) tokens */}
+                    {/* Disable only when there are no callable (non-skipped) tokens in "My Queue" */}
                     <button
                       onClick={handleNextToken}
                       disabled={
                         loading ||
                         officer.status !== "available" ||
                         !queue ||
-                        // If waiting array exists, check for at least one token whose status !== 'skipped'
+                        // If waiting array exists, check for at least one token whose status !== 'skipped' and is NOT transferred
                         (Array.isArray(queue.waiting)
-                          ? queue.waiting.filter(t => (t as any).status !== 'skipped').length === 0
+                          ? queue.waiting.filter(t => (t as any).status !== 'skipped' && !(t as any).isTransferred).length === 0
                           : true)
                       }
                       className="px-6 py-1.5 bg-black text-white hover:text-black border-2 border-black rounded-full font-semibold hover:bg-gray-50 transition-colors disabled:bg-gray-200 disabled:border-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed text-md"
                     >
                       {loading ? "Loading..." : "Call Next Token"}
                     </button>
-                    {queue && Array.isArray(queue.waiting) && queue.waiting.filter(t => (t as any).status !== 'skipped').length === 0 && (
-                      <p className="mt-2 text-sm text-gray-500">No customers are waiting in the queue.</p>
+                    {queue && Array.isArray(queue.waiting) && queue.waiting.filter(t => (t as any).status !== 'skipped' && !(t as any).isTransferred).length === 0 && (
+                      <p className="mt-2 text-sm text-gray-500">No customers are waiting in your queue.</p>
                     )}
                     {officer.status !== "available" && (
                       <p className="mt-4 text-sm text-yellow-600">You must be available to call next token</p>
@@ -958,18 +985,11 @@ export default function OfficerQueuePage() {
                             </div>
                             <div className="col-span-2 flex flex-col gap-2">
                               <button
-                                onClick={() => {
-                                  if (!officer || currentToken) {
-                                    alert("Please complete or skip the current customer first.")
-                                    return
-                                  }
-                                  setCurrentToken(t)
-                                  setAccountRef("")
-                                }}
+                                onClick={() => handleCallToken(t.id)}
                                 disabled={loading || currentToken !== null}
                                 className="px-2 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 disabled:bg-gray-400 font-bold"
                               >
-                                Call Customer
+                                {loading ? "..." : "Call Customer"}
                               </button>
                               <button
                                 onClick={() => handleSkip(t.id)}
