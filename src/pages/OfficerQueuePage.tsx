@@ -62,15 +62,15 @@ export default function OfficerQueuePage() {
         ta: ' ஆன்லைன் நியமனம்.',
       }[lang] : ''
       return ({
-        en: `Please proceed to counter ${counter ?? ''} for your service.${appointmentNote}`,
-        si: `කරුණාකර ඔබගේ සේවා සඳහා ${counter ?? ''} කවුටරයට පැමිණෙන්න.${appointmentNote}`,
-        ta: `தயவுசெய்து உங்கள் சேவைக்காக ${counter ?? ''} கவுண்டருக்கு செல்லவும்.${appointmentNote}`,
+        en: `Dear Valued Customer\n\nPlease proceed to counter ${counter ?? ''} for your service.${appointmentNote}\n\nSLT-MOBITEL`,
+        si: `ගරු පාරිභෝගිකයා\n\nකරුණාකර ඔබගේ සේවා සඳහා ${counter ?? ''} කවුටරයට පැමිණෙන්න.${appointmentNote}\n\nSLT-MOBITEL`,
+        ta: `அன்பு வாடிக்கையாளரே\n\nதயவுசெய்து உங்கள் சேவைக்காக ${counter ?? ''} கவுண்டருக்கு செல்லவும்.${appointmentNote}\n\nSLT-MOBITEL`,
       })[lang]
     },
     skipped: (lang: 'en' | 'si' | 'ta') => ({
-      en: `Your token has been skipped.`,
-      si: `ඔබගේ ටෝකනය මඟ හැර තිබේ.`,
-      ta: `உங்கள் டோக்கன் தவிர்க்கப்பட்டுள்ளது.`,
+      en: `Dear Valued Customer\n\nYour token has been skipped.\n\nSLT-MOBITEL`,
+      si: `ගරු පාරිභෝගිකයා\n\nඔබගේ ටෝකනය මඟ හැර තිබේ.\n\nSLT-MOBITEL`,
+      ta: `அன்பு வாடிக்கையாளரே\n\nஉங்கள் டோக்கன் தவிர்க்கப்பட்டுள்ளது.\n\nSLT-MOBITEL`,
     })[lang],
     recalled: (lang: 'en' | 'si' | 'ta', counter?: number, isAppointment?: boolean) => {
       const appointmentNote = isAppointment ? {
@@ -79,9 +79,9 @@ export default function OfficerQueuePage() {
         ta: ' ஆன்லைன் நியமனம்.',
       }[lang] : ''
       return ({
-        en: `You have been recalled to counter ${counter ?? ''} for your service.${appointmentNote}`,
-        si: `ඔබගේ සේවාව සඳහා ඔබව ${counter ?? ''} කවුටරයට නැවත කැඳවා ඇත.${appointmentNote}`,
-        ta: `உங்கள் சேவைக்காக ${counter ?? ''} கவுண்டருக்கு உங்களை மீண்டும் அழைத்திருக்கிறோம்.${appointmentNote}`,
+        en: `Dear Valued Customer\n\nYou have been recalled to counter ${counter ?? ''} for your service.${appointmentNote}\n\nSLT-MOBITEL`,
+        si: `ගරු පාරිභෝගිකයා\n\nඔබගේ සේවාව සඳහා ඔබව ${counter ?? ''} කවුටරයට නැවත කැඳවා ඇත.${appointmentNote}\n\nSLT-MOBITEL`,
+        ta: `அன்பு வாடிக்கையாளரே\n\nஉங்கள் சேவைக்காக கவுண்டர் ${counter ?? ''} க்கு உங்களை மீண்டும் அழைத்திருக்கிறோம்.${appointmentNote}\n\nSLT-MOBITEL`,
       })[lang]
     },
     completed: (
@@ -90,24 +90,15 @@ export default function OfficerQueuePage() {
       lang: 'en' | 'si' | 'ta',
       _extra?: { officerName?: string; outletName?: string; servicesStr?: string }
     ) => ({
-      /*en: ref
-        ? `Your service is completed. Officer: ${extra?.officerName ?? ''} | Outlet: ${extra?.outletName ?? ''} | Services: ${extra?.servicesStr ?? ''} |Ref: ${ref}. Track: ${track ?? ''}`
-        : `Service completed. Thank you for visiting.`,
-      si: ref
-        ? `ඔබගේ සේවාව සම්පූර්ණ විය. නිලධාරී: ${extra?.officerName ?? ''} | ශාඛාව: ${extra?.outletName ?? ''} | සේවාවන්: ${extra?.servicesStr ?? ''} | යොමු අංකය: ${ref}. පථය: ${track ?? ''}`
-        : `සේවාව සම්පූර්ණයි. පැමිණියේට ස්තුති.`,
-      ta: ref
-        ? `உங்கள் சேவை முடிந்தது. அதிகாரி: ${extra?.officerName ?? ''} | கிளை: ${extra?.outletName ?? ''} | சேவைகள்: ${extra?.servicesStr ?? ''} | குறிப்பு: ${ref}. கண்காணிப்பு: ${track ?? ''}`
-        : `சேவை முடிந்தது. வருகைக்கு நன்றி.`,*/
       en: ref
-        ? `Your service is completed | Ref: ${ref}.`
-        : `Service completed. Thank you for visiting.`,
+        ? `Dear Valued Customer\n\nYour service is completed | Ref: ${ref}.\n\nSLT-MOBITEL`
+        : `Dear Valued Customer\n\nService completed. Thank you for visiting.\n\nSLT-MOBITEL`,
       si: ref
-        ? `ඔබගේ සේවාව සම්පූර්ණ විය | යොමු අංකය: ${ref}.`
-        : `සේවාව සම්පූර්ණයි. පැමිණියේට ස්තුති.`,
+        ? `ගරු පාරිභෝගිකයා\n\nඔබගේ සේවාව සම්පූර්ණ විය | යොමු අංකය: ${ref}.\n\nSLT-MOBITEL`
+        : `ගරු පාරිභෝගිකයා\n\nසේවාව සම්පූර්ණයි. පැමිණියේට ස්තුතියි.\n\nSLT-MOBITEL`,
       ta: ref
-        ? `உங்கள் சேவை முடிந்தது | குறிப்பு: ${ref}.`
-        : `சேவை முடிந்தது. வருகைக்கு நன்றி.`,
+        ? `அன்பு வாடிக்கையாளரே\n\nஉங்கள் சேவை முடிந்தது | குறிப்பு: ${ref}.\n\nSLT-MOBITEL`
+        : `அன்பு வாடிக்கையாளரே\n\nசேவை முடிந்தது. வருகைக்கு நன்றி.\n\nSLT-MOBITEL`,
     })[lang],
   }
 
@@ -311,8 +302,8 @@ export default function OfficerQueuePage() {
           await api.post('/twilio/test', {
             to: TWILIO_TO_NUMBER,
             body: targetCounter
-              ? `Your token #${currentToken.tokenNumber} has been transferred to Counter #${targetCounter}. Please proceed there when called.`
-              : `Your token #${currentToken.tokenNumber} has been transferred to another service. Please wait for your call.`
+              ? `Dear Valued Customer\n\nYour token #${currentToken.tokenNumber} has been transferred to Counter #${targetCounter}. Please proceed there when called.\n\nSLT-MOBITEL`
+              : `Dear Valued Customer\n\nYour token #${currentToken.tokenNumber} has been transferred to another service. Please wait for your call.\n\nSLT-MOBITEL`
           })
         } catch (smsErr) {
           console.error('Transfer SMS failed:', smsErr)
@@ -321,7 +312,7 @@ export default function OfficerQueuePage() {
         setCurrentToken(null)
         setAccountRef("")
         // Refresh queue
-          fetchQueue(officer.outletId, officer.id)
+        fetchQueue(officer.outletId, officer.id)
         alert("Customer successfully transferred!")
       } else {
         alert(res.data.error || 'Failed to transfer customer')

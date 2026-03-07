@@ -407,9 +407,9 @@ export default function CustomerRegistration() {
         const current = outlets.find((o) => o.id === selectedOutlet)
         // Localize the confirmation/test SMS by preferred language
         const msgByLang: Record<string, string> = {
-          en: `You’ve successfully registered at the ${current?.name} outlet.`,
-          si: `${current?.name || ''} ශාඛාවේදී ඔබ සාර්ථකව ලියාපදිංචි වී ඇත.`,
-          ta: `நீங்கள் ${current?.name || ''} கிளையில் வெற்றிகரமாக பதிவு செய்யப்பட்டுள்ளீர்கள்.`,
+          en: `Dear Valued Customer\n\nYou’ve successfully registered at the ${current?.name} outlet.\n\nSLT-MOBITEL`,
+          si: `ගරු පාරිභෝගිකයා\n\n${current?.name || ''} ශාඛාවේදී ඔබ සාර්ථකව ලියාපදිංචි වී ඇත.\n\nSLT-MOBITEL`,
+          ta: `அன்பு வாடிக்கையாளரே\n\nநீங்கள் ${current?.name || ''} கிளையில் வெற்றிகரமாக பதிவு செய்யப்பட்டுள்ளீர்கள்.\n\nSLT-MOBITEL`,
         }
         const resp = await api.post('/twilio/test', {
           to: VITE_TWILIO_TO_NUMBER || "+94718738041",

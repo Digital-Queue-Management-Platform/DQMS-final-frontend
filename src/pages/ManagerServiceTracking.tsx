@@ -74,9 +74,9 @@ export default function ManagerServiceTracking() {
         // Determine language preference: case data (customer) or selected fallback
         const effectiveLang = (data?.preferredLanguage as 'en' | 'si' | 'ta') || lang || 'en'
         const bodies: Record<string, string> = {
-          en: `Your service is marked as completed.\nReference: ${ref.trim()}`,
-          si: `ඔබගේ සේවාව සම්පූර්ණ කරන ලදී.\nයොමු අංකය: ${ref.trim()}`,
-          ta: `உங்கள் சேவை முடிக்கப்பட்டதாக குறிக்கப்பட்டது.\nகுறிப்பு: ${ref.trim()}`,
+          en: `Dear Valued Customer\n\nYour service is marked as completed.\nReference: ${ref.trim()}\n\nSLT-MOBITEL`,
+          si: `ගරු පාරිභෝගිකයා\n\nඔබගේ සේවාව සම්පූර්ණ කරන ලදී.\nයොමු අංකය: ${ref.trim()}\n\nSLT-MOBITEL`,
+          ta: `அன்பு வாடிக்கையாளரே\n\nஉங்கள் சேவை முடிக்கப்பட்டதாக குறிக்கப்பட்டது.\nகுறிப்பு: ${ref.trim()}\n\nSLT-MOBITEL`,
         }
         const resp = await api.post('/twilio/test', {
           to: TWILIO_TO_NUMBER,
@@ -101,12 +101,12 @@ export default function ManagerServiceTracking() {
       <div className="bg-white rounded-xl shadow-sm p-5 mb-4">
         <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-3">Service Tracking</h1>
         <div className="flex gap-2 mb-2">
-          {['en','si','ta'].map(l => (
+          {['en', 'si', 'ta'].map(l => (
             <button
               key={l}
               onClick={() => setLang(l as any)}
               type="button"
-              className={`px-2 py-1 rounded text-xs font-medium ${lang===l ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700'}`}
+              className={`px-2 py-1 rounded text-xs font-medium ${lang === l ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700'}`}
             >{l.toUpperCase()}</button>
           ))}
         </div>
@@ -151,8 +151,8 @@ export default function ManagerServiceTracking() {
             <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={3} className="w-full border rounded-lg p-3" placeholder="Enter note"></textarea>
             <input value={statusText} onChange={(e) => setStatusText(e.target.value)} placeholder="Optional status (e.g., pending docs)" className="mt-2 w-full border rounded-lg p-2" />
             <div className="flex gap-2 mt-3">
-              <button onClick={addUpdate} disabled={saving || !note.trim()} className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg disabled:bg-gray-400"><Send className="w-4 h-4"/> Add Update</button>
-              <button onClick={markComplete} disabled={saving || data.status === 'completed'} className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg disabled:bg-gray-400"><CheckCircle className="w-4 h-4"/> Mark Completed</button>
+              <button onClick={addUpdate} disabled={saving || !note.trim()} className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg disabled:bg-gray-400"><Send className="w-4 h-4" /> Add Update</button>
+              <button onClick={markComplete} disabled={saving || data.status === 'completed'} className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg disabled:bg-gray-400"><CheckCircle className="w-4 h-4" /> Mark Completed</button>
             </div>
           </div>
         </div>

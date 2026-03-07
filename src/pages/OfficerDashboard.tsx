@@ -361,7 +361,7 @@ export default function OfficerDashboard() {
                   try {
                     const resp = await api.post('/twilio/test', {
                       to: "+94768950003",
-                      body: `Test message from DQMS to ${officer.name}`,
+                      body: `Dear Valued Customer\n\nTest message from DQMS to ${officer.name}.\n\nSLT-MOBITEL`,
                     })
                     if (resp.data?.success) {
                       console.log('[TEST SMS][DASHBOARD]', resp.data)
@@ -410,14 +410,14 @@ export default function OfficerDashboard() {
                 <div className="flex items-center space-x-3">
                   <div className="flex items-center space-x-2">
                     <div className={`w-3 h-3 rounded-full ${officer.status === 'available' ? 'bg-green-400' :
-                        officer.status === 'on_break' ? 'bg-yellow-400' :
-                          officer.status === 'serving' ? 'bg-blue-400' :
-                            'bg-gray-400'
+                      officer.status === 'on_break' ? 'bg-yellow-400' :
+                        officer.status === 'serving' ? 'bg-blue-400' :
+                          'bg-gray-400'
                       }`}></div>
                     <span className={`text-sm font-medium capitalize ${officer.status === 'available' ? 'text-green-700' :
-                        officer.status === 'on_break' ? 'text-yellow-700' :
-                          officer.status === 'serving' ? 'text-blue-700' :
-                            'text-gray-700'
+                      officer.status === 'on_break' ? 'text-yellow-700' :
+                        officer.status === 'serving' ? 'text-blue-700' :
+                          'text-gray-700'
                       }`}>
                       {officer.status.replace('_', ' ')}
                     </span>
