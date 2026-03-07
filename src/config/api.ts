@@ -9,7 +9,7 @@ const API_BASE_URL = isLocal
 export const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
-    "Content-Type": "application/json",
+    "Content-Type": "application/json; charset=UTF-8",
   },
   withCredentials: true,
 })
@@ -24,7 +24,7 @@ api.interceptors.request.use(
         config.headers.Authorization = `Bearer ${adminToken}`
       }
     }
-    
+
     // Check for manager token for manager routes
     if (config.url?.startsWith('/manager/')) {
       const managerToken = localStorage.getItem('managerToken')
@@ -32,7 +32,7 @@ api.interceptors.request.use(
         config.headers.Authorization = `Bearer ${managerToken}`
       }
     }
-    
+
     // Check for officer token for officer routes
     if (config.url?.startsWith('/officer/')) {
       const officerToken = localStorage.getItem('officerToken')
@@ -40,7 +40,7 @@ api.interceptors.request.use(
         config.headers.Authorization = `Bearer ${officerToken}`
       }
     }
-    
+
     // Check for teleshop manager token for teleshop-manager routes
     if (config.url?.startsWith('/teleshop-manager/')) {
       const teleshopManagerToken = localStorage.getItem('teleshopManagerToken')
@@ -48,7 +48,7 @@ api.interceptors.request.use(
         config.headers.Authorization = `Bearer ${teleshopManagerToken}`
       }
     }
-    
+
     // Check for GM token for GM routes
     if (config.url?.startsWith('/gm/')) {
       const gmToken = localStorage.getItem('gmToken')
@@ -56,7 +56,7 @@ api.interceptors.request.use(
         config.headers.Authorization = `Bearer ${gmToken}`
       }
     }
-    
+
     // Check for DGM token for DGM routes
     if (config.url?.startsWith('/dgm/')) {
       const dgmToken = localStorage.getItem('dgmToken')
@@ -64,7 +64,7 @@ api.interceptors.request.use(
         config.headers.Authorization = `Bearer ${dgmToken}`
       }
     }
-    
+
     return config
   },
   (error) => {
@@ -80,19 +80,19 @@ api.interceptors.response.use(
       // Handle unauthorized errors by clearing tokens
       const currentPath = window.location.pathname
       const requestUrl = error.config?.url || ''
-      
+
       console.log('401 error on:', requestUrl, 'current path:', currentPath)
-      
+
       // Only clear tokens, don't redirect - let the app handle navigation
       if (requestUrl.startsWith('/admin/') || currentPath.startsWith('/admin')) {
         localStorage.removeItem('adminToken')
-      } 
+      }
       else if (requestUrl.startsWith('/manager/') || currentPath.startsWith('/manager')) {
         localStorage.removeItem('manager')
         localStorage.removeItem('managerToken')
         localStorage.removeItem('dq_role')
         localStorage.removeItem('dq_user')
-      } 
+      }
       else if (requestUrl.startsWith('/officer/') || currentPath.startsWith('/officer')) {
         localStorage.removeItem('officer')
         localStorage.removeItem('officerToken')

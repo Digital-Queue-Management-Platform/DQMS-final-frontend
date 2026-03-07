@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useParams, useNavigate } from "react-router-dom"
-import { Users, CheckCircle, AlertTriangle } from "lucide-react"
+import { Users, CheckCircle, AlertTriangle, XCircle, Trash2, ArrowLeft } from "lucide-react"
 import api, { WS_URL } from "../config/api"
 import type { Token } from "../types"
 import ServiceName from "../components/ServiceName"
@@ -13,21 +13,122 @@ export default function QueueStatus() {
   const [token, setToken] = useState<Token | null>(null)
   const [position, setPosition] = useState(0)
   const [loading, setLoading] = useState(true)
+  const [cancelling, setCancelling] = useState(false)
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false)
+  const [language, setLanguage] = useState<'en' | 'si' | 'ta'>(() => {
+    try {
+      const saved = localStorage.getItem('dq_lang') as 'en' | 'si' | 'ta' | null
+      if (saved) return saved
+    } catch { }
+    const nav = (navigator?.language || 'en').toLowerCase()
+    if (nav.startsWith('si')) return 'si'
+    if (nav.startsWith('ta')) return 'ta'
+    return 'en'
+  })
+
+  const translations = {
+    en: {
+      yourToken: "Your Token Number",
+      positionInQueue: "Position in Queue",
+      waitTurn: "Please wait for your turn. You will be notified when called.",
+      waitPriority: "You have been moved to a priority queue. Please wait to be called.",
+      proceedToCounter: "Please Proceed to Counter",
+      serviceReady: "Your service is ready to begin",
+      servingOfficer: "Serving Officer",
+      skippedTitle: "Your turn was skipped",
+      skippedMessage: "Please contact the counter or wait until calls your token again.",
+      cancelledTitle: "Token Cancelled",
+      cancelledMessage: "This token has been cancelled. If this was a mistake, please register again.",
+      name: "Name",
+      mobile: "Mobile",
+      serviceTypes: "Service Types",
+      registeredAt: "Registered At",
+      cancelToken: "Cancel My Token",
+      confirmCancelTitle: "Cancel Token?",
+      confirmCancelMsg: "Are you sure you want to leave the queue and cancel your token?",
+      yesCancel: "Yes, Cancel",
+      keepToken: "No, Keep it",
+      backHome: "Back to Home",
+      tokenNotFound: "Token not found",
+      loading: "Loading...",
+      transferredTitle: "Token Transferred & Prioritized",
+      transferredWait: "Please wait for Counter {n}. You are in the priority queue.",
+      transferredWaitGen: "Your token has been transferred for further processing. Please wait for the next available counter."
+    },
+    si: {
+      yourToken: "ඔබේ ටෝකන් අංකය",
+      positionInQueue: "පෝලිමේ ස්ථානය",
+      waitTurn: "කරුණාකර ඔබේ වාරය එනතෙක් රැඳී සිටින්න. ඔබව කැඳවූ විට දැනුම් දෙනු ලැබේ.",
+      waitPriority: "ඔබ ප්‍රමුඛතා පෝලිමකට මාරු කර ඇත. කරුණාකර කැඳවන තෙක් රැඳී සිටින්න.",
+      proceedToCounter: "කරුණාකර කවුන්ටරය වෙත යන්න",
+      serviceReady: "ඔබේ සේවාව ආරම්භ කිරීමට සූදානම්",
+      servingOfficer: "සේවා නිලධාරියා",
+      skippedTitle: "ඔබේ වාරය මඟ හැරී ඇත",
+      skippedMessage: "කරුණාකර කවුන්ටරය අමතන්න හෝ නැවත කැඳවන තෙක් රැඳී සිටින්න.",
+      cancelledTitle: "ටෝකනය අවලංගු කරන ලදි",
+      cancelledMessage: "මෙම ටෝකනය අවලංගු කර ඇත. මෙය වැරදීමක් නම්, කරුණාකර නැවත ලියාපදිංචි වන්න.",
+      name: "නම",
+      mobile: "ජංගම දුරකථනය",
+      serviceTypes: "සේවා වර්ග",
+      registeredAt: "ලියාපදිංචි වූ වේලාව",
+      cancelToken: "ටෝකනය අවලංගු කරන්න",
+      confirmCancelTitle: "ටෝකනය අවලංගු කරන්නද?",
+      confirmCancelMsg: "ඔබට පෝලිමෙන් ඉවත් වී ඔබේ ටෝකනය අවලංගු කිරීමට අවශ්‍ය බව සහතිකද?",
+      yesCancel: "ඔව්, අවලංගු කරන්න",
+      keepToken: "නැත, තබා ගන්න",
+      backHome: "මුල් පිටුවට",
+      tokenNotFound: "ටෝකනය සොයාගත නොහැකි විය",
+      loading: "පූරණය වෙමින්...",
+      transferredTitle: "ටෝකනය මාරු කර ප්‍රමුඛතාවය ලබා දී ඇත",
+      transferredWait: "කරුණාකර කවුන්ටරය {n} වෙතින් කැඳවන තෙක් රැඳී සිටින්න.",
+      transferredWaitGen: "ඔබේ ටෝකනය වැඩිදුර සැකසීම සඳහා මාරු කර ඇත. කරුණාකර ඊළඟ පවතින කවුන්ටරය සඳහා රැඳී සිටින්න."
+    },
+    ta: {
+      yourToken: "உங்கள் டோக்கன் எண்",
+      positionInQueue: "வரிசையில் இடம்",
+      waitTurn: "தயவுசெய்து உங்கள் முறை வரும் வரை காத்திருங்கள். அழைக்கும் போது உங்களுக்கு அறிவிக்கப்படும்.",
+      waitPriority: "நீங்கள் முன்னுரிமை வரிசைக்கு மாற்றப்பட்டுள்ளீர்கள். தயவுசெய்து அழைக்கும் வரை காத்திருக்கவும்.",
+      proceedToCounter: "தயவுசெய்து கவுண்டருக்குச் செல்லவும்",
+      serviceReady: "உங்கள் சேவை தொடங்க தயாராக உள்ளது",
+      servingOfficer: "சேவை அதிகாரி",
+      skippedTitle: "உங்கள் முறை தவிர்க்கப்பட்டது",
+      skippedMessage: "தயவுசெய்து கவுண்டரைத் தொடர்பு கொள்ளுங்கள் அல்லது மீண்டும் அழைக்கும் வரை காத்திருங்கள்.",
+      cancelledTitle: "டோக்கன் ரத்து செய்யப்பட்டது",
+      cancelledMessage: "இந்த டோக்கன் ரத்து செய்யப்பட்டுள்ளது. தவறாக நடந்தால், மீண்டும் பதிவு செய்யவும்.",
+      name: "பெயர்",
+      mobile: "மொபைல்",
+      serviceTypes: "சேவை வகைகள்",
+      registeredAt: "பதிவு செய்யப்பட்ட நேரம்",
+      cancelToken: "டோக்கனை ரத்து செய்",
+      confirmCancelTitle: "டோக்கனை ரத்து செய்யவா?",
+      confirmCancelMsg: "நீங்கள் வரிசையில் இருந்து வெளியேறி உங்கள் டோக்கனை ரத்து செய்ய விரும்புகிறீர்களா?",
+      yesCancel: "ஆம், ரத்து செய்",
+      keepToken: "இல்லை, அப்படியே இருக்கட்டும்",
+      backHome: "முகப்புக்குச் செல்ல",
+      tokenNotFound: "டோக்கன் கிடைக்கவில்லை",
+      loading: "ஏற்றுகிறது...",
+      transferredTitle: "டோக்கன் மாற்றப்பட்டு முன்னுரிமை அளிக்கப்பட்டது",
+      transferredWait: "தயவுசெய்து கவுண்டர் {n} காத்திருங்கள்.",
+      transferredWaitGen: "உங்கள் டோக்கன் மேலதிக செயலாக்கத்திற்கு மாற்றப்பட்டது. தயவுசெய்து அடுத்த கவுண்டருக்காக காத்திருங்கள்."
+    }
+  }
+
+  const t = translations[language]
 
   useEffect(() => {
     fetchTokenStatus()
-    const interval = setInterval(fetchTokenStatus, 10000) // Update every 10 seconds
+    const interval = setInterval(fetchTokenStatus, 15000)
 
-    // WebSocket connection for real-time updates
     const ws = new WebSocket(WS_URL)
-
     ws.onmessage = (event) => {
       const data = JSON.parse(event.data)
-      if (data.type === "TOKEN_CALLED" && data.data.id === tokenId && data.data.status === "in_service") {
+      if (data.type === "TOKEN_CALLED" && data.data.id === tokenId) {
         fetchTokenStatus()
       } else if (data.type === "TOKEN_COMPLETED" && data.data.id === tokenId) {
         navigate(`/feedback/${tokenId}`)
       } else if (data.type === "TOKEN_SKIPPED" && data.data.id === tokenId) {
+        fetchTokenStatus()
+      } else if (data.type === "TOKEN_CANCELLED" && data.data.id === tokenId) {
         fetchTokenStatus()
       }
     }
@@ -44,7 +145,6 @@ export default function QueueStatus() {
       setToken(response.data.token)
       setPosition(response.data.position)
 
-      // Redirect to feedback if completed
       if (response.data.token.status === "completed") {
         navigate(`/feedback/${tokenId}`)
       }
@@ -55,14 +155,26 @@ export default function QueueStatus() {
     }
   }
 
-
+  const handleCancel = async () => {
+    if (!tokenId) return
+    try {
+      setCancelling(true)
+      await api.post(`/customer/token/${tokenId}/cancel`)
+      await fetchTokenStatus()
+      setShowCancelConfirm(false)
+    } catch (err: any) {
+      alert(err?.response?.data?.error || "Failed to cancel token")
+    } finally {
+      setCancelling(false)
+    }
+  }
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-500 font-medium">{t.loading}</p>
         </div>
       </div>
     )
@@ -70,108 +182,194 @@ export default function QueueStatus() {
 
   if (!token) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
-        <div className="bg-white rounded-2xl shadow-xl p-8 text-center">
-          <p className="text-gray-600">Token not found</p>
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl shadow-xl p-8 text-center max-w-sm w-full border border-gray-100">
+          <AlertTriangle className="w-12 h-12 text-amber-500 mx-auto mb-4" />
+          <p className="text-gray-900 font-bold text-lg mb-2">{t.tokenNotFound}</p>
+          <button onClick={() => navigate("/")} className="mt-4 px-6 py-2 bg-blue-600 text-white rounded-xl font-semibold shadow-md hover:bg-blue-700 transition-all flex items-center justify-center gap-2 mx-auto">
+            <ArrowLeft className="w-4 h-4" /> {t.backHome}
+          </button>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl p-8">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">{token.outlet?.name}</h1>
-          <p className="text-gray-600">{token.outlet?.location}</p>
+    <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4 sm:p-6">
+      {/* Language Selector */}
+      <div className="absolute top-4 right-4 flex gap-1 bg-white p-1 rounded-xl shadow-sm border border-gray-100">
+        {(['en', 'si', 'ta'] as const).map((l) => (
+          <button
+            key={l}
+            onClick={() => { setLanguage(l); localStorage.setItem('dq_lang', l) }}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${language === l ? 'bg-blue-600 text-white shadow-md' : 'text-gray-500 hover:bg-gray-50'}`}
+          >
+            {l.toUpperCase()}
+          </button>
+        ))}
+      </div>
+
+      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden border border-gray-100 flex flex-col">
+        {/* Header/Branch Title */}
+        <div className="p-6 text-center border-b border-gray-100 bg-white">
+          <h1 className="text-xl font-extrabold text-blue-900 mb-1">{token.outlet?.name}</h1>
+          <p className="text-gray-500 text-sm font-medium">{token.outlet?.location}</p>
         </div>
 
-        {/* Token Number Display */}
-        <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl p-8 text-center mb-8">
-          <p className="text-white text-sm font-medium mb-2">Your Token Number</p>
-          <p className="text-white text-7xl font-bold mb-2">{token.tokenNumber}</p>
-        </div>
-
-        {/* Status Display */}
-        {token.status === "waiting" && (
-          <div className="space-y-6">
-            <div className="flex justify-center">
-              <div className="bg-blue-50 rounded-xl p-6 text-center w-full max-w-[240px]">
-                <Users className="w-8 h-8 text-blue-600 mx-auto mb-2" />
-                <p className="text-sm text-gray-600 mb-1">Position in Queue</p>
-                <p className="text-3xl font-bold text-gray-900">{position}</p>
-              </div>
-            </div>
-
-            <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
-              <p className="text-yellow-800 text-center font-medium">
-                Please wait for your turn. You will be notified when called.
-              </p>
-            </div>
+        {/* Token Card */}
+        <div className="p-8">
+          <div className={`rounded-2xl p-8 text-center mb-8 shadow-sm transition-all ${token.status === 'cancelled' ? 'bg-gray-100' : 'bg-gradient-to-br from-blue-700 to-indigo-800'}`}>
+            <p className={`text-sm font-bold uppercase tracking-widest mb-2 ${token.status === 'cancelled' ? 'text-gray-500' : 'text-blue-100'}`}>{t.yourToken}</p>
+            <p className={`text-8xl font-black ${token.status === 'cancelled' ? 'text-gray-400 line-through' : 'text-white'}`}>{token.tokenNumber}</p>
           </div>
-        )}
 
-        {token.status === "in_service" && (
+          {/* Status Content */}
           <div className="space-y-6">
-            <div className="bg-green-50 border border-green-200 rounded-xl p-6 text-center">
-              <CheckCircle className="w-16 h-16 text-green-600 mx-auto mb-4" />
-              <p className="text-2xl font-bold text-green-900 mb-2">Please Proceed to Counter {token.counterNumber}</p>
-              <p className="text-green-700">Your service is ready to begin</p>
-            </div>
+            {token.status === "waiting" && (
+              <>
+                {token.isTransferred && (
+                  <div className="bg-blue-50 border border-blue-100 rounded-2xl p-5 text-blue-900 shadow-sm animate-pulse">
+                    <div className="flex items-center gap-2 font-bold text-base mb-2">
+                      <Users className="w-5 h-5" /> {t.transferredTitle}
+                    </div>
+                    <div className="text-sm font-medium leading-relaxed">
+                      {token.counterNumber
+                        ? t.transferredWait.replace("{n}", String(token.counterNumber))
+                        : t.transferredWaitGen
+                      }
+                    </div>
+                  </div>
+                )}
 
-            {token.officer && (
-              <div className="bg-gray-50 rounded-xl p-4">
-                <p className="text-sm text-gray-600 text-center">
-                  Serving Officer: <span className="font-semibold">{token.officer.name}</span>
-                </p>
+                <div className="flex justify-center">
+                  <div className="bg-slate-50 rounded-2xl p-6 text-center w-full max-w-[280px] border border-gray-100">
+                    <Users className="w-10 h-10 text-blue-600 mx-auto mb-3" />
+                    <p className="text-xs text-gray-400 uppercase font-black tracking-widest mb-1">{t.positionInQueue}</p>
+                    <p className="text-5xl font-black text-slate-900">{position}</p>
+                  </div>
+                </div>
+
+                <div className="bg-amber-50/50 border border-amber-100 rounded-2xl p-4">
+                  <p className="text-amber-800 text-center text-sm font-bold leading-relaxed">
+                    {token.isTransferred ? t.waitPriority : t.waitTurn}
+                  </p>
+                </div>
+
+                {/* Cancel Button */}
+                <button
+                  onClick={() => setShowCancelConfirm(true)}
+                  className="w-full mt-4 flex items-center justify-center gap-2 py-4 px-6 bg-red-50 text-red-600 hover:bg-red-100 rounded-2xl font-bold transition-all border border-red-100 group"
+                >
+                  <Trash2 className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                  {t.cancelToken}
+                </button>
+              </>
+            )}
+
+            {token.status === "in_service" && (
+              <div className="bg-green-50 border border-green-100 rounded-3xl p-8 text-center shadow-sm">
+                <CheckCircle className="w-20 h-20 text-green-500 mx-auto mb-6 animate-bounce" />
+                <p className="text-lg font-bold text-green-900 mb-2">{t.proceedToCounter} <span className="text-4xl block mt-2 text-green-600 font-black">{token.counterNumber}</span></p>
+                <p className="text-green-700 font-medium">{t.serviceReady}</p>
+
+                {token.officer && (
+                  <div className="mt-8 pt-6 border-t border-green-100">
+                    <p className="text-xs text-green-600 uppercase font-black tracking-widest mb-1">{t.servingOfficer}</p>
+                    <p className="text-lg font-bold text-green-900">{token.officer.name}</p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {token.status === "skipped" && (
+              <div className="bg-amber-50 border border-amber-100 rounded-3xl p-8 text-center">
+                <AlertTriangle className="w-16 h-16 text-amber-500 mx-auto mb-4" />
+                <p className="text-2xl font-black text-amber-900 mb-2">{t.skippedTitle}</p>
+                <p className="text-amber-700 font-medium">{t.skippedMessage}</p>
+                <button onClick={() => navigate("/")} className="mt-6 w-full py-3 bg-white border border-amber-200 text-amber-800 rounded-xl font-bold">
+                  {t.backHome}
+                </button>
+              </div>
+            )}
+
+            {token.status === "cancelled" && (
+              <div className="bg-slate-100 border border-slate-200 rounded-3xl p-8 text-center">
+                <XCircle className="w-16 h-16 text-slate-400 mx-auto mb-4" />
+                <p className="text-2xl font-black text-slate-800 mb-2">{t.cancelledTitle}</p>
+                <p className="text-slate-500 font-medium">{t.cancelledMessage}</p>
+                <button onClick={() => navigate("/")} className="mt-6 w-full py-4 bg-blue-600 text-white rounded-2xl font-black shadow-lg shadow-blue-200">
+                  {t.backHome}
+                </button>
               </div>
             )}
           </div>
-        )}
+        </div>
 
-        {token.status === "skipped" && (
-          <div className="space-y-6">
-            <div className="bg-amber-50 border border-amber-200 rounded-xl p-6 text-center">
-              <AlertTriangle className="w-16 h-16 text-amber-600 mx-auto mb-4" />
-              <p className="text-2xl font-bold text-amber-900 mb-2">Your turn was skipped</p>
-              <p className="text-amber-700">Please contact the counter or wait until calls your token again.</p>
+        {/* Customer Details Footer */}
+        <div className="bg-slate-50 p-8 border-t border-gray-100">
+          <div className="grid grid-cols-2 gap-y-6 gap-x-4">
+            <div className="space-y-1">
+              <p className="text-[10px] text-gray-400 uppercase font-black tracking-widest">{t.name}</p>
+              <p className="font-bold text-gray-900 text-sm truncate">{token.customer.name}</p>
             </div>
-          </div>
-        )}
-
-        {/* Customer Info */}
-        <div className="mt-8 pt-6 border-t border-gray-200">
-          <div className="grid grid-cols-2 gap-4 text-sm">
-            <div>
-              <p className="text-gray-600">Name</p>
-              <p className="font-semibold text-gray-900">{token.customer.name}</p>
+            <div className="space-y-1">
+              <p className="text-[10px] text-gray-400 uppercase font-black tracking-widest">{t.mobile}</p>
+              <p className="font-bold text-gray-900 text-sm">{token.customer.mobileNumber}</p>
             </div>
-            <div>
-              <p className="text-gray-600">Mobile</p>
-              <p className="font-semibold text-gray-900">{token.customer.mobileNumber}</p>
-            </div>
-            <div>
-              <p className="text-gray-600">Service Types</p>
-              <div className="flex flex-col gap-1">
+            <div className="space-y-2 col-span-2">
+              <p className="text-[10px] text-gray-400 uppercase font-black tracking-widest">{t.serviceTypes}</p>
+              <div className="flex flex-wrap gap-2">
                 {Array.isArray(token.serviceTypes) && token.serviceTypes.length > 0 ? (
                   token.serviceTypes.map((stype: string) => (
-                    <span key={stype} className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                    <span key={stype} className="px-3 py-1 rounded-lg text-[11px] font-bold bg-white border border-gray-200 text- slate-700 shadow-sm">
                       <ServiceName serviceType={stype} />
                     </span>
                   ))
                 ) : (
-                  <span className="px-2 py-1 rounded-full text-xs font-medium bg-gray-200 text-gray-600">No service types</span>
+                  <span className="text-xs text-gray-400">---</span>
                 )}
               </div>
             </div>
-            <div>
-              <p className="text-gray-600">Registered At</p>
-              <p className="font-semibold text-gray-900">{new Date(token.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</p>
+            <div className="space-y-1 col-span-2">
+              <p className="text-[10px] text-gray-400 uppercase font-black tracking-widest">{t.registeredAt}</p>
+              <p className="font-bold text-gray-900 text-sm">
+                {new Date(token.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}
+              </p>
             </div>
           </div>
         </div>
       </div>
+
+      {/* Confirmation Modal */}
+      {showCancelConfirm && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-[2.5rem] p-8 max-w-sm w-full shadow-2xl animate-in fade-in zoom-in duration-300">
+            <div className="w-16 h-16 bg-red-50 rounded-2xl flex items-center justify-center mx-auto mb-6">
+              <Trash2 className="w-8 h-8 text-red-500" />
+            </div>
+            <h3 className="text-2xl font-black text-center text-slate-900 mb-3">{t.confirmCancelTitle}</h3>
+            <p className="text-center text-slate-500 font-medium mb-8 leading-relaxed">
+              {t.confirmCancelMsg}
+            </p>
+            <div className="space-y-3">
+              <button
+                disabled={cancelling}
+                onClick={handleCancel}
+                className="w-full py-4 bg-red-600 text-white rounded-2xl font-black shadow-lg shadow-red-200 hover:bg-red-700 transition-all disabled:opacity-50"
+              >
+                {cancelling ? t.loading : t.yesCancel}
+              </button>
+              <button
+                disabled={cancelling}
+                onClick={() => setShowCancelConfirm(false)}
+                className="w-full py-4 bg-slate-50 text-slate-600 rounded-2xl font-bold hover:bg-slate-100 transition-all"
+              >
+                {t.keepToken}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

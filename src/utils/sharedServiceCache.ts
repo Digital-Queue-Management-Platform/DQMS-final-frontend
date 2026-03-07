@@ -39,28 +39,23 @@ const loadServices = async (): Promise<{ [key: string]: string }> => {
   isLoading = true
   loadPromise = (async () => {
     try {
-      console.log('Loading services from API...')
       const response = await api.get('/queue/services')
       const services = response.data || []
-      
-      console.log('Loaded services:', services)
-      
+
       // Create mapping from service code to title
       services.forEach((service: any) => {
         if (service.code && service.title) {
           sharedServicesCache[service.code] = service.title
-          console.log(`Mapped ${service.code} -> ${service.title}`)
         }
       })
-      
-      console.log('Shared services cache:', sharedServicesCache)
+
       isLoaded = true
-    } catch (error) {
-      console.error('Failed to load services for display names:', error)
+    } catch {
+      // Silent fail — UI will fall back to formatted service codes
     } finally {
       isLoading = false
     }
-    
+
     return sharedServicesCache
   })()
 
@@ -70,23 +65,23 @@ const loadServices = async (): Promise<{ [key: string]: string }> => {
 // Get service name with automatic loading
 export const getServiceDisplayName = async (serviceCode: string): Promise<string> => {
   if (!serviceCode) return 'Unknown Service'
-  
+
   // Try static mapping first
   if (staticServiceMap[serviceCode]) {
     return staticServiceMap[serviceCode]
   }
-  
+
   // Try cached services
   if (sharedServicesCache[serviceCode]) {
     return sharedServicesCache[serviceCode]
   }
-  
+
   // Load services and get name
   const services = await loadServices()
   if (services[serviceCode]) {
     return services[serviceCode]
   }
-  
+
   // Return formatted version as fallback
   return serviceCode.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
 }
@@ -94,22 +89,22 @@ export const getServiceDisplayName = async (serviceCode: string): Promise<string
 // Get service name synchronously (may return code initially)
 export const getServiceDisplayNameSync = (serviceCode: string): string => {
   if (!serviceCode) return 'Unknown Service'
-  
+
   // Try static mapping first
   if (staticServiceMap[serviceCode]) {
     return staticServiceMap[serviceCode]
   }
-  
+
   // Try cached services
   if (sharedServicesCache[serviceCode]) {
     return sharedServicesCache[serviceCode]
   }
-  
+
   // If not loaded yet, trigger loading for next time
   if (!isLoaded && !isLoading) {
     loadServices()
   }
-  
+
   // Return formatted version as fallback
   return serviceCode.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
 }

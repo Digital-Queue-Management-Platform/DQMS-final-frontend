@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom"
 import { Phone, User, MapPin, Languages, Briefcase } from "lucide-react"
 import api from "../config/api"
 import { AnimatedDropdown } from "../components/AnimatedDropdown"
+import { useOfficerDuplicateCheck } from "../hooks/useOfficerDuplicateCheck"
 
 interface Outlet {
   id: string
@@ -37,17 +38,25 @@ const availableLanguages = [
 
 export default function TeleshopManagerOfficerRegistration() {
   const navigate = useNavigate()
+  const { checkMobile, checkEmail } = useOfficerDuplicateCheck()
   const [outlets, setOutlets] = useState<Outlet[]>([])
   const [officers, setOfficers] = useState<OfficerSummary[]>([])
   const [services, setServices] = useState<Service[]>([])
   const [loading, setLoading] = useState(false)
   const [loadingOutlets, setLoadingOutlets] = useState(true)
   const [error, setError] = useState("")
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
+
+  const validateMobile = (v: string) => /^0[0-9]{9}$/.test(v.replace(/\s/g, ''))
+  const validateEmail = (v: string) => !v || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim())
+  const clearFieldError = (field: string) => setFieldErrors(prev => ({ ...prev, [field]: '' }))
+  const setFieldError = (field: string, msg: string) => setFieldErrors(prev => ({ ...prev, [field]: msg }))
 
 
   const [formData, setFormData] = useState({
     name: "",
     mobileNumber: "",
+    email: "",
     outletId: "",
     counterNumber: "",
     isTraining: false,
@@ -123,6 +132,18 @@ export default function TeleshopManagerOfficerRegistration() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
+
+    // Frontend validation
+    const errs: Record<string, string> = {}
+    if (!formData.name.trim() || formData.name.trim().length < 2) errs.name = "Full name must be at least 2 characters"
+    if (!validateMobile(formData.mobileNumber)) errs.mobileNumber = "Enter a valid 10-digit Sri Lankan number (e.g. 071XXXXXXX)"
+    if (!validateEmail(formData.email)) errs.email = "Enter a valid email address"
+    if (!formData.outletId) errs.outletId = "Please select an outlet"
+    if (Object.keys(errs).length > 0) {
+      setFieldErrors(errs)
+      return
+    }
+    setFieldErrors({})
     setLoading(true)
 
     try {
@@ -149,6 +170,7 @@ export default function TeleshopManagerOfficerRegistration() {
           ...prev,
           name: "",
           mobileNumber: "",
+          email: "",
           counterNumber: "",
           isTraining: false,
           languages: [],
@@ -157,8 +179,12 @@ export default function TeleshopManagerOfficerRegistration() {
       }
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || "Failed to create officer"
-      console.error("Officer creation error:", errorMessage)
-      setError(errorMessage)
+      // 409 = duplicate mobile number — show on the field
+      if (err.response?.status === 409) {
+        setFieldErrors(prev => ({ ...prev, mobileNumber: errorMessage }))
+      } else {
+        setError(errorMessage)
+      }
     } finally {
       setLoading(false)
     }
@@ -191,6 +217,7 @@ export default function TeleshopManagerOfficerRegistration() {
     setFormData({
       name: "",
       mobileNumber: "",
+      email: "",
       outletId: "",
       counterNumber: "",
       isTraining: false,
@@ -255,11 +282,12 @@ export default function TeleshopManagerOfficerRegistration() {
                 <input
                   type="text"
                   value={formData.name}
-                  onChange={(e) => handleInputChange("name", e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  onChange={(e) => { handleInputChange("name", e.target.value); clearFieldError('name') }}
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${fieldErrors.name ? 'border-red-500' : 'border-gray-300'}`}
                   placeholder="Enter officer's full name"
                   required
                 />
+                {fieldErrors.name && <p className="text-xs text-red-600 mt-1">{fieldErrors.name}</p>}
               </div>
 
               <div>
@@ -271,12 +299,37 @@ export default function TeleshopManagerOfficerRegistration() {
                   <input
                     type="tel"
                     value={formData.mobileNumber}
-                    onChange={(e) => handleInputChange("mobileNumber", e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    onChange={(e) => {
+                      handleInputChange("mobileNumber", e.target.value)
+                      clearFieldError('mobileNumber')
+                      checkMobile(e.target.value, (msg) => setFieldError('mobileNumber', msg))
+                    }}
+                    className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${fieldErrors.mobileNumber ? 'border-red-500' : 'border-gray-300'}`}
                     placeholder="070XXXXXXX"
+                    maxLength={10}
                     required
                   />
                 </div>
+                {fieldErrors.mobileNumber && <p className="text-xs text-red-600 mt-1">{fieldErrors.mobileNumber}</p>}
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Email Address (Optional)
+                </label>
+                <input
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => {
+                    handleInputChange("email", e.target.value)
+                    clearFieldError('email')
+                    checkEmail(e.target.value, (msg) => setFieldError('email', msg))
+                  }}
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${fieldErrors.email ? 'border-red-500' : 'border-gray-300'}`}
+                  placeholder="officer@slt.lk"
+                />
+                <p className="text-xs text-gray-400 mt-1">If provided, login credentials will be emailed to the officer.</p>
+                {fieldErrors.email && <p className="text-xs text-red-600 mt-1">{fieldErrors.email}</p>}
               </div>
             </div>
           </div>

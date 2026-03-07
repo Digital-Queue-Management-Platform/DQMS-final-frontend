@@ -29,87 +29,7 @@ export default function OfficerQueuePage() {
   const [counters, setCounters] = useState<any[]>([])
   const [targetCounter, setTargetCounter] = useState<number | null>(null)
   const [transferNotes, setTransferNotes] = useState("")
-  const TWILIO_TO_NUMBER = import.meta.env.VITE_TWILIO_TO_NUMBER
 
-  // Helpers for language selection from a token's preferredLanguages
-  const toLangArray = (val: any): string[] => {
-    try {
-      if (!val) return []
-      if (Array.isArray(val)) return val.filter(v => typeof v === 'string') as string[]
-      if (typeof val === 'string') {
-        const parsed = JSON.parse(val)
-        return Array.isArray(parsed) ? parsed.filter(v => typeof v === 'string') : []
-      }
-      if (typeof val === 'object') {
-        return Object.values(val).filter(v => typeof v === 'string') as string[]
-      }
-    } catch { }
-    return []
-  }
-
-  const pickLang = (token?: any): 'en' | 'si' | 'ta' => {
-    const arr = toLangArray(token?.preferredLanguages)
-    const l = (arr[0] as any) || 'en'
-    return l === 'si' || l === 'ta' ? l : 'en'
-  }
-
-  const langText = {
-    // Put required lang first, optional counter second (fix TS param order)
-    proceed: (lang: 'en' | 'si' | 'ta', counter?: number, isAppointment?: boolean) => {
-      const appointmentNote = isAppointment ? {
-        en: ' Online Appointment.',
-        si: ' ඔනිනෙන් සිටුවා ඇති ඇයිතම.',
-        ta: ' ஆன்லைன் நியமனம்.',
-      }[lang] : ''
-      return ({
-        en: `Please proceed to counter ${counter ?? ''} for your service.${appointmentNote}`,
-        si: `කරුණාකර ඔබගේ සේවා සඳහා ${counter ?? ''} කවුටරයට පැමිණෙන්න.${appointmentNote}`,
-        ta: `தயவுசெய்து உங்கள் சேவைக்காக ${counter ?? ''} கவுண்டருக்கு செல்லவும்.${appointmentNote}`,
-      })[lang]
-    },
-    skipped: (lang: 'en' | 'si' | 'ta') => ({
-      en: `Your token has been skipped.`,
-      si: `ඔබගේ ටෝකනය මඟ හැර තිබේ.`,
-      ta: `உங்கள் டோக்கன் தவிர்க்கப்பட்டுள்ளது.`,
-    })[lang],
-    recalled: (lang: 'en' | 'si' | 'ta', counter?: number, isAppointment?: boolean) => {
-      const appointmentNote = isAppointment ? {
-        en: ' Online Appointment.',
-        si: ' ඔනිනෙන් සිටුවා ඇති ඇයිතම.',
-        ta: ' ஆன்லைன் நியமனம்.',
-      }[lang] : ''
-      return ({
-        en: `You have been recalled to counter ${counter ?? ''} for your service.${appointmentNote}`,
-        si: `ඔබගේ සේවාව සඳහා ඔබව ${counter ?? ''} කවුටරයට නැවත කැඳවා ඇත.${appointmentNote}`,
-        ta: `உங்கள் சேவைக்காக ${counter ?? ''} கவுண்டருக்கு உங்களை மீண்டும் அழைத்திருக்கிறோம்.${appointmentNote}`,
-      })[lang]
-    },
-    completed: (
-      ref: string | null,
-      _track: string | null,
-      lang: 'en' | 'si' | 'ta',
-      _extra?: { officerName?: string; outletName?: string; servicesStr?: string }
-    ) => ({
-      /*en: ref
-        ? `Your service is completed. Officer: ${extra?.officerName ?? ''} | Outlet: ${extra?.outletName ?? ''} | Services: ${extra?.servicesStr ?? ''} |Ref: ${ref}. Track: ${track ?? ''}`
-        : `Service completed. Thank you for visiting.`,
-      si: ref
-        ? `ඔබගේ සේවාව සම්පූර්ණ විය. නිලධාරී: ${extra?.officerName ?? ''} | ශාඛාව: ${extra?.outletName ?? ''} | සේවාවන්: ${extra?.servicesStr ?? ''} | යොමු අංකය: ${ref}. පථය: ${track ?? ''}`
-        : `සේවාව සම්පූර්ණයි. පැමිණියේට ස්තුති.`,
-      ta: ref
-        ? `உங்கள் சேவை முடிந்தது. அதிகாரி: ${extra?.officerName ?? ''} | கிளை: ${extra?.outletName ?? ''} | சேவைகள்: ${extra?.servicesStr ?? ''} | குறிப்பு: ${ref}. கண்காணிப்பு: ${track ?? ''}`
-        : `சேவை முடிந்தது. வருகைக்கு நன்றி.`,*/
-      en: ref
-        ? `Your service is completed | Ref: ${ref}.`
-        : `Service completed. Thank you for visiting.`,
-      si: ref
-        ? `ඔබගේ සේවාව සම්පූර්ණ විය | යොමු අංකය: ${ref}.`
-        : `සේවාව සම්පූර්ණයි. පැමිණියේට ස්තුති.`,
-      ta: ref
-        ? `உங்கள் சேவை முடிந்தது | குறிப்பு: ${ref}.`
-        : `சேவை முடிந்தது. வருகைக்கு நன்றி.`,
-    })[lang],
-  }
 
   // Helper functions for date and time formatting
   const formatDate = (date: Date) => {
@@ -142,9 +62,11 @@ export default function OfficerQueuePage() {
 
       // Auto-refresh every 15 seconds for critical queue updates
       const interval = setInterval(() => {
-        fetchQueue(me.outletId, me.id)
-        fetchCurrentToken(me.id)
-        fetchUnmatchedTokens(me.outletId)
+        if (mounted) {
+          fetchQueue(me.outletId, me.id)
+          fetchCurrentToken(me.id)
+          fetchUnmatchedTokens(me.outletId)
+        }
       }, 15000)
 
       // Handle window closing/refreshing - send logout when window closes
@@ -164,12 +86,14 @@ export default function OfficerQueuePage() {
           const data = JSON.parse(event.data)
           console.log('WebSocket message received:', data)
 
-          if (data.type === "NEW_TOKEN" || data.type === "TOKEN_COMPLETED" || data.type === 'TOKEN_SKIPPED' || data.type === 'TOKEN_CALLED' || data.type === 'TOKEN_RECALLED') {
+          if (data.type === "NEW_TOKEN" || data.type === "TOKEN_COMPLETED" || data.type === "TOKEN_SKIPPED" || data.type === "TOKEN_CALLED" || data.type === "TOKEN_RECALLED" || data.type === "TOKEN_UPDATED" || data.type === "TOKEN_PRIORITY_UPDATED" || data.type === "TOKEN_CANCELLED") {
             // Add a small delay to ensure database consistency
             setTimeout(() => {
-              fetchQueue(me.outletId, me.id)
-              fetchCurrentToken(me.id)
-              fetchUnmatchedTokens(me.outletId)
+              if (mounted) {
+                fetchQueue(me.outletId, me.id)
+                fetchCurrentToken(me.id)
+                fetchUnmatchedTokens(me.outletId)
+              }
             }, 100)
           }
 
@@ -196,6 +120,7 @@ export default function OfficerQueuePage() {
         ; (window as any).__dq_ws_queue = ws
 
       return () => {
+        mounted = false
         clearInterval(interval)
         window.removeEventListener('beforeunload', handleBeforeUnload)
         try {
@@ -209,7 +134,13 @@ export default function OfficerQueuePage() {
     return () => {
       mounted = false
       const ws = (window as any).__dq_ws_queue
-      if (ws) ws.close()
+      if (ws) {
+        try {
+          ws.close()
+        } catch (e) {
+          console.error('Error closing WebSocket in cleanup:', e)
+        }
+      }
     }
   }, [navigate])
 
@@ -305,23 +236,10 @@ export default function OfficerQueuePage() {
         setTargetCounter(null)
         setTransferNotes("")
 
-        // Notify customer via SMS if available
-        try {
-          // Send transfer SMS
-          await api.post('/twilio/test', {
-            to: TWILIO_TO_NUMBER,
-            body: targetCounter
-              ? `Your token #${currentToken.tokenNumber} has been transferred to Counter #${targetCounter}. Please proceed there when called.`
-              : `Your token #${currentToken.tokenNumber} has been transferred to another service. Please wait for your call.`
-          })
-        } catch (smsErr) {
-          console.error('Transfer SMS failed:', smsErr)
-        }
-
         setCurrentToken(null)
         setAccountRef("")
         // Refresh queue
-          fetchQueue(officer.outletId, officer.id)
+        fetchQueue(officer.outletId, officer.id)
         alert("Customer successfully transferred!")
       } else {
         alert(res.data.error || 'Failed to transfer customer')
@@ -368,25 +286,7 @@ export default function OfficerQueuePage() {
         })
 
         if (response.data.token) {
-          const picked = response.data.token
-          // Send localized proceed message
-          try {
-            const lang = pickLang(picked)
-            const isAppointment = (picked as any)?.fromAppointment ?? false
-            const resp = await api.post('/twilio/test', {
-              to: TWILIO_TO_NUMBER,
-              body: langText.proceed(lang, officer.counterNumber, isAppointment),
-            })
-            if (resp.data?.success) {
-              console.log('[TEST SMS][PROCEED][UNMATCHED]', resp.data)
-            } else {
-              console.warn('[TEST SMS][PROCEED][UNMATCHED][FAILED]', resp.data)
-            }
-          } catch (err: any) {
-            console.error('Test SMS failed:', err)
-            alert('Test SMS failed: ' + (err.response?.data?.error || err.message || 'Unknown error'))
-          }
-          setCurrentToken(picked)
+          setCurrentToken(response.data.token)
           setAccountRef("")
           fetchQueue(officer.outletId, officer.id)
         }
@@ -401,54 +301,27 @@ export default function OfficerQueuePage() {
         if (!confirmed) return
         const confirmRes = await api.post('/officer/next-token', { officerId: officer.id, allowFallback: true })
         if (confirmRes.data.token) {
-          const picked = confirmRes.data.token
-          // Send localized proceed message
-          try {
-            const lang = pickLang(picked)
-            const isAppointment = (picked as any)?.fromAppointment ?? false
-            const resp = await api.post('/twilio/test', {
-              to: TWILIO_TO_NUMBER,
-              body: langText.proceed(lang, officer.counterNumber, isAppointment),
-            })
-            if (resp.data?.success) {
-              console.log('[TEST SMS][PROCEED]', resp.data)
-            } else {
-              console.warn('[TEST SMS][PROCEED][FAILED]', resp.data)
-            }
-          } catch (err: any) {
-            console.error('Test SMS failed:', err)
-            alert('Test SMS failed: ' + (err.response?.data?.error || err.message || 'Unknown error'))
-          }
-          setCurrentToken(picked)
+          setCurrentToken(confirmRes.data.token)
           setAccountRef("")
           fetchQueue(officer.outletId, officer.id)
         }
       } else if (response.data.token) {
         console.log('Received token data:', response.data.token)
         console.log('Customer name:', response.data.token.customer?.name)
-        const picked = response.data.token
-        try {
-          const lang = pickLang(picked)
-          const isAppointment = (picked as any)?.fromAppointment ?? false
-          const resp = await api.post('/twilio/test', {
-            to: TWILIO_TO_NUMBER,
-            body: langText.proceed(lang, officer.counterNumber, isAppointment),
-          })
-          if (resp.data?.success) {
-            console.log('[TEST SMS][PROCEED]', resp.data)
-          } else {
-            console.warn('[TEST SMS][PROCEED][FAILED]', resp.data)
-          }
-        } catch (err: any) {
-          console.error('Test SMS failed:', err)
-          alert('Test SMS failed: ' + (err.response?.data?.error || err.message || 'Unknown error'))
-        }
-        setCurrentToken(picked)
+        setCurrentToken(response.data.token)
         setAccountRef("")
         fetchQueue(officer.outletId, officer.id)
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('failed to get next token', err)
+      const errorMsg = err.response?.data?.error || err.message || 'Unknown error'
+      if (err.response?.status === 409) {
+        alert(errorMsg)
+        // Refresh queue because a token was just taken
+        fetchQueue(officer.outletId, officer.id)
+      } else {
+        alert('Failed to get next token: ' + errorMsg)
+      }
     } finally {
       setLoading(false)
     }
@@ -459,36 +332,7 @@ export default function OfficerQueuePage() {
     setLoading(true)
     try {
       // First complete the service to get reference number
-      const completeResp = await api.post('/officer/complete-service', { tokenId: currentToken.id, officerId: officer.id, accountRef })
-      const refNumber: string | null = completeResp.data?.refNumber || null
-      const trackUrl: string | null = completeResp.data?.trackUrl || null
-      const tokenData = completeResp.data?.token
-      const officerName = tokenData?.officer?.name || officer.name || 'Officer'
-      const outletName = tokenData?.outlet?.name || ''
-      const servicesArray: string[] = Array.isArray(tokenData?.serviceTypes) ? tokenData.serviceTypes : []
-      const servicesStr = servicesArray.length > 0 ? servicesArray.join(', ') : 'None'
-
-      // Compose single SMS body matching backend console format with absolute Track URL
-      // Example: Ref: 2025-11-08/Outlet/7 | Officer: Jane | Outlet: MainBranch | Services: BILL_PAYMENT, OTHERS. Track: https://app.example.com/service/status?ref=...
-      const lang = pickLang(tokenData || currentToken)
-      const body = langText.completed(refNumber, trackUrl, lang, { officerName, outletName, servicesStr })
-
-
-      try {
-        const smsResp = await api.post('/twilio/test', {
-          to: TWILIO_TO_NUMBER,
-          body,
-        })
-        if (smsResp.data?.success) {
-          console.log('[TEST SMS][COMPLETE]', smsResp.data)
-        } else {
-          console.warn('[TEST SMS][COMPLETE][FAILED]', smsResp.data)
-        }
-      } catch (err: any) {
-        console.error('SMS send failed:', err)
-        alert('SMS failed: ' + (err.response?.data?.error || err.message || 'Unknown error'))
-      }
-
+      await api.post('/officer/complete-service', { tokenId: currentToken.id, officerId: officer.id, accountRef })
       setCurrentToken(null)
       setAccountRef("")
       fetchQueue(officer.outletId, officer.id)
@@ -506,25 +350,6 @@ export default function OfficerQueuePage() {
     if (!confirm('Are you sure you want to skip this customer?')) return
     setLoading(true)
     try {
-      // Resolve token to read language
-      const tokenObj = (currentToken && currentToken.id === targetTokenId)
-        ? currentToken
-        : (queue?.waiting || []).find(t => t.id === targetTokenId)
-      const lang = pickLang(tokenObj)
-      const resp = await api.post('/twilio/test', {
-        to: TWILIO_TO_NUMBER,
-        body: langText.skipped(lang),
-      })
-      if (resp.data?.success) {
-        console.log('[TEST SMS][SKIP]', resp.data)
-      } else {
-        console.warn('[TEST SMS][SKIP][FAILED]', resp.data)
-      }
-    } catch (err: any) {
-      console.error('Test SMS failed:', err)
-      alert('Test SMS failed: ' + (err.response?.data?.error || err.message || 'Unknown error'))
-    }
-    try {
       await api.post('/officer/skip-token', { officerId: officer.id, tokenId: targetTokenId })
       if (!tokenId) {
         setCurrentToken(null)
@@ -541,25 +366,6 @@ export default function OfficerQueuePage() {
     if (!officer) return
     if (!confirm('Recall this customer?')) return
     setLoading(true)
-    try {
-      const tokenObj = (currentToken && currentToken.id === tokenId)
-        ? currentToken
-        : (queue?.waiting || []).find(t => t.id === tokenId)
-      const lang = pickLang(tokenObj)
-      const isAppointment = (tokenObj as any)?.fromAppointment ?? false
-      const resp = await api.post('/twilio/test', {
-        to: TWILIO_TO_NUMBER,
-        body: langText.recalled(lang, officer.counterNumber, isAppointment),
-      })
-      if (resp.data?.success) {
-        console.log('[TEST SMS][RECALL]', resp.data)
-      } else {
-        console.warn('[TEST SMS][RECALL][FAILED]', resp.data)
-      }
-    } catch (err: any) {
-      console.error('Test SMS failed:', err)
-      alert('Test SMS failed: ' + (err.response?.data?.error || err.message || 'Unknown error'))
-    }
     try {
       const response = await api.post('/officer/recall-token', { officerId: officer.id, tokenId })
       if (response.data.token) {
@@ -606,6 +412,32 @@ export default function OfficerQueuePage() {
     } catch (err: any) {
       console.error('Failed to set priority:', err)
       alert('Failed to set priority: ' + (err.response?.data?.error || err.message || 'Unknown error'))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleCallToken = async (tokenId: string) => {
+    if (!officer) return
+    if (currentToken && currentToken.id !== tokenId) {
+      alert("Please complete or skip the current customer first.")
+      return
+    }
+    setLoading(true)
+    try {
+      const response = await api.post('/officer/call-token', {
+        officerId: officer.id,
+        tokenId
+      })
+      if (response.data.token) {
+        setCurrentToken(response.data.token)
+        setAccountRef("")
+        // Refresh queue
+        fetchQueue(officer.outletId, officer.id)
+      }
+    } catch (err: any) {
+      console.error('failed to call token', err)
+      alert('Failed to call token: ' + (err.response?.data?.error || err.message || 'Unknown error'))
     } finally {
       setLoading(false)
     }
@@ -686,13 +518,15 @@ export default function OfficerQueuePage() {
                   {queue && (
                     <span className="px-1.5 py-0.5 bg-black text-white rounded-full text-xs font-semibold">
                       {queue.waiting.filter((t) => {
+                        if ((t as any).isTransferred === true) return false
                         const tokenServices = Array.isArray(t.serviceTypes) ? t.serviceTypes : []
                         const officerServices = Array.isArray((officer as any)?.assignedServices) ? (officer as any).assignedServices : []
                         const hasServiceMatch = tokenServices.length === 0 || officerServices.length === 0 || tokenServices.some(s => officerServices.includes(s))
                         const prefs = Array.isArray((t as any).preferredLanguages) ? (t as any).preferredLanguages : []
                         const langs = Array.isArray((officer as any)?.languages) ? (officer as any).languages : []
                         const hasLanguageMatch = prefs.length === 0 || langs.length === 0 || prefs.some((p: any) => langs.includes(p))
-                        return hasServiceMatch && hasLanguageMatch
+                        const isTransferredByMe = (t as any).lastTransferByOfficerId === officer.id
+                        return hasServiceMatch && hasLanguageMatch && !isTransferredByMe
                       }).length}
                     </span>
                   )}
@@ -714,9 +548,10 @@ export default function OfficerQueuePage() {
                         if ((t as any).isTransferred !== true) return false
                         const tokenServices = Array.isArray(t.serviceTypes) ? t.serviceTypes : []
                         const officerServices = Array.isArray((officer as any)?.assignedServices) ? (officer as any).assignedServices : []
+                        const isTransferredByMe = (t as any).lastTransferByOfficerId === officer.id
                         const counterMatch = (t as any).counterNumber === officer.counterNumber
                         const serviceMatch = tokenServices.some(s => officerServices.includes(s))
-                        return counterMatch || serviceMatch
+                        return (counterMatch || serviceMatch) && !isTransferredByMe
                       }).length}
                     </span>
                   )}
@@ -762,24 +597,24 @@ export default function OfficerQueuePage() {
                     </div>
                     <h3 className="text-2xl font-bold text-gray-900 mb-3">Ready to Serve</h3>
                     <p className="text-gray-600 mb-8 text-sm">Click the button below to call the next customer</p>
-                    {/* Disable only when there are no callable (non-skipped) tokens */}
+                    {/* Disable only when there are no callable (non-skipped) tokens in "My Queue" */}
                     <button
                       onClick={handleNextToken}
                       disabled={
                         loading ||
                         officer.status !== "available" ||
                         !queue ||
-                        // If waiting array exists, check for at least one token whose status !== 'skipped'
+                        // If waiting array exists, check for at least one token whose status !== 'skipped' and is NOT transferred
                         (Array.isArray(queue.waiting)
-                          ? queue.waiting.filter(t => (t as any).status !== 'skipped').length === 0
+                          ? queue.waiting.filter(t => (t as any).status !== 'skipped' && !(t as any).isTransferred).length === 0
                           : true)
                       }
                       className="px-6 py-1.5 bg-black text-white hover:text-black border-2 border-black rounded-full font-semibold hover:bg-gray-50 transition-colors disabled:bg-gray-200 disabled:border-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed text-md"
                     >
                       {loading ? "Loading..." : "Call Next Token"}
                     </button>
-                    {queue && Array.isArray(queue.waiting) && queue.waiting.filter(t => (t as any).status !== 'skipped').length === 0 && (
-                      <p className="mt-2 text-sm text-gray-500">No customers are waiting in the queue.</p>
+                    {queue && Array.isArray(queue.waiting) && queue.waiting.filter(t => (t as any).status !== 'skipped' && !(t as any).isTransferred).length === 0 && (
+                      <p className="mt-2 text-sm text-gray-500">No customers are waiting in your queue.</p>
                     )}
                     {officer.status !== "available" && (
                       <p className="mt-4 text-sm text-yellow-600">You must be available to call next token</p>
@@ -959,11 +794,12 @@ export default function OfficerQueuePage() {
                   if ((t as any).isTransferred === true) return false
                   const tokenServices = Array.isArray(t.serviceTypes) ? t.serviceTypes : []
                   const officerServices = Array.isArray((officer as any)?.assignedServices) ? (officer as any).assignedServices : []
+                  const isTransferredByMe = (t as any).lastTransferByOfficerId === officer.id
                   const hasServiceMatch = tokenServices.length === 0 || officerServices.length === 0 || tokenServices.some((s: any) => officerServices.includes(s))
                   const prefs = Array.isArray((t as any).preferredLanguages) ? (t as any).preferredLanguages : []
                   const langs = Array.isArray((officer as any)?.languages) ? (officer as any).languages : []
                   const hasLanguageMatch = prefs.length === 0 || langs.length === 0 || prefs.some((p: any) => langs.includes(p))
-                  return hasServiceMatch && hasLanguageMatch
+                  return hasServiceMatch && hasLanguageMatch && !isTransferredByMe
                 }).length === 0 ? (
                   <div className="text-center py-12">
                     <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -990,11 +826,12 @@ export default function OfficerQueuePage() {
                         if ((t as any).isTransferred === true) return false
                         const tokenServices = Array.isArray(t.serviceTypes) ? t.serviceTypes : []
                         const officerServices = Array.isArray((officer as any)?.assignedServices) ? (officer as any).assignedServices : []
+                        const isTransferredByMe = (t as any).lastTransferByOfficerId === officer.id
                         const hasServiceMatch = tokenServices.length === 0 || officerServices.length === 0 || tokenServices.some((s: any) => officerServices.includes(s))
                         const prefs = Array.isArray((t as any).preferredLanguages) ? (t as any).preferredLanguages : []
                         const langs = Array.isArray((officer as any)?.languages) ? (officer as any).languages : []
                         const hasLanguageMatch = prefs.length === 0 || langs.length === 0 || prefs.some((p: any) => langs.includes(p))
-                        return hasServiceMatch && hasLanguageMatch
+                        return hasServiceMatch && hasLanguageMatch && !isTransferredByMe
                       }).sort((a, b) => {
                         // Sort priority customers to the front
                         if (a.isPriority && !b.isPriority) return -1
@@ -1096,9 +933,10 @@ export default function OfficerQueuePage() {
                   if ((t as any).isTransferred !== true) return false
                   const tokenServices = Array.isArray(t.serviceTypes) ? t.serviceTypes : []
                   const officerServices = Array.isArray((officer as any)?.assignedServices) ? (officer as any).assignedServices : []
+                  const isTransferredByMe = (t as any).lastTransferByOfficerId === officer.id
                   const counterMatch = (t as any).counterNumber === officer.counterNumber
                   const serviceMatch = tokenServices.some(s => officerServices.includes(s))
-                  return counterMatch || serviceMatch
+                  return (counterMatch || serviceMatch) && !isTransferredByMe
                 }).length === 0 ? (
                   <div className="text-center py-12">
                     <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -1122,9 +960,10 @@ export default function OfficerQueuePage() {
                         if ((t as any).isTransferred !== true) return false
                         const tokenServices = Array.isArray(t.serviceTypes) ? t.serviceTypes : []
                         const officerServices = Array.isArray((officer as any)?.assignedServices) ? (officer as any).assignedServices : []
+                        const isTransferredByMe = (t as any).lastTransferByOfficerId === officer.id
                         const counterMatch = (t as any).counterNumber === officer.counterNumber
                         const serviceMatch = tokenServices.some(s => officerServices.includes(s))
-                        return counterMatch || serviceMatch
+                        return (counterMatch || serviceMatch) && !isTransferredByMe
                       }).sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()).map((t) => {
                         const waitTime = Math.floor((Date.now() - new Date(t.createdAt).getTime()) / 60000)
                         return (
@@ -1154,18 +993,11 @@ export default function OfficerQueuePage() {
                             </div>
                             <div className="col-span-2 flex flex-col gap-2">
                               <button
-                                onClick={() => {
-                                  if (!officer || currentToken) {
-                                    alert("Please complete or skip the current customer first.")
-                                    return
-                                  }
-                                  setCurrentToken(t)
-                                  setAccountRef("")
-                                }}
+                                onClick={() => handleCallToken(t.id)}
                                 disabled={loading || currentToken !== null}
                                 className="px-2 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 disabled:bg-gray-400 font-bold"
                               >
-                                Call Customer
+                                {loading ? "..." : "Call Customer"}
                               </button>
                               <button
                                 onClick={() => handleSkip(t.id)}

@@ -3,8 +3,10 @@
 import React, { useState, useEffect } from "react"
 import api from "../config/api"
 import type { Outlet } from "../types"
+import { useOfficerDuplicateCheck } from "../hooks/useOfficerDuplicateCheck"
 
 export default function OfficerRegistration() {
+  const { checkMobile, checkEmail } = useOfficerDuplicateCheck()
   const [name, setName] = useState("")
   const [mobileNumber, setMobileNumber] = useState("")
   const [outlets, setOutlets] = useState<Outlet[]>([])
@@ -12,8 +14,14 @@ export default function OfficerRegistration() {
   const [counterNumber, setCounterNumber] = useState<number | "">("")
   const [isTraining, setIsTraining] = useState(false)
   const [languages, setLanguages] = useState<string[]>([])
+  const [email, setEmail] = useState("")
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState("")
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({})
+
+  const validateMobile = (v: string) => /^0[0-9]{9}$/.test(v.replace(/\s/g, ''))
+  const validateEmail = (v: string) => !v || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim())
+  const setFieldError = (field: string, msg: string) => setValidationErrors(prev => ({ ...prev, [field]: msg }))
 
   useEffect(() => {
     fetchOutlets()
@@ -34,10 +42,23 @@ export default function OfficerRegistration() {
     setMessage("")
     setLoading(true)
 
+    // Validate fields
+    const errors: Record<string, string> = {}
+    if (!name.trim() || name.trim().length < 2) errors.name = "Full name must be at least 2 characters"
+    if (!validateMobile(mobileNumber)) errors.mobileNumber = "Enter a valid 10-digit Sri Lankan number (e.g. 071XXXXXXX)"
+    if (!validateEmail(email)) errors.email = "Enter a valid email address"
+    if (Object.keys(errors).length > 0) {
+      setValidationErrors(errors)
+      setLoading(false)
+      return
+    }
+    setValidationErrors({})
+
     try {
       const payload: any = {
         name,
         mobileNumber,
+        email,
         outletId: selectedOutlet,
       }
       if (counterNumber !== "") payload.counterNumber = Number(counterNumber)
@@ -49,12 +70,18 @@ export default function OfficerRegistration() {
         setMessage("Officer registered successfully")
         setName("")
         setMobileNumber("")
+        setEmail("")
         setCounterNumber("")
         setIsTraining(false)
         setLanguages([])
       }
     } catch (err: any) {
-      setMessage(err.response?.data?.error || "Registration failed")
+      const msg = err.response?.data?.error || "Registration failed"
+      if (err.response?.status === 409) {
+        setValidationErrors(prev => ({ ...prev, mobileNumber: msg }))
+      } else {
+        setMessage(msg)
+      }
     } finally {
       setLoading(false)
     }
@@ -62,17 +89,34 @@ export default function OfficerRegistration() {
 
   return (
     <div className="max-w-md mx-auto bg-white rounded-2xl shadow p-6">
-      <h2 className="text-xl font-bold mb-4">Officer Registration</h2>
-      {message && <div className="mb-4 text-sm text-green-700">{message}</div>}
+      <h2 className="text-xl font-bold mb-4">Register Officer</h2>
+      {message && <div className="mb-4 text-sm text-green-700 bg-green-50 p-3 rounded">{message}</div>}
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700">Full name</label>
-          <input value={name} onChange={(e) => setName(e.target.value)} required className="w-full px-3 py-2 border rounded" />
+          <label className="block text-sm font-medium text-gray-700">Full name *</label>
+          <input value={name} onChange={(e) => { setName(e.target.value); setValidationErrors(p => ({ ...p, name: '' })) }} required className={`w-full px-3 py-2 border rounded ${validationErrors.name ? 'border-red-500' : ''}`} />
+          {validationErrors.name && <p className="text-xs text-red-600 mt-1">{validationErrors.name}</p>}
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700">Mobile number</label>
-          <input value={mobileNumber} onChange={(e) => setMobileNumber(e.target.value)} required className="w-full px-3 py-2 border rounded" placeholder="07XXXXXXXX" />
+          <label className="block text-sm font-medium text-gray-700">Mobile number *</label>
+          <input value={mobileNumber} onChange={(e) => {
+            setMobileNumber(e.target.value)
+            setValidationErrors(p => ({ ...p, mobileNumber: '' }))
+            checkMobile(e.target.value, (msg) => setFieldError('mobileNumber', msg))
+          }} required className={`w-full px-3 py-2 border rounded ${validationErrors.mobileNumber ? 'border-red-500' : ''}`} placeholder="07XXXXXXXX" maxLength={10} />
+          {validationErrors.mobileNumber && <p className="text-xs text-red-600 mt-1">{validationErrors.mobileNumber}</p>}
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700">Email (Optional)</label>
+          <input type="email" value={email} onChange={(e) => {
+            setEmail(e.target.value)
+            setValidationErrors(p => ({ ...p, email: '' }))
+            checkEmail(e.target.value, (msg) => setFieldError('email', msg))
+          }} className={`w-full px-3 py-2 border rounded ${validationErrors.email ? 'border-red-500' : ''}`} placeholder="officer@slt.lk" />
+          <p className="text-xs text-gray-400 mt-1">If provided, login credentials will be emailed.</p>
+          {validationErrors.email && <p className="text-xs text-red-600 mt-1">{validationErrors.email}</p>}
         </div>
 
         <div>

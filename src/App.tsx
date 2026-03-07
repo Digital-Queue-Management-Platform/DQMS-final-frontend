@@ -438,6 +438,10 @@ function App() {
           path="/t/:shortId"
         />
         <Route
+          element={<Layout><ShortUrlResolver /></Layout>}
+          path="/f/:shortId"
+        />
+        <Route
           element={<Layout><FeedbackPage /></Layout>}
           path="/feedback/:tokenId"
         />

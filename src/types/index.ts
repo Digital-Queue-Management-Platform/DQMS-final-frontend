@@ -18,6 +18,7 @@ export interface Token {
   accountRef?: string
   status: string
   isPriority?: boolean
+  isTransferred?: boolean
   outletId: string
   outlet?: Outlet
   assignedTo?: string

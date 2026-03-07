@@ -43,7 +43,8 @@ export default function CustomerRegistration() {
   const [otpSending, setOtpSending] = useState(false)
   const [showOtpPopup, setShowOtpPopup] = useState(false)
   const [devOtpCode, setDevOtpCode] = useState<string>("")
-  const VITE_TWILIO_TO_NUMBER = import.meta.env.VITE_TWILIO_TO_NUMBER
+  const [autoSendingOtp, setAutoSendingOtp] = useState(false)
+
 
   // Bill payment specific states
   const [sltTelephoneNumber, setSltTelephoneNumber] = useState("")
@@ -330,6 +331,24 @@ export default function CustomerRegistration() {
     }
   }
 
+  // Auto-send OTP when mobile number is 10 digits
+  useEffect(() => {
+    if (currentStep === 3 && mobileNumber.length === 10 && (mobileNumber.startsWith('07') || mobileNumber.startsWith('01'))) {
+      const canProceed = canProceedFromStep3();
+      if (canProceed && otpStep === 'idle' && !otpSending && !autoSendingOtp) {
+        console.log('Mobile number reached 10 digits, auto-sending OTP...');
+        setAutoSendingOtp(true);
+        // Small delay to ensure the user sees their number entered
+        const timer = setTimeout(() => {
+          goToNextStep();
+          sendOtp();
+          setAutoSendingOtp(false);
+        }, 800);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [mobileNumber, currentStep])
+
 
   // Handle service selection
   const handleServiceSelect = (serviceCode: string) => {
@@ -368,10 +387,17 @@ export default function CustomerRegistration() {
       const response = await api.post("/customer/otp/start", { mobileNumber, preferredLanguage })
       setOtpStep('sent')
 
-      // If dev mode returns the OTP code, show it in a popup
+      // If dev mode returns the OTP code, show it in a popup AND auto-fill it
       if (response.data?.devCode) {
-        setDevOtpCode(response.data.devCode)
+        const code = response.data.devCode
+        setDevOtpCode(code)
+        setOtpCode(code)
         setShowOtpPopup(true)
+
+        // Auto-verify after a short delay for "magic" effect
+        setTimeout(() => {
+          verifyOtp(code)
+        }, 1200)
       }
 
       return true
@@ -404,26 +430,6 @@ export default function CustomerRegistration() {
           await verifySltNumber()
         }
 
-        const current = outlets.find((o) => o.id === selectedOutlet)
-        // Localize the confirmation/test SMS by preferred language
-        const msgByLang: Record<string, string> = {
-          en: `You’ve successfully registered at the ${current?.name} outlet.`,
-          si: `${current?.name || ''} ශාඛාවේදී ඔබ සාර්ථකව ලියාපදිංචි වී ඇත.`,
-          ta: `நீங்கள் ${current?.name || ''} கிளையில் வெற்றிகரமாக பதிவு செய்யப்பட்டுள்ளீர்கள்.`,
-        }
-        const resp = await api.post('/twilio/test', {
-          to: VITE_TWILIO_TO_NUMBER || "+94718738041",
-          body: msgByLang[preferredLanguage] || msgByLang.en,
-        })
-        if (resp.data?.success) {
-          if (resp.data?.dev) {
-            console.log('[DEV MODE] Test SMS skipped:', resp.data.message, resp.data.preview)
-          } else {
-            console.log('Test SMS sent (sid: ' + resp.data.sid + ')')
-          }
-        } else {
-          console.log('Failed to send test SMS')
-        }
         return res.data.verifiedMobileToken as string
 
       }
@@ -1072,9 +1078,17 @@ export default function CustomerRegistration() {
                       type="button"
                       onClick={goToNextStep}
                       disabled={!canProceedFromStep3()}
-                      className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+                      className={`flex-1 ${autoSendingOtp ? 'bg-indigo-600' : 'bg-blue-600'} text-white py-3 rounded-lg font-semibold hover:opacity-90 transition-all disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2`}
                     >
-                      {t.next}
+                      {autoSendingOtp ? (
+                        <>
+                          <svg className="animate-spin h-5 w-5 text-white" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                          </svg>
+                          <span>Sending OTP...</span>
+                        </>
+                      ) : t.next}
                     </button>
                   </div>
                 </div>
@@ -1169,6 +1183,9 @@ export default function CustomerRegistration() {
                     <div className="space-y-4">
                       <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
                         <p className="text-green-700 font-medium mb-1">✓ {t.verified || 'Phone Verified'}</p>
+                        {otpCode && devOtpCode && (
+                          <p className="text-xs text-green-600">Auto-verified for your convenience</p>
+                        )}
                       </div>
                     </div>
                   )}
