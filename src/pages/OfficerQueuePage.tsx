@@ -312,8 +312,16 @@ export default function OfficerQueuePage() {
         setAccountRef("")
         fetchQueue(officer.outletId, officer.id)
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('failed to get next token', err)
+      const errorMsg = err.response?.data?.error || err.message || 'Unknown error'
+      if (err.response?.status === 409) {
+        alert(errorMsg)
+        // Refresh queue because a token was just taken
+        fetchQueue(officer.outletId, officer.id)
+      } else {
+        alert('Failed to get next token: ' + errorMsg)
+      }
     } finally {
       setLoading(false)
     }
