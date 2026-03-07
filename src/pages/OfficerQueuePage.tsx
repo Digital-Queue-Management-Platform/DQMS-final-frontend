@@ -55,51 +55,63 @@ export default function OfficerQueuePage() {
 
   const langText = {
     // Put required lang first, optional counter second (fix TS param order)
-    proceed: (lang: 'en' | 'si' | 'ta', counter?: number, isAppointment?: boolean) => {
+    proceed: (lang: 'en' | 'si' | 'ta', counter?: number, isAppointment?: boolean, tokenNumber?: number, outletName?: string) => {
       const appointmentNote = isAppointment ? {
         en: ' Online Appointment.',
         si: ' ඔනිනෙන් සිටුවා ඇති ඇයිතම.',
         ta: ' ஆன்லைன் நியமனம்.',
       }[lang] : ''
+      const formattedToken = tokenNumber ? tokenNumber.toString().padStart(3, '0') : ''
+      const outlet = outletName || 'SLT Office'
       return ({
-        en: `Dear Valued Customer\n\nPlease proceed to counter ${counter ?? ''} for your service.${appointmentNote}\n\nSLT-MOBITEL`,
-        si: `ගරු පාරිභෝගිකයා\n\nකරුණාකර ඔබගේ සේවා සඳහා ${counter ?? ''} කවුටරයට පැමිණෙන්න.${appointmentNote}\n\nSLT-MOBITEL`,
-        ta: `அன்பு வாடிக்கையாளரே\n\nதயவுசெய்து உங்கள் சேவைக்காக ${counter ?? ''} கவுண்டருக்கு செல்லவும்.${appointmentNote}\n\nSLT-MOBITEL`,
+        en: `Dear Valued Customer\n\nYour token number ${formattedToken} at ${outlet} is now being called. Please proceed to Counter ${counter ?? ''} for your service.${appointmentNote}\n\nSLT-MOBITEL`,
+        si: `ගරු පාරිභෝගිකයා\n\n${outlet} හි ඔබගේ ටෝකන් අංකය ${formattedToken} සඳහා දැන් කැඳවනු ලැබේ. කරුණාකර කවුන්ටර් ${counter ?? ''} වෙත පැමිණෙන්න.${appointmentNote}\n\nSLT-MOBITEL`,
+        ta: `அன்பு வாடிக்கையாளரே\n\n${outlet} இல் உங்கள் டோக்கன் எண் ${formattedToken} தற்போது அழைக்கப்படுகிறது. தயவுசெய்து கவுண்டர் ${counter ?? ''} க்கு செல்லவும்.${appointmentNote}\n\nSLT-MOBITEL`,
       })[lang]
     },
-    skipped: (lang: 'en' | 'si' | 'ta') => ({
-      en: `Dear Valued Customer\n\nYour token has been skipped.\n\nSLT-MOBITEL`,
-      si: `ගරු පාරිභෝගිකයා\n\nඔබගේ ටෝකනය මඟ හැර තිබේ.\n\nSLT-MOBITEL`,
-      ta: `அன்பு வாடிக்கையாளரே\n\nஉங்கள் டோக்கன் தவிர்க்கப்பட்டுள்ளது.\n\nSLT-MOBITEL`,
-    })[lang],
-    recalled: (lang: 'en' | 'si' | 'ta', counter?: number, isAppointment?: boolean) => {
+    skipped: (lang: 'en' | 'si' | 'ta', tokenNumber?: number, outletName?: string) => {
+      const formattedToken = tokenNumber ? tokenNumber.toString().padStart(3, '0') : ''
+      const outlet = outletName || 'SLT Office'
+      return ({
+        en: `Dear Valued Customer\n\nYour token number ${formattedToken} at ${outlet} was skipped as you were not available. Please visit the counter to be recalled.\n\nSLT-MOBITEL`,
+        si: `ගරු පාරිභෝගිකයා\n\nඔබ එම අවස්ථාවේ නොසිටි බැවින් ${outlet} හි ඔබගේ ටෝකන් අංකය ${formattedToken} මග හැරී ඇත. නැවත කැඳවීම සඳහා කරුණාකර කවුන්ටරය වෙත පැමිණෙන්න.\n\nSLT-MOBITEL`,
+        ta: `அன்பு வாடிக்கையாளரே\n\nநீங்கள் அங்கு இல்லாததால் ${outlet} இல் உங்கள் டோக்கன் எண் ${formattedToken} தவிர்க்கப்பட்டது. மீண்டும் அழைக்கப்பட தயவுசெய்து கவுண்டருக்கு வரவும்.\n\nSLT-MOBITEL`,
+      })[lang]
+    },
+    recalled: (lang: 'en' | 'si' | 'ta', counter?: number, isAppointment?: boolean, tokenNumber?: number, outletName?: string) => {
       const appointmentNote = isAppointment ? {
         en: ' Online Appointment.',
         si: ' ඔනිනෙන් සිටුවා ඇති ඇයිතම.',
         ta: ' ஆன்லைன் நியமனம்.',
       }[lang] : ''
+      const formattedToken = tokenNumber ? tokenNumber.toString().padStart(3, '0') : ''
+      const outlet = outletName || 'SLT Office'
       return ({
-        en: `Dear Valued Customer\n\nYou have been recalled to counter ${counter ?? ''} for your service.${appointmentNote}\n\nSLT-MOBITEL`,
-        si: `ගරු පාරිභෝගිකයා\n\nඔබගේ සේවාව සඳහා ඔබව ${counter ?? ''} කවුටරයට නැවත කැඳවා ඇත.${appointmentNote}\n\nSLT-MOBITEL`,
-        ta: `அன்பு வாடிக்கையாளரே\n\nஉங்கள் சேவைக்காக கவுண்டர் ${counter ?? ''} க்கு உங்களை மீண்டும் அழைத்திருக்கிறோம்.${appointmentNote}\n\nSLT-MOBITEL`,
+        en: `Dear Valued Customer\n\nYour token number ${formattedToken} at ${outlet} is being recalled. Please proceed to Counter ${counter ?? ''} immediately.${appointmentNote}\n\nSLT-MOBITEL`,
+        si: `ගරු පාරිභෝගිකයා\n\n${outlet} හි ඔබගේ ටෝකන් අංකය ${formattedToken} නැවත කැඳවනු ලැබේ. කරුණාකර වහාම කවුන්ටර් ${counter ?? ''} වෙත පැමිණෙන්න.${appointmentNote}\n\nSLT-MOBITEL`,
+        ta: `அன்பு வாடிக்கையாளரே\n\n${outlet} இல் உங்கள் டோக்கன் எண் ${formattedToken} மீண்டும் அழைக்கப்படுகிறது. தயவுசெய்து உடனடியாக கவுண்டர் ${counter ?? ''} க்கு செல்லவும்.${appointmentNote}\n\nSLT-MOBITEL`,
       })[lang]
     },
     completed: (
       ref: string | null,
-      _track: string | null,
+      track: string | null,
       lang: 'en' | 'si' | 'ta',
-      _extra?: { officerName?: string; outletName?: string; servicesStr?: string }
-    ) => ({
-      en: ref
-        ? `Dear Valued Customer\n\nYour service is completed | Ref: ${ref}.\n\nSLT-MOBITEL`
-        : `Dear Valued Customer\n\nService completed. Thank you for visiting.\n\nSLT-MOBITEL`,
-      si: ref
-        ? `ගරු පාරිභෝගිකයා\n\nඔබගේ සේවාව සම්පූර්ණ විය | යොමු අංකය: ${ref}.\n\nSLT-MOBITEL`
-        : `ගරු පාරිභෝගිකයා\n\nසේවාව සම්පූර්ණයි. පැමිණියේට ස්තුතියි.\n\nSLT-MOBITEL`,
-      ta: ref
-        ? `அன்பு வாடிக்கையாளரே\n\nஉங்கள் சேவை முடிந்தது | குறிப்பு: ${ref}.\n\nSLT-MOBITEL`
-        : `அன்பு வாடிக்கையாளரே\n\nசேவை முடிந்தது. வருகைக்கு நன்றி.\n\nSLT-MOBITEL`,
-    })[lang],
+      extra?: { officerName?: string; outletName?: string; servicesStr?: string; tokenNumber?: number }
+    ) => {
+      const formattedToken = extra?.tokenNumber ? extra.tokenNumber.toString().padStart(3, '0') : ''
+      const outlet = extra?.outletName || 'SLT Office'
+      return ({
+        en: ref
+          ? `Dear Valued Customer\n\nService for token ${formattedToken} at ${outlet} is completed. Ref: ${ref}.\nTrack Status: ${track || ''}\n\nSLT-MOBITEL`
+          : `Dear Valued Customer\n\nService for token ${formattedToken} at ${outlet} is completed. Thank you for visiting SLT-MOBITEL.\n\nSLT-MOBITEL`,
+        si: ref
+          ? `ගරු පාරිභෝගිකයා\n\n${outlet} හි ටෝකන් ${formattedToken} සඳහා සේවාව අවසන්. Ref: ${ref}.\nතත්ත්වය පරීක්ෂා කරන්න: ${track || ''}\n\nSLT-MOBITEL`
+          : `ගරු පාරිභෝගිකයා\n\n${outlet} හි ටෝකන් ${formattedToken} සඳහා සේවාව අවසන්. පැමිණීම ගැන ස්තුතියි.\n\nSLT-MOBITEL`,
+        ta: ref
+          ? `அன்பு வாடிக்கையாளரே\n\n${outlet} இல் டோக்கன் ${formattedToken} க்கான சேவை முடிந்தது. குறிப்பு: ${ref}.\nதொடர்பு: ${track || ''}\n\nSLT-MOBITEL`
+          : `அன்பு வாடிக்கையாளரே\n\n${outlet} இல் டோக்கன் ${formattedToken} க்கான சேவை முடிந்தது. வருகைக்கு நன்றி.\n\nSLT-MOBITEL`,
+      })[lang]
+    },
   }
 
   // Helper functions for date and time formatting
@@ -299,11 +311,12 @@ export default function OfficerQueuePage() {
         // Notify customer via SMS if available
         try {
           // Send transfer SMS
+          const outlet = officer?.outlet?.name || 'SLT Office'
           await api.post('/twilio/test', {
             to: TWILIO_TO_NUMBER,
             body: targetCounter
-              ? `Dear Valued Customer\n\nYour token #${currentToken.tokenNumber} has been transferred to Counter #${targetCounter}. Please proceed there when called.\n\nSLT-MOBITEL`
-              : `Dear Valued Customer\n\nYour token #${currentToken.tokenNumber} has been transferred to another service. Please wait for your call.\n\nSLT-MOBITEL`
+              ? `Dear Valued Customer\n\nYour token number ${currentToken.tokenNumber.toString().padStart(3, '0')} at ${outlet} has been transferred to Counter ${targetCounter}. Please proceed there when called.\n\nSLT-MOBITEL`
+              : `Dear Valued Customer\n\nYour token number ${currentToken.tokenNumber.toString().padStart(3, '0')} at ${outlet} has been transferred for specialized service. Please wait for your next call.\n\nSLT-MOBITEL`
           })
         } catch (smsErr) {
           console.error('Transfer SMS failed:', smsErr)
@@ -364,9 +377,10 @@ export default function OfficerQueuePage() {
           try {
             const lang = pickLang(picked)
             const isAppointment = (picked as any)?.fromAppointment ?? false
+            const outlet = officer?.outlet?.name || 'SLT Office'
             const resp = await api.post('/twilio/test', {
               to: TWILIO_TO_NUMBER,
-              body: langText.proceed(lang, officer.counterNumber, isAppointment),
+              body: langText.proceed(lang, officer.counterNumber, isAppointment, picked.tokenNumber, outlet),
             })
             if (resp.data?.success) {
               console.log('[TEST SMS][PROCEED][UNMATCHED]', resp.data)
@@ -397,9 +411,10 @@ export default function OfficerQueuePage() {
           try {
             const lang = pickLang(picked)
             const isAppointment = (picked as any)?.fromAppointment ?? false
+            const outlet = officer?.outlet?.name || 'SLT Office'
             const resp = await api.post('/twilio/test', {
               to: TWILIO_TO_NUMBER,
-              body: langText.proceed(lang, officer.counterNumber, isAppointment),
+              body: langText.proceed(lang, officer.counterNumber, isAppointment, picked.tokenNumber, outlet),
             })
             if (resp.data?.success) {
               console.log('[TEST SMS][PROCEED]', resp.data)
@@ -421,9 +436,10 @@ export default function OfficerQueuePage() {
         try {
           const lang = pickLang(picked)
           const isAppointment = (picked as any)?.fromAppointment ?? false
+          const outlet = officer?.outlet?.name || 'SLT Office'
           const resp = await api.post('/twilio/test', {
             to: TWILIO_TO_NUMBER,
-            body: langText.proceed(lang, officer.counterNumber, isAppointment),
+            body: langText.proceed(lang, officer.counterNumber, isAppointment, picked.tokenNumber, outlet),
           })
           if (resp.data?.success) {
             console.log('[TEST SMS][PROCEED]', resp.data)
@@ -462,7 +478,12 @@ export default function OfficerQueuePage() {
       // Compose single SMS body matching backend console format with absolute Track URL
       // Example: Ref: 2025-11-08/Outlet/7 | Officer: Jane | Outlet: MainBranch | Services: BILL_PAYMENT, OTHERS. Track: https://app.example.com/service/status?ref=...
       const lang = pickLang(tokenData || currentToken)
-      const body = langText.completed(refNumber, trackUrl, lang, { officerName, outletName, servicesStr })
+      const body = langText.completed(refNumber, trackUrl, lang, {
+        officerName,
+        outletName,
+        servicesStr,
+        tokenNumber: tokenData?.tokenNumber || currentToken?.tokenNumber
+      })
 
 
       try {
@@ -502,9 +523,10 @@ export default function OfficerQueuePage() {
         ? currentToken
         : (queue?.waiting || []).find(t => t.id === targetTokenId)
       const lang = pickLang(tokenObj)
+      const outlet = officer?.outlet?.name || 'SLT Office'
       const resp = await api.post('/twilio/test', {
         to: TWILIO_TO_NUMBER,
-        body: langText.skipped(lang),
+        body: langText.skipped(lang, tokenObj?.tokenNumber, outlet),
       })
       if (resp.data?.success) {
         console.log('[TEST SMS][SKIP]', resp.data)
@@ -538,9 +560,10 @@ export default function OfficerQueuePage() {
         : (queue?.waiting || []).find(t => t.id === tokenId)
       const lang = pickLang(tokenObj)
       const isAppointment = (tokenObj as any)?.fromAppointment ?? false
+      const outlet = officer?.outlet?.name || 'SLT Office'
       const resp = await api.post('/twilio/test', {
         to: TWILIO_TO_NUMBER,
-        body: langText.recalled(lang, officer.counterNumber, isAppointment),
+        body: langText.recalled(lang, officer.counterNumber, isAppointment, tokenObj?.tokenNumber, outlet),
       })
       if (resp.data?.success) {
         console.log('[TEST SMS][RECALL]', resp.data)

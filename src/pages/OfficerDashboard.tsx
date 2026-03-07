@@ -359,9 +359,10 @@ export default function OfficerDashboard() {
                 onClick={async () => {
                   if (!officer?.mobileNumber) { console.warn('Officer mobile number not available'); return }
                   try {
+                    const outlet = officer.outlet?.name || 'SLT Office'
                     const resp = await api.post('/twilio/test', {
                       to: "+94768950003",
-                      body: `Dear Valued Customer\n\nTest message from DQMS to ${officer.name}.\n\nSLT-MOBITEL`,
+                      body: `Dear Valued Customer\n\nThis is a test message from SLT DQMS to ${officer.name} for the ${outlet} activity. Have a good day!\n\nSLT-MOBITEL`,
                     })
                     if (resp.data?.success) {
                       console.log('[TEST SMS][DASHBOARD]', resp.data)
