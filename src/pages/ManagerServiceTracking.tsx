@@ -25,8 +25,6 @@ export default function ManagerServiceTracking() {
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
   const [lang, setLang] = useState<'en' | 'si' | 'ta'>('en')
-  const TWILIO_TO_NUMBER = import.meta.env.VITE_TWILIO_TO_NUMBER
-
   const load = async () => {
     setError('')
     setLoading(true)
@@ -70,28 +68,6 @@ export default function ManagerServiceTracking() {
       }, token ? { headers: { Authorization: `Bearer ${token}` } } : undefined)
       setNote(''); setStatusText('')
       await load()
-      try {
-        // Determine language preference: case data (customer) or selected fallback
-        const effectiveLang = (data?.preferredLanguage as 'en' | 'si' | 'ta') || lang || 'en'
-        const outlet = data?.outlet.name || 'SLT Office'
-        const bodies: Record<string, string> = {
-          en: `Dear Valued Customer\n\nYour service for reference ${ref.trim()} at ${outlet} is now completed. Thank you for choosing SLT-MOBITEL for your requirements.\n\nSLT-MOBITEL`,
-          si: `ගරු පාරිභෝගිකයා\n\n${outlet} හි යොමු අංක ${ref.trim()} යටතේ වූ ඔබගේ සේවාව දැන් සාර්ථකව සම්පූර්ණ කර ඇත. ඔබගේ අවශ්‍යතා සඳහා SLT-MOBITEL තෝරා ගැනීම ගැන ස්තුතියි.\n\nSLT-MOBITEL`,
-          ta: `அன்பு வாடிக்கையாளரே\n\n${outlet} இல் குறிப்பு எண் ${ref.trim()} இன் கீழான உங்கள் சேவை இப்போது வெற்றிகரமாக முடிக்கப்பட்டுள்ளது. உங்கள் தேவைகளுக்கு SLT-MOBITEL ஐத் தேர்ந்தெடுத்தமைக்கு நன்றி.\n\nSLT-MOBITEL`,
-        }
-        const resp = await api.post('/twilio/test', {
-          to: TWILIO_TO_NUMBER,
-          body: bodies[bodies[effectiveLang] ? effectiveLang : 'en'],
-        })
-        if (resp.data?.success) {
-          console.log('[TEST SMS][MANAGER_COMPLETE]', resp.data)
-        } else {
-          console.warn('[TEST SMS][MANAGER_COMPLETE][FAILED]', resp.data)
-        }
-      } catch (err: any) {
-        console.error('Test SMS failed:', err)
-        console.error('Test SMS failed:', err.response?.data?.error || err.message || 'Unknown error')
-      }
     } catch (e: any) {
       console.error('Failed to complete case:', e?.response?.data?.error || 'Unknown error')
     } finally { setSaving(false) }

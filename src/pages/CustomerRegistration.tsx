@@ -43,7 +43,7 @@ export default function CustomerRegistration() {
   const [otpSending, setOtpSending] = useState(false)
   const [showOtpPopup, setShowOtpPopup] = useState(false)
   const [devOtpCode, setDevOtpCode] = useState<string>("")
-  const VITE_TWILIO_TO_NUMBER = import.meta.env.VITE_TWILIO_TO_NUMBER
+
 
   // Bill payment specific states
   const [sltTelephoneNumber, setSltTelephoneNumber] = useState("")
@@ -404,27 +404,6 @@ export default function CustomerRegistration() {
           await verifySltNumber()
         }
 
-        const current = outlets.find((o) => o.id === selectedOutlet)
-        // Localize the confirmation/test SMS by preferred language
-        const outlet = current?.name || 'SLT Office'
-        const msgByLang: Record<string, string> = {
-          en: `Dear Valued Customer\n\nYou have successfully registered at ${outlet}. Please wait for your token confirmation SMS with your queue position.\n\nSLT-MOBITEL`,
-          si: `ගරු පාරිභෝගිකයා\n\nඔබ ${outlet} ශාඛාවේ සාර්ථකව ලියාපදිංචි වී ඇත. කරුණාකර ඔබගේ පෝලිමේ ස්ථානය සඟවන ටෝකන් පණිවිඩය ලැබෙන තුරු රැඳී සිටින්න.\n\nSLT-MOBITEL`,
-          ta: `அன்பு வாடிக்கையாளரே\n\nநீங்கள் ${outlet} கிளையில் வெற்றிகரமாக பதிவு செய்யப்பட்டுள்ளீர்கள். உங்கள் வரிசை நிலையுடன் கூடிய டோக்கன் உறுதிப்படுத்தல் குறுஞ்செய்திக்காக தயவுசெய்து காத்திருக்கவும்.\n\nSLT-MOBITEL`,
-        }
-        const resp = await api.post('/twilio/test', {
-          to: VITE_TWILIO_TO_NUMBER || "+94718738041",
-          body: msgByLang[preferredLanguage] || msgByLang.en,
-        })
-        if (resp.data?.success) {
-          if (resp.data?.dev) {
-            console.log('[DEV MODE] Test SMS skipped:', resp.data.message, resp.data.preview)
-          } else {
-            console.log('Test SMS sent (sid: ' + resp.data.sid + ')')
-          }
-        } else {
-          console.log('Failed to send test SMS')
-        }
         return res.data.verifiedMobileToken as string
 
       }

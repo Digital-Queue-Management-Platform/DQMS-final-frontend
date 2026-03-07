@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import api from '../config/api'
 
-interface ShortUrlResolverProps {}
+interface ShortUrlResolverProps { }
 
 const ShortUrlResolver: React.FC<ShortUrlResolverProps> = () => {
   const { shortId } = useParams<{ shortId: string }>()
@@ -21,12 +21,20 @@ const ShortUrlResolver: React.FC<ShortUrlResolverProps> = () => {
       try {
         console.log(`Resolving short URL: /t/${shortId}`)
         const response = await api.get(`/customer/t/${shortId}`)
-        
+
         if (response.data.token) {
           const tokenId = response.data.token.id
           console.log(`Short URL resolved to token: ${tokenId}`)
-          // Redirect to the token queue status page
-          navigate(`/queue/${tokenId}`, { replace: true })
+
+          // Determine if we should go to feedback or queue dashboard
+          const isFeedback = window.location.pathname.startsWith('/f/') || window.location.search.includes('f=1')
+
+          if (isFeedback) {
+            navigate(`/feedback/${tokenId}`, { replace: true })
+          } else {
+            // Redirect to the token queue status page
+            navigate(`/queue/${tokenId}`, { replace: true })
+          }
         } else {
           throw new Error('Token not found')
         }

@@ -96,6 +96,17 @@ export default function QueueStatus() {
         {/* Status Display */}
         {token.status === "waiting" && (
           <div className="space-y-6">
+            {token.isTransferred && (
+              <div className="bg-blue-600 rounded-xl p-4 text-white text-center shadow-lg animate-pulse mb-4">
+                <div className="font-bold text-lg mb-1">Token Transferred & Prioritized</div>
+                <div className="text-sm opacity-90">
+                  {token.counterNumber
+                    ? `Please wait for Counter ${token.counterNumber}. You are in the priority queue.`
+                    : "Your token has been transferred for further processing. Please wait for the next available counter."
+                  }
+                </div>
+              </div>
+            )}
             <div className="flex justify-center">
               <div className="bg-blue-50 rounded-xl p-6 text-center w-full max-w-[240px]">
                 <Users className="w-8 h-8 text-blue-600 mx-auto mb-2" />
@@ -106,7 +117,9 @@ export default function QueueStatus() {
 
             <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
               <p className="text-yellow-800 text-center font-medium">
-                Please wait for your turn. You will be notified when called.
+                {token.isTransferred
+                  ? "You have been moved to a priority queue. Please wait to be called."
+                  : "Please wait for your turn. You will be notified when called."}
               </p>
             </div>
           </div>

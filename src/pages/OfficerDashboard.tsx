@@ -354,32 +354,7 @@ export default function OfficerDashboard() {
                 <RefreshCwIcon className="w-4 h-4 mr-2" />
                 Refresh
               </button>
-              {/* Twilio test button */}
-              <button
-                onClick={async () => {
-                  if (!officer?.mobileNumber) { console.warn('Officer mobile number not available'); return }
-                  try {
-                    const outlet = officer.outlet?.name || 'SLT Office'
-                    const resp = await api.post('/twilio/test', {
-                      to: "+94768950003",
-                      body: `Dear Valued Customer\n\nThis is a test message from SLT DQMS to ${officer.name} for the ${outlet} activity. Have a good day!\n\nSLT-MOBITEL`,
-                    })
-                    if (resp.data?.success) {
-                      console.log('[TEST SMS][DASHBOARD]', resp.data)
-                    } else {
-                      console.warn('[TEST SMS][DASHBOARD][FAILED]', resp.data)
-                    }
-                  } catch (err: any) {
-                    console.error('Test SMS failed:', err)
-                    console.error('Test SMS failed:', err.response?.data?.error || err.message || 'Unknown error')
-                  }
-                }}
-                className="flex items-center px-4 py-2 bg-teal-600 rounded-md text-sm font-medium text-white hover:bg-teal-700 ml-2"
-                title="Send test SMS to your mobile"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 001.72 0L20 8m-17 8h18" /></svg>
-                Test SMS
-              </button>
+
             </div>
           </div>
         </div>
