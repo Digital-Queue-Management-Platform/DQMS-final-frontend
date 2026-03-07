@@ -9,6 +9,7 @@ export default function ManagerOfficerRegistration() {
   const { currentUser } = useUser()
   const [name, setName] = useState("")
   const [mobileNumber, setMobileNumber] = useState("")
+  const [email, setEmail] = useState("")
   const [outlets, setOutlets] = useState<Outlet[]>([])
   const [selectedOutlet, setSelectedOutlet] = useState("")
   const [counterNumber, setCounterNumber] = useState<number | "">("")
@@ -20,23 +21,23 @@ export default function ManagerOfficerRegistration() {
   // Load manager and region outlets from /manager/me to scope outlets
   useEffect(() => {
     let mounted = true
-    ;(async () => {
-      try {
-        const storedManager = localStorage.getItem('manager')
-        const managerData = storedManager ? JSON.parse(storedManager) : null
-        const params: any = {}
-        if (managerData?.email) params.email = managerData.email
-        
-        const res = await api.get("/manager/me", { params })
-        const all = (res.data?.manager?.outlets || []) as Outlet[]
-        const active = all.filter((o: any) => o.isActive !== false)
-        if (!mounted) return
-        setOutlets(active)
-        if (active.length > 0) setSelectedOutlet(active[0].id)
-      } catch (e) {
-        console.error("Failed to load manager outlets", e)
-      }
-    })()
+      ; (async () => {
+        try {
+          const storedManager = localStorage.getItem('manager')
+          const managerData = storedManager ? JSON.parse(storedManager) : null
+          const params: any = {}
+          if (managerData?.email) params.email = managerData.email
+
+          const res = await api.get("/manager/me", { params })
+          const all = (res.data?.manager?.outlets || []) as Outlet[]
+          const active = all.filter((o: any) => o.isActive !== false)
+          if (!mounted) return
+          setOutlets(active)
+          if (active.length > 0) setSelectedOutlet(active[0].id)
+        } catch (e) {
+          console.error("Failed to load manager outlets", e)
+        }
+      })()
     return () => { mounted = false }
   }, [])
 
@@ -54,6 +55,7 @@ export default function ManagerOfficerRegistration() {
       const payload: any = {
         name,
         mobileNumber,
+        email,
         outletId: selectedOutlet,
         managerEmail: currentUser?.email, // Add manager email for fallback authentication
       }
@@ -67,6 +69,7 @@ export default function ManagerOfficerRegistration() {
         setMessage("Officer registered successfully")
         setName("")
         setMobileNumber("")
+        setEmail("")
         setCounterNumber("")
         setIsTraining(false)
         setLanguages([])
@@ -91,6 +94,11 @@ export default function ManagerOfficerRegistration() {
         <div>
           <label className="block text-sm font-medium text-gray-700">Mobile number</label>
           <input value={mobileNumber} onChange={(e) => setMobileNumber(e.target.value)} required className="w-full px-3 py-2 border rounded" placeholder="07XXXXXXXX" />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700">Email (Optional)</label>
+          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full px-3 py-2 border rounded" placeholder="officer@slt.lk" />
         </div>
 
         <div>

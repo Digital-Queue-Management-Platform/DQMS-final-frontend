@@ -102,14 +102,14 @@ export default function OfficerQueuePage() {
       const outlet = extra?.outletName || 'SLT Office'
       return ({
         en: ref
-          ? `Dear Valued Customer\n\nService for token ${formattedToken} at ${outlet} is completed. Ref: ${ref}.\nTrack Status: ${track || ''}\n\nSLT-MOBITEL`
-          : `Dear Valued Customer\n\nService for token ${formattedToken} at ${outlet} is completed. Thank you for visiting SLT-MOBITEL.\n\nSLT-MOBITEL`,
+          ? `Dear Valued Customer\n\nThank you for visiting! Service for token ${formattedToken} at ${outlet} is completed (Ref: ${ref}).\nWe value your experience; please rate us: ${track || ''}\n\nSLT-MOBITEL`
+          : `Dear Valued Customer\n\nService for token ${formattedToken} at ${outlet} is completed. Thank you for choosing SLT-MOBITEL.\n\nSLT-MOBITEL`,
         si: ref
-          ? `ගරු පාරිභෝගිකයා\n\n${outlet} හි ටෝකන් ${formattedToken} සඳහා සේවාව අවසන්. Ref: ${ref}.\nතත්ත්වය පරීක්ෂා කරන්න: ${track || ''}\n\nSLT-MOBITEL`
-          : `ගරු පාරිභෝගිකයා\n\n${outlet} හි ටෝකන් ${formattedToken} සඳහා සේවාව අවසන්. පැමිණීම ගැන ස්තුතියි.\n\nSLT-MOBITEL`,
+          ? `ගරු පාරිභෝගිකයා\n\nපැමිණීම ගැන ස්තුතියි! ${outlet} හි ටෝකන් ${formattedToken} සඳහා සේවාව අවසන් (Ref: ${ref}).\nඔබගේ අත්දැකීම් ගැන අපට දන්වන්න: ${track || ''}\n\nSLT-MOBITEL`
+          : `ගරු පාරිභෝගිකයා\n\n${outlet} හි ටෝකන් ${formattedToken} සඳහා සේවාව අවසන්. SLT-MOBITEL තෝරා ගැනීම ගැන ස්තුතියි.\n\nSLT-MOBITEL`,
         ta: ref
-          ? `அன்பு வாடிக்கையாளரே\n\n${outlet} இல் டோக்கன் ${formattedToken} க்கான சேவை முடிந்தது. குறிப்பு: ${ref}.\nதொடர்பு: ${track || ''}\n\nSLT-MOBITEL`
-          : `அன்பு வாடிக்கையாளரே\n\n${outlet} இல் டோக்கன் ${formattedToken} க்கான சேவை முடிந்தது. வருகைக்கு நன்றி.\n\nSLT-MOBITEL`,
+          ? `அன்பு வாடிக்கையாளரே\n\nவருகைக்கு நன்றி! ${outlet} இல் டோக்கன் ${formattedToken} க்கான சேவை முடிந்தது (குறிப்பு: ${ref}).\nஉங்கள் கருத்துக்களைப் பகிரவும்: ${track || ''}\n\nSLT-MOBITEL`
+          : `அன்பு வாடிக்கையாளரே\n\n${outlet} இல் டோக்கன் ${formattedToken} க்கான சேவை முடிந்தது. SLT-MOBITEL ஐத் தேர்ந்தெடுத்தமைக்கு நன்றி.\n\nSLT-MOBITEL`,
       })[lang]
     },
   }
@@ -313,10 +313,10 @@ export default function OfficerQueuePage() {
           // Send transfer SMS
           const outlet = officer?.outlet?.name || 'SLT Office'
           await api.post('/twilio/test', {
-            to: TWILIO_TO_NUMBER,
+            to: (currentToken as any).customer?.mobileNumber || '',
             body: targetCounter
-              ? `Dear Valued Customer\n\nYour token number ${currentToken.tokenNumber.toString().padStart(3, '0')} at ${outlet} has been transferred to Counter ${targetCounter}. Please proceed there when called.\n\nSLT-MOBITEL`
-              : `Dear Valued Customer\n\nYour token number ${currentToken.tokenNumber.toString().padStart(3, '0')} at ${outlet} has been transferred for specialized service. Please wait for your next call.\n\nSLT-MOBITEL`
+              ? `Dear Valued Customer\n\nYour token number ${currentToken.tokenNumber.toString().padStart(3, '0')} at ${outlet} is transferred to Counter ${targetCounter}. Please proceed there.\n\nSLT-MOBITEL`
+              : `Dear Valued Customer\n\nYour token number ${currentToken.tokenNumber.toString().padStart(3, '0')} at ${outlet} is transferred for specialized service. Please proceed to the next available counter.\n\nSLT-MOBITEL`
           })
         } catch (smsErr) {
           console.error('Transfer SMS failed:', smsErr)

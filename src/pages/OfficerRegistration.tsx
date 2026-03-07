@@ -12,6 +12,7 @@ export default function OfficerRegistration() {
   const [counterNumber, setCounterNumber] = useState<number | "">("")
   const [isTraining, setIsTraining] = useState(false)
   const [languages, setLanguages] = useState<string[]>([])
+  const [email, setEmail] = useState("")
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState("")
 
@@ -38,6 +39,7 @@ export default function OfficerRegistration() {
       const payload: any = {
         name,
         mobileNumber,
+        email,
         outletId: selectedOutlet,
       }
       if (counterNumber !== "") payload.counterNumber = Number(counterNumber)
@@ -49,6 +51,7 @@ export default function OfficerRegistration() {
         setMessage("Officer registered successfully")
         setName("")
         setMobileNumber("")
+        setEmail("")
         setCounterNumber("")
         setIsTraining(false)
         setLanguages([])
@@ -73,6 +76,12 @@ export default function OfficerRegistration() {
         <div>
           <label className="block text-sm font-medium text-gray-700">Mobile number</label>
           <input value={mobileNumber} onChange={(e) => setMobileNumber(e.target.value)} required className="w-full px-3 py-2 border rounded" placeholder="07XXXXXXXX" />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700">Email (Optional)</label>
+          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full px-3 py-2 border rounded" placeholder="officer@slt.lk" />
+          <p className="text-xs text-gray-400 mt-1">If provided, login credentials will be emailed.</p>
         </div>
 
         <div>

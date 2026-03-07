@@ -48,6 +48,7 @@ export default function TeleshopManagerOfficerRegistration() {
   const [formData, setFormData] = useState({
     name: "",
     mobileNumber: "",
+    email: "",
     outletId: "",
     counterNumber: "",
     isTraining: false,
@@ -149,6 +150,7 @@ export default function TeleshopManagerOfficerRegistration() {
           ...prev,
           name: "",
           mobileNumber: "",
+          email: "",
           counterNumber: "",
           isTraining: false,
           languages: [],
@@ -191,6 +193,7 @@ export default function TeleshopManagerOfficerRegistration() {
     setFormData({
       name: "",
       mobileNumber: "",
+      email: "",
       outletId: "",
       counterNumber: "",
       isTraining: false,
@@ -277,6 +280,20 @@ export default function TeleshopManagerOfficerRegistration() {
                     required
                   />
                 </div>
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Email Address (Optional)
+                </label>
+                <input
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => handleInputChange("email", e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="officer@slt.lk"
+                />
+                <p className="text-xs text-gray-400 mt-1">If provided, login credentials will be emailed to the officer.</p>
               </div>
             </div>
           </div>

@@ -75,9 +75,9 @@ export default function ManagerServiceTracking() {
         const effectiveLang = (data?.preferredLanguage as 'en' | 'si' | 'ta') || lang || 'en'
         const outlet = data?.outlet.name || 'SLT Office'
         const bodies: Record<string, string> = {
-          en: `Dear Valued Customer\n\nYour service for reference ${ref.trim()} at ${outlet} is now marked as completed. Thank you for visiting SLT-MOBITEL.\n\nSLT-MOBITEL`,
-          si: `ගරු පාරිභෝගිකයා\n\n${outlet} හි යොමු අංක ${ref.trim()} යටතේ වූ ඔබගේ සේවාව දැන් සම්පූර්ණ කර ඇත. SLT-MOBITEL වෙත පැමිණීම ගැන ස්තුතියි.\n\nSLT-MOBITEL`,
-          ta: `அன்பு வாடிக்கையாளரே\n\n${outlet} இல் குறிப்பு எண் ${ref.trim()} இன் கீழான உங்கள் சேவை இப்போது முடிக்கப்பட்டதாகக் குறிக்கப்பட்டுள்ளது. SLT-MOBITEL இற்கு வருகை தந்தமைக்கு நன்றி.\n\nSLT-MOBITEL`,
+          en: `Dear Valued Customer\n\nYour service for reference ${ref.trim()} at ${outlet} is now completed. Thank you for choosing SLT-MOBITEL for your requirements.\n\nSLT-MOBITEL`,
+          si: `ගරු පාරිභෝගිකයා\n\n${outlet} හි යොමු අංක ${ref.trim()} යටතේ වූ ඔබගේ සේවාව දැන් සාර්ථකව සම්පූර්ණ කර ඇත. ඔබගේ අවශ්‍යතා සඳහා SLT-MOBITEL තෝරා ගැනීම ගැන ස්තුතියි.\n\nSLT-MOBITEL`,
+          ta: `அன்பு வாடிக்கையாளரே\n\n${outlet} இல் குறிப்பு எண் ${ref.trim()} இன் கீழான உங்கள் சேவை இப்போது வெற்றிகரமாக முடிக்கப்பட்டுள்ளது. உங்கள் தேவைகளுக்கு SLT-MOBITEL ஐத் தேர்ந்தெடுத்தமைக்கு நன்றி.\n\nSLT-MOBITEL`,
         }
         const resp = await api.post('/twilio/test', {
           to: TWILIO_TO_NUMBER,
