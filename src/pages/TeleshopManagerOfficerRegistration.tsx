@@ -177,7 +177,12 @@ export default function TeleshopManagerOfficerRegistration() {
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || "Failed to create officer"
       console.error("Officer creation error:", errorMessage)
-      setError(errorMessage)
+      // 409 = duplicate mobile number — show on the field
+      if (err.response?.status === 409) {
+        setFieldErrors(prev => ({ ...prev, mobileNumber: errorMessage }))
+      } else {
+        setError(errorMessage)
+      }
     } finally {
       setLoading(false)
     }

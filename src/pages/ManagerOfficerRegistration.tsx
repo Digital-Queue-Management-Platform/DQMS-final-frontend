@@ -17,6 +17,10 @@ export default function ManagerOfficerRegistration() {
   const [languages, setLanguages] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState("")
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({})
+
+  const validateMobile = (v: string) => /^0[0-9]{9}$/.test(v.replace(/\s/g, ''))
+  const validateEmail = (v: string) => !v || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim())
 
   // Load manager and region outlets from /manager/me to scope outlets
   useEffect(() => {
@@ -51,6 +55,14 @@ export default function ManagerOfficerRegistration() {
     setMessage("")
     setLoading(true)
 
+    // Validate
+    const errs: Record<string, string> = {}
+    if (!name.trim() || name.trim().length < 2) errs.name = "Full name must be at least 2 characters"
+    if (!validateMobile(mobileNumber)) errs.mobileNumber = "Enter a valid 10-digit Sri Lankan number (e.g. 071XXXXXXX)"
+    if (!validateEmail(email)) errs.email = "Enter a valid email address"
+    if (Object.keys(errs).length > 0) { setValidationErrors(errs); setLoading(false); return }
+    setValidationErrors({})
+
     try {
       const payload: any = {
         name,
@@ -75,7 +87,12 @@ export default function ManagerOfficerRegistration() {
         setLanguages([])
       }
     } catch (err: any) {
-      setMessage(err.response?.data?.error || "Registration failed")
+      const msg = err.response?.data?.error || "Registration failed"
+      if (err.response?.status === 409) {
+        setValidationErrors(prev => ({ ...prev, mobileNumber: msg }))
+      } else {
+        setMessage(msg)
+      }
     } finally {
       setLoading(false)
     }
@@ -84,23 +101,26 @@ export default function ManagerOfficerRegistration() {
   return (
     <div className="max-w-xl mx-auto bg-white rounded-2xl shadow p-6 mt-4">
       <h2 className="text-xl font-bold mb-4">Register Officer</h2>
-      {message && <div className="mb-4 text-sm text-green-700">{message}</div>}
+      {message && <div className={`mb-4 text-sm p-3 rounded ${message.startsWith('Officer') ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>{message}</div>}
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700">Full name</label>
-          <input value={name} onChange={(e) => setName(e.target.value)} required className="w-full px-3 py-2 border rounded" />
+          <label className="block text-sm font-medium text-gray-700">Full name *</label>
+          <input value={name} onChange={(e) => { setName(e.target.value); setValidationErrors(p => ({ ...p, name: '' })) }} required className={`w-full px-3 py-2 border rounded ${validationErrors.name ? 'border-red-500' : ''}`} />
+          {validationErrors.name && <p className="text-xs text-red-600 mt-1">{validationErrors.name}</p>}
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700">Mobile number</label>
-          <input value={mobileNumber} onChange={(e) => setMobileNumber(e.target.value)} required className="w-full px-3 py-2 border rounded" placeholder="07XXXXXXXX" />
+          <label className="block text-sm font-medium text-gray-700">Mobile number *</label>
+          <input value={mobileNumber} onChange={(e) => { setMobileNumber(e.target.value); setValidationErrors(p => ({ ...p, mobileNumber: '' })) }} required className={`w-full px-3 py-2 border rounded ${validationErrors.mobileNumber ? 'border-red-500' : ''}`} placeholder="07XXXXXXXX" maxLength={10} />
+          {validationErrors.mobileNumber && <p className="text-xs text-red-600 mt-1">{validationErrors.mobileNumber}</p>}
         </div>
 
         <div>
           <label className="block text-sm font-medium text-gray-700">Email (Optional)</label>
-          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full px-3 py-2 border rounded" placeholder="officer@slt.lk" />
+          <input type="email" value={email} onChange={(e) => { setEmail(e.target.value); setValidationErrors(p => ({ ...p, email: '' })) }} className={`w-full px-3 py-2 border rounded ${validationErrors.email ? 'border-red-500' : ''}`} placeholder="officer@slt.lk" />
+          <p className="text-xs text-gray-400 mt-1">If provided, login credentials will be emailed.</p>
+          {validationErrors.email && <p className="text-xs text-red-600 mt-1">{validationErrors.email}</p>}
         </div>
-
         <div>
           <label className="block text-sm font-medium text-gray-700">Outlet</label>
           <select value={selectedOutlet} onChange={(e) => setSelectedOutlet(e.target.value)} className="w-full px-3 py-2 border rounded" required>

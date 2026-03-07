@@ -73,7 +73,12 @@ export default function OfficerRegistration() {
         setLanguages([])
       }
     } catch (err: any) {
-      setMessage(err.response?.data?.error || "Registration failed")
+      const msg = err.response?.data?.error || "Registration failed"
+      if (err.response?.status === 409) {
+        setValidationErrors(prev => ({ ...prev, mobileNumber: msg }))
+      } else {
+        setMessage(msg)
+      }
     } finally {
       setLoading(false)
     }
