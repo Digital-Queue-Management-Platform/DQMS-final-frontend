@@ -33,7 +33,7 @@ const ServicesPage: React.FC = () => {
   const fetchServices = async () => {
     setLoading(true)
     try {
-      const res = await api.get('/queue/services')
+      const res = await api.get('/queue/services?all=true')
       setServices(res.data || [])
     } catch (err) {
       console.error(err)

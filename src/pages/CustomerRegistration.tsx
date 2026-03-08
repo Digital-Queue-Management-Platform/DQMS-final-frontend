@@ -10,7 +10,9 @@ import type { Outlet } from "../types"
 import OTPInput from "../components/OTPInput"
 import OTPPopup from "../components/OTPPopup"
 import BranchClosedModal from "../components/BranchClosedModal"
+import NoticeModal from "../components/NoticeModal"
 import { useBranchStatus } from "../hooks/useBranchStatus"
+import { useOutletNotices } from "../hooks/useOutletNotices"
 
 export default function CustomerRegistration() {
   const { outletId } = useParams()
@@ -57,6 +59,7 @@ export default function CustomerRegistration() {
 
   // Branch status check using the outlet from URL params
   const branchStatus = useBranchStatus(selectedOutlet || outletId || null)
+  const { notices: activeNotices, dismiss: dismissNotice } = useOutletNotices(selectedOutlet || outletId || null)
 
   // Add a form key to force React re-render when needed
   const [formKey, setFormKey] = useState(Date.now())
@@ -314,20 +317,15 @@ export default function CustomerRegistration() {
     }
   }
 
-  // Load services from admin-managed list
+  // Load services from admin-managed list (active only)
   const fetchServices = async () => {
     try {
       const response = await api.get('/queue/services')
       const data = Array.isArray(response.data) ? response.data : []
-      setServices(data)
+      setServices(data.filter((s: any) => s.isActive !== false))
     } catch (err) {
       console.error('Failed to fetch services:', err)
-      // Fallback to basic options if API fails
-      const STATIC_SERVICES = [
-        { id: 'BILL_PAYMENT', code: 'BILL_PAYMENT', title: 'Bill Payment', isActive: true },
-        { id: 'OTHERS', code: 'OTHERS', title: 'Others', isActive: true },
-      ]
-      setServices(STATIC_SERVICES)
+      setServices([])
     }
   }
 
@@ -543,15 +541,18 @@ export default function CustomerRegistration() {
     setCurrentStep(prev => Math.max(prev - 1, 1))
   }
 
+  const isValidMobile = (m: string) => m.length === 10 && (m.startsWith('07') || m.startsWith('01'))
+  const isValidSlt = (s: string) => /^\d{10}$/.test(s) && s.startsWith('0') && !s.startsWith('07')
+  const isValidEmail = (e: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)
+
   const canProceedFromStep1 = preferredLanguage !== ''
   const canProceedFromStep2 = selectedService !== ""
   const canProceedFromStep3 = () => {
-    // If bill payment is selected, need SLT number + name + mobile
+    const validDetails = name.trim().length >= 2 && isValidMobile(mobileNumber)
     if (selectedService === 'BILL_PAYMENT' || isSltRequiredService(selectedService)) {
-      return sltTelephoneNumber && name && mobileNumber
+      return validDetails && isValidSlt(sltTelephoneNumber)
     }
-    // Otherwise just need name and mobile
-    return name && mobileNumber
+    return validDetails
   }
 
   const translations = {
@@ -753,6 +754,10 @@ export default function CustomerRegistration() {
           reason={branchStatus.reason}
           activeNotice={branchStatus.activeNotice}
         />
+      )}
+      {/* Standard notices – dismissable, only shown when branch is open */}
+      {!branchStatus.isClosed && activeNotices.length > 0 && (
+        <NoticeModal notices={activeNotices} onDismiss={dismissNotice} />
       )}
       <div className="bg-white rounded-xl sm:rounded-2xl shadow-xl w-full max-w-sm sm:max-w-md lg:max-w-lg p-4 sm:p-6 lg:p-8">
         {loading ? (
@@ -973,14 +978,18 @@ export default function CustomerRegistration() {
                                   type="tel"
                                   value={sltTelephoneNumber}
                                   onChange={(e) => {
-                                    setSltTelephoneNumber(e.target.value)
+                                    setSltTelephoneNumber(e.target.value.replace(/\D/g, '').slice(0, 10))
                                     setError("")
                                     setSltVerified(false)
                                   }}
                                   className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                   placeholder={t.sltTelephonePlaceholder}
+                                  maxLength={10}
                                 />
                               </div>
+                              {sltTelephoneNumber.length > 0 && !isValidSlt(sltTelephoneNumber) && (
+                                <p className="text-xs text-red-500 mt-1">Enter a valid 10-digit SLT number (e.g. 011XXXXXXX)</p>
+                              )}
                               <p className="text-xs text-blue-600 mt-2"> We'll verify your SLT account after you verify your mobile number</p>
                             </div>
                           </div>
@@ -996,12 +1005,16 @@ export default function CustomerRegistration() {
                       <input
                         type="text"
                         value={name}
-                        onChange={(e) => setName(e.target.value)}
+                        onChange={(e) => setName(e.target.value.replace(/[^a-zA-Z\s\-'.]/g, ''))}
                         className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         placeholder={t.name}
+                        maxLength={100}
                         required
                       />
                     </div>
+                    {name.length > 0 && name.trim().length < 2 && (
+                      <p className="text-xs text-red-500 mt-1">Please enter your full name (at least 2 characters)</p>
+                    )}
                   </div>
 
                   {/* Mobile Number Input */}
@@ -1012,12 +1025,16 @@ export default function CustomerRegistration() {
                       <input
                         type="tel"
                         value={mobileNumber}
-                        onChange={(e) => setMobileNumber(e.target.value)}
+                        onChange={(e) => setMobileNumber(e.target.value.replace(/\D/g, '').slice(0, 10))}
                         className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         placeholder="07XXXXXXXX"
+                        maxLength={10}
                         required
                       />
                     </div>
+                    {mobileNumber.length > 0 && !isValidMobile(mobileNumber) && (
+                      <p className="text-xs text-red-500 mt-1">Enter a valid 10-digit number starting with 07 or 01</p>
+                    )}
                   </div>
 
                   {/* Optional fields toggle */}
@@ -1045,8 +1062,12 @@ export default function CustomerRegistration() {
                             onChange={(e) => setNicNumber(e.target.value.toUpperCase())}
                             className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                             placeholder={t.nicPlaceholder}
+                            maxLength={12}
                           />
                         </div>
+                        {nicNumber.length > 0 && !/^\d{9}[VX]$|^\d{12}$/i.test(nicNumber) && (
+                          <p className="text-xs text-red-500 mt-1">Enter a valid NIC (e.g. 123456789V or 200012345678)</p>
+                        )}
                       </div>
 
                       {/* Email (optional) */}
@@ -1062,6 +1083,9 @@ export default function CustomerRegistration() {
                             placeholder="jason@gmail.com"
                           />
                         </div>
+                        {email.length > 0 && !isValidEmail(email) && (
+                          <p className="text-xs text-red-500 mt-1">Enter a valid email address</p>
+                        )}
                       </div>
                     </>
                   )}

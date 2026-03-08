@@ -12,7 +12,7 @@ const DAYS_OF_WEEK = [
     { label: "Sat", value: "SAT" },
 ]
 
-interface ClosureNotice {
+interface BranchNotice {
     id: string
     outletId: string
     title: string
@@ -27,15 +27,14 @@ interface ClosureNotice {
     recurringEndDate?: string
 }
 
-export default function TeleshopManagerClosureNotices() {
-    const [notices, setNotices] = useState<ClosureNotice[]>([])
+export default function OfficerBranchNotices() {
+    const [notices, setNotices] = useState<BranchNotice[]>([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState("")
     const [success, setSuccess] = useState("")
     const [showForm, setShowForm] = useState(false)
     const [editingId, setEditingId] = useState<string | null>(null)
 
-    // Form state
     const [form, setForm] = useState({
         title: "",
         message: "",
@@ -55,11 +54,11 @@ export default function TeleshopManagerClosureNotices() {
     const fetchNotices = async () => {
         try {
             setLoading(true)
-            const res = await api.get("/teleshop-manager/closure-notices")
+            const res = await api.get("/officer/branch-notices")
             setNotices(res.data.notices || [])
             setError("")
         } catch (err: any) {
-            setError(err?.response?.data?.error || "Failed to load closure notices")
+            setError(err?.response?.data?.error || "Failed to load notices")
         } finally {
             setLoading(false)
         }
@@ -88,10 +87,10 @@ export default function TeleshopManagerClosureNotices() {
                 payload.endsAt = new Date(form.endsAt).toISOString()
             }
             if (editingId) {
-                await api.put(`/teleshop-manager/closure-notices/${editingId}`, payload)
+                await api.put(`/officer/branch-notices/${editingId}`, payload)
                 setSuccess("Notice updated successfully!")
             } else {
-                await api.post("/teleshop-manager/closure-notices", payload)
+                await api.post("/officer/branch-notices", payload)
                 setSuccess("Notice created successfully!")
             }
             setForm({ title: "", message: "", startsAt: "", endsAt: "", noticeType: "closure", isRecurring: false, recurringDays: [], recurringEndDate: "" })
@@ -105,7 +104,7 @@ export default function TeleshopManagerClosureNotices() {
         }
     }
 
-    const handleEdit = (notice: ClosureNotice) => {
+    const handleEdit = (notice: BranchNotice) => {
         const toTime = (d: string) => new Date(d).toTimeString().slice(0, 5)
         const toLocal = (d: string) => { const dt = new Date(d); dt.setMinutes(dt.getMinutes() - dt.getTimezoneOffset()); return dt.toISOString().slice(0, 16) }
         const toDate = (d: string) => new Date(d).toISOString().slice(0, 10)
@@ -126,17 +125,17 @@ export default function TeleshopManagerClosureNotices() {
     }
 
     const handleDelete = async (noticeId: string) => {
-        if (!window.confirm("Are you sure you want to delete this closure notice?")) return
+        if (!window.confirm("Are you sure you want to delete this notice?")) return
         try {
-            await api.delete(`/teleshop-manager/closure-notices/${noticeId}`)
-            setSuccess("Closure notice deleted.")
+            await api.delete(`/officer/branch-notices/${noticeId}`)
+            setSuccess("Notice deleted.")
             setNotices(prev => prev.filter(n => n.id !== noticeId))
         } catch (err: any) {
-            setError(err?.response?.data?.error || "Failed to delete closure notice")
+            setError(err?.response?.data?.error || "Failed to delete notice")
         }
     }
 
-    const isActive = (notice: ClosureNotice) => {
+    const isActive = (notice: BranchNotice) => {
         const now = new Date()
         if (notice.isRecurring) {
             if (notice.recurringEndDate && new Date(notice.recurringEndDate) < now) return false
@@ -192,7 +191,7 @@ export default function TeleshopManagerClosureNotices() {
                     {/* Notice Type */}
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">Notice Type</label>
-                        <div className="flex gap-4">
+                        <div className="flex gap-4 flex-wrap">
                             <label className="flex items-center gap-2 cursor-pointer">
                                 <input
                                     type="radio"
@@ -291,6 +290,7 @@ export default function TeleshopManagerClosureNotices() {
                             required
                         />
                     </div>
+
                     {form.isRecurring ? (
                         <div className="grid grid-cols-2 gap-4">
                             <div>
@@ -347,6 +347,7 @@ export default function TeleshopManagerClosureNotices() {
                             </div>
                         </div>
                     )}
+
                     <div className="flex justify-end">
                         <button
                             type="submit"
@@ -373,10 +374,10 @@ export default function TeleshopManagerClosureNotices() {
                         <div
                             key={notice.id}
                             className={`rounded-xl border p-4 ${
-                                    isActive(notice)
-                                        ? notice.noticeType === "standard" ? "border-blue-300 bg-blue-50" : "border-red-300 bg-red-50"
-                                        : "border-gray-200 bg-white"
-                                }`}
+                                isActive(notice)
+                                    ? notice.noticeType === "standard" ? "border-blue-300 bg-blue-50" : "border-red-300 bg-red-50"
+                                    : "border-gray-200 bg-white"
+                            }`}
                         >
                             <div className="flex items-start justify-between gap-3">
                                 <div className="flex-1 min-w-0">

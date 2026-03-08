@@ -7,7 +7,9 @@ import api from '../config/api'
 import OTPInput from '../components/OTPInput'
 import OTPPopup from '../components/OTPPopup'
 import BranchClosedModal from '../components/BranchClosedModal'
+import NoticeModal from '../components/NoticeModal'
 import { useBranchStatus } from '../hooks/useBranchStatus'
+import { useOutletNotices } from '../hooks/useOutletNotices'
 
 interface Service {
   id: string
@@ -44,6 +46,7 @@ export default function KioskDashboard() {
   const [otpToken, setOtpToken] = useState<string>("")
   const [otpError, setOtpError] = useState("")
   const [otpSending, setOtpSending] = useState(false)
+  const [autoSendingOtp, setAutoSendingOtp] = useState(false)
   const [showOtpPopup, setShowOtpPopup] = useState(false)
   const [devOtpCode, setDevOtpCode] = useState<string>("")
 
@@ -66,6 +69,7 @@ export default function KioskDashboard() {
   // Use outlet id from localStorage for branch status check
   const kioskOutletId = (() => { try { const d = localStorage.getItem('kioskOutlet'); return d ? JSON.parse(d)?.id : null } catch { return null } })()
   const branchStatus = useBranchStatus(kioskOutletId)
+  const { notices: activeNotices, dismiss: dismissNotice } = useOutletNotices(kioskOutletId)
 
   useEffect(() => {
     const token = localStorage.getItem('kioskToken')
@@ -90,6 +94,22 @@ export default function KioskDashboard() {
       }
     }
   }, [shouldAutoSubmit, otpStep, otpToken])
+
+  // Auto-send OTP when mobile number reaches 10 valid digits on step 3
+  useEffect(() => {
+    if (currentStep === 3 && mobileNumber.length === 10 && (mobileNumber.startsWith('07') || mobileNumber.startsWith('01'))) {
+      const canProceed = canProceedFromStep3();
+      if (canProceed && otpStep === 'idle' && !otpSending && !autoSendingOtp) {
+        setAutoSendingOtp(true);
+        const timer = setTimeout(() => {
+          goToNextStep();
+          sendOtp();
+          setAutoSendingOtp(false);
+        }, 800);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [mobileNumber, currentStep])
 
   const loadInitialData = async () => {
     try {
@@ -301,15 +321,18 @@ export default function KioskDashboard() {
     setCurrentStep(prev => Math.max(prev - 1, 1))
   }
 
+  const isValidMobile = (m: string) => m.length === 10 && (m.startsWith('07') || m.startsWith('01'))
+  const isValidSlt = (s: string) => /^\d{10}$/.test(s) && s.startsWith('0') && !s.startsWith('07')
+  const isValidEmail = (e: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)
+
   const canProceedFromStep1 = preferredLanguage !== ''
   const canProceedFromStep2 = selectedService !== ''
   const canProceedFromStep3 = () => {
-    // Check if any selected service requires SLT telephone number
+    const validDetails = name.trim().length >= 2 && isValidMobile(mobileNumber)
     if (isSltRequiredService(selectedService)) {
-      return sltTelephoneNumber && name && mobileNumber
+      return validDetails && isValidSlt(sltTelephoneNumber)
     }
-    // Otherwise just need name and mobile
-    return name && mobileNumber
+    return validDetails
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -615,6 +638,10 @@ export default function KioskDashboard() {
           activeNotice={branchStatus.activeNotice}
         />
       )}
+      {/* Standard notices – dismissable, only shown when branch is open */}
+      {!branchStatus.isClosed && activeNotices.length > 0 && (
+        <NoticeModal notices={activeNotices} onDismiss={dismissNotice} />
+      )}
       {/* Language Switcher */}
       <div className="bg-white border-b border-gray-200 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
@@ -832,14 +859,18 @@ export default function KioskDashboard() {
                                 type="tel"
                                 value={sltTelephoneNumber}
                                 onChange={(e) => {
-                                  setSltTelephoneNumber(e.target.value)
+                                  setSltTelephoneNumber(e.target.value.replace(/\D/g, '').slice(0, 10))
                                   setError("")
                                   setSltVerified(false)
                                 }}
                                 className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                 placeholder={t.sltTelephonePlaceholder}
+                                maxLength={10}
                               />
                             </div>
+                            {sltTelephoneNumber.length > 0 && !isValidSlt(sltTelephoneNumber) && (
+                              <p className="text-xs text-red-500 mt-1">Enter a valid 10-digit SLT number (e.g. 011XXXXXXX)</p>
+                            )}
                             <p className="text-xs text-blue-600 mt-2"> We'll verify your SLT account after you verify your mobile number</p>
                           </div>
                         </div>
@@ -856,9 +887,10 @@ export default function KioskDashboard() {
                         <input
                           type="text"
                           value={name}
-                          onChange={(e) => setName(e.target.value)}
+                          onChange={(e) => setName(e.target.value.replace(/[^a-zA-Z\s\-'.]/g, ''))}
                           className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                           placeholder={t.name}
+                          maxLength={100}
                           required
                         />
                       </div>
@@ -871,12 +903,15 @@ export default function KioskDashboard() {
                         <input
                           type="tel"
                           value={mobileNumber}
-                          onChange={(e) => setMobileNumber(e.target.value)}
+                          onChange={(e) => setMobileNumber(e.target.value.replace(/\D/g, '').slice(0, 10))}
                           className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                           placeholder="07XXXXXXXX"
-                          pattern="[0-9]{10}"
+                          maxLength={10}
                           required
                         />
+                        {mobileNumber.length > 0 && !isValidMobile(mobileNumber) && (
+                          <p className="text-xs text-red-500 mt-1">Enter a valid 10-digit number starting with 07 or 01</p>
+                        )}
                       </div>
                     </div>
 
@@ -904,8 +939,12 @@ export default function KioskDashboard() {
                               onChange={(e) => setNicNumber(e.target.value.toUpperCase())}
                               className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                               placeholder="123456789V or 200012345678"
+                              maxLength={12}
                             />
                           </div>
+                          {nicNumber.length > 0 && !/^\d{9}[VX]$|^\d{12}$/i.test(nicNumber) && (
+                            <p className="text-xs text-red-500 mt-1">Enter a valid NIC (e.g. 123456789V or 200012345678)</p>
+                          )}
                         </div>
 
                         <div>
@@ -920,6 +959,9 @@ export default function KioskDashboard() {
                               placeholder="jason@gmail.com"
                             />
                           </div>
+                          {email.length > 0 && !isValidEmail(email) && (
+                            <p className="text-xs text-red-500 mt-1">Enter a valid email address</p>
+                          )}
                         </div>
                       </>
                     )}

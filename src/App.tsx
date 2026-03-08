@@ -25,6 +25,7 @@ import OfficerQueuePage from "./pages/OfficerQueuePage"
 import IPSpeakerPage from "./pages/IPSpeakerPage"
 import OfficerServedCustomers from "./pages/OfficerServedCustomers"
 import OfficerServiceTracking from "./pages/OfficerServiceTracking"
+import OfficerBranchNotices from "./pages/OfficerBranchNotices"
 import ManagerLogin from "./pages/ManagerLogin"
 const ManagerDashboard = React.lazy(() => import("./pages/ManagerDashboard"))
 const ManagerBranches = React.lazy(() => import("./pages/ManagerBranches"))
@@ -392,7 +393,7 @@ function Layout({ children }: { children: React.ReactNode }) {
         {showSidebar && <Header />} */}
 
         {/* Shared Officer Top Bar for all officer pages except login, dashboard, queue, ip-speaker, served-customers, and service-tracking */}
-        {isOfficerPath && !isOfficerLogin && officer && !location.pathname.includes('/officer/dashboard') && !location.pathname.includes('/officer/queue') && !location.pathname.includes('/officer/ip-speaker') && !location.pathname.includes('/officer/served-customers') && !location.pathname.includes('/officer/service-tracking') && (
+        {isOfficerPath && !isOfficerLogin && officer && !location.pathname.includes('/officer/dashboard') && !location.pathname.includes('/officer/queue') && !location.pathname.includes('/officer/ip-speaker') && !location.pathname.includes('/officer/served-customers') && !location.pathname.includes('/officer/service-tracking') && !location.pathname.includes('/officer/branch-notices') && (
           <OfficerTopBar
             officer={officer}
             onOfficerUpdate={setOfficer as any}
@@ -472,6 +473,10 @@ function App() {
         <Route
           element={<Layout><OfficerServiceTracking /></Layout>}
           path="/officer/service-tracking"
+        />
+        <Route
+          element={<Layout><OfficerBranchNotices /></Layout>}
+          path="/officer/branch-notices"
         />
         <Route
           element={<AdminLogin />}
