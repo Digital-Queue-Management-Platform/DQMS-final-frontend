@@ -1,7 +1,8 @@
-"use client"
+﻿"use client"
 
 import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
+import { motion } from "framer-motion"
 import { User, Clock, Phone, FileText, Users, RefreshCwIcon, Calendar, AlertTriangle } from "lucide-react"
 // OfficerTopBar is provided globally from Layout for officer routes
 import api, { WS_URL } from "../config/api"
@@ -20,7 +21,7 @@ export default function OfficerQueuePage() {
   const [refreshing, setRefreshing] = useState(false)
   const [currentDateTime, setCurrentDateTime] = useState(new Date())
   const [queueLoading, setQueueLoading] = useState(false)
-  const [lastUpdated, setLastUpdated] = useState<Date>(new Date())
+  const [_lastUpdated, setLastUpdated] = useState<Date>(new Date())
   const [activeTab, setActiveTab] = useState<'my-queue' | 'transferred' | 'unmatched'>('my-queue')
   const [unmatchedTokens, setUnmatchedTokens] = useState<Token[]>([])
   const [isTransferModalOpen, setIsTransferModalOpen] = useState(false)
@@ -471,35 +472,27 @@ export default function OfficerQueuePage() {
   if (!officer) return null
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-4">
+    <div className="min-h-screen bg-slate-50 p-4">
       <div className="mx-auto">
         {/* Header Section in Body */}
-        <div className="mb-6">
-          <div className="flex items-center justify-between mb-2">
+        <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
+          <div className="flex items-center justify-between">
             <div>
-              {/*<h1 className="text-2xl font-bold text-gray-900">Queue Management</h1>*/}
               <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-                <p className="text-sm text-gray-500">
-                  {formatDate(currentDateTime)} | {formatTime(currentDateTime)}
-                </p>
-                <div className="flex items-center gap-3 text-sm text-slate-600">
-                  {queueLoading && <span className="flex items-center gap-1">🔄 Refreshing...</span>}
-                  <span>Queue updated: {lastUpdated.toLocaleTimeString()}</span>
-                </div>
+                <p className="text-sm text-slate-500">{formatDate(currentDateTime)} &bull; {formatTime(currentDateTime)}</p>
+                {queueLoading && <span className="text-xs text-amber-600 font-medium">Refreshing...</span>}
               </div>
             </div>
-            <div className="flex items-center space-x-4">
-              <button
-                onClick={handleRefresh}
-                disabled={refreshing}
-                className={`px-2 py-1.5 rounded-lg bg-blue-500 text-white hover:bg-blue-700 flex items-center gap-2 ${refreshing ? 'cursor-not-allowed' : 'cursor-pointer'}`}
-              >
-                <RefreshCwIcon className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
-                Refresh
-              </button>
-            </div>
+            <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+              onClick={handleRefresh}
+              disabled={refreshing}
+              className={`px-3 py-1.5 rounded-xl bg-amber-600 text-white hover:bg-amber-700 flex items-center gap-2 text-sm font-medium transition-colors ${refreshing ? 'opacity-75 cursor-not-allowed' : ''}`}
+            >
+              <RefreshCwIcon className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+              Refresh
+            </motion.button>
           </div>
-        </div>
+        </motion.div>
 
         {/* Main Content */}
         <div className="space-y-6">
@@ -508,15 +501,15 @@ export default function OfficerQueuePage() {
             <div className="flex gap-4 justify-center">
               <button
                 onClick={() => setActiveTab('my-queue')}
-                className={`px-6 py-2.5 font-medium text-sm transition-colors ${activeTab === 'my-queue'
-                  ? 'border-b-2 border-black bg-white rounded-full hover:bg-gray-50'
-                  : 'bg-white text-gray-500 hover:text-gray-700 hover:bg-gray-50 border border-gray-300 rounded-full'
+                className={`px-5 py-2 font-medium text-sm rounded-xl transition-all ${activeTab === 'my-queue'
+                  ? 'bg-amber-600 text-white shadow-sm'
+                  : 'bg-white text-slate-500 hover:text-slate-700 hover:bg-slate-50 border border-slate-200'
                   }`}
               >
                 <div className="flex items-center justify-center gap-2">
                   <span>My Queue</span>
                   {queue && (
-                    <span className="px-1.5 py-0.5 bg-black text-white rounded-full text-xs font-semibold">
+                    <span className="px-1.5 py-0.5 bg-amber-600 text-white rounded-full text-xs font-semibold">
                       {queue.waiting.filter((t) => {
                         if ((t as any).isTransferred === true) return false
                         const tokenServices = Array.isArray(t.serviceTypes) ? t.serviceTypes : []
@@ -535,9 +528,9 @@ export default function OfficerQueuePage() {
 
               <button
                 onClick={() => setActiveTab('transferred')}
-                className={`px-6 py-2.5 font-medium text-sm transition-colors ${activeTab === 'transferred'
-                  ? 'border-b-2 border-blue-600 bg-white rounded-full hover:bg-gray-50'
-                  : 'bg-white text-gray-500 hover:text-gray-700 hover:bg-gray-50 border border-gray-300 rounded-full'
+                className={`px-5 py-2 font-medium text-sm rounded-xl transition-all ${activeTab === 'transferred'
+                  ? 'bg-indigo-600 text-white shadow-sm'
+                  : 'bg-white text-slate-500 hover:text-slate-700 hover:bg-slate-50 border border-slate-200'
                   }`}
               >
                 <div className="flex items-center justify-center gap-2">
@@ -560,16 +553,16 @@ export default function OfficerQueuePage() {
 
               <button
                 onClick={() => setActiveTab('unmatched')}
-                className={`px-6 py-2.5 font-medium text-sm transition-colors ${activeTab === 'unmatched'
-                  ? 'border-b-2 border-black bg-white rounded-full hover:bg-gray-50'
-                  : 'bg-white text-gray-500 hover:text-gray-700 hover:bg-gray-50 border border-gray-300 rounded-full'
+                className={`px-5 py-2 font-medium text-sm rounded-xl transition-all ${activeTab === 'unmatched'
+                  ? 'bg-slate-700 text-white shadow-sm'
+                  : 'bg-white text-slate-500 hover:text-slate-700 hover:bg-slate-50 border border-slate-200'
                   }`}
               >
                 <div className="flex items-center justify-center gap-2">
                   <span>Unmatched Tokens</span>
                   <span className={`px-1.5 py-0.5 rounded-full text-xs font-semibold ${unmatchedTokens.length > 0
-                    ? 'bg-black text-white'
-                    : 'bg-black text-white'
+                    ? 'bg-red-600 text-white'
+                    : 'bg-slate-500 text-white'
                     }`}>
                     {unmatchedTokens.length}
                   </span>
@@ -587,10 +580,10 @@ export default function OfficerQueuePage() {
           {/* Flex Container for Current Customer (Left) and Queue List (Right) */}
           <div className="flex gap-4 items-start">
             {/* Current Customer Section - Left Side (1/3 width) */}
-            <div className="w-1/3 bg-white rounded-xl shadow-sm p-4 self-start sticky top-4">
+            <div className="w-1/3 bg-white rounded-2xl shadow-sm border border-slate-100 p-4 self-start sticky top-4">
               {!currentToken ? (
                 <>
-                  <h2 className="text-lg font-bold text-gray-900 mb-4">Current Customer</h2>
+                  <h2 className="text-lg font-bold text-slate-900 mb-4">Current Customer</h2>
                   <div className="text-center py-6">
                     <div className="w-10 h-10 flex items-center justify-center mx-auto mb-4">
                       <Users className="w-10 h-10" />
@@ -609,7 +602,7 @@ export default function OfficerQueuePage() {
                           ? queue.waiting.filter(t => (t as any).status !== 'skipped' && !(t as any).isTransferred).length === 0
                           : true)
                       }
-                      className="px-6 py-1.5 bg-black text-white hover:text-black border-2 border-black rounded-full font-semibold hover:bg-gray-50 transition-colors disabled:bg-gray-200 disabled:border-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed text-md"
+                      className="px-6 py-2 bg-amber-600 text-white hover:bg-amber-700 border-2 border-amber-600 rounded-xl font-semibold transition-colors disabled:bg-gray-200 disabled:border-gray-200 disabled:text-gray-500 disabled:cursor-not-allowed text-sm"
                     >
                       {loading ? "Loading..." : "Call Next Token"}
                     </button>
@@ -623,18 +616,18 @@ export default function OfficerQueuePage() {
                 </>
               ) : (
                 <>
-                  <h2 className="text-lg font-bold text-gray-900 mb-4">Current Customer</h2>
+                  <h2 className="text-lg font-bold text-slate-900 mb-4">Current Customer</h2>
 
                   {/* Token Number Card */}
-                  <div className="rounded-2xl border border-gray-200 p-4 mb-4 text-center">
+                  <div className="rounded-2xl border border-slate-200 p-4 mb-4 text-center">
                     <div className="text-xs text-gray-600 mb-2">TOKEN NUMBER</div>
                     <div className="text-5xl font-bold text-blue-600">{currentToken.tokenNumber}</div>
                   </div>
 
                   {/* Customer Details Card */}
-                  <div className="bg-gray-50 rounded-2xl p-4 mb-4 space-y-3">
-                    <div className="flex items-center gap-3 pb-3 border-b border-gray-200">
-                      <div className="w-8 h-8 bg-white rounded-full border-b-2 border-black flex items-center justify-center">
+                  <div className="bg-slate-50 rounded-2xl p-4 mb-4 space-y-3">
+                    <div className="flex items-center gap-3 pb-3 border-b border-slate-200">
+                      <div className="w-8 h-8 bg-white rounded-xl border border-slate-200 flex items-center justify-center">
                         <User className="w-4 h-4 text-gray-700" />
                       </div>
                       <div className="flex-1">
@@ -643,8 +636,8 @@ export default function OfficerQueuePage() {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-3 pb-3 border-b border-gray-200">
-                      <div className="w-8 h-8 bg-white rounded-full border-b-2 border-black flex items-center justify-center">
+                    <div className="flex items-center gap-3 pb-3 border-b border-slate-200">
+                      <div className="w-8 h-8 bg-white rounded-xl border border-slate-200 flex items-center justify-center">
                         <Phone className="w-4 h-4 text-gray-700" />
                       </div>
                       <div className="flex-1">
@@ -653,12 +646,12 @@ export default function OfficerQueuePage() {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-3 pb-3 border-b border-gray-200">
-                      <div className="w-8 h-8 bg-white rounded-full border-b-2 border-black flex items-center justify-center">
+                    <div className="flex items-center gap-3 pb-3 border-b border-slate-200">
+                      <div className="w-8 h-8 bg-white rounded-xl border border-slate-200 flex items-center justify-center">
                         <FileText className="w-4 h-4 text-gray-700" />
                       </div>
                       <div className="flex-1">
-                        <div className="text-xs text-gray-500 mb-1">Service Type</div>
+                        <div className="text-xs text-slate-500 mb-1">Service Type</div>
                         <div className="flex flex-wrap gap-1">
                           {Array.isArray(currentToken.serviceTypes) && currentToken.serviceTypes.length > 0 ? (
                             currentToken.serviceTypes.map((stype: string) => (
@@ -674,7 +667,7 @@ export default function OfficerQueuePage() {
                     </div>
 
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 bg-white rounded-full border-b-2 border-black flex items-center justify-center">
+                      <div className="w-8 h-8 bg-white rounded-xl border border-slate-200 flex items-center justify-center">
                         <Clock className="w-4 h-4 text-gray-700" />
                       </div>
                       <div className="flex-1">
@@ -687,7 +680,7 @@ export default function OfficerQueuePage() {
 
                     {/* Preferred Languages */}
                     {Array.isArray((currentToken as any).preferredLanguages) && (currentToken as any).preferredLanguages.length > 0 && (
-                      <div className="flex items-center gap-3 pt-3 border-t border-gray-200">
+                      <div className="flex items-center gap-3 pt-3 border-t border-slate-200">
                         <div className="text-xs text-gray-500">Preferred Languages:</div>
                         <div className="flex gap-1">
                           {(currentToken as any).preferredLanguages.map((lang: string) => (
@@ -721,11 +714,11 @@ export default function OfficerQueuePage() {
                   </div>
 
                   {/* Action Buttons */}
-                  <div className="flex gap-3 justify-center">
+                  <div className="flex gap-3 justify-center flex-wrap">
                     <button
                       onClick={() => handleSkip()}
                       disabled={loading}
-                      className="px-4 py-2.5 bg-orange-500 text-white font-bold border-b-2 border-black rounded-full text-sm hover:bg-gray-50 hover:text-orange-500 transition-colors disabled:bg-gray-200 disabled:border-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed"
+                      className="px-4 py-2.5 bg-orange-500 text-white font-semibold rounded-xl text-sm hover:bg-orange-600 transition-colors disabled:bg-gray-200 disabled:text-gray-500 disabled:cursor-not-allowed"
                     >
                       Skip Customer
                     </button>
@@ -736,7 +729,7 @@ export default function OfficerQueuePage() {
                         if (officer) fetchCounters(officer.outletId)
                       }}
                       disabled={loading}
-                      className="px-4 py-2.5 bg-blue-500 text-white font-bold border-b-2 border-black rounded-full text-sm hover:bg-gray-50 hover:text-blue-500 transition-colors disabled:bg-gray-200 disabled:border-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed"
+                      className="px-4 py-2.5 bg-indigo-600 text-white font-semibold rounded-xl text-sm hover:bg-indigo-700 transition-colors disabled:bg-gray-200 disabled:text-gray-500 disabled:cursor-not-allowed"
                     >
                       Transfer
                     </button>
@@ -744,7 +737,7 @@ export default function OfficerQueuePage() {
                     <button
                       onClick={handleCompleteService}
                       disabled={loading}
-                      className="px-6 py-2.5 bg-green-500 text-white font-bold border-b-2 border-black rounded-full text-sm hover:bg-gray-50 hover:text-green-500 transition-colors disabled:bg-gray-200 disabled:border-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed"
+                      className="px-6 py-2.5 bg-emerald-600 text-white font-semibold rounded-xl text-sm hover:bg-emerald-700 transition-colors disabled:bg-gray-200 disabled:text-gray-500 disabled:cursor-not-allowed"
                     >
                       Complete Service
                     </button>
@@ -754,7 +747,7 @@ export default function OfficerQueuePage() {
             </div>
 
             {/* Queue List Section - Right Side (2/3 width) */}
-            <div className="w-2/3 bg-white rounded-xl shadow-sm p-4">
+            <div className="w-2/3 bg-white rounded-2xl shadow-sm border border-slate-100 p-4">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-lg font-bold text-gray-900">
                   {activeTab === 'my-queue' ? 'My Queue' : activeTab === 'transferred' ? 'Transferred Tokens' : 'Unmatched Tokens'}
@@ -802,7 +795,7 @@ export default function OfficerQueuePage() {
                   return hasServiceMatch && hasLanguageMatch && !isTransferredByMe
                 }).length === 0 ? (
                   <div className="text-center py-12">
-                    <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <div className="w-16 h-16 bg-gray-100 rounded-xl flex items-center justify-center mx-auto mb-4">
                       <Users className="w-8 h-8 text-gray-400" />
                     </div>
                     <p className="text-gray-500">No customers in your queue</p>
@@ -811,7 +804,7 @@ export default function OfficerQueuePage() {
                 ) : (
                   <>
                     {/* Table Header */}
-                    <div className="grid grid-cols-12 gap-4 px-4 py-2.5 bg-gray-900 border-b text-sm text-white rounded-full mb-3">
+                    <div className="grid grid-cols-12 gap-4 px-4 py-2.5 bg-slate-800 border-b text-xs font-semibold text-slate-200 rounded-xl tracking-wide mb-3">
                       <div className="col-span-2">TOKEN</div>
                       <div className="col-span-2">CUSTOMER</div>
                       <div className="col-span-2">SERVICE TYPE</div>
@@ -892,7 +885,7 @@ export default function OfficerQueuePage() {
                                   <button
                                     onClick={() => handleRecall(t.id)}
                                     disabled={loading || currentToken !== null}
-                                    className="px-2 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed whitespace-nowrap"
+                                    className="px-2 py-1 bg-indigo-600 text-white text-xs rounded-lg hover:bg-indigo-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed whitespace-nowrap"
                                   >
                                     Recall
                                   </button>
@@ -939,7 +932,7 @@ export default function OfficerQueuePage() {
                   return (counterMatch || serviceMatch) && !isTransferredByMe
                 }).length === 0 ? (
                   <div className="text-center py-12">
-                    <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <div className="w-16 h-16 bg-blue-50 rounded-xl flex items-center justify-center mx-auto mb-4">
                       <RefreshCwIcon className="w-8 h-8 text-blue-400" />
                     </div>
                     <p className="text-gray-500">No transferred tokens for you</p>
@@ -1017,7 +1010,7 @@ export default function OfficerQueuePage() {
                 // UNMATCHED TOKENS TAB - Show unmatched tokens
                 unmatchedTokens.length === 0 ? (
                   <div className="text-center py-12">
-                    <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <div className="w-16 h-16 bg-green-100 rounded-xl flex items-center justify-center mx-auto mb-4">
                       <Users className="w-8 h-8 text-green-600" />
                     </div>
                     <p className="text-gray-700 font-medium">All tokens are matched! ✅</p>
@@ -1026,7 +1019,7 @@ export default function OfficerQueuePage() {
                 ) : (
                   <>
                     {/* Table Header */}
-                    <div className="grid grid-cols-12 gap-4 px-4 py-2.5 bg-gray-900 border-b text-sm text-white rounded-full mb-3">
+                    <div className="grid grid-cols-12 gap-4 px-4 py-2.5 bg-slate-800 border-b text-xs font-semibold text-slate-200 rounded-xl tracking-wide mb-3">
                       <div className="col-span-2">TOKEN</div>
                       <div className="col-span-2">CUSTOMER</div>
                       <div className="col-span-2">SERVICE TYPE</div>
@@ -1091,7 +1084,7 @@ export default function OfficerQueuePage() {
                                   <button
                                     onClick={() => handleRecall(t.id)}
                                     disabled={loading || currentToken !== null}
-                                    className="px-2 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed whitespace-nowrap"
+                                    className="px-2 py-1 bg-indigo-600 text-white text-xs rounded-lg hover:bg-indigo-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed whitespace-nowrap"
                                   >
                                     Recall
                                   </button>
@@ -1130,7 +1123,7 @@ export default function OfficerQueuePage() {
 
       {/* Transfer Modal */}
       {isTransferModalOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
           <div className="bg-white rounded-2xl shadow-xl max-w-lg w-full p-6 animate-in zoom-in duration-200">
             <h2 className="text-xl font-bold text-gray-900 mb-2">Transfer Customer</h2>
             <p className="text-sm text-gray-600 mb-6">Select a new service or a specific counter to transfer the customer.</p>
@@ -1144,7 +1137,7 @@ export default function OfficerQueuePage() {
                     <label key={service.id} className={`flex items-start gap-3 p-2.5 rounded-xl border cursor-pointer transition-all group ${transferServices.includes(service.code) ? 'bg-blue-50 border-blue-200' : 'bg-gray-50 border-gray-100'}`}>
                       <input
                         type="checkbox"
-                        className="mt-1 w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                        className="mt-1 w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-indigo-500 cursor-pointer"
                         checked={transferServices.includes(service.code)}
                         onChange={(e) => {
                           if (e.target.checked) setTransferServices([...transferServices, service.code])
@@ -1201,7 +1194,7 @@ export default function OfficerQueuePage() {
                 value={transferNotes}
                 onChange={(e) => setTransferNotes(e.target.value)}
                 placeholder="Brief reason for transfer (e.g., requires manager override)"
-                className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none resize-none"
+                className="w-full px-4 py-2.5 bg-gray-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all outline-none resize-none"
                 rows={2}
               />
             </div>

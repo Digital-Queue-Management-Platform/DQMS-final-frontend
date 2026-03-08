@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
@@ -345,12 +345,12 @@ export default function TeleshopManagerFeedback() {
         <div className="flex items-center gap-4">
           <button
             onClick={() => setShowAlerts(!showAlerts)}
-            className="relative p-2 bg-white rounded-lg hover:bg-gray-50 transition-colors border border-gray-200 shadow-sm"
+            className="relative p-2 bg-white rounded-lg hover:bg-gray-50 transition-colors border border-slate-200 shadow-sm"
             title="3-Star Feedback Alerts"
           >
             <Bell className="w-5 h-5 text-gray-700" />
             {unreadAlertCount > 0 && (
-              <span className="absolute -top-1 -right-1 w-4 h-4 bg-orange-500 text-white text-xs rounded-full flex items-center justify-center text-[10px]">
+              <span className="absolute -top-1 -right-1 w-4 h-4 bg-orange-500 text-white text-xs rounded-xl flex items-center justify-center text-[10px]">
                 {unreadAlertCount > 99 ? '99+' : unreadAlertCount}
               </span>
             )}
@@ -360,38 +360,38 @@ export default function TeleshopManagerFeedback() {
 
       {/* Statistics Cards */}
       <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <div className="bg-white p-6 rounded-xl border border-gray-200">
+        <div className="bg-white p-6 rounded-xl border border-slate-200">
           <div className="flex items-center">
             <MessageSquare className="w-8 h-8 text-purple-600 mr-3" />
             <div>
-              <h3 className="text-sm font-medium text-gray-600 mb-1">Total Feedback</h3>
+              <h3 className="text-sm font-medium text-slate-500 mb-1">Total Feedback</h3>
               <p className="text-2xl font-bold text-gray-900">{stats?.totalFeedback || 0}</p>
             </div>
           </div>
         </div>
-        <div className="bg-white p-6 rounded-xl border border-gray-200">
+        <div className="bg-white p-6 rounded-xl border border-slate-200">
           <div className="flex items-center">
             <XCircle className="w-8 h-8 text-red-600 mr-3" />
             <div>
-              <h3 className="text-sm font-medium text-gray-600 mb-1">Unresolved</h3>
+              <h3 className="text-sm font-medium text-slate-500 mb-1">Unresolved</h3>
               <p className="text-2xl font-bold text-red-600">{stats?.unresolvedFeedback || 0}</p>
             </div>
           </div>
         </div>
-        <div className="bg-white p-6 rounded-xl border border-gray-200">
+        <div className="bg-white p-6 rounded-xl border border-slate-200">
           <div className="flex items-center">
             <CheckCircle className="w-8 h-8 text-green-600 mr-3" />
             <div>
-              <h3 className="text-sm font-medium text-gray-600 mb-1">Resolved</h3>
+              <h3 className="text-sm font-medium text-slate-500 mb-1">Resolved</h3>
               <p className="text-2xl font-bold text-green-600">{stats?.resolvedFeedback || 0}</p>
             </div>
           </div>
         </div>
-        <div className="bg-white p-6 rounded-xl border border-gray-200">
+        <div className="bg-white p-6 rounded-xl border border-slate-200">
           <div className="flex items-center">
             <Calendar className="w-8 h-8 text-blue-600 mr-3" />
             <div>
-              <h3 className="text-sm font-medium text-gray-600 mb-1">Today</h3>
+              <h3 className="text-sm font-medium text-slate-500 mb-1">Today</h3>
               <p className="text-2xl font-bold text-blue-600">{stats?.todayFeedback || 0}</p>
             </div>
           </div>
@@ -399,7 +399,7 @@ export default function TeleshopManagerFeedback() {
       </div>
 
       {/* Filters */}
-      <div className="p-2 rounded-lg mb-6 border border-gray-200">
+      <div className="p-2 rounded-lg mb-6 border border-slate-200">
         <div className="flex items-center gap-3">
           {/* Status Dropdown */}
           <div className="w-48">
@@ -457,7 +457,7 @@ export default function TeleshopManagerFeedback() {
 
       {/* Feedback List */}
       {loading ? (
-        <div className="bg-white rounded-lg shadow border border-gray-100 p-12">
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-12">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto"></div>
             <p className="mt-4 text-gray-600">Loading feedback...</p>
@@ -472,7 +472,7 @@ export default function TeleshopManagerFeedback() {
             </div>
             <button
               onClick={() => fetchFeedback()}
-              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm"
+              className="px-4 py-2 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-colors text-sm"
             >
               Retry
             </button>
@@ -492,7 +492,7 @@ export default function TeleshopManagerFeedback() {
 
           {/* Pagination */}
           {pagination && pagination.totalPages > 1 && (
-            <div className="flex items-center justify-between bg-white border border-gray-200 rounded-lg p-4">
+            <div className="flex items-center justify-between bg-white border border-slate-200 rounded-lg p-4">
               <div className="text-sm text-gray-700">
                 Showing page {pagination.page} of {pagination.totalPages}
                 ({pagination.total} total feedback)
@@ -522,7 +522,7 @@ export default function TeleshopManagerFeedback() {
           )}
         </>
       ) : (
-        <div className="text-center py-12 bg-white rounded-lg shadow border border-gray-100">
+        <div className="text-center py-12 bg-white rounded-2xl shadow-sm border border-slate-100">
           <MessageSquare className="h-12 w-12 text-gray-400 mx-auto mb-4" />
           <div className="text-gray-500 mb-2">No feedback found</div>
           <p className="text-sm text-gray-400">
@@ -533,9 +533,9 @@ export default function TeleshopManagerFeedback() {
 
       {/* Teleshop Manager Alerts Panel */}
       {showAlerts && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-20 flex items-start justify-center sm:justify-end p-2 sm:p-4">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-20 flex items-start justify-center sm:justify-end p-2 sm:p-4">
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm sm:max-w-md max-h-[90vh] sm:max-h-[80vh] overflow-y-auto">
-            <div className="sticky top-0 bg-white border-b border-gray-200 p-3 sm:p-4">
+            <div className="sticky top-0 bg-white border-b border-slate-200 p-3 sm:p-4">
               <div className="flex items-center justify-between">
                 <h2 className="text-base sm:text-lg font-bold text-gray-900">3-Star Feedback Alerts</h2>
                 <button onClick={() => setShowAlerts(false)} className="text-gray-500 hover:text-gray-700 p-1">
@@ -578,7 +578,7 @@ export default function TeleshopManagerFeedback() {
                           </div>
                           <p className="text-sm text-gray-700 mb-2">{alert.message}</p>
                           {(alert as any).outletInfo?.customerName && (
-                            <p className="text-xs text-gray-600 mb-1">
+                            <p className="text-xs text-slate-500 mb-1">
                               Customer: {(alert as any).outletInfo.customerName}
                             </p>
                           )}

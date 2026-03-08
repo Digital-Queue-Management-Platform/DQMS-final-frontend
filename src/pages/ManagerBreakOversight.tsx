@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useState, useEffect } from "react"
 import { Clock, Coffee, Users, AlertTriangle, TrendingUp, Calendar } from "lucide-react"
@@ -198,7 +198,7 @@ export default function ManagerBreakOversight() {
 
             <button
               onClick={fetchBreakAnalytics}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
+              className="px-4 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 text-sm"
             >
               Refresh
             </button>
@@ -207,7 +207,7 @@ export default function ManagerBreakOversight() {
 
         {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
-          <div className="bg-white rounded-lg shadow-sm p-6">
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Total Officers</p>
@@ -217,7 +217,7 @@ export default function ManagerBreakOversight() {
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow-sm p-6">
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Currently on Break</p>
@@ -227,7 +227,7 @@ export default function ManagerBreakOversight() {
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow-sm p-6">
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Total Breaks</p>
@@ -237,7 +237,7 @@ export default function ManagerBreakOversight() {
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow-sm p-6">
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Total Break Time</p>
@@ -247,7 +247,7 @@ export default function ManagerBreakOversight() {
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow-sm p-6">
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Avg Break Duration</p>
@@ -261,8 +261,8 @@ export default function ManagerBreakOversight() {
         {/* Outlets and Officers */}
         <div className="space-y-6">
           {filteredOutlets.map(outlet => (
-            <div key={outlet.outletId} className="bg-white rounded-lg shadow-sm">
-              <div className="px-6 py-4 border-b border-gray-200">
+            <div key={outlet.outletId} className="bg-white rounded-2xl shadow-sm border border-slate-100">
+              <div className="px-6 py-4 border-b border-slate-200">
                 <h2 className="text-lg font-semibold text-gray-900">{outlet.outletName}</h2>
                 <p className="text-sm text-gray-600">{outlet.outletLocation}</p>
               </div>
@@ -273,10 +273,10 @@ export default function ManagerBreakOversight() {
                 ) : (
                   <div className="grid gap-4">
                     {outlet.officers.map(officer => (
-                      <div key={officer.officerId} className="border border-gray-200 rounded-lg p-4">
+                      <div key={officer.officerId} className="border border-slate-200 rounded-lg p-4">
                         <div className="flex items-center justify-between mb-3">
                           <div className="flex items-center space-x-3">
-                            <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
+                            <div className="w-10 h-10 bg-gray-200 rounded-xl flex items-center justify-center">
                               <span className="text-sm font-medium text-gray-700">
                                 {officer.counterNumber || 'N/A'}
                               </span>

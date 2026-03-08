@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Search, ChevronDown } from 'lucide-react';
 
@@ -124,7 +124,7 @@ const SearchableSelect: React.FC<SearchableSelectProps> = ({
                             style={{ position: 'fixed', top: dropdownPos.top, left: dropdownPos.left, width: dropdownPos.width, zIndex: 9999 }}
                             className="mt-1 bg-white border border-gray-300 rounded-xl shadow-lg max-h-60 overflow-hidden transition-opacity duration-200"
                         >
-                            <div className="p-3 border-b border-gray-200">
+                            <div className="p-3 border-b border-slate-200">
                                 <div className="relative">
                                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                                     <input
@@ -133,7 +133,7 @@ const SearchableSelect: React.FC<SearchableSelectProps> = ({
                                         placeholder="Search ..."
                                         value={searchTerm}
                                         onChange={(e) => setSearchTerm(e.target.value)}
-                                        className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-black"
+                                        className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-xl focus:outline-none focus:border-black"
                                     />
                                 </div>
                             </div>
@@ -161,7 +161,7 @@ const SearchableSelect: React.FC<SearchableSelectProps> = ({
                     )
                 ) : (
                     <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-xl shadow-lg max-h-60 overflow-hidden transition-opacity duration-200">
-                        <div className="p-3 border-b border-gray-200">
+                        <div className="p-3 border-b border-slate-200">
                             <div className="relative">
                                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                                 <input
@@ -170,7 +170,7 @@ const SearchableSelect: React.FC<SearchableSelectProps> = ({
                                     placeholder="Search ..."
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
-                                    className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-black"
+                                    className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-xl focus:outline-none focus:border-black"
                                 />
                             </div>
                         </div>

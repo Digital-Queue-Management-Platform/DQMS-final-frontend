@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+﻿import { useState, useEffect } from 'react'
 import { Volume2, VolumeX, Play, Square, Wifi, WifiOff, TestTube, Save, RefreshCw, Eye, EyeOff } from 'lucide-react'
 import api from '../config/api'
 import type { Token } from '../types'
@@ -22,19 +22,19 @@ const ANNOUNCEMENT_TEMPLATES = {
   },
   si: {
     call: (tokenNumber: number, counterNumber?: number) => 
-      `අංක ${tokenNumber} ගැණුම්කරු ${counterNumber || 'නියම කළ'} කවුන්ටරයට පැමිණෙන්න. අංක ${tokenNumber}, කවුන්ටරය ${counterNumber || 'නියම කළ'}.`,
-    welcome: 'අපගේ සේවා මධ්‍යස්ථානයට සාදරයෙන් පිළිගනිමු.',
-    next: 'ඊළඟ පාරිභෝගිකයා කරුණාකර.',
-    wait: 'කරුණාකර ඔබේ වාරය සඳහා රැඳී සිටින්න.',
-    test: 'මෙය පරීක්ෂණ නිවේදනයකි. IP ස්පීකර් නිවැරදිව ක්‍රියා කරයි.'
+      `à¶…à¶‚à¶š ${tokenNumber} à¶œà·à¶«à·”à¶¸à·Šà¶šà¶»à·” ${counterNumber || 'à¶±à·’à¶ºà¶¸ à¶šà·…'} à¶šà·€à·”à¶±à·Šà¶§à¶»à¶ºà¶§ à¶´à·à¶¸à·’à¶«à·™à¶±à·Šà¶±. à¶…à¶‚à¶š ${tokenNumber}, à¶šà·€à·”à¶±à·Šà¶§à¶»à¶º ${counterNumber || 'à¶±à·’à¶ºà¶¸ à¶šà·…'}.`,
+    welcome: 'à¶…à¶´à¶œà·š à·ƒà·šà·€à· à¶¸à¶°à·Šâ€à¶ºà·ƒà·Šà¶®à·à¶±à¶ºà¶§ à·ƒà·à¶¯à¶»à¶ºà·™à¶±à·Š à¶´à·’à·…à·’à¶œà¶±à·’à¶¸à·”.',
+    next: 'à¶Šà·…à¶Ÿ à¶´à·à¶»à·’à¶·à·à¶œà·’à¶šà¶ºà· à¶šà¶»à·”à¶«à·à¶šà¶».',
+    wait: 'à¶šà¶»à·”à¶«à·à¶šà¶» à¶”à¶¶à·š à·€à·à¶»à¶º à·ƒà¶³à·„à· à¶»à·à¶³à·“ à·ƒà·’à¶§à·’à¶±à·Šà¶±.',
+    test: 'à¶¸à·™à¶º à¶´à¶»à·“à¶šà·Šà·‚à¶« à¶±à·’à·€à·šà¶¯à¶±à¶ºà¶šà·’. IP à·ƒà·Šà¶´à·“à¶šà¶»à·Š à¶±à·’à·€à·à¶»à¶¯à·’à·€ à¶šà·Šâ€à¶»à·’à¶ºà· à¶šà¶»à¶ºà·’.'
   },
   ta: {
     call: (tokenNumber: number, counterNumber?: number) => 
-      `எண் ${tokenNumber}, தயவுசெய்து கவுண்டர் ${counterNumber || 'ஒதுக்கப்பட்ட'} க்கு வாருங்கள். எண் ${tokenNumber}, கவுண்டர் ${counterNumber || 'ஒதுக்கப்பட்ட'}.`,
-    welcome: 'எங்கள் சேவை மையத்திற்கு வரவேற்கிறோம்.',
-    next: 'அடுத்த வாடிக்கையாளர், தயவுசெய்து.',
-    wait: 'தயவுசெய்து உங்கள் முறைக்கு காத்திருங்கள்.',
-    test: 'இது ஒரு சோதனை அறிவிப்பு. IP ஸ்பீக்கர் சரியாக வேலை செய்கிறது.'
+      `à®Žà®£à¯ ${tokenNumber}, à®¤à®¯à®µà¯à®šà¯†à®¯à¯à®¤à¯ à®•à®µà¯à®£à¯à®Ÿà®°à¯ ${counterNumber || 'à®’à®¤à¯à®•à¯à®•à®ªà¯à®ªà®Ÿà¯à®Ÿ'} à®•à¯à®•à¯ à®µà®¾à®°à¯à®™à¯à®•à®³à¯. à®Žà®£à¯ ${tokenNumber}, à®•à®µà¯à®£à¯à®Ÿà®°à¯ ${counterNumber || 'à®’à®¤à¯à®•à¯à®•à®ªà¯à®ªà®Ÿà¯à®Ÿ'}.`,
+    welcome: 'à®Žà®™à¯à®•à®³à¯ à®šà¯‡à®µà¯ˆ à®®à¯ˆà®¯à®¤à¯à®¤à®¿à®±à¯à®•à¯ à®µà®°à®µà¯‡à®±à¯à®•à®¿à®±à¯‹à®®à¯.',
+    next: 'à®…à®Ÿà¯à®¤à¯à®¤ à®µà®¾à®Ÿà®¿à®•à¯à®•à¯ˆà®¯à®¾à®³à®°à¯, à®¤à®¯à®µà¯à®šà¯†à®¯à¯à®¤à¯.',
+    wait: 'à®¤à®¯à®µà¯à®šà¯†à®¯à¯à®¤à¯ à®‰à®™à¯à®•à®³à¯ à®®à¯à®±à¯ˆà®•à¯à®•à¯ à®•à®¾à®¤à¯à®¤à®¿à®°à¯à®™à¯à®•à®³à¯.',
+    test: 'à®‡à®¤à¯ à®’à®°à¯ à®šà¯‹à®¤à®©à¯ˆ à®…à®±à®¿à®µà®¿à®ªà¯à®ªà¯. IP à®¸à¯à®ªà¯€à®•à¯à®•à®°à¯ à®šà®°à®¿à®¯à®¾à®• à®µà¯‡à®²à¯ˆ à®šà¯†à®¯à¯à®•à®¿à®±à®¤à¯.'
   }
 }
 
@@ -434,7 +434,7 @@ export default function IPSpeakerPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-8">
+    <div className="min-h-screen bg-slate-50 p-4 sm:p-6 lg:p-8">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="mb-8">
@@ -444,7 +444,7 @@ export default function IPSpeakerPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Configuration Panel */}
-          <div className="bg-white rounded-xl shadow-sm p-6">
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-semibold text-gray-900">Configuration</h2>
               <div className="flex items-center space-x-2">
@@ -498,7 +498,7 @@ export default function IPSpeakerPage() {
 
             {/* IP Speaker Configuration */}
             {useIPSpeaker && (
-              <div className="space-y-4 p-4 bg-gray-50 rounded-lg">
+              <div className="space-y-4 p-4 bg-slate-50 rounded-xl">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">IP Address</label>
@@ -506,7 +506,7 @@ export default function IPSpeakerPage() {
                       type="text"
                       value={ipSpeakerConfig.ip}
                       onChange={(e) => setIpSpeakerConfig(prev => ({ ...prev, ip: e.target.value }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                       placeholder="192.168.1.100"
                     />
                   </div>
@@ -516,7 +516,7 @@ export default function IPSpeakerPage() {
                       type="number"
                       value={ipSpeakerConfig.port}
                       onChange={(e) => setIpSpeakerConfig(prev => ({ ...prev, port: parseInt(e.target.value) }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                       placeholder="80"
                     />
                   </div>
@@ -529,7 +529,7 @@ export default function IPSpeakerPage() {
                       type="text"
                       value={ipSpeakerConfig.username}
                       onChange={(e) => setIpSpeakerConfig(prev => ({ ...prev, username: e.target.value }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                       placeholder="admin"
                     />
                   </div>
@@ -540,7 +540,7 @@ export default function IPSpeakerPage() {
                         type={showPassword ? "text" : "password"}
                         value={ipSpeakerConfig.password}
                         onChange={(e) => setIpSpeakerConfig(prev => ({ ...prev, password: e.target.value }))}
-                        className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                         placeholder="admin123"
                       />
                       <button
@@ -563,7 +563,7 @@ export default function IPSpeakerPage() {
                   <select
                     value={ipSpeakerConfig.model}
                     onChange={(e) => setIpSpeakerConfig(prev => ({ ...prev, model: e.target.value as any }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                   >
                     {IP_SPEAKER_MODELS.map(model => (
                       <option key={model.id} value={model.id}>
@@ -634,7 +634,7 @@ export default function IPSpeakerPage() {
                         : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                     }`}
                   >
-                    {lang === 'en' ? 'English' : lang === 'si' ? 'සිංහල' : 'தமிழ்'}
+                    {lang === 'en' ? 'English' : lang === 'si' ? 'à·ƒà·’à¶‚à·„à¶½' : 'à®¤à®®à®¿à®´à¯'}
                   </button>
                 ))}
               </div>
@@ -654,8 +654,8 @@ export default function IPSpeakerPage() {
           </div>
 
           {/* Test Panel */}
-          <div className="bg-white rounded-xl shadow-sm p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-6">Test Announcements</h2>
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
+            <h2 className="text-xl font-semibold text-slate-900 mb-6">Test Announcements</h2>
 
             {/* Current Token Info */}
             {currentToken && (
@@ -723,7 +723,7 @@ export default function IPSpeakerPage() {
                   value={customMessage}
                   onChange={(e) => setCustomMessage(e.target.value)}
                   rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                   placeholder="Enter custom announcement text..."
                 />
                 <button

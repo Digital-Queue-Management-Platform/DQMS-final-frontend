@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+﻿import React, { useEffect, useState } from 'react'
 import api from '../../config/api'
 import { Plus, Edit2, Trash2, Save, X, Package, Search } from 'lucide-react'
 
@@ -181,7 +181,7 @@ const ServicesPage: React.FC = () => {
                     onChange={(e) => setCode(e.target.value)}
                     disabled={!!editingId}
                     placeholder="e.g., SVC001"
-                    className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition disabled:bg-gray-100 disabled:cursor-not-allowed text-sm sm:text-base"
+                    className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition disabled:bg-gray-100 disabled:cursor-not-allowed text-sm sm:text-base"
                   />
                 </div>
 
@@ -193,7 +193,7 @@ const ServicesPage: React.FC = () => {
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
                     placeholder="e.g., Account Opening"
-                    className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition text-sm sm:text-base"
+                    className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition text-sm sm:text-base"
                   />
                 </div>
 
@@ -206,7 +206,7 @@ const ServicesPage: React.FC = () => {
                     value={order}
                     onChange={(e) => setOrder(parseInt(e.target.value) || 999)}
                     placeholder="e.g., 1, 2, 3..."
-                    className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition text-sm sm:text-base"
+                    className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition text-sm sm:text-base"
                   />
                   <p className="text-xs text-gray-500 mt-1">Lower numbers appear first (e.g., 1 = first position)</p>
                 </div>
@@ -221,7 +221,7 @@ const ServicesPage: React.FC = () => {
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="Brief description of the service..."
                   rows={3}
-                  className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition resize-none text-sm sm:text-base"
+                  className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition resize-none text-sm sm:text-base"
                 />
               </div>
 
@@ -257,7 +257,7 @@ const ServicesPage: React.FC = () => {
               placeholder="Search services by code, title, or description..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 sm:pl-12 pr-3 sm:pr-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition text-sm sm:text-base"
+              className="w-full pl-10 sm:pl-12 pr-3 sm:pr-4 py-2 sm:py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition text-sm sm:text-base"
             />
           </div>
         </div>
@@ -295,7 +295,7 @@ const ServicesPage: React.FC = () => {
         </div>
 
         {/* Services Table */}
-        <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-black">
@@ -340,7 +340,7 @@ const ServicesPage: React.FC = () => {
                       {!searchTerm && (
                         <button
                           onClick={() => setShowForm(true)}
-                          className="mt-4 px-4 sm:px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm sm:text-base"
+                          className="mt-4 px-4 sm:px-6 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors text-sm sm:text-base"
                         >
                           Create First Service
                         </button>
@@ -377,7 +377,7 @@ const ServicesPage: React.FC = () => {
                         <select
                           value={service.isActive !== false ? 'active' : 'inactive'}
                           onChange={(e) => handleStatusChange(service.id, e.target.value === 'active')}
-                          className={`px-2 sm:px-3 py-1 text-xs font-semibold rounded-full border-0 focus:ring-2 focus:ring-blue-500 cursor-pointer transition-colors ${service.isActive !== false
+                          className={`px-2 sm:px-3 py-1 text-xs font-semibold rounded-full border-0 focus:ring-2 focus:ring-indigo-500 cursor-pointer transition-colors ${service.isActive !== false
                               ? 'bg-green-100 text-green-700 hover:bg-green-200'
                               : 'bg-red-100 text-red-700 hover:bg-red-200'
                             }`}

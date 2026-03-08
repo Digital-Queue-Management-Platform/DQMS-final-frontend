@@ -1,4 +1,4 @@
-//import React from 'react';
+﻿//import React from 'react';
 import { BellIcon, CheckCircleIcon, AlertCircleIcon, InfoIcon, AlertTriangleIcon } from 'lucide-react';
 interface Alert {
   id: string | number;
@@ -29,7 +29,7 @@ export function AlertsPanel({
     }
   };
   return <div className="h-full">
-      <div className="border-b border-gray-200 py-4 px-6">
+      <div className="border-b border-slate-200 py-4 px-6">
         <div className="flex items-center">
           <BellIcon className="h-5 w-5 text-gray-400 mr-2" />
           <h3 className="text-lg font-medium text-gray-900">Notifications</h3>

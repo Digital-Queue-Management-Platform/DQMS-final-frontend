@@ -1,4 +1,4 @@
-import React from 'react'
+﻿import React from 'react'
 import { UsersIcon, ClockIcon, StarIcon, TimerIcon } from 'lucide-react'
 
 interface OverviewData {
@@ -60,7 +60,7 @@ const OverviewCards: React.FC<OverviewCardsProps> = ({ data }) => {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
       {cards.map((card, index) => (
-        <div key={index} className="bg-white rounded-lg shadow-sm p-6">
+        <div key={index} className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
           <div className="flex justify-between items-start">
             <div>
               <h3 className="text-sm font-medium text-gray-500">

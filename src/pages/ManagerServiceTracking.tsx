@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useState } from "react"
 import { Search, Send, CheckCircle } from "lucide-react"
@@ -75,7 +75,7 @@ export default function ManagerServiceTracking() {
 
   return (
     <div className="p-6 max-w-3xl mx-auto">
-      <div className="bg-white rounded-xl shadow-sm p-5 mb-4">
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 mb-4">
         <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-3">Service Tracking</h1>
         <div className="flex gap-2 mb-2">
           {['en', 'si', 'ta'].map(l => (
@@ -100,7 +100,7 @@ export default function ManagerServiceTracking() {
       {loading && <div className="text-gray-600">Loading…</div>}
 
       {data && (
-        <div className="bg-white rounded-xl shadow-sm p-5 space-y-4">
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 space-y-4">
           <div className="flex items-center gap-2">
             <span className="px-2 py-1 bg-gray-100 rounded font-mono text-sm">{data.refNumber}</span>
             <span className={`ml-auto text-xs px-2 py-1 rounded-full font-semibold ${data.status === 'completed' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>{data.status.toUpperCase()}</span>
@@ -112,7 +112,7 @@ export default function ManagerServiceTracking() {
           <div className="space-y-3">
             {(data.updates || []).map(u => (
               <div key={u.id} className="border rounded-lg p-3 text-sm">
-                <div className="flex items-center justify-between text-xs text-gray-500 mb-1">
+                <div className="flex items-center justify-between text-xs text-slate-500 mb-1">
                   <span className="capitalize">{u.actorRole.replace('_', ' ')}</span>
                   <span>{new Date(u.createdAt).toLocaleString()}</span>
                 </div>

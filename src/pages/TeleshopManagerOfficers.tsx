@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import {useState, useEffect} from "react"
 import {useNavigate} from "react-router-dom"
@@ -387,23 +387,23 @@ export default function TeleshopManagerOfficers() {
 
       {/* Summary Cards */}
       <div className="max-w-4xl mx-auto mb-6 grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <div className="bg-white rounded-lg border border-gray-200 p-6 text-center shadow-sm">
+        <div className="bg-white rounded-lg border border-slate-200 p-6 text-center shadow-sm">
           <div className="text-2xl font-bold text-blue-600">{officers.length}</div>
           <div className="text-sm text-gray-600 uppercase tracking-wider font-semibold">Total</div>
         </div>
-        <div className="bg-white rounded-lg border border-gray-200 p-6 text-center shadow-sm">
+        <div className="bg-white rounded-lg border border-slate-200 p-6 text-center shadow-sm">
           <div className="text-2xl font-bold text-green-600">
             {officers.filter(o=> o.status=== 'available').length}
           </div>
           <div className="text-sm text-gray-600 uppercase tracking-wider font-semibold">Online</div>
         </div>
-        <div className="bg-white rounded-lg border border-gray-200 p-6 text-center shadow-sm">
+        <div className="bg-white rounded-lg border border-slate-200 p-6 text-center shadow-sm">
           <div className="text-2xl font-bold text-yellow-600">
             {officers.filter(o=> o.status=== 'break' || o.status=== 'on_break').length}
           </div>
           <div className="text-sm text-gray-600 uppercase tracking-wider font-semibold">On Break</div>
         </div>
-        <div className="bg-white rounded-lg border border-gray-200 p-6 text-center shadow-sm">
+        <div className="bg-white rounded-lg border border-slate-200 p-6 text-center shadow-sm">
           <div className="text-2xl font-bold text-gray-600">
             {officers.filter(o=> o.status=== 'offline').length}
           </div>
@@ -543,7 +543,7 @@ onClick={()=> {
             </div>
           </div>
         ) : filteredOfficers.length=== 0 ? (
-    <div className="text-center py-20 bg-gray-50/50 rounded-3xl border-2 border-dashed border-gray-200">
+    <div className="text-center py-20 bg-gray-50/50 rounded-3xl border-2 border-dashed border-slate-200">
       <Users className="h-16 w-16 text-gray-300 mx-auto mb-6" />
         <p className="text-gray-500 text-xl font-bold">No officers match your search</p>
           <p className="text-gray-400 mt-2">Try adjusting your filters or search terms</p>
@@ -604,7 +604,7 @@ onClick={()=> {
     <div className="text-xs text-green-600 font-bold uppercase tracking-wider mb-1">Total Break Time</div>
       <div className="text-xl font-black text-green-900">{formatDuration(officer.totalMinutes)}</div>
                             </div>
-  <div className="bg-gray-100/50 rounded-2xl p-4 border border-gray-200">
+  <div className="bg-gray-100/50 rounded-2xl p-4 border border-slate-200">
     <div className="text-xs text-gray-600 font-bold uppercase tracking-wider mb-1">Registered On</div>
       <div className="text-xl font-black text-gray-900">{formatDate(officer.createdAt)}</div>
                             </div>
@@ -643,7 +643,7 @@ onClick={()=> {
             <p className="text-purple-100 text-sm mt-1">Assign Counter for {selectedOfficerForCounter.name}</p>
             </div>
     <div className="p-8">
-      <div className="mb-8 p-4 bg-gray-50 rounded-2xl border border-gray-100">
+      <div className="mb-8 p-4 bg-slate-50 rounded-2xl border border-gray-100">
         <div className="flex justify-between items-center mb-2">
           <span className="text-xs font-bold text-gray-400 uppercase">Outlet</span>
             <span className="text-sm font-black text-gray-900">{selectedOfficerForCounter.outlet.name}</span>

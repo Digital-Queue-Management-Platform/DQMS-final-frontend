@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+﻿import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import api from '../config/api'
 import { Eye, EyeOff, Copy, RefreshCw, Save, ExternalLink } from 'lucide-react'
@@ -136,7 +136,7 @@ export default function TeleshopManagerKioskSettings() {
         )}
 
         {outlet && (
-          <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+          <div className="bg-white rounded-2xl shadow-sm-md p-6 mb-6">
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h2 className="text-xl font-bold text-gray-800">{outlet.name}</h2>
@@ -156,7 +156,7 @@ export default function TeleshopManagerKioskSettings() {
 
             {/* Current Password Display */}
             {currentPassword && (
-              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-6">
+              <div className="bg-gray-50 border border-slate-200 rounded-lg p-4 mb-6">
                 <p className="text-sm font-medium text-gray-700 mb-2">Current Kiosk Password:</p>
                 <div className="flex items-center gap-2">
                   <code className="flex-1 px-4 py-3 bg-white border border-gray-300 rounded font-mono text-lg">
@@ -181,7 +181,7 @@ export default function TeleshopManagerKioskSettings() {
             )}
 
             {/* Set New Password */}
-            <div className="border-t border-gray-200 pt-6">
+            <div className="border-t border-slate-200 pt-6">
               <h3 className="text-lg font-semibold text-gray-800 mb-4">
                 {currentPassword ? 'Update Kiosk Password' : 'Set Kiosk Password'}
               </h3>
@@ -196,7 +196,7 @@ export default function TeleshopManagerKioskSettings() {
                       type="text"
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
-                      className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="flex-1 px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                       placeholder="Enter new password"
                     />
                     <button
@@ -219,7 +219,7 @@ export default function TeleshopManagerKioskSettings() {
                     type="text"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                     placeholder="Re-enter new password"
                   />
                 </div>
@@ -227,7 +227,7 @@ export default function TeleshopManagerKioskSettings() {
                 <button
                   onClick={handleSavePassword}
                   disabled={saving || !newPassword || newPassword !== confirmPassword}
-                  className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-semibold"
+                  className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-semibold"
                 >
                   <Save className="w-5 h-5" />
                   {saving ? 'Saving...' : currentPassword ? 'Update Password' : 'Set Password'}

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react"
+﻿import { useState, useEffect, useCallback } from "react"
 import { useNavigate } from "react-router-dom"
 import { MessageSquare, Filter, Star, ChevronLeft, ChevronRight, X, Building2 } from "lucide-react"
 import api from "../config/api"
@@ -78,26 +78,26 @@ export default function DGMFeedback() {
             {/* Filters */}
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 mb-6 flex flex-wrap items-end gap-3">
                 <div>
-                    <label className="block text-xs font-medium text-gray-500 mb-1">Outlet</label>
-                    <select value={outletId} onChange={e => setOutletId(e.target.value)} className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none">
+                    <label className="block text-xs font-medium text-slate-500 mb-1">Outlet</label>
+                    <select value={outletId} onChange={e => setOutletId(e.target.value)} className="border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none">
                         <option value="">All Outlets</option>
                         {outlets.map(o => <option key={o.id} value={o.id}>{o.name}</option>)}
                     </select>
                 </div>
                 <div>
-                    <label className="block text-xs font-medium text-gray-500 mb-1">Rating</label>
-                    <select value={rating} onChange={e => setRating(e.target.value)} className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none">
+                    <label className="block text-xs font-medium text-slate-500 mb-1">Rating</label>
+                    <select value={rating} onChange={e => setRating(e.target.value)} className="border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none">
                         <option value="">All</option>
                         {[1, 2, 3, 4, 5].map(r => <option key={r} value={r}>{r} ★</option>)}
                     </select>
                 </div>
                 <div>
-                    <label className="block text-xs font-medium text-gray-500 mb-1">From</label>
-                    <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none" />
+                    <label className="block text-xs font-medium text-slate-500 mb-1">From</label>
+                    <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none" />
                 </div>
                 <div>
-                    <label className="block text-xs font-medium text-gray-500 mb-1">To</label>
-                    <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none" />
+                    <label className="block text-xs font-medium text-slate-500 mb-1">To</label>
+                    <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none" />
                 </div>
                 <button onClick={applyFilters} className="px-4 py-2 bg-teal-600 text-white rounded-lg text-sm font-semibold hover:bg-teal-700 transition-colors flex items-center gap-2">
                     <Filter className="w-4 h-4" /> Apply
@@ -110,7 +110,7 @@ export default function DGMFeedback() {
             ) : error ? (
                 <div className="text-center py-16 text-red-500">{error}</div>
             ) : feedbacks.length === 0 ? (
-                <div className="text-center py-16 bg-white rounded-2xl border border-dashed border-gray-200 text-gray-400">
+                <div className="text-center py-16 bg-white rounded-2xl border border-dashed border-slate-200 text-gray-400">
                     <MessageSquare className="w-12 h-12 mx-auto mb-3" />No feedback found.
                 </div>
             ) : (
@@ -140,8 +140,8 @@ export default function DGMFeedback() {
                         <div className="flex items-center justify-between bg-white rounded-2xl border border-gray-100 p-4 mt-4">
                             <span className="text-sm text-gray-500">Page {page} of {totalPages}</span>
                             <div className="flex gap-2">
-                                <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} className="p-2 rounded-lg border border-gray-200 disabled:opacity-40 hover:bg-gray-50"><ChevronLeft className="w-4 h-4" /></button>
-                                <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="p-2 rounded-lg border border-gray-200 disabled:opacity-40 hover:bg-gray-50"><ChevronRight className="w-4 h-4" /></button>
+                                <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} className="p-2 rounded-lg border border-slate-200 disabled:opacity-40 hover:bg-gray-50"><ChevronLeft className="w-4 h-4" /></button>
+                                <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="p-2 rounded-lg border border-slate-200 disabled:opacity-40 hover:bg-gray-50"><ChevronRight className="w-4 h-4" /></button>
                             </div>
                         </div>
                     )}
@@ -152,16 +152,16 @@ export default function DGMFeedback() {
                 <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
                     <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg p-6 relative">
                         <button onClick={() => setSelected(null)} className="absolute top-4 right-4 p-1.5 rounded-lg bg-gray-100 hover:bg-gray-200"><X className="w-4 h-4" /></button>
-                        <h2 className="text-lg font-bold text-gray-900 mb-4">Feedback Details</h2>
+                        <h2 className="text-lg font-bold text-slate-900 mb-4">Feedback Details</h2>
                         <div className="flex mb-3">{renderStars(selected.rating)}</div>
                         <div className="space-y-3 text-sm">
-                            <div className="bg-gray-50 rounded-xl p-3"><p className="text-xs text-gray-500 mb-1">Comment</p><p className="text-gray-800">{selected.comment || "No comment provided"}</p></div>
+                            <div className="bg-slate-50 rounded-xl p-3"><p className="text-xs text-slate-500 mb-1">Comment</p><p className="text-gray-800">{selected.comment || "No comment provided"}</p></div>
                             <div className="grid grid-cols-2 gap-3">
-                                <div className="bg-gray-50 rounded-xl p-3"><p className="text-xs text-gray-500 mb-1">Customer</p><p className="font-medium">{selected.customer?.name}</p><p className="text-gray-500">{selected.customer?.mobileNumber}</p></div>
-                                <div className="bg-gray-50 rounded-xl p-3"><p className="text-xs text-gray-500 mb-1">Outlet</p><p className="font-medium">{selected.token?.outlet?.name}</p></div>
+                                <div className="bg-slate-50 rounded-xl p-3"><p className="text-xs text-slate-500 mb-1">Customer</p><p className="font-medium">{selected.customer?.name}</p><p className="text-gray-500">{selected.customer?.mobileNumber}</p></div>
+                                <div className="bg-slate-50 rounded-xl p-3"><p className="text-xs text-slate-500 mb-1">Outlet</p><p className="font-medium">{selected.token?.outlet?.name}</p></div>
                             </div>
-                            <div className="bg-gray-50 rounded-xl p-3"><p className="text-xs text-gray-500 mb-1">Date</p><p className="font-medium">{new Date(selected.createdAt).toLocaleString()}</p></div>
-                            <div className={`rounded-xl p-3 ${selected.isResolved ? "bg-green-50" : "bg-orange-50"}`}><p className="text-xs text-gray-500 mb-1">Status</p><p className={`font-semibold ${selected.isResolved ? "text-green-700" : "text-orange-700"}`}>{selected.isResolved ? "Resolved" : "Open"}</p></div>
+                            <div className="bg-slate-50 rounded-xl p-3"><p className="text-xs text-slate-500 mb-1">Date</p><p className="font-medium">{new Date(selected.createdAt).toLocaleString()}</p></div>
+                            <div className={`rounded-xl p-3 ${selected.isResolved ? "bg-green-50" : "bg-orange-50"}`}><p className="text-xs text-slate-500 mb-1">Status</p><p className={`font-semibold ${selected.isResolved ? "text-green-700" : "text-orange-700"}`}>{selected.isResolved ? "Resolved" : "Open"}</p></div>
                         </div>
                     </div>
                 </div>

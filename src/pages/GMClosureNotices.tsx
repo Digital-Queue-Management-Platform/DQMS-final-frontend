@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+﻿import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import { PlusCircle, Trash2, AlertTriangle, Calendar, Clock, BellOff, Building2 } from "lucide-react"
 import api from "../config/api"
@@ -143,14 +143,14 @@ export default function GMClosureNotices() {
             {loading ? (
                 <div className="py-12 text-center text-gray-400 text-sm">Loading notices…</div>
             ) : notices.length === 0 ? (
-                <div className="py-12 flex flex-col items-center text-gray-400 bg-white rounded-2xl border border-dashed border-gray-200">
+                <div className="py-12 flex flex-col items-center text-gray-400 bg-white rounded-2xl border border-dashed border-slate-200">
                     <AlertTriangle className="w-10 h-10 mb-3" />
                     <p className="text-sm">No closure notices yet.</p>
                 </div>
             ) : (
                 <div className="space-y-3">
                     {notices.map(notice => (
-                        <div key={notice.id} className={`rounded-2xl border p-4 ${isActive(notice) ? "border-red-300 bg-red-50" : "border-gray-200 bg-white"}`}>
+                        <div key={notice.id} className={`rounded-2xl border p-4 ${isActive(notice) ? "border-red-300 bg-red-50" : "border-slate-200 bg-white"}`}>
                             <div className="flex items-start justify-between gap-3">
                                 <div className="flex-1 min-w-0">
                                     <div className="flex items-center gap-2 mb-1 flex-wrap">

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+﻿import React, { useEffect, useState } from 'react'
 import api from '../../config/api'
 import { MapPin, Plus, X, Edit2, Trash2, Building2, Search } from 'lucide-react'
 
@@ -180,7 +180,7 @@ const BranchesPage: React.FC = () => {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4 mb-6 sm:mb-8">
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 sm:p-6">
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 border border-slate-200 p-4 sm:p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs sm:text-sm text-slate-600 mb-1">Total Outlets</p>
@@ -192,7 +192,7 @@ const BranchesPage: React.FC = () => {
             </div>
           </div>
 
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 sm:p-6">
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 border border-slate-200 p-4 sm:p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs sm:text-sm text-slate-600 mb-1">Active Regions</p>
@@ -210,7 +210,7 @@ const BranchesPage: React.FC = () => {
           {/* Outlet Form Section */}
           {showForm && (
             <div className="xl:col-span-1 order-1 xl:order-none">
-              <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 sm:p-6">
+              <div className="bg-white rounded-2xl shadow-sm border border-slate-100 border border-slate-200 p-4 sm:p-6">
                 <div className="flex items-center justify-between mb-4 sm:mb-6">
                   <h2 className="text-lg sm:text-xl font-semibold text-slate-800">
                     {editingId ? 'Edit Outlet' : 'New Outlet'}
@@ -272,7 +272,7 @@ const BranchesPage: React.FC = () => {
 
           {/* List */}
           <div className={showForm ? "xl:col-span-2 order-2 xl:order-none" : "xl:col-span-3"}>
-            <div className="bg-white rounded-xl shadow-sm border border-slate-200">
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 border border-slate-200">
               <div className="p-4 sm:p-6 border-b border-slate-200">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-3 sm:gap-0">
                   <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">

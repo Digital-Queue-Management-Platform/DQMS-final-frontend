@@ -1,4 +1,4 @@
-// Removed unused billData state
+﻿// Removed unused billData state
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { User, Phone, Eye, EyeOff, Send, MessageSquare, CheckCircle } from 'lucide-react'
@@ -643,7 +643,7 @@ export default function KioskDashboard() {
         <NoticeModal notices={activeNotices} onDismiss={dismissNotice} />
       )}
       {/* Language Switcher */}
-      <div className="bg-white border-b border-gray-200 shadow-sm">
+      <div className="bg-white border-b border-slate-200 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
           {/* Language buttons */}
           <div className="flex gap-2">
@@ -713,7 +713,7 @@ export default function KioskDashboard() {
                 {[1, 2, 3, 4].map((step) => (
                   <div key={step} className="flex items-center">
                     <div
-                      className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold transition-colors ${currentStep >= step
+                      className={`w-8 h-8 rounded-xl flex items-center justify-center text-sm font-semibold transition-colors ${currentStep >= step
                         ? 'bg-blue-600 text-white'
                         : 'bg-gray-200 text-gray-500'
                         }`}
@@ -735,7 +735,7 @@ export default function KioskDashboard() {
             </div>
 
             {error && (
-              <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">{error}</div>
+              <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm">{error}</div>
             )}
 
             <form ref={formRef} onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
@@ -754,7 +754,7 @@ export default function KioskDashboard() {
                       {[{ code: 'en', label: t.english }, { code: 'si', label: t.sinhala }, { code: 'ta', label: t.tamil }].map(l => (
                         <label
                           key={l.code}
-                          className={`flex items-center gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all hover:border-blue-400 ${preferredLanguage === l.code ? 'border-blue-600 bg-blue-50' : 'border-gray-200'
+                          className={`flex items-center gap-3 p-4 border-2 rounded-xl cursor-pointer transition-all hover:border-blue-400 hover:shadow-sm ${preferredLanguage === l.code ? 'border-blue-600 bg-blue-50' : 'border-slate-200'
                             }`}
                         >
                           <input
@@ -777,7 +777,7 @@ export default function KioskDashboard() {
                       type="button"
                       onClick={goToNextStep}
                       disabled={!canProceedFromStep1}
-                      className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+                      className="flex-1 bg-blue-600 text-white py-3 rounded-xl font-semibold hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
                     >
                       {t.next}
                     </button>
@@ -800,7 +800,7 @@ export default function KioskDashboard() {
                       {services.map((service) => (
                         <label
                           key={service.id}
-                          className={`flex items-center gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all hover:border-blue-400 ${selectedService === service.code ? 'border-blue-600 bg-blue-50' : 'border-gray-200'
+                          className={`flex items-center gap-3 p-4 border-2 rounded-xl cursor-pointer transition-all hover:border-blue-400 hover:shadow-sm ${selectedService === service.code ? 'border-blue-600 bg-blue-50' : 'border-slate-200'
                             }`}
                         >
                           <input
@@ -821,7 +821,7 @@ export default function KioskDashboard() {
                     <button
                       type="button"
                       onClick={goToPreviousStep}
-                      className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg font-semibold hover:bg-gray-300 transition-colors"
+                      className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-xl font-semibold hover:bg-gray-300 transition-colors"
                     >
                       {t.back}
                     </button>
@@ -829,7 +829,7 @@ export default function KioskDashboard() {
                       type="button"
                       onClick={goToNextStep}
                       disabled={!canProceedFromStep2}
-                      className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+                      className="flex-1 bg-blue-600 text-white py-3 rounded-xl font-semibold hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
                     >
                       {t.next}
                     </button>
@@ -863,7 +863,7 @@ export default function KioskDashboard() {
                                   setError("")
                                   setSltVerified(false)
                                 }}
-                                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent rounded-xl"
                                 placeholder={t.sltTelephonePlaceholder}
                                 maxLength={10}
                               />
@@ -888,7 +888,7 @@ export default function KioskDashboard() {
                           type="text"
                           value={name}
                           onChange={(e) => setName(e.target.value.replace(/[^a-zA-Z\s\-'.]/g, ''))}
-                          className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent rounded-xl"
                           placeholder={t.name}
                           maxLength={100}
                           required
@@ -904,7 +904,7 @@ export default function KioskDashboard() {
                           type="tel"
                           value={mobileNumber}
                           onChange={(e) => setMobileNumber(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                          className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent rounded-xl"
                           placeholder="07XXXXXXXX"
                           maxLength={10}
                           required
@@ -937,7 +937,7 @@ export default function KioskDashboard() {
                               type="text"
                               value={nicNumber}
                               onChange={(e) => setNicNumber(e.target.value.toUpperCase())}
-                              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent rounded-xl"
                               placeholder="123456789V or 200012345678"
                               maxLength={12}
                             />
@@ -955,7 +955,7 @@ export default function KioskDashboard() {
                               type="email"
                               value={email}
                               onChange={(e) => setEmail(e.target.value)}
-                              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent rounded-xl"
                               placeholder="jason@gmail.com"
                             />
                           </div>
@@ -971,7 +971,7 @@ export default function KioskDashboard() {
                     <button
                       type="button"
                       onClick={goToPreviousStep}
-                      className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg font-semibold hover:bg-gray-300 transition-colors"
+                      className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-xl font-semibold hover:bg-gray-300 transition-colors"
                     >
                       {t.back}
                     </button>
@@ -979,7 +979,7 @@ export default function KioskDashboard() {
                       type="button"
                       onClick={goToNextStep}
                       disabled={!canProceedFromStep3()}
-                      className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+                      className="flex-1 bg-blue-600 text-white py-3 rounded-xl font-semibold hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
                     >
                       {t.next}
                     </button>
@@ -996,7 +996,7 @@ export default function KioskDashboard() {
                   </div>
 
                   {/* Summary */}
-                  <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+                  <div className="bg-slate-50 rounded-xl p-4 space-y-3">
                     <div>
                       <span className="text-xs font-medium text-gray-500 uppercase">{t.preferredLanguage}</span>
                       <p className="text-sm font-medium text-gray-900">
@@ -1046,7 +1046,7 @@ export default function KioskDashboard() {
                       </div>
                       <p className="text-sm text-gray-700 mb-2 font-medium">{notificationMessage}</p>
                       {!isOwnerOfAccount && (
-                        <p className="text-xs text-gray-600 bg-white p-2 rounded border border-gray-200 mb-2 flex items-start gap-2">
+                        <p className="text-xs text-gray-600 bg-white p-2 rounded border border-slate-200 mb-2 flex items-start gap-2">
                           <MessageSquare className="w-4 h-4 mt-0.5 flex-shrink-0" />
                           <span>The bill details have been sent as an SMS notification to the account holder.</span>
                         </p>
@@ -1093,7 +1093,7 @@ export default function KioskDashboard() {
                       <button
                         type="submit"
                         disabled={submitting || !selectedService || otpCode.length !== 4}
-                        className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+                        className="w-full bg-blue-600 text-white py-3 rounded-xl font-semibold hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
                       >
                         {submitting ? t.generating : t.generateToken}
                       </button>
@@ -1104,7 +1104,7 @@ export default function KioskDashboard() {
                     <button
                       type="button"
                       onClick={goToPreviousStep}
-                      className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg font-semibold hover:bg-gray-300 transition-colors"
+                      className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-xl font-semibold hover:bg-gray-300 transition-colors"
                     >
                       {t.back}
                     </button>
@@ -1139,10 +1139,10 @@ export default function KioskDashboard() {
       {successToken && (
         <>
           {console.log('Rendering success modal with:', successToken)}
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-lg shadow-2xl p-8 max-w-md w-full">
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-2xl shadow-sm-2xl p-8 max-w-md w-full">
               <div className="text-center">
-                <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <div className="w-20 h-20 bg-green-100 rounded-xl flex items-center justify-center mx-auto mb-4">
                   <svg className="w-12 h-12 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
@@ -1151,7 +1151,7 @@ export default function KioskDashboard() {
                 <p className="text-gray-600 mb-6">Please remember your token number</p>
 
                 <div className="bg-blue-50 rounded-lg p-6 mb-6">
-                  <div className="text-sm text-gray-600 mb-1">Your Token Number</div>
+                  <div className="text-sm text-slate-500 mb-1">Your Token Number</div>
                   <div className="text-6xl font-bold text-blue-600">
                     {successToken.tokenNumber || 'N/A'}
                   </div>
@@ -1162,7 +1162,7 @@ export default function KioskDashboard() {
                   )}
                 </div>
 
-                <div className="text-left bg-gray-50 rounded-lg p-4 mb-6 space-y-2 text-sm">
+                <div className="text-left bg-slate-50 rounded-xl p-4 mb-6 space-y-2 text-sm">
                   <div className="flex justify-between">
                     <span className="text-gray-600">Customer:</span>
                     <span className="font-medium">{successToken.customerName}</span>

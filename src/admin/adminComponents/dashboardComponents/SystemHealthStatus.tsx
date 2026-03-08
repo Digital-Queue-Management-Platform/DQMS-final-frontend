@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { CheckCircle, AlertTriangle, XCircle } from 'lucide-react';
+﻿import React, { useState, useEffect } from 'react';
+import { CheckCircle, AlertTriangle, XCircle, Loader2 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import api from '../../../config/api';
 
@@ -108,7 +108,7 @@ const SystemHealthStatus: React.FC = () => {
 
   if (loading) {
   return (
-    <div className="p-4 rounded-2xl border-2 border-gray-200 bg-white">
+    <div className="p-4 rounded-2xl border-2 border-slate-200 bg-white">
   <div className="w-full flex flex-col md:flex-row items-start md:items-center gap-8 md:gap-12 px-4 md:px-20">
 
     {/* LEFT COLUMN */}
@@ -120,7 +120,7 @@ const SystemHealthStatus: React.FC = () => {
       </h1>
 
       <div className="mt-4 flex justify-center md:justify-start items-center gap-3 text-xs text-slate-600">
-        <span className="flex items-center gap-1">🔄 Checking...</span>
+        <span className="flex items-center gap-1"><Loader2 className="w-3 h-3 animate-spin" /> Checking...</span>
       </div>
     </div>
 
@@ -154,7 +154,7 @@ const SystemHealthStatus: React.FC = () => {
 
 
   return (
-    <div className="p-4 rounded-2xl border-2 border-gray-200 bg-white">
+    <div className="p-4 rounded-2xl border-2 border-slate-200 bg-white">
       <div className="w-full flex flex-col md:flex-row items-start md:items-center gap-8 md:gap-12 px-4 md:px-20">
 
         {/* LEFT COLUMN */}
@@ -167,7 +167,7 @@ const SystemHealthStatus: React.FC = () => {
 
           <div className="mt-4 flex flex-wrap justify-center md:justify-start items-center gap-3 text-xs text-slate-600">
             {loading && (
-              <span className="flex items-center gap-1">🔄 Checking...</span>
+              <span className="flex items-center gap-1"><Loader2 className="w-3 h-3 animate-spin" /> Checking...</span>
             )}
             <span>Last Updated: {lastUpdated.toLocaleTimeString()}</span>
           </div>

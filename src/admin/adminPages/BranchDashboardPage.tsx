@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+﻿import React, { useState, useEffect } from 'react'
 import Header2 from '../adminComponents/branchDashboardComponents/Header2'
 import OverviewCards from '../adminComponents/branchDashboardComponents/OverviewCards'
 import AnalyticsCharts from '../adminComponents/branchDashboardComponents/AnalyticsCharts'
@@ -224,7 +224,7 @@ const BranchDashboardPage: React.FC<BranchDashboardPageProps> = ({ outlets = [] 
               />
               <div className="mt-6">
                 <h3 className="text-sm font-medium text-gray-700 mb-3">Branch Alerts</h3>
-                <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+                <div className="bg-white border border-slate-200 rounded-lg overflow-hidden">
                   <AlertsPanel alerts={branchAlerts} />
                 </div>
               </div>

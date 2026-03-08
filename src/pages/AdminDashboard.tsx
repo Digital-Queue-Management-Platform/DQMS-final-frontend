@@ -1,7 +1,8 @@
-"use client"
+﻿"use client"
 
 import { useState, useEffect } from "react"
-import { Users, Clock, Star, TrendingUp, Filter, Download, Bell, Activity, BarChart3, AlertCircle, MessageSquare } from "lucide-react"
+import { motion } from "framer-motion"
+import { Users, Clock, Star, TrendingUp, Filter, Download, Bell, Activity, BarChart3, AlertCircle, MessageSquare, X } from "lucide-react"
 import api, { WS_URL } from "../config/api"
 import type { Alert } from "../types"
 
@@ -256,9 +257,9 @@ export default function AdminDashboard() {
   const unreadAlertCount = alerts.filter((a) => !a.isRead).length
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-slate-50">
       {/* Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
+      <header className="bg-white border-b border-slate-200 sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-3 sm:py-4">
           <div className="flex items-center justify-between">
             <div className="min-w-0 flex-1">
@@ -280,7 +281,7 @@ export default function AdminDashboard() {
               >
                 <Bell className="w-5 h-5 sm:w-6 sm:h-6 text-gray-700" />
                 {unreadAlertCount > 0 && (
-                  <span className="absolute -top-1 -right-1 w-4 h-4 sm:w-5 sm:h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center text-[10px] sm:text-xs">
+                  <span className="absolute -top-1 -right-1 w-4 h-4 sm:w-5 sm:h-5 bg-red-500 text-white text-xs rounded-xl flex items-center justify-center text-[10px] sm:text-xs">
                     {unreadAlertCount > 99 ? '99+' : unreadAlertCount}
                   </span>
                 )}
@@ -292,13 +293,13 @@ export default function AdminDashboard() {
 
       {/* Alerts Panel */}
       {showAlerts && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-20 flex items-start justify-center sm:justify-end p-2 sm:p-4">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-20 flex items-start justify-center sm:justify-end p-2 sm:p-4">
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm sm:max-w-md max-h-[90vh] sm:max-h-[80vh] overflow-y-auto">
-            <div className="sticky top-0 bg-white border-b border-gray-200 p-3 sm:p-4">
+            <div className="sticky top-0 bg-white border-b border-slate-200 p-3 sm:p-4">
               <div className="flex items-center justify-between">
                 <h2 className="text-base sm:text-lg font-bold text-gray-900">Alerts</h2>
-                <button onClick={() => setShowAlerts(false)} className="text-gray-500 hover:text-gray-700 p-1">
-                  ✕
+                <button onClick={() => setShowAlerts(false)} className="p-1 hover:bg-slate-100 rounded-lg transition-colors text-gray-500 hover:text-gray-700">
+                  <X className="w-4 h-4" />
                 </button>
               </div>
             </div>
@@ -308,7 +309,7 @@ export default function AdminDashboard() {
                 <select
                   value={alertFilter.type}
                   onChange={(e) => setAlertFilter({ ...alertFilter, type: e.target.value })}
-                  className="px-3 py-2 border rounded-lg text-sm"
+                  className="px-3 py-2 border border-slate-200 rounded-xl text-sm text-slate-600 hover:bg-slate-50"
                 >
                   <option value="">All Types</option>
                   <option value="negative_feedback">Negative Feedback (Legacy)</option>
@@ -321,7 +322,7 @@ export default function AdminDashboard() {
                 <select
                   value={alertFilter.severity}
                   onChange={(e) => setAlertFilter({ ...alertFilter, severity: e.target.value })}
-                  className="px-3 py-2 border rounded-lg text-sm"
+                  className="px-3 py-2 border border-slate-200 rounded-xl text-sm text-slate-600 hover:bg-slate-50"
                 >
                   <option value="">All Severities</option>
                   <option value="critical">Critical</option>
@@ -333,7 +334,7 @@ export default function AdminDashboard() {
                 <select
                   value={alertFilter.outletId}
                   onChange={(e) => setAlertFilter({ ...alertFilter, outletId: e.target.value })}
-                  className="px-3 py-2 border rounded-lg text-sm"
+                  className="px-3 py-2 border border-slate-200 rounded-xl text-sm text-slate-600 hover:bg-slate-50"
                 >
                   <option value="">All Outlets</option>
                   {outlets.map((o) => (
@@ -356,7 +357,7 @@ export default function AdminDashboard() {
               <div className="mt-3 flex gap-2">
                 <button
                   onClick={fetchAlerts}
-                  className="flex-1 px-3 py-2 bg-blue-600 text-white rounded-lg text-sm"
+                  className="flex-1 px-3 py-2 bg-indigo-600 text-white rounded-xl text-sm font-medium"
                 >
                   Apply
                 </button>
@@ -365,7 +366,7 @@ export default function AdminDashboard() {
                     setAlertFilter({ type: "", severity: "", outletId: "", importantOnly: false })
                     fetchAlerts()
                   }}
-                  className="px-3 py-2 border rounded-lg text-sm"
+                  className="px-3 py-2 border border-slate-200 rounded-xl text-sm text-slate-600 hover:bg-slate-50"
                 >
                   Reset
                 </button>
@@ -432,49 +433,49 @@ export default function AdminDashboard() {
               Real-time Overview
             </h2>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
-              <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6">
+              <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 sm:p-6">
                 <div className="flex items-center justify-between">
                   <div className="min-w-0 flex-1">
                     <p className="text-xs sm:text-sm text-gray-600 mb-1 truncate">Active Tokens</p>
                     <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-blue-600">{realtimeStats.activeTokens}</p>
                   </div>
-                  <div className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 ml-2">
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 bg-blue-100 rounded-xl flex items-center justify-center flex-shrink-0 ml-2">
                     <Users className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-blue-600" />
                   </div>
                 </div>
               </div>
 
-              <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6">
+              <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 sm:p-6">
                 <div className="flex items-center justify-between">
                   <div className="min-w-0 flex-1">
                     <p className="text-xs sm:text-sm text-gray-600 mb-1 truncate">Completed Today</p>
                     <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-green-600">{realtimeStats.completedToday}</p>
                   </div>
-                  <div className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0 ml-2">
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 bg-green-100 rounded-xl flex items-center justify-center flex-shrink-0 ml-2">
                     <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-green-600" />
                   </div>
                 </div>
               </div>
 
-              <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6">
+              <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 sm:p-6">
                 <div className="flex items-center justify-between">
                   <div className="min-w-0 flex-1">
                     <p className="text-xs sm:text-sm text-gray-600 mb-1 truncate">Active Officers</p>
                     <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-indigo-600">{realtimeStats.activeOfficers}</p>
                   </div>
-                  <div className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 bg-indigo-100 rounded-full flex items-center justify-center flex-shrink-0 ml-2">
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 bg-indigo-100 rounded-xl flex items-center justify-center flex-shrink-0 ml-2">
                     <Users className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-indigo-600" />
                   </div>
                 </div>
               </div>
 
-              <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6">
+              <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 sm:p-6">
                 <div className="flex items-center justify-between">
                   <div className="min-w-0 flex-1">
                     <p className="text-xs sm:text-sm text-gray-600 mb-1 truncate">Avg Rating Today</p>
                     <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-yellow-600">{realtimeStats.avgRating.toFixed(1)}</p>
                   </div>
-                  <div className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 bg-yellow-100 rounded-full flex items-center justify-center flex-shrink-0 ml-2">
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 bg-yellow-100 rounded-xl flex items-center justify-center flex-shrink-0 ml-2">
                     <Star className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-yellow-600" />
                   </div>
                 </div>
@@ -485,31 +486,31 @@ export default function AdminDashboard() {
 
         {/* Quick Actions */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <button
+          <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
             onClick={() => window.location.href = "/admin/feedback"}
-            className="bg-red-600 text-white p-4 rounded-lg hover:bg-red-700 flex items-center justify-center transition-colors"
+            className="bg-red-600 text-white p-4 rounded-xl hover:bg-red-700 flex items-center justify-center transition-colors font-semibold"
           >
             <MessageSquare className="w-5 h-5 mr-2" />
             Manage Critical Feedback (1-Star)
-          </button>
-          <button
+          </motion.button>
+          <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
             onClick={() => window.location.href = "/admin/branches"}
-            className="bg-blue-600 text-white p-4 rounded-lg hover:bg-blue-700 flex items-center justify-center transition-colors"
+            className="bg-indigo-600 text-white p-4 rounded-xl hover:bg-indigo-700 flex items-center justify-center transition-colors font-semibold"
           >
             <BarChart3 className="w-5 h-5 mr-2" />
             View All Branches
-          </button>
-          <button
+          </motion.button>
+          <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
             onClick={() => window.location.href = "/admin/managers"}
-            className="bg-green-600 text-white p-4 rounded-lg hover:bg-green-700 flex items-center justify-center transition-colors"
+            className="bg-emerald-600 text-white p-4 rounded-xl hover:bg-emerald-700 flex items-center justify-center transition-colors font-semibold"
           >
             <Users className="w-5 h-5 mr-2" />
             Manage RTOMs
-          </button>
+          </motion.button>
         </div>
 
         {/* Filters */}
-        <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 mb-6 sm:mb-8">
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 sm:p-6 mb-6 sm:mb-8">
           <div className="flex items-center gap-2 mb-4">
             <Filter className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600" />
             <h2 className="text-base sm:text-lg font-bold text-gray-900">Analytics Filters</h2>
@@ -522,7 +523,7 @@ export default function AdminDashboard() {
                 type="date"
                 value={dateRange.startDate}
                 onChange={(e) => setDateRange({ ...dateRange, startDate: e.target.value })}
-                className="w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
+                className="w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm sm:text-base"
               />
             </div>
 
@@ -532,7 +533,7 @@ export default function AdminDashboard() {
                 type="date"
                 value={dateRange.endDate}
                 onChange={(e) => setDateRange({ ...dateRange, endDate: e.target.value })}
-                className="w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
+                className="w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm sm:text-base"
               />
             </div>
 
@@ -541,7 +542,7 @@ export default function AdminDashboard() {
               <select
                 value={selectedOutlet}
                 onChange={(e) => setSelectedOutlet(e.target.value)}
-                className="w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
+                className="w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm sm:text-base"
               >
                 <option value="">All Outlets</option>
                 {outlets.map((outlet) => (
@@ -573,7 +574,7 @@ export default function AdminDashboard() {
           <>
             {/* Key Metrics */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
-              <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6">
+              <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 sm:p-6">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-sm font-medium text-gray-600">Total Tokens</h3>
                   <BarChart3 className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
@@ -581,7 +582,7 @@ export default function AdminDashboard() {
                 <p className="text-2xl sm:text-3xl font-bold text-gray-900">{analytics.totalTokens}</p>
               </div>
 
-              <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6">
+              <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 sm:p-6">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-sm font-medium text-gray-600">Avg Wait Time</h3>
                   <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
@@ -590,7 +591,7 @@ export default function AdminDashboard() {
                 <p className="text-sm text-gray-600">minutes</p>
               </div>
 
-              <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 sm:col-span-2 lg:col-span-1">
+              <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 sm:p-6 sm:col-span-2 lg:col-span-1">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-sm font-medium text-gray-600">Avg Service Time</h3>
                   <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
@@ -601,8 +602,8 @@ export default function AdminDashboard() {
             </div>
 
             {/* Rating Distribution */}
-            <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 mb-6 sm:mb-8">
-              <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-4 sm:mb-6">Customer Satisfaction</h3>
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 sm:p-6 mb-6 sm:mb-8">
+              <h3 className="text-base sm:text-lg font-bold text-slate-900 mb-4 sm:mb-6">Customer Satisfaction</h3>
               <div className="space-y-3 sm:space-y-4">
                 {calculateRatingDistribution().map((item) => (
                   <div key={item.rating} className="flex items-center gap-2 sm:gap-4">
@@ -625,7 +626,7 @@ export default function AdminDashboard() {
             </div>
 
             {/* Officer Performance */}
-            <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6">
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 sm:p-6">
               <div className="flex items-center justify-between mb-4 sm:mb-6">
                 <h3 className="text-base sm:text-lg font-bold text-gray-900">Officer Performance</h3>
                 <button className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm">
@@ -638,7 +639,7 @@ export default function AdminDashboard() {
                 <div className="inline-block min-w-full align-middle">
                   <table className="min-w-full">
                     <thead>
-                      <tr className="border-b border-gray-200">
+                      <tr className="border-b border-slate-200">
                         <th className="text-left py-3 px-3 sm:px-4 text-xs sm:text-sm font-semibold text-gray-700">Officer</th>
                         <th className="text-left py-3 px-3 sm:px-4 text-xs sm:text-sm font-semibold text-gray-700 hidden sm:table-cell">Outlet</th>
                         <th className="text-center py-3 px-3 sm:px-4 text-xs sm:text-sm font-semibold text-gray-700">Tokens</th>
@@ -651,7 +652,7 @@ export default function AdminDashboard() {
                         <tr key={index} className="border-b border-gray-100 hover:bg-gray-50">
                           <td className="py-3 px-3 sm:px-4">
                             <div className="flex items-center gap-2 sm:gap-3">
-                              <div className="w-6 h-6 sm:w-8 sm:h-8 bg-indigo-100 rounded-full flex items-center justify-center flex-shrink-0">
+                              <div className="w-6 h-6 sm:w-8 sm:h-8 bg-indigo-100 rounded-xl flex items-center justify-center flex-shrink-0">
                                 <span className="text-xs sm:text-sm font-medium text-indigo-600">
                                   {perf.officer?.name?.charAt(0) || "?"}
                                 </span>

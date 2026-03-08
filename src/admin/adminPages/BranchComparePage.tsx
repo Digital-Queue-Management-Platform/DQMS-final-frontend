@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react'
+﻿import React, { useEffect, useMemo, useState } from 'react'
 import api from '../../config/api'
 import SearchableSelect from '../../components/SearchableSelect'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
@@ -151,7 +151,7 @@ const BranchComparePage: React.FC = () => {
         </div>
 
       {/* Controls Section */}
-      <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 mb-4 sm:mb-6">
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 sm:p-6 mb-4 sm:mb-6">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Branch A</label>
@@ -180,7 +180,7 @@ const BranchComparePage: React.FC = () => {
             <select
               value={metric}
               onChange={(e) => setMetric(e.target.value as MetricKey)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
+              className="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm sm:text-base"
             >
               {metrics.map(m => (
                 <option key={m.key} value={m.key}>{m.label}</option>
@@ -210,7 +210,7 @@ const BranchComparePage: React.FC = () => {
       </div>
 
       {/* Chart Section */}
-      <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6">
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 sm:p-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 sm:mb-6 gap-2">
           <div>
             <h2 className="text-lg font-semibold text-gray-900">
@@ -285,7 +285,7 @@ const BranchComparePage: React.FC = () => {
         
         {/* Summary Stats */}
         {data.length > 0 && (
-          <div className="mt-6 pt-6 border-t border-gray-200">
+          <div className="mt-6 pt-6 border-t border-slate-200">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="bg-blue-50 rounded-lg p-4">
                 <div className="flex items-center gap-2 mb-2">

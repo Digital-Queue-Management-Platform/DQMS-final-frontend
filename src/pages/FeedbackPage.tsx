@@ -1,4 +1,4 @@
-/**
+﻿/**
  * FeedbackPage Component
  * 
  * Handles customer feedback submission after service completion.
@@ -20,6 +20,7 @@ import type React from "react"
 
 import { useState, useEffect } from "react"
 import { useParams } from "react-router-dom"
+import { motion } from "framer-motion"
 import { Star, MessageSquare, CheckCircle, Send } from "lucide-react"
 import api from "../config/api"
 import type { Token } from "../types"
@@ -80,27 +81,20 @@ export default function FeedbackPage() {
   if (submitted) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100 flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-8 text-center">
-          <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+        <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5, ease: "easeOut" }}
+          className="bg-white rounded-3xl shadow-xl w-full max-w-md p-8 text-center">
+          <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
+            className="w-20 h-20 bg-green-100 rounded-2xl flex items-center justify-center mx-auto mb-6">
             <CheckCircle className="w-10 h-10 text-green-600" />
-          </div>
-
-          <h1 className="text-3xl font-bold text-gray-900 mb-4">Thank You!</h1>
+          </motion.div>
+          <h1 className="text-3xl font-bold text-slate-900 mb-4">Thank You!</h1>
           <p className="text-gray-600 mb-4">Your feedback has been submitted successfully.</p>
-          
-          <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
-            <p className="text-green-800 text-sm font-medium">
-              We appreciate your time and feedback!
-            </p>
-            <p className="text-green-700 text-xs mt-2">
-              Your input helps us improve our services for everyone.
-            </p>
+          <div className="bg-green-50 border border-green-200 rounded-2xl p-4 mb-6">
+            <p className="text-green-800 text-sm font-medium">We appreciate your time and feedback!</p>
+            <p className="text-green-700 text-xs mt-2">Your input helps us improve our services for everyone.</p>
           </div>
-
-          <p className="text-xs text-gray-500 text-center">
-            You can now close this window or navigate away from this page.
-          </p>
-        </div>
+          <p className="text-xs text-gray-500 text-center">You can now close this window or navigate away from this page.</p>
+        </motion.div>
       </div>
     )
   }
@@ -118,10 +112,11 @@ export default function FeedbackPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl p-8">
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease: "easeOut" }}
+        className="bg-white rounded-3xl shadow-xl w-full max-w-2xl p-8">
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-4">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-2xl mb-4">
             <MessageSquare className="w-8 h-8 text-blue-600" />
           </div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Rate Your Experience</h1>
@@ -129,7 +124,7 @@ export default function FeedbackPage() {
         </div>
 
         {/* Service Summary */}
-        <div className="bg-gray-50 rounded-xl p-6 mb-8">
+        <div className="bg-slate-50 rounded-xl p-6 mb-8">
           <div className="grid grid-cols-2 gap-4 text-sm">
             <div>
               <p className="text-gray-600">Token Number</p>
@@ -165,27 +160,28 @@ export default function FeedbackPage() {
         <form onSubmit={handleSubmit} className="space-y-8">
           {/* Rating Selection */}
           <div>
-            <label className="block text-lg font-semibold text-gray-900 mb-4 text-center">
+            <label className="block text-lg font-semibold text-slate-900 mb-4 text-center">
               How would you rate your experience?
             </label>
             <div className="flex items-center justify-center gap-4">
               {[1, 2, 3, 4, 5].map((star) => (
-                <button
+                <motion.button
                   key={star}
                   type="button"
                   onClick={() => setRating(star)}
                   onMouseEnter={() => setHoveredRating(star)}
                   onMouseLeave={() => setHoveredRating(0)}
-                  className="transition-transform hover:scale-110 focus:outline-none"
-                >
+                  whileHover={{ scale: 1.2 }}
+                  whileTap={{ scale: 0.9 }}
+                  className="focus:outline-none">
                   <Star
-                    className={`w-12 h-12 ${
+                    className={`w-12 h-12 transition-colors ${
                       star <= (hoveredRating || rating)
                         ? "text-yellow-400 fill-yellow-400"
                         : "text-gray-300 fill-gray-300"
                     }`}
                   />
-                </button>
+                </motion.button>
               ))}
             </div>
 
@@ -220,7 +216,7 @@ export default function FeedbackPage() {
               value={comment}
               onChange={(e) => setComment(e.target.value)}
               rows={4}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none"
               placeholder="Tell us more about your experience..."
             />
           </div>
@@ -229,7 +225,7 @@ export default function FeedbackPage() {
           <button
             type="submit"
             disabled={loading || rating === 0}
-            className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+          className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-indigo-600 text-white rounded-xl font-semibold hover:bg-indigo-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
           >
             <Send className="w-5 h-5" />
             {loading ? "Submitting..." : "Submit Feedback"}
@@ -240,7 +236,7 @@ export default function FeedbackPage() {
         <p className="text-xs text-gray-500 text-center mt-6">
           Your feedback helps us improve our services. Thank you for your time.
         </p>
-      </div>
+      </motion.div>
     </div>
   )
 }

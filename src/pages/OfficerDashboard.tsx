@@ -1,9 +1,10 @@
-"use client"
+﻿"use client"
 
 import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import { Clock, Star, AlertCircle, Users, Coffee, RefreshCwIcon } from "lucide-react"
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from "recharts"
+import { motion } from "framer-motion"
 // OfficerTopBar is provided by Layout for officer routes
 import api, { WS_URL } from "../config/api"
 import type { Officer, Token } from "../types"
@@ -28,7 +29,7 @@ export default function OfficerDashboard() {
   const [breakLoading, setBreakLoading] = useState(false)
   const [breakError, setBreakError] = useState<string | null>(null)
   const [dashboardLoading, setDashboardLoading] = useState(false)
-  const [lastUpdated, setLastUpdated] = useState<Date>(new Date())
+  const [_lastUpdated, setLastUpdated] = useState<Date>(new Date())
 
   // Helper functions for date and time formatting
   const formatDate = (date: Date) => {
@@ -287,21 +288,16 @@ export default function OfficerDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-8">
+    <div className="min-h-screen bg-slate-50 p-4 sm:p-6 lg:p-8">
       <div className="mx-auto">
         {/* Header Section in Body */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-2">
+        <motion.div initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="mb-6">
+          <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Customer Service Officer Dashboard</h1>
-              <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-                <p className="text-sm text-gray-500">
-                  {formatDate(currentDateTime)} | {formatTime(currentDateTime)}
-                </p>
-                <div className="flex items-center gap-3 text-sm text-slate-600">
-                  {dashboardLoading && <span className="flex items-center gap-1">🔄 Refreshing...</span>}
-                  <span>Last updated: {lastUpdated.toLocaleTimeString()}</span>
-                </div>
+              <h1 className="text-xl sm:text-2xl font-bold text-slate-900">Officer Dashboard</h1>
+              <div className="flex flex-wrap items-center gap-2 mt-1">
+                <p className="text-xs text-slate-500">{formatDate(currentDateTime)} &bull; {formatTime(currentDateTime)}</p>
+                {dashboardLoading && <span className="text-xs text-amber-600 font-medium">Refreshing...</span>}
               </div>
             </div>
             <div className="flex items-center space-x-4">
@@ -357,18 +353,18 @@ export default function OfficerDashboard() {
 
             </div>
           </div>
-        </div>
+        </motion.div>
 
         {/* Main Content */}
         <div className="space-y-6">
 
           {/* Counter Status Section */}
           {officer && (
-            <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 border border-slate-200">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-4">
                   <div className="flex items-center space-x-2">
-                    <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                    <div className="w-8 h-8 bg-blue-100 rounded-xl flex items-center justify-center">
                       <span className="text-blue-600 font-semibold text-sm">
                         {officer.counterNumber || 'N/A'}
                       </span>
@@ -404,72 +400,72 @@ export default function OfficerDashboard() {
           )}
 
           {/* Stats Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4 lg:gap-6 mb-6 sm:mb-8">
-            <div className="bg-white rounded-lg sm:rounded-xl shadow-sm p-4 sm:p-6">
+          <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.1 }}
+            className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 sm:p-5">
               <div className="flex items-center justify-between">
                 <div className="min-w-0 flex-1">
-                  <p className="text-xs sm:text-sm text-gray-600 mb-1 truncate">Tokens Handled Today</p>
-                  <p className="text-xl sm:text-2xl lg:text-3xl text-gray-900">{stats.tokensHandled}</p>
+                  <p className="text-xs text-slate-500 mb-1 truncate">Tokens Handled</p>
+                  <p className="text-2xl sm:text-3xl font-bold text-slate-900">{stats.tokensHandled}</p>
                 </div>
-                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 ml-3">
-                  <Users className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
+                <div className="w-10 h-10 sm:w-11 sm:h-11 bg-amber-100 rounded-xl flex items-center justify-center flex-shrink-0 ml-3">
+                  <Users className="w-5 h-5 text-amber-600" />
                 </div>
               </div>
             </div>
 
-            <div className="bg-white rounded-lg sm:rounded-xl shadow-sm p-4 sm:p-6">
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 sm:p-5">
               <div className="flex items-center justify-between">
                 <div className="min-w-0 flex-1">
-                  <p className="text-xs sm:text-sm text-gray-600 mb-1 truncate">Average Rating</p>
-                  <p className="text-xl sm:text-2xl lg:text-3xl text-gray-900">{stats.avgRating.toFixed(1)}</p>
+                  <p className="text-xs text-slate-500 mb-1 truncate">Average Rating</p>
+                  <p className="text-2xl sm:text-3xl font-bold text-slate-900">{stats.avgRating.toFixed(1)}</p>
                 </div>
-                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-yellow-100 rounded-full flex items-center justify-center flex-shrink-0 ml-3">
-                  <Star className="w-5 h-5 sm:w-6 sm:h-6 text-yellow-600" />
+                <div className="w-10 h-10 sm:w-11 sm:h-11 bg-yellow-100 rounded-xl flex items-center justify-center flex-shrink-0 ml-3">
+                  <Star className="w-5 h-5 text-yellow-600" />
                 </div>
               </div>
             </div>
 
-            <div className="bg-white rounded-lg sm:rounded-xl shadow-sm p-4 sm:p-6">
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 sm:p-5">
               <div className="flex items-center justify-between">
                 <div className="min-w-0 flex-1">
-                  <p className="text-xs sm:text-sm text-gray-600 mb-1 truncate">Current Status</p>
-                  <p className="text-base sm:text-lg lg:text-xl text-gray-900 capitalize">{officer.status.replace("_", " ")}</p>
+                  <p className="text-xs text-slate-500 mb-1 truncate">Current Status</p>
+                  <p className="text-sm sm:text-base font-bold text-slate-900 capitalize">{officer.status.replace('_', ' ')}</p>
                 </div>
-                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0 ml-3">
-                  <Clock className="w-5 h-5 sm:w-6 sm:h-6 text-green-600" />
+                <div className="w-10 h-10 sm:w-11 sm:h-11 bg-emerald-100 rounded-xl flex items-center justify-center flex-shrink-0 ml-3">
+                  <Clock className="w-5 h-5 text-emerald-600" />
                 </div>
               </div>
             </div>
 
-            <div className="bg-white rounded-lg sm:rounded-xl shadow-sm p-4 sm:p-6">
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 sm:p-5">
               <div className="flex items-center justify-between">
                 <div className="min-w-0 flex-1">
-                  <p className="text-xs sm:text-sm text-gray-600 mb-1 truncate">Customers Waiting</p>
-                  <p className="text-xl sm:text-2xl lg:text-3xl text-gray-900">{queue ? (queue.totalWaiting ?? queue.waiting.length) : 0}</p>
+                  <p className="text-xs text-slate-500 mb-1 truncate">Customers Waiting</p>
+                  <p className="text-2xl sm:text-3xl font-bold text-slate-900">{queue ? (queue.totalWaiting ?? queue.waiting.length) : 0}</p>
                 </div>
-                <div className="w-12 h-12 bg-rose-100 rounded-full flex items-center justify-center">
-                  <Users className="w-6 h-6 text-rose-600" />
+                <div className="w-10 h-10 sm:w-11 sm:h-11 bg-rose-100 rounded-xl flex items-center justify-center flex-shrink-0 ml-3">
+                  <Users className="w-5 h-5 text-rose-600" />
                 </div>
               </div>
             </div>
 
-            {/* Breaks Taken */}
-            <div className="bg-white rounded-xl shadow-sm p-6">
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 sm:p-5">
               <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600 mb-1">Breaks Taken</p>
-                  <p className="text-3xl text-gray-900">{breaksSummary ? breaksSummary.totalBreaks : 0}</p>
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs text-slate-500 mb-1 truncate">Breaks Taken</p>
+                  <p className="text-2xl sm:text-3xl font-bold text-slate-900">{breaksSummary ? breaksSummary.totalBreaks : 0}</p>
                 </div>
-                <div className="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center">
-                  <Coffee className="w-6 h-6 text-yellow-600" />
+                <div className="w-10 h-10 sm:w-11 sm:h-11 bg-amber-100 rounded-xl flex items-center justify-center flex-shrink-0 ml-3">
+                  <Coffee className="w-5 h-5 text-amber-600" />
                 </div>
               </div>
             </div>
-          </div>
+          </motion.div>
 
-          {/* Tabs (Queue tab removed) */}
-          <div className="mb-6">
-            <nav className="-mb-px flex space-x-6" aria-label="Tabs">
+          {/* Tabs */}
+          <div className="mb-5">
+            <nav className="flex gap-2" aria-label="Tabs">
               {[
                 { id: 'served', label: 'Served Today' },
                 { id: 'breaks', label: 'Breaks Today' },
@@ -477,8 +473,11 @@ export default function OfficerDashboard() {
               ].map((t: any) => (
                 <button key={t.id}
                   onClick={() => setActiveTab(t.id)}
-                  className={`whitespace-nowrap bg-black rounded-xl py-2 px-4 border-b-2 font-medium text-sm ${activeTab === t.id ? ' bg-white' : 'border-transparent text-white hover:translate-y-[-5px] transition-all'}`}
-                >{t.label}</button>
+                  className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 ${
+                    activeTab === t.id
+                      ? 'bg-amber-600 text-white shadow-md shadow-amber-200'
+                      : 'bg-white text-slate-600 hover:bg-amber-50 border border-slate-200'
+                  }`}>{t.label}</button>
               ))}
             </nav>
           </div>
@@ -486,14 +485,14 @@ export default function OfficerDashboard() {
           {/* Queue tab removed; use dedicated page at /officer/queue */}
 
           {activeTab === 'served' && (
-            <div className="bg-white rounded-xl shadow-sm p-6">
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-lg font-bold text-gray-900">Served Today</h2>
                 <div className="flex items-center gap-4">
                   <div className="text-sm text-gray-600">Avg handle: {servedSummary ? servedSummary.avgHandleMinutes : 0} min</div>
                   <button
                     onClick={() => navigate('/officer/served-customers')}
-                    className="px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors"
+                    className="px-4 py-2 text-sm font-medium text-indigo-600 hover:text-indigo-800 hover:bg-blue-50 rounded-lg transition-colors"
                   >
                     View All
                   </button>
@@ -529,7 +528,7 @@ export default function OfficerDashboard() {
           )}
 
           {activeTab === 'breaks' && (
-            <div className="bg-white rounded-xl shadow-sm p-6">
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-lg font-bold text-gray-900">Breaks Today</h2>
                 <div className="text-sm text-gray-600">Total: {breaksSummary ? breaksSummary.totalMinutes : 0} min</div>
@@ -585,11 +584,11 @@ export default function OfficerDashboard() {
           )}
 
           {activeTab === 'feedback' && (
-            <div className="bg-white rounded-xl shadow-sm p-6">
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-lg font-bold text-gray-900">Customer Feedback (Today)</h2>
                 <div className="flex items-center gap-3">
-                  <div className="text-sm text-gray-600">Avg: {feedbackSummary ? feedbackSummary.avgRating.toFixed(1) : '0.0'} ★</div>
+                  <div className="text-sm text-gray-600">Avg: {feedbackSummary ? feedbackSummary.avgRating.toFixed(1) : '0.0'} â˜…</div>
                   <div className="inline-flex gap-2" role="group">
                     <button
                       type="button"
@@ -631,7 +630,7 @@ export default function OfficerDashboard() {
               ) : (
                 <div className="w-full h-[340px]">
                   {(() => {
-                    const counts = [1, 2, 3, 4, 5].map(r => ({ name: `${r} ★`, value: feedbackSummary.feedback.filter(f => f.rating === r).length }))
+                    const counts = [1, 2, 3, 4, 5].map(r => ({ name: `${r} â˜…`, value: feedbackSummary.feedback.filter(f => f.rating === r).length }))
                     const data = counts.filter(c => c.value > 0)
                     const COLORS = ['#ef4444', '#f59e0b', '#eab308', '#22c55e', '#3b82f6']
                     if (data.length === 0) {

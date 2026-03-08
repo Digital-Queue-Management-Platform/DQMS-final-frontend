@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+﻿import { useState, useEffect } from 'react'
 import { Volume2, VolumeX, Play, Square, Settings, Wifi, WifiOff, Eye, EyeOff } from 'lucide-react'
 import type { Token } from '../types'
 
@@ -277,7 +277,7 @@ export default function IPSpeaker({ token, counterNumber, onCall }: IPSpeakerPro
   const preferredLanguages = getPreferredLanguages()
 
   return (
-    <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+    <div className="bg-white border border-slate-200 rounded-lg p-4 shadow-sm">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center space-x-2">
           <Volume2 className="w-5 h-5 text-blue-600" />

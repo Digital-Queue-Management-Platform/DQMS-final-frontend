@@ -1,8 +1,9 @@
-"use client"
+﻿"use client"
 
 import React from "react"
 import { useNavigate } from "react-router-dom"
 import { Coffee, Play, LogOut } from "lucide-react"
+import { motion } from "framer-motion"
 import ConfirmDialog from "./ConfirmDialog"
 import api from "../config/api"
 import type { Officer } from "../types"
@@ -52,7 +53,7 @@ export default function OfficerTopBar({ officer, onOfficerUpdate, onAfterStatusC
   }
 
   return (
-    <header className="bg-white border-b border-gray-200 px-4 sm:px-6 py-4 sticky top-0 z-10">
+    <header className="bg-white/95 backdrop-blur-sm border-b border-slate-200/80 shadow-sm px-4 sm:px-6 py-3.5 sticky top-0 z-30">
       <div className="flex items-center justify-between">
         {/* Logo and Page Title Section */}
         <div className="min-w-0 flex-1 mr-4 flex items-center gap-3">
@@ -73,45 +74,50 @@ export default function OfficerTopBar({ officer, onOfficerUpdate, onAfterStatusC
         <div className="flex items-center space-x-1 sm:space-x-10 flex-shrink-0">
           <div className="flex sm:flex-row sm:items-center sm:space-x-3">
             {/* Status Badge */}
-            <div
-              className={`px-3 py-1.5 rounded-full text-xs sm:text-sm font-medium ${
+            <motion.div
+              key={officer.status}
+              initial={{ scale: 0.85, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ duration: 0.2 }}
+              className={`px-3 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1.5 ${
                 officer.status === 'available'
-                  ? 'bg-green-100 text-green-700'
+                  ? 'bg-emerald-100 text-emerald-700 ring-1 ring-emerald-200'
                   : officer.status === 'serving'
-                    ? 'bg-blue-100 text-blue-700'
+                    ? 'bg-blue-100 text-blue-700 ring-1 ring-blue-200'
                     : officer.status === 'on_break'
-                      ? 'bg-yellow-100 text-yellow-700'
-                      : 'bg-gray-100 text-gray-700'
+                      ? 'bg-amber-100 text-amber-700 ring-1 ring-amber-200'
+                      : 'bg-slate-100 text-slate-600 ring-1 ring-slate-200'
               }`}
             >
-              {officer.status === 'available'
-                ? 'Available'
-                : officer.status === 'serving'
-                  ? 'Serving'
-                  : officer.status === 'on_break'
-                    ? 'On Break'
-                    : 'Offline'}
-            </div>
+              <span className={`w-1.5 h-1.5 rounded-full ${
+                officer.status === 'available' ? 'bg-emerald-500' :
+                officer.status === 'serving' ? 'bg-blue-500' :
+                officer.status === 'on_break' ? 'bg-amber-500' : 'bg-slate-400'
+              }`} />
+              {officer.status === 'available' ? 'Available' :
+               officer.status === 'serving' ? 'Serving' :
+               officer.status === 'on_break' ? 'On Break' : 'Offline'}
+            </motion.div>
 
             {/* Status Controls */}
             {officer.status === 'available' && (
-              <button
+              <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
                 onClick={() => setConfirmOpen(true)}
-                className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-yellow-100 text-yellow-700 rounded-lg hover:bg-yellow-200 transition-colors text-sm"
+                className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 text-amber-700 rounded-lg hover:bg-amber-100 transition-colors text-xs font-medium border border-amber-200"
               >
-                <Coffee className="w-3 h-3" />
+                <Coffee className="w-3.5 h-3.5" />
                 Break
-              </button>
+              </motion.button>
             )}
 
             {officer.status === 'on_break' && (
-              <button
+              <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
                 onClick={() => handleStatusChange('available')}
-                className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors text-sm"
+                className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-700 rounded-lg hover:bg-emerald-100 transition-colors text-xs font-medium border border-emerald-200"
               >
-                <Play className="w-3 h-3" />
+                <Play className="w-3.5 h-3.5" />
                 Resume
-              </button>
+              </motion.button>
             )}
           </div>
 
@@ -135,8 +141,8 @@ export default function OfficerTopBar({ officer, onOfficerUpdate, onAfterStatusC
 
           {/* User Profile */}
           <div className="flex items-center space-x-2 sm:space-x-3">
-            <div className="w-8 h-8 sm:w-9 sm:h-9 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
-              <span className="text-sm sm:text-base font-medium text-white">
+            <div className="w-8 h-8 sm:w-9 sm:h-9 bg-amber-600 rounded-xl flex items-center justify-center flex-shrink-0 ring-2 ring-amber-200">
+              <span className="text-sm sm:text-base font-semibold text-white">
                 {officer.name?.charAt(0)?.toUpperCase()}
               </span>
             </div>
@@ -148,12 +154,13 @@ export default function OfficerTopBar({ officer, onOfficerUpdate, onAfterStatusC
 
           <div className="flex items-center space-x-2">
             {/* Logout Button */}
-            <button
+            <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
               onClick={() => handleStatusChange('offline')}
-              className="hidden sm:flex items-center gap-2 px-3 py-1.5 text-gray-500 hover:text-red-500 transition-colors"
+              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 text-slate-500 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all text-xs font-medium"
             >
-              <LogOut className="w-5 h-5" />
-            </button>
+              <LogOut className="w-4 h-4" />
+              <span className="hidden md:inline">Logout</span>
+            </motion.button>
           </div>
         </div>
       </div>

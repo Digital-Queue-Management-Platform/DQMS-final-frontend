@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useState } from "react"
 import { Search, Send, CheckCircle } from "lucide-react"
@@ -75,7 +75,7 @@ export default function OfficerServiceTracking() {
 
   return (
     <div className="p-6 max-w-3xl mx-auto">
-      <div className="bg-white rounded-xl shadow-sm p-5 mb-4">
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 mb-4">
         <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-3">Service Tracking</h1>
         <div className="flex gap-2">
           <div className="relative flex-1">
@@ -99,7 +99,7 @@ export default function OfficerServiceTracking() {
       </div>
 
       {data && !error && (
-        <div className="bg-white rounded-xl shadow-sm p-5 space-y-4">
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 space-y-4">
           <div className="flex items-center gap-2">
             <span className="px-3 py-1 bg-gray-100 rounded-lg font-mono text-sm font-medium">{data.refNumber}</span>
             <span className={`ml-auto text-xs px-3 py-1 rounded-full font-semibold uppercase ${
@@ -126,7 +126,7 @@ export default function OfficerServiceTracking() {
                 <div className="text-sm text-gray-500 italic">No updates yet</div>
               ) : (
                 (data.updates || []).map(u => (
-                  <div key={u.id} className="border border-gray-200 rounded-lg p-3 text-sm bg-gray-50">
+                  <div key={u.id} className="border border-slate-200 rounded-lg p-3 text-sm bg-gray-50">
                     <div className="flex items-center justify-between text-xs text-gray-500 mb-2">
                       <span className="capitalize font-medium">{u.actorRole.replace('_', ' ')}</span>
                       <span>{new Date(u.createdAt).toLocaleString()}</span>

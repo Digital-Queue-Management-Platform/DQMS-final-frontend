@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useEffect, useMemo, useRef, useState } from "react"
 import { Filter, RefreshCw, Languages, Search } from "lucide-react"
@@ -191,7 +191,7 @@ export default function TeleshopManagerAppointments() {
         </button>
       </div>
 
-      <div className="rounded-xl border border-gray-200 p-2.5 mb-4">
+      <div className="rounded-xl border border-slate-200 p-2.5 mb-4">
         <div className="flex gap-3">
           {/* Status Filter */}
           <div>
@@ -286,7 +286,7 @@ export default function TeleshopManagerAppointments() {
       </div>
 
       {/* Results */}
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+      <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
         {error && <div className="mb-3 p-3 bg-red-50 text-red-700 rounded text-sm">{error}</div>}
 
         <div ref={bodyScrollRef} className="overflow-x-auto" onScroll={handleBodyScroll}>

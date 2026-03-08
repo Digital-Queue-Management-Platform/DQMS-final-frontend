@@ -1,7 +1,8 @@
-"use client"
+﻿"use client"
 
 import { useState, useEffect } from "react"
 import { useParams, useNavigate } from "react-router-dom"
+import { motion, AnimatePresence } from "framer-motion"
 import { Users, CheckCircle, AlertTriangle, XCircle, Trash2, ArrowLeft } from "lucide-react"
 import api, { WS_URL } from "../config/api"
 import type { Token } from "../types"
@@ -209,7 +210,8 @@ export default function QueueStatus() {
         ))}
       </div>
 
-      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden border border-gray-100 flex flex-col">
+      <motion.div initial={{ opacity: 0, scale: 0.96, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} transition={{ duration: 0.5, ease: "easeOut" }}
+        className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden border border-gray-100 flex flex-col">
         {/* Header/Branch Title */}
         <div className="p-6 text-center border-b border-gray-100 bg-white">
           <h1 className="text-xl font-extrabold text-blue-900 mb-1">{token.outlet?.name}</h1>
@@ -321,7 +323,7 @@ export default function QueueStatus() {
               <div className="flex flex-wrap gap-2">
                 {Array.isArray(token.serviceTypes) && token.serviceTypes.length > 0 ? (
                   token.serviceTypes.map((stype: string) => (
-                    <span key={stype} className="px-3 py-1 rounded-lg text-[11px] font-bold bg-white border border-gray-200 text- slate-700 shadow-sm">
+                    <span key={stype} className="px-3 py-1 rounded-lg text-[11px] font-bold bg-white border border-slate-200 text- slate-700 shadow-sm">
                       <ServiceName serviceType={stype} />
                     </span>
                   ))
@@ -338,12 +340,15 @@ export default function QueueStatus() {
             </div>
           </div>
         </div>
-      </div>
+      </motion.div>
 
       {/* Confirmation Modal */}
+      <AnimatePresence>
       {showCancelConfirm && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-[2.5rem] p-8 max-w-sm w-full shadow-2xl animate-in fade-in zoom-in duration-300">
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+          className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} transition={{ type: "spring", stiffness: 300, damping: 25 }}
+            className="bg-white rounded-[2.5rem] p-8 max-w-sm w-full shadow-2xl">
             <div className="w-16 h-16 bg-red-50 rounded-2xl flex items-center justify-center mx-auto mb-6">
               <Trash2 className="w-8 h-8 text-red-500" />
             </div>
@@ -367,9 +372,10 @@ export default function QueueStatus() {
                 {t.keepToken}
               </button>
             </div>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
       )}
+      </AnimatePresence>
     </div>
   )
 }

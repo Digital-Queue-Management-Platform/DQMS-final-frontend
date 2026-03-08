@@ -1,9 +1,9 @@
-// Removed unused billData state
+﻿// Removed unused billData state
 "use client"
 
 import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { Calendar, MapPin, User, Phone, Send, MessageSquare, CheckCircle } from "lucide-react"
+import { Calendar, MapPin, User, Phone, Send, MessageSquare, CheckCircle, AlertTriangle, Check, Ban } from "lucide-react"
 import api from "../config/api"
 import type { Outlet } from "../types"
 import OTPInput from "../components/OTPInput"
@@ -412,7 +412,7 @@ export default function AppointmentBooking() {
         // Check if mobile number is registered with SLT account
         if (!bill.mobileNumber) {
           const hotline = import.meta.env.VITE_SLT_HOTLINE || "1213"
-          setError(`⚠️ This SLT account does not have a registered mobile number. Please contact the SLT hotline at ${hotline} to register your mobile number before proceeding.`)
+          setError(`This SLT account does not have a registered mobile number. Please contact the SLT hotline at ${hotline} to register your mobile number before proceeding.`)
           setSltVerified(false)
           setNotificationSent(false)
           return
@@ -638,7 +638,7 @@ export default function AppointmentBooking() {
               {[1, 2, 3, 4].map((step) => (
                 <div
                   key={step}
-                  className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ${currentStep === step
+                  className={`w-8 h-8 rounded-xl flex items-center justify-center text-sm font-semibold ${currentStep === step
                     ? 'bg-blue-600 text-white'
                     : currentStep > step
                       ? 'bg-green-500 text-white'
@@ -689,7 +689,7 @@ export default function AppointmentBooking() {
                   {[{ code: 'en', label: t.english }, { code: 'si', label: t.sinhala }, { code: 'ta', label: t.tamil }].map(l => (
                     <label
                       key={l.code}
-                      className={`flex items-center gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all hover:border-blue-400 ${preferredLanguage === l.code ? 'border-blue-600 bg-blue-50' : 'border-gray-200'
+                      className={`flex items-center gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all hover:border-blue-400 ${preferredLanguage === l.code ? 'border-blue-600 bg-blue-50' : 'border-slate-200'
                         }`}
                     >
                       <input
@@ -736,7 +736,7 @@ export default function AppointmentBooking() {
                   {services.map((service) => (
                     <label
                       key={service.id}
-                      className={`flex items-center gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all hover:border-blue-400 ${selectedService === service.code ? 'border-blue-600 bg-blue-50' : 'border-gray-200'
+                      className={`flex items-center gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all hover:border-blue-400 ${selectedService === service.code ? 'border-blue-600 bg-blue-50' : 'border-slate-200'
                         }`}
                     >
                       <input
@@ -800,7 +800,7 @@ export default function AppointmentBooking() {
                               setError("")
                               setSltVerified(false)
                             }}
-                            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                             placeholder={t.sltTelephonePlaceholder}
                             maxLength={10}
                           />
@@ -823,7 +823,7 @@ export default function AppointmentBooking() {
                   <select
                     value={outletId}
                     onChange={(e) => setOutletId(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                     required
                   >
                     <option value="">{t.selectBranch}</option>
@@ -844,7 +844,7 @@ export default function AppointmentBooking() {
                     value={datetime}
                     onChange={(e) => setDatetime(e.target.value)}
                     min={getMinDateTime()}
-                    className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${datetime && !isValidAppointmentTime(datetime)
+                    className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent ${datetime && !isValidAppointmentTime(datetime)
                       ? 'border-red-500 bg-red-50'
                       : 'border-gray-300'
                       }`}
@@ -852,7 +852,7 @@ export default function AppointmentBooking() {
                   />
                 </div>
                 {datetime && !isValidAppointmentTime(datetime) && (
-                  <p className="text-sm text-red-600 mt-2">⚠️ {t.minBookingTime}</p>
+                  <p className="flex items-center gap-1.5 text-sm text-red-600 mt-2"><AlertTriangle className="w-4 h-4 flex-shrink-0" /> {t.minBookingTime}</p>
                 )}
               </div>
 
@@ -866,7 +866,7 @@ export default function AppointmentBooking() {
                       type="text"
                       value={name}
                       onChange={(e) => setName(e.target.value.replace(/[^a-zA-Z\s\-'.]/g, ''))}
-                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                       placeholder={t.fullNamePh}
                       maxLength={100}
                       required
@@ -885,7 +885,7 @@ export default function AppointmentBooking() {
                       type="tel"
                       value={mobileNumber}
                       onChange={(e) => setMobileNumber(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                       placeholder={t.mobilePh}
                       maxLength={10}
                       required
@@ -900,7 +900,7 @@ export default function AppointmentBooking() {
               {/* Closed-date error */}
               {closedOnDateError && (
                 <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
-                  <span className="shrink-0 mt-0.5">🚫</span>
+                  <Ban className="w-4 h-4 shrink-0 mt-0.5" />
                   <span>{closedOnDateError}</span>
                 </div>
               )}
@@ -942,7 +942,7 @@ export default function AppointmentBooking() {
               </div>
 
               {/* Summary */}
-              <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+              <div className="bg-slate-50 rounded-xl p-4 space-y-3">
                 <div>
                   <span className="text-xs font-medium text-gray-500 uppercase">{t.preferredLang}</span>
                   <p className="text-sm font-medium text-gray-900">
@@ -1004,7 +1004,7 @@ export default function AppointmentBooking() {
                   </div>
                   <p className="text-sm text-gray-700 mb-2 font-medium">{notificationMessage}</p>
                   {!isOwnerOfAccount && (
-                    <p className="text-xs text-gray-600 bg-white p-2 rounded border border-gray-200 mb-2 flex items-start gap-2">
+                    <p className="text-xs text-gray-600 bg-white p-2 rounded border border-slate-200 mb-2 flex items-start gap-2">
                       <MessageSquare className="w-4 h-4 mt-0.5 flex-shrink-0" />
                       <span>The bill details have been sent as an SMS notification to the account holder.</span>
                     </p>
@@ -1054,7 +1054,7 @@ export default function AppointmentBooking() {
 
               {otpStep === 'verified' && (
                 <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
-                  <p className="text-sm text-green-700">✓ Mobile number verified</p>
+                  <p className="flex items-center gap-1.5 text-sm text-green-700"><Check className="w-4 h-4" /> Mobile number verified</p>
                 </div>
               )}
 

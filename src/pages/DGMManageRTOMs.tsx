@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+﻿import { useState, useEffect } from "react"
 import { Plus, Edit2, Trash2, X, CheckCircle, AlertCircle, Users, MapPin, Building2, Copy } from "lucide-react"
 import api from "../config/api"
 
@@ -140,15 +140,15 @@ export default function DGMManageRTOMs() {
                                 : "Share these login details with the RTOM."}
                         </p>
 
-                        <div className="bg-gray-50 rounded-xl p-4 space-y-3 mb-5">
+                        <div className="bg-slate-50 rounded-xl p-4 space-y-3 mb-5">
                             <div>
-                                <p className="text-xs font-medium text-gray-500 mb-1">RTOM NAME</p>
+                                <p className="text-xs font-medium text-slate-500 mb-1">RTOM NAME</p>
                                 <div className="flex items-center gap-2">
                                     <p className="flex-1 text-sm font-semibold text-gray-800">{createdRTOM.name}</p>
                                 </div>
                             </div>
                             <div>
-                                <p className="text-xs font-medium text-gray-500 mb-1">MOBILE NUMBER (Login)</p>
+                                <p className="text-xs font-medium text-slate-500 mb-1">MOBILE NUMBER (Login)</p>
                                 <div className="flex items-center gap-2">
                                     <p className="flex-1 text-sm font-mono font-bold text-teal-700 bg-teal-50 rounded-lg px-3 py-2">{createdRTOM.mobileNumber}</p>
                                     <button onClick={() => copyToClipboard(createdRTOM.mobileNumber)} className="p-2 text-gray-400 hover:text-teal-600 rounded-lg hover:bg-teal-50" title="Copy">
@@ -158,7 +158,7 @@ export default function DGMManageRTOMs() {
                             </div>
                             {createdRTOM.email && (
                                 <div>
-                                    <p className="text-xs font-medium text-gray-500 mb-1">EMAIL</p>
+                                    <p className="text-xs font-medium text-slate-500 mb-1">EMAIL</p>
                                     <div className="flex items-center gap-2">
                                         <p className="flex-1 text-sm text-gray-700 truncate">{createdRTOM.email}</p>
                                         <button onClick={() => copyToClipboard(createdRTOM.email!)} className="p-2 text-gray-400 hover:text-teal-600 rounded-lg hover:bg-teal-50" title="Copy">
@@ -168,7 +168,7 @@ export default function DGMManageRTOMs() {
                                 </div>
                             )}
                             <div>
-                                <p className="text-xs font-medium text-gray-500 mb-1">REGION</p>
+                                <p className="text-xs font-medium text-slate-500 mb-1">REGION</p>
                                 <p className="text-sm text-gray-700">{createdRTOM.regionName}</p>
                             </div>
                         </div>
@@ -192,7 +192,7 @@ export default function DGMManageRTOMs() {
             {loading ? (
                 <div className="py-16 text-center text-gray-400">Loading regions…</div>
             ) : regions.length === 0 ? (
-                <div className="py-16 text-center bg-white rounded-2xl border border-dashed border-gray-200 text-gray-400">
+                <div className="py-16 text-center bg-white rounded-2xl border border-dashed border-slate-200 text-gray-400">
                     <MapPin className="w-12 h-12 mx-auto mb-3" /><p>No regions assigned to you yet.</p>
                 </div>
             ) : (
@@ -223,7 +223,7 @@ export default function DGMManageRTOMs() {
 
                             {region.managerId ? (
                                 <div className="bg-teal-50 rounded-xl p-3 flex items-center gap-3">
-                                    <div className="w-8 h-8 bg-teal-100 rounded-full flex items-center justify-center text-teal-600 font-semibold text-sm">
+                                    <div className="w-8 h-8 bg-teal-100 rounded-xl flex items-center justify-center text-teal-600 font-semibold text-sm">
                                         {region.managerId[0]?.toUpperCase()}
                                     </div>
                                     <div>
@@ -233,13 +233,13 @@ export default function DGMManageRTOMs() {
                                     <span className="ml-auto px-2 py-0.5 bg-green-100 text-green-700 text-xs font-medium rounded-full">Assigned</span>
                                 </div>
                             ) : (
-                                <div className="bg-gray-50 rounded-xl p-3 text-center text-sm text-gray-400">No RTOM assigned yet</div>
+                                <div className="bg-slate-50 rounded-xl p-3 text-center text-sm text-gray-400">No RTOM assigned yet</div>
                             )}
 
                             {region.outlets.length > 0 && (
                                 <div className="mt-3 flex flex-wrap gap-2">
                                     {region.outlets.slice(0, 5).map(o => (
-                                        <span key={o.id} className="flex items-center gap-1 px-2 py-1 bg-gray-50 rounded-lg text-xs text-gray-600">
+                                        <span key={o.id} className="flex items-center gap-1 px-2 py-1 bg-slate-50 rounded-xl text-xs text-gray-600">
                                             <Building2 className="w-3 h-3" />{o.name}
                                         </span>
                                     ))}

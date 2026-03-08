@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+﻿import { useState, useEffect } from "react"
 import { X, Copy, Check } from "lucide-react"
 
 interface OTPPopupProps {
@@ -45,7 +45,7 @@ export default function OTPPopup({ otpCode, onClose, autoCloseDuration = 30000 }
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
       <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 relative animate-fade-in">
         {/* Close button */}
         <button

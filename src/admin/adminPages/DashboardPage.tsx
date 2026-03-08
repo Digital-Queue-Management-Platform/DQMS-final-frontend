@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import MetricCard from '../adminComponents/dashboardComponents/MetricCard';
 import {BranchComparisonChart} from '../adminComponents/dashboardComponents/BranchComparisonChart';
 import WaitingTimeChart from '../adminComponents/dashboardComponents/WaitingTimeChart';
@@ -6,7 +6,7 @@ import { BranchTable } from '../adminComponents/dashboardComponents/BranchTable'
 import SriLankaMap from '../adminComponents/dashboardComponents/SriLankaMap';
 import SystemHealthStatus from '../adminComponents/dashboardComponents/SystemHealthStatus';
 import BranchDashboardPage from './BranchDashboardPage';
-import { UsersIcon, ClockIcon, StarIcon, Ticket, BellIcon, Eye, ArrowLeft, Trash2, Loader2 } from 'lucide-react';
+import { UsersIcon, ClockIcon, StarIcon, Ticket, BellIcon, Eye, ArrowLeft, Trash2, Loader2, X, BellOff, CheckCircle2 } from 'lucide-react';
 import api, { WS_URL } from '../../config/api'
 import type { Alert } from '../../types'
 
@@ -491,8 +491,9 @@ const DashboardPage: React.FC = () => {
               <div className="flex items-center gap-2">
                 {/* Browser Notification Status */}
                 {notificationPermission === 'granted' && (
-                  <div className="text-xs text-green-600" title="Browser notifications enabled">
-                    
+                  <div className="flex items-center gap-1 text-xs text-green-600" title="Browser notifications enabled">
+                    <CheckCircle2 className="w-4 h-4" />
+                    <span className="hidden sm:inline">Notifications on</span>
                   </div>
                 )}
                 {notificationPermission === 'denied' && (
@@ -500,10 +501,11 @@ const DashboardPage: React.FC = () => {
                     onClick={() => {
                       alert('Please enable notifications in your browser settings for this site to receive alerts.')
                     }}
-                    className="text-xs text-red-600 hover:text-red-700"
+                    className="flex items-center gap-1 text-xs text-red-600 hover:text-red-700 px-2 py-1 rounded-lg hover:bg-red-50 transition-colors"
                     title="Browser notifications disabled - click to learn how to enable"
                   >
-                    
+                    <BellOff className="w-4 h-4" />
+                    <span className="hidden sm:inline">Enable alerts</span>
                   </button>
                 )}
                 {notificationPermission === 'default' && (
@@ -513,10 +515,11 @@ const DashboardPage: React.FC = () => {
                         setNotificationPermission(permission)
                       })
                     }}
-                    className="text-xs text-yellow-600 hover:text-yellow-700"
+                    className="flex items-center gap-1 text-xs text-yellow-600 hover:text-yellow-700 px-2 py-1 rounded-lg hover:bg-yellow-50 transition-colors"
                     title="Click to enable browser notifications"
                   >
-                    
+                    <BellIcon className="w-4 h-4" />
+                    <span className="hidden sm:inline">Allow alerts</span>
                   </button>
                 )}
               </div>
@@ -539,17 +542,17 @@ const DashboardPage: React.FC = () => {
                 {showNotifications && (
                   <>
                     {/* Mobile Overlay */}
-                    <div className="fixed inset-0 bg-black bg-opacity-50 z-40 md:hidden" onClick={() => setShowNotifications(false)}></div>
+                    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 md:hidden" onClick={() => setShowNotifications(false)}></div>
                     
                     {/* Notification Panel */}
-                    <div className="fixed inset-x-4 top-20 md:absolute md:right-0 md:inset-x-auto md:top-auto md:mt-2 w-auto md:w-80 bg-white rounded-lg shadow-lg border border-gray-200 z-50 max-h-[70vh] md:max-h-96 flex flex-col">
-                      <div className="p-4 border-b border-gray-200 flex items-center justify-between">
+                    <div className="fixed inset-x-4 top-20 md:absolute md:right-0 md:inset-x-auto md:top-auto md:mt-2 w-auto md:w-80 bg-white rounded-2xl shadow-sm-lg border border-slate-200 z-50 max-h-[70vh] md:max-h-96 flex flex-col">
+                      <div className="p-4 border-b border-slate-200 flex items-center justify-between">
                         <h3 className="text-lg font-semibold text-gray-900">Notifications</h3>
                         <button 
                           onClick={() => setShowNotifications(false)}
-                          className="md:hidden p-1 hover:bg-gray-100 rounded-full"
+                          className="md:hidden p-1 hover:bg-slate-100 rounded-xl"
                         >
-                          <span className="text-gray-500 text-xl">✕</span>
+                          <X className="w-5 h-5 text-gray-500" />
                         </button>
                       </div>
                       <div className="flex-1 overflow-y-auto">
@@ -595,10 +598,10 @@ const DashboardPage: React.FC = () => {
                         ))
                       )}
                       </div>
-                      <div className="p-3 border-t border-gray-200">
+                      <div className="p-3 border-t border-slate-200">
                         <button
                           onClick={markAllAlertsAsRead}
-                          className="w-full text-center text-sm text-blue-600 hover:text-blue-800 py-2 px-4 bg-blue-50 rounded hover:bg-blue-100 transition-colors"
+                          className="w-full text-center text-sm text-indigo-600 hover:text-indigo-800 py-2 px-4 bg-blue-50 rounded hover:bg-blue-100 transition-colors"
                         >
                           Mark all as read
                         </button>

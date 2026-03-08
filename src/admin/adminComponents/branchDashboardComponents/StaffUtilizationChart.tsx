@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+﻿import React, { useState, useEffect } from 'react'
 import {
   LineChart,
   Line,
@@ -83,7 +83,7 @@ const StaffUtilizationChart: React.FC<{ outletId?: string | null; apiEndpoint?: 
   }
 
   return (
-    <div className="w-full p-3 sm:p-4 md:p-6 bg-white rounded-lg shadow-sm border border-gray-200">
+    <div className="w-full p-3 sm:p-4 md:p-6 bg-white rounded-2xl shadow-sm border border-slate-100 border border-slate-200">
       {/* Header Section - Responsive */}
       <div className="flex flex-col gap-3 mb-4 sm:mb-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">

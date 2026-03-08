@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useEffect, useState } from "react"
 import { Search, Clock, CheckCircle, Store, Info } from "lucide-react"
@@ -127,7 +127,7 @@ export default function ServiceStatus() {
 
   return (
     <div className="p-6 max-w-3xl mx-auto">
-      <div className="bg-white rounded-xl shadow-sm p-5 mb-4">
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 mb-4">
         {/* Language Tabs */}
         <div className="flex justify-end gap-2 mb-3">
           <button
@@ -163,7 +163,7 @@ export default function ServiceStatus() {
       {loading && <div className="text-gray-600">{t.loading}</div>}
 
       {data && (
-        <div className="bg-white rounded-xl shadow-sm p-5 space-y-4">
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 space-y-4">
           <div className="flex flex-wrap items-center gap-3">
             <span className="text-sm text-gray-500">{t.reference}</span>
             <span className="px-2 py-1 bg-gray-100 rounded font-mono text-sm">{data.refNumber}</span>
@@ -181,7 +181,7 @@ export default function ServiceStatus() {
             <div className="space-y-3">
               {data.updates.map((u) => (
                 <div key={u.id} className="border rounded-lg p-3">
-                  <div className="flex items-center justify-between text-xs text-gray-500 mb-1">
+                  <div className="flex items-center justify-between text-xs text-slate-500 mb-1">
                     <span className="capitalize">{u.actorRole.replace('_', ' ')}</span>
                     <span>{formatDateTime(u.createdAt)}</span>
                   </div>

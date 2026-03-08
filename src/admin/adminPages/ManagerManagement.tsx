@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+﻿import React, { useState, useEffect } from 'react'
 import api from '../../config/api'
 
 interface Manager {
@@ -82,7 +82,7 @@ const ManagerManagement: React.FC = () => {
         </div>
       )}
 
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200">
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 border border-slate-200">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[768px]">
             <thead className="bg-slate-50 border-b border-slate-200">
@@ -161,7 +161,7 @@ const ManagerManagement: React.FC = () => {
       {/* Password Reset Dialog */}
       {showResetDialog && selectedManager && (
         <>
-          <div className="fixed inset-0 bg-black bg-opacity-50 z-50" onClick={closeResetDialog} />
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50" onClick={closeResetDialog} />
           <div className="fixed inset-0 flex items-center justify-center z-50 p-3 sm:p-4">
             <div className="bg-white rounded-xl shadow-2xl max-w-sm sm:max-w-md w-full mx-4">
               <div className="p-4 sm:p-6">

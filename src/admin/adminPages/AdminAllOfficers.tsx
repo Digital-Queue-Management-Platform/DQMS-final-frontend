@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+﻿import { useEffect, useMemo, useState } from 'react'
 import api from '../../config/api'
 import { Activity, ChevronDown, ChevronRight, MapPin, Phone, Search, UserCircle2 } from 'lucide-react'
 
@@ -92,19 +92,19 @@ export default function AdminAllOfficers() {
           </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-3 sm:p-4 mb-4">
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 border border-slate-200 p-3 sm:p-4 mb-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search by name, mobile, outlet, or location"
-              className="w-full pl-10 pr-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
+              className="w-full pl-10 pr-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm sm:text-base"
             />
           </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 border border-slate-200 overflow-hidden">
           {loading ? (
             <div className="p-4 sm:p-6 text-center text-slate-500 text-sm sm:text-base">Loading officers…</div>
           ) : filtered.length === 0 ? (

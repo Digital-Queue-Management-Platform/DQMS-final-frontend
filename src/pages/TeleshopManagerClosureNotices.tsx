@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+﻿import { useState, useEffect } from "react"
 import { PlusCircle, Trash2, AlertTriangle, Calendar, Clock, RefreshCw, Bell, Pencil } from "lucide-react"
 import api from "../config/api"
 
@@ -275,7 +275,7 @@ export default function TeleshopManagerClosureNotices() {
                             type="text"
                             value={form.title}
                             onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
-                            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
                             placeholder="e.g. Branch Closed – Public Holiday"
                             required
                         />
@@ -286,7 +286,7 @@ export default function TeleshopManagerClosureNotices() {
                             value={form.message}
                             onChange={e => setForm(f => ({ ...f, message: e.target.value }))}
                             rows={3}
-                            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
                             placeholder="We are temporarily closed. We apologize for the inconvenience."
                             required
                         />
@@ -331,7 +331,7 @@ export default function TeleshopManagerClosureNotices() {
                                     type="datetime-local"
                                     value={form.startsAt}
                                     onChange={e => setForm(f => ({ ...f, startsAt: e.target.value }))}
-                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
                                     required
                                 />
                             </div>
@@ -341,7 +341,7 @@ export default function TeleshopManagerClosureNotices() {
                                     type="datetime-local"
                                     value={form.endsAt}
                                     onChange={e => setForm(f => ({ ...f, endsAt: e.target.value }))}
-                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
                                     required
                                 />
                             </div>
@@ -375,7 +375,7 @@ export default function TeleshopManagerClosureNotices() {
                             className={`rounded-xl border p-4 ${
                                     isActive(notice)
                                         ? notice.noticeType === "standard" ? "border-blue-300 bg-blue-50" : "border-red-300 bg-red-50"
-                                        : "border-gray-200 bg-white"
+                                        : "border-slate-200 bg-white"
                                 }`}
                         >
                             <div className="flex items-start justify-between gap-3">

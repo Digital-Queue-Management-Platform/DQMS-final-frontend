@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useEffect, useState } from "react"
 import { useLocation, useNavigate } from "react-router-dom"
@@ -259,7 +259,7 @@ export default function AppointmentMy() {
               pattern="[0-9]{10}"
               className="flex-1 px-3 py-2 border rounded-lg"
             />
-            <button type="submit" className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+            <button type="submit" className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700">
               <RefreshCwIcon className="w-4 h-4" />
               {t.refresh}
             </button>

@@ -1,4 +1,4 @@
-import React from "react"
+﻿import React from "react"
 import { useSearchParams } from "react-router-dom"
 import { Search, Filter, RefreshCcw, ChevronDown, ChevronUp } from "lucide-react"
 import api from "../config/api"
@@ -291,7 +291,7 @@ export default function TeleshopManagerServedCustomers() {
         </div>
 
         {/* Filters */}
-        <div className="border border-gray-200 rounded-xl p-2 mb-6">
+        <div className="border border-slate-200 rounded-xl p-2 mb-6">
           <div className="flex flex-col gap-3">
             {/* First Row - Search */}
             <div className="flex-1 relative">
@@ -403,15 +403,15 @@ export default function TeleshopManagerServedCustomers() {
 
         {/* Content */}
         {loading ? (
-          <div className="bg-white border border-gray-200 rounded-xl p-6 text-gray-600">Loading...</div>
+          <div className="bg-white border border-slate-200 rounded-xl p-6 text-gray-600">Loading...</div>
         ) : error ? (
           <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-red-700 text-sm">{error}</div>
         ) : filtered.length === 0 ? (
-          <div className="bg-white border border-gray-200 rounded-xl p-6 text-gray-600">No served customers found.</div>
+          <div className="bg-white border border-slate-200 rounded-xl p-6 text-gray-600">No served customers found.</div>
         ) : (
-          <div className="bg-white border border-gray-200 rounded-xl overflow-x-auto shadow-sm">
+          <div className="bg-white border border-slate-200 rounded-xl overflow-x-auto shadow-sm">
             <table className="w-full min-w-max">
-              <thead className="bg-black/10 border-b border-gray-200">
+              <thead className="bg-black/10 border-b border-slate-200">
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider">Token</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider">Customer</th>
@@ -587,7 +587,7 @@ export default function TeleshopManagerServedCustomers() {
                                   <h4 className="text-sm font-semibold text-gray-900 mb-2">Case Updates</h4>
                                   <div className="space-y-2">
                                     {caseDetails[t.refNumber].updates.map((update: any) => (
-                                      <div key={update.id} className="bg-white border border-gray-200 rounded-lg p-3">
+                                      <div key={update.id} className="bg-white border border-slate-200 rounded-lg p-3">
                                         <div className="flex items-start justify-between mb-1">
                                           <div className="flex items-center gap-2">
                                             <span className="text-xs font-medium text-gray-900">{update.actorRole}</span>

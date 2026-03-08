@@ -1,7 +1,8 @@
-"use client"
+﻿"use client"
 
 import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
+import { motion } from "framer-motion"
 import {
   Users,
   UserPlus,
@@ -10,7 +11,8 @@ import {
   AlertCircle,
   Activity,
   BarChart3,
-  MessageSquare
+  MessageSquare,
+  Store
 } from "lucide-react"
 import TeleshopMetricCard from "../components/TeleshopMetricCard"
 import api, { WS_URL } from "../config/api"
@@ -254,7 +256,7 @@ export default function TeleshopManagerDashboard() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-2 border-sky-600 border-t-transparent mx-auto"></div>
           <p className="mt-4 text-gray-600">Loading dashboard...</p>
         </div>
       </div>
@@ -269,7 +271,7 @@ export default function TeleshopManagerDashboard() {
           <p className="text-red-600 mb-4">{error}</p>
           <button
             onClick={() => window.location.reload()}
-            className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700"
+            className="bg-sky-600 text-white px-4 py-2 rounded-xl hover:bg-sky-700 transition-colors"
           >
             Retry
           </button>
@@ -285,22 +287,21 @@ export default function TeleshopManagerDashboard() {
   return (
     <div className="p-6">
       {/* Header Section */}
-      <div className="mb-8">
-        <div className="flex items-center justify-between mb-2">
+      <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-8 flex items-start justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-sky-600 rounded-xl flex items-center justify-center shadow-sm">
+            <Store className="w-5 h-5 text-white" />
+          </div>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Teleshop Manager Dashboard</h1>
-            <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-              <p className="text-sm text-gray-500">
-                Teleshop Manager: {teleshopManager.name} | {new Date().toLocaleDateString()} | {new Date().toLocaleTimeString()}
-              </p>
-              <div className="flex items-center gap-3 text-sm text-slate-600">
-                {dashboardLoading && <span className="flex items-center gap-1">Refreshing...</span>}
-                <span>Last updated: {lastUpdated.toLocaleTimeString()}</span>
-              </div>
-            </div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">Teleshop Manager Dashboard</h1>
+            <p className="text-sm text-slate-500">Welcome back, <span className="font-medium text-sky-600">{teleshopManager.name}</span></p>
           </div>
         </div>
-      </div>
+        <div className="flex items-center gap-2 text-xs text-slate-400">
+          {dashboardLoading && <span className="text-sky-500">Refreshing...</span>}
+          <span className="hidden sm:inline">Updated: {lastUpdated.toLocaleTimeString()}</span>
+        </div>
+      </motion.div>
 
       {/* Statistics Cards */}
       {breakAnalytics && (
@@ -341,27 +342,27 @@ export default function TeleshopManagerDashboard() {
 
       {/* Quick Actions */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <button
+        <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
           onClick={() => navigate("/teleshop-manager/officers/add")}
-          className="bg-purple-600 text-white p-4 rounded-lg hover:bg-purple-700 flex items-center justify-center"
+          className="bg-sky-600 text-white p-4 rounded-xl hover:bg-sky-700 flex items-center justify-center font-semibold transition-all shadow-sm"
         >
           <UserPlus className="w-5 h-5 mr-2" />
           Add New Officer
-        </button>
-        <button
+        </motion.button>
+        <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
           onClick={() => navigate("/teleshop-manager/completed-services")}
-          className="bg-blue-600 text-white p-4 rounded-lg hover:bg-blue-700 flex items-center justify-center"
+          className="bg-indigo-600 text-white p-4 rounded-xl hover:bg-indigo-700 flex items-center justify-center font-semibold transition-all shadow-sm"
         >
           <BarChart3 className="w-5 h-5 mr-2" />
           View Completed Services
-        </button>
-        <button
+        </motion.button>
+        <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
           onClick={() => navigate("/teleshop-manager/feedback")}
-          className="bg-yellow-600 text-white p-4 rounded-lg hover:bg-yellow-700 flex items-center justify-center"
+          className="bg-amber-600 text-white p-4 rounded-xl hover:bg-amber-700 flex items-center justify-center font-semibold transition-all shadow-sm"
         >
           <MessageSquare className="w-5 h-5 mr-2" />
           Manage Feedback
-        </button>
+        </motion.button>
       </div>
 
       {/* Main Dashboard Content */}
@@ -369,12 +370,12 @@ export default function TeleshopManagerDashboard() {
         {/* Left Column - Overview Stats */}
         <div className="xl:col-span-2 space-y-6">
           {/* Officers by Status */}
-          <div className="bg-white p-6 rounded-lg shadow border border-gray-100">
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">Officers by Status</h3>
+              <h3 className="text-lg font-semibold text-slate-900">Officers by Status</h3>
               <button
                 onClick={() => navigate("/teleshop-manager/officers/add")}
-                className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 flex items-center text-sm"
+                className="bg-sky-600 text-white px-4 py-2 rounded-xl hover:bg-sky-700 flex items-center text-sm transition-colors"
               >
                 <UserPlus className="w-4 h-4 mr-2" />
                 Add Officer
@@ -412,15 +413,15 @@ export default function TeleshopManagerDashboard() {
           </div>
 
           {/* Officers Table */}
-          <div className="bg-white rounded-lg shadow border border-gray-100">
-            <div className="px-6 py-4 border-b border-gray-200 rounded-t-lg">
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-100">
+            <div className="px-6 py-4 border-b border-slate-200 rounded-t-lg">
               <h3 className="text-lg font-semibold text-gray-900">Your Officers</h3>
             </div>
 
             {breakAnalytics && breakAnalytics.officers.length > 0 ? (
               <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-200">
+                  <thead className="bg-slate-50">
                     <tr>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
                         Officer
@@ -474,7 +475,7 @@ export default function TeleshopManagerDashboard() {
                   </tbody>
                 </table>
                 {breakAnalytics.officers.length > itemsPerPage && (
-                  <div className="px-6 py-3 bg-gray-50 border-t border-gray-200 flex items-center justify-between">
+                  <div className="px-6 py-3 bg-gray-50 border-t border-slate-200 flex items-center justify-between">
                     <div className="text-sm text-gray-500">
                       Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, breakAnalytics.officers.length)} of {breakAnalytics.officers.length} officers
                     </div>
@@ -520,8 +521,8 @@ export default function TeleshopManagerDashboard() {
 
         {/* Right Column - Active Breaks */}
         <div className="space-y-6">
-          <div className="bg-white p-6 rounded-lg shadow border border-gray-100">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Active Breaks</h3>
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+            <h3 className="text-lg font-semibold text-slate-900 mb-4">Active Breaks</h3>
 
             {breakAnalytics && breakAnalytics.officers.filter(o => o.activeBreak).length > 0 ? (
               <div className="space-y-3">
@@ -562,8 +563,8 @@ export default function TeleshopManagerDashboard() {
 
           {/* Today's Break Summary */}
           {breakAnalytics && (
-            <div className="bg-white p-6 rounded-lg shadow border border-gray-100">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Today's Summary</h3>
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+              <h3 className="text-lg font-semibold text-slate-900 mb-4">Today's Summary</h3>
               <div className="space-y-3">
                 <div className="flex justify-between">
                   <span className="text-gray-600">Total Break Time:</span>

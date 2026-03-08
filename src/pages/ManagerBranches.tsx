@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
@@ -182,7 +182,7 @@ export default function ManagerBranches() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-8">
+    <div className="min-h-screen bg-slate-50 p-4 sm:p-6 lg:p-8">
       <div className="mx-auto">
         {/* Header Section in Body */}
         <div className="mb-8">
@@ -206,10 +206,10 @@ export default function ManagerBranches() {
           {/* Branch Cards Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">{/* Existing content continues */}
             {branches.map((branch) => (
-              <div key={branch.id} className="relative bg-white rounded-xl shadow-sm p-6 hover:shadow-md transition-shadow">
+              <div key={branch.id} className="relative bg-white rounded-2xl shadow-sm border border-slate-100 p-6 hover:shadow-md transition-shadow">
                 <div className="flex items-start justify-between mb-4 gap-3">
                   <div className="flex items-center gap-3 min-w-0">
-                    {/*<div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
+                    {/*<div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center flex-shrink-0">
                       <Building2 className="w-6 h-6 text-green-600" />
                     </div>*/}
                     <div className="min-w-0">
@@ -287,7 +287,7 @@ export default function ManagerBranches() {
                 </div>
 
                 {/* Branch Details */}
-                <div className="border-t border-gray-200 pt-4">
+                <div className="border-t border-slate-200 pt-4">
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600">Counters:</span>
                     <span className="font-medium text-gray-900">{branch.counterCount}</span>

@@ -1,4 +1,4 @@
-import React from 'react'
+﻿import React from 'react'
 import {
   AlertCircleIcon,
   MessageSquareIcon,
@@ -27,12 +27,12 @@ const CustomerFeedback: React.FC<CustomerFeedbackProps> = ({ feedback }) => {
   })
 
   return (
-    <div className="bg-white rounded-lg shadow-sm p-6 h-full">
+    <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 h-full">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-lg font-semibold text-gray-800">
           Customer Feedback & Alerts
         </h2>
-        <button className="text-sm text-blue-600 hover:text-blue-800">
+        <button className="text-sm text-indigo-600 hover:text-indigo-800">
           View All
         </button>
       </div>
@@ -52,7 +52,7 @@ const CustomerFeedback: React.FC<CustomerFeedbackProps> = ({ feedback }) => {
                   ? item.rating <= 2
                     ? 'border-red-200 bg-red-50'
                     : 'border-amber-200 bg-amber-50'
-                  : 'border-gray-200'
+                  : 'border-slate-200'
               }`}
             >
               <div className="flex justify-between items-start mb-2">
@@ -99,7 +99,7 @@ const CustomerFeedback: React.FC<CustomerFeedbackProps> = ({ feedback }) => {
       </div>
 
       {feedback.length > 0 && (
-        <div className="mt-4 pt-4 border-t border-gray-200">
+        <div className="mt-4 pt-4 border-t border-slate-200">
           <h3 className="text-sm font-medium text-gray-700 mb-2">
             Branch Alert Summary
           </h3>
