@@ -257,9 +257,7 @@ export default function OfficerQueuePage() {
 
     if (window.speechSynthesis) window.speechSynthesis.cancel()
 
-    // Always use Google Translate TTS (Sinhala engine) so Sinhala names are pronounced correctly
-    // even in English-language announcements. 'si' lang handles mixed Sinhala/English text well.
-    const ttsLang = lang === 'ta' ? 'ta' : 'si'
+    const ttsLang = lang
     try {
       const resp = await api.get('/tts/speak', { params: { text, lang: ttsLang }, responseType: 'blob' })
       const url = URL.createObjectURL(resp.data)
