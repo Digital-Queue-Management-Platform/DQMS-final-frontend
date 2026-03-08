@@ -697,7 +697,7 @@ export default function AppointmentBooking() {
                         name="preferredLanguage"
                         value={l.code}
                         checked={preferredLanguage === l.code}
-                        onChange={(e) => setPreferredLanguage(e.target.value)}
+                        onChange={(e) => { setPreferredLanguage(e.target.value); setLanguage(e.target.value as 'en' | 'si' | 'ta'); try { localStorage.setItem('dq_lang', e.target.value) } catch {} }}
                         className="w-5 h-5 text-blue-600"
                       />
                       <span className="text-base font-medium">{l.label}</span>

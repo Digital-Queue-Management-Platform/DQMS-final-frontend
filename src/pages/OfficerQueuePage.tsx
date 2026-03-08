@@ -214,6 +214,75 @@ export default function OfficerQueuePage() {
     }
   }
 
+  // --- Auto-speech helpers ---
+  const AUTO_SPEAK_TEMPLATES = {
+    call: {
+      en: (name: string, num: number, counter?: number) =>
+        `${name}. Token number ${num}. Please proceed to counter ${counter || 'assigned'}. ${name}, counter ${counter || 'assigned'}.`,
+      si: (name: string, num: number, counter?: number) =>
+        `${name}. ${name}. අංක ${num}. කවුන්ටරය ${counter || 'නියම කළ'} වෙත පැමිණෙන්න.`,
+      ta: (name: string, num: number, counter?: number) =>
+        `${name}. ${name}. எண் ${num}. கவுண்டர் ${counter || 'ஒதுக்கப்பட்ட'} க்கு வாருங்கள்.`,
+    },
+    skip: {
+      en: (name: string, num: number, _counter?: number) =>
+        `${name}, token ${num}, you have been skipped. Please return to the counter.`,
+      si: (name: string, num: number, _counter?: number) =>
+        `${name}. ටෝකන් ${num}. ඔබ මග හැරී ඇත. කරුණාකර කවුන්ටරය වෙත ආපසු එන්න.`,
+      ta: (name: string, num: number, _counter?: number) =>
+        `${name}. எண் ${num}. நீங்கள் தவிர்க்கப்பட்டீர்கள். தயவுசெய்து கவுண்டருக்கு திரும்பவும்.`,
+    },
+    recall: {
+      en: (name: string, num: number, counter?: number) =>
+        `${name}. Token ${num} is being recalled. Please return to counter ${counter || 'assigned'} immediately.`,
+      si: (name: string, num: number, counter?: number) =>
+        `${name}. ටෝකන් ${num} නැවත කැඳවනු ලැබේ. කරුණාකර වහාම කවුන්ටර් ${counter || 'නියම'} වෙත එන්න.`,
+      ta: (name: string, num: number, counter?: number) =>
+        `${name}. எண் ${num} மீண்டும் அழைக்கப்படுகிறது. தயவுசெய்து உடனடியாக கவுண்டர் ${counter || ''} க்கு வாருங்கள்.`,
+    },
+  }
+
+  const autoSpeak = async (token: any, eventType: 'call' | 'skip' | 'recall', counterNum?: number | null) => {
+    if (!token) return
+    const prefs = token?.preferredLanguages
+    let lang: 'en' | 'si' | 'ta' = 'en'
+    if (Array.isArray(prefs) && prefs.length > 0) {
+      const p = String(prefs[0]).toLowerCase()
+      if (p === 'si') lang = 'si'
+      else if (p === 'ta') lang = 'ta'
+    }
+    const name = token.customer?.name || ''
+    const counter = token.counterNumber || counterNum || undefined
+    const text = AUTO_SPEAK_TEMPLATES[eventType][lang](name, token.tokenNumber, counter)
+
+    if (window.speechSynthesis) window.speechSynthesis.cancel()
+
+    if (lang === 'si' || lang === 'ta') {
+      try {
+        const resp = await api.get('/tts/speak', { params: { text, lang }, responseType: 'blob' })
+        const url = URL.createObjectURL(resp.data)
+        const audio = new Audio(url)
+        audio.volume = 1.0
+        audio.onended = () => URL.revokeObjectURL(url)
+        await audio.play()
+      } catch (e) {
+        console.error('Auto-speak TTS error:', e)
+      }
+    } else {
+      const synth = window.speechSynthesis
+      if (!synth) return
+      const voices = synth.getVoices()
+      const utterance = new SpeechSynthesisUtterance(text)
+      const voice = voices.find(v => v.lang.startsWith('en') && v.name.includes('Microsoft')) ||
+                    voices.find(v => v.lang.startsWith('en')) ||
+                    voices[0]
+      if (voice) { utterance.voice = voice; utterance.lang = 'en-US' }
+      utterance.volume = 1.0
+      utterance.rate = 0.9
+      synth.speak(utterance)
+    }
+  }
+
   const handleTransfer = async () => {
     if (!officer || !currentToken) return
     if (transferServices.length === 0 && !targetCounter) {
@@ -290,6 +359,7 @@ export default function OfficerQueuePage() {
           setCurrentToken(response.data.token)
           setAccountRef("")
           fetchQueue(officer.outletId, officer.id)
+          autoSpeak(response.data.token, 'call', officer.counterNumber)
         }
         setLoading(false)
         return
@@ -305,6 +375,7 @@ export default function OfficerQueuePage() {
           setCurrentToken(confirmRes.data.token)
           setAccountRef("")
           fetchQueue(officer.outletId, officer.id)
+          autoSpeak(confirmRes.data.token, 'call', officer.counterNumber)
         }
       } else if (response.data.token) {
         console.log('Received token data:', response.data.token)
@@ -312,6 +383,7 @@ export default function OfficerQueuePage() {
         setCurrentToken(response.data.token)
         setAccountRef("")
         fetchQueue(officer.outletId, officer.id)
+        autoSpeak(response.data.token, 'call', officer.counterNumber)
       }
     } catch (err: any) {
       console.error('failed to get next token', err)
@@ -349,6 +421,10 @@ export default function OfficerQueuePage() {
     const targetTokenId = tokenId || currentToken?.id
     if (!targetTokenId) return
     if (!confirm('Are you sure you want to skip this customer?')) return
+    // Capture token data before state is cleared
+    const skippedToken = tokenId
+      ? queue?.waiting.find(t => t.id === tokenId) || queue?.inService.find(t => t.id === tokenId) || null
+      : currentToken
     setLoading(true)
     try {
       await api.post('/officer/skip-token', { officerId: officer.id, tokenId: targetTokenId })
@@ -435,6 +511,7 @@ export default function OfficerQueuePage() {
         setAccountRef("")
         // Refresh queue
         fetchQueue(officer.outletId, officer.id)
+        autoSpeak(response.data.token, 'call', officer.counterNumber)
       }
     } catch (err: any) {
       console.error('failed to call token', err)

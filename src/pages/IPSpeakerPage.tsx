@@ -22,19 +22,19 @@ const ANNOUNCEMENT_TEMPLATES = {
   },
   si: {
     call: (tokenNumber: number, counterNumber?: number) => 
-      `à¶…à¶‚à¶š ${tokenNumber} à¶œà·à¶«à·”à¶¸à·Šà¶šà¶»à·” ${counterNumber || 'à¶±à·’à¶ºà¶¸ à¶šà·…'} à¶šà·€à·”à¶±à·Šà¶§à¶»à¶ºà¶§ à¶´à·à¶¸à·’à¶«à·™à¶±à·Šà¶±. à¶…à¶‚à¶š ${tokenNumber}, à¶šà·€à·”à¶±à·Šà¶§à¶»à¶º ${counterNumber || 'à¶±à·’à¶ºà¶¸ à¶šà·…'}.`,
-    welcome: 'à¶…à¶´à¶œà·š à·ƒà·šà·€à· à¶¸à¶°à·Šâ€à¶ºà·ƒà·Šà¶®à·à¶±à¶ºà¶§ à·ƒà·à¶¯à¶»à¶ºà·™à¶±à·Š à¶´à·’à·…à·’à¶œà¶±à·’à¶¸à·”.',
-    next: 'à¶Šà·…à¶Ÿ à¶´à·à¶»à·’à¶·à·à¶œà·’à¶šà¶ºà· à¶šà¶»à·”à¶«à·à¶šà¶».',
-    wait: 'à¶šà¶»à·”à¶«à·à¶šà¶» à¶”à¶¶à·š à·€à·à¶»à¶º à·ƒà¶³à·„à· à¶»à·à¶³à·“ à·ƒà·’à¶§à·’à¶±à·Šà¶±.',
-    test: 'à¶¸à·™à¶º à¶´à¶»à·“à¶šà·Šà·‚à¶« à¶±à·’à·€à·šà¶¯à¶±à¶ºà¶šà·’. IP à·ƒà·Šà¶´à·“à¶šà¶»à·Š à¶±à·’à·€à·à¶»à¶¯à·’à·€ à¶šà·Šâ€à¶»à·’à¶ºà· à¶šà¶»à¶ºà·’.'
+      `අංක ${tokenNumber} ගැණුම්කරු ${counterNumber || 'නියම කළ'} කවුන්ටරයට පැමිණෙන්න. අංක ${tokenNumber}, කවුන්ටරය ${counterNumber || 'නියම කළ'}.`,
+    welcome: 'අපගේ සේවා මධ්‍යස්ථානයට සාදරයෙන් පිළිගනිමු.',
+    next: 'ඊළඟ පාරිභෝගිකයා කරුණාකර.',
+    wait: 'කරුණාකර ඔබේ වාරය සඳහා රැඳී සිටින්න.',
+    test: 'මෙය පරීක්ෂණ නිවේදනයකි. IP ස්පීකර් නිවැරදිව ක්‍රියා කරයි.'
   },
   ta: {
     call: (tokenNumber: number, counterNumber?: number) => 
-      `à®Žà®£à¯ ${tokenNumber}, à®¤à®¯à®µà¯à®šà¯†à®¯à¯à®¤à¯ à®•à®µà¯à®£à¯à®Ÿà®°à¯ ${counterNumber || 'à®’à®¤à¯à®•à¯à®•à®ªà¯à®ªà®Ÿà¯à®Ÿ'} à®•à¯à®•à¯ à®µà®¾à®°à¯à®™à¯à®•à®³à¯. à®Žà®£à¯ ${tokenNumber}, à®•à®µà¯à®£à¯à®Ÿà®°à¯ ${counterNumber || 'à®’à®¤à¯à®•à¯à®•à®ªà¯à®ªà®Ÿà¯à®Ÿ'}.`,
-    welcome: 'à®Žà®™à¯à®•à®³à¯ à®šà¯‡à®µà¯ˆ à®®à¯ˆà®¯à®¤à¯à®¤à®¿à®±à¯à®•à¯ à®µà®°à®µà¯‡à®±à¯à®•à®¿à®±à¯‹à®®à¯.',
-    next: 'à®…à®Ÿà¯à®¤à¯à®¤ à®µà®¾à®Ÿà®¿à®•à¯à®•à¯ˆà®¯à®¾à®³à®°à¯, à®¤à®¯à®µà¯à®šà¯†à®¯à¯à®¤à¯.',
-    wait: 'à®¤à®¯à®µà¯à®šà¯†à®¯à¯à®¤à¯ à®‰à®™à¯à®•à®³à¯ à®®à¯à®±à¯ˆà®•à¯à®•à¯ à®•à®¾à®¤à¯à®¤à®¿à®°à¯à®™à¯à®•à®³à¯.',
-    test: 'à®‡à®¤à¯ à®’à®°à¯ à®šà¯‹à®¤à®©à¯ˆ à®…à®±à®¿à®µà®¿à®ªà¯à®ªà¯. IP à®¸à¯à®ªà¯€à®•à¯à®•à®°à¯ à®šà®°à®¿à®¯à®¾à®• à®µà¯‡à®²à¯ˆ à®šà¯†à®¯à¯à®•à®¿à®±à®¤à¯.'
+      `எண் ${tokenNumber}, தயவுசெய்து கவுண்டர் ${counterNumber || 'ஒதுக்கப்பட்ட'} க்கு வாருங்கள். எண் ${tokenNumber}, கவுண்டர் ${counterNumber || 'ஒதுக்கப்பட்ட'}.`,
+    welcome: 'எங்கள் சேவை மையத்திற்கு வரவேற்கிறோம்.',
+    next: 'அடுத்த வாடிக்கையாளர், தயவுசெய்து.',
+    wait: 'தயவுசெய்து உங்கள் முறைக்கு காத்திருங்கள்.',
+    test: 'இது ஒரு சோதனை அறிவிப்பு. IP ஸ்பீக்கர் சரியாக வேலை செய்கிறது.'
   }
 }
 
@@ -281,8 +281,44 @@ export default function IPSpeakerPage() {
     }
   }
 
+  const speakWithGoogleTTS = async (text: string, language: 'si' | 'ta' | 'en') => {
+    if (isMuted) return
+    try {
+      setIsPlaying(true)
+      const response = await api.get('/tts/speak', {
+        params: { text, lang: language },
+        responseType: 'blob',
+      })
+      const url = URL.createObjectURL(response.data)
+      const audio = new Audio(url)
+      audio.volume = volume
+      audio.onended = () => {
+        setIsPlaying(false)
+        URL.revokeObjectURL(url)
+      }
+      audio.onerror = () => {
+        setIsPlaying(false)
+        URL.revokeObjectURL(url)
+      }
+      await audio.play()
+    } catch {
+      setIsPlaying(false)
+    }
+  }
+
   const speakWithBrowser = (text: string, language: 'en' | 'si' | 'ta') => {
-    if (!speechSynthesis || isMuted) return
+    if (isMuted) return
+
+    const voice = findBestVoice(language)
+    const hasNativeVoice = voice && voice.lang.startsWith(language === 'si' ? 'si' : language === 'ta' ? 'ta' : 'en')
+
+    // For Sinhala/Tamil with no native voice, use Google TTS proxy
+    if ((language === 'si' || language === 'ta') && !hasNativeVoice) {
+      speakWithGoogleTTS(text, language)
+      return
+    }
+
+    if (!speechSynthesis) return
 
     // Stop any current speech globally
     speechSynthesis.cancel()
@@ -290,42 +326,17 @@ export default function IPSpeakerPage() {
     // Wait a bit to ensure cancellation is complete
     setTimeout(() => {
       const utterance = new SpeechSynthesisUtterance(text)
-      let voice = findBestVoice(language)
       let shouldSpeak = false
       
       if (voice) {
-        // Found appropriate voice for the language
         utterance.voice = voice
         utterance.lang = LANGUAGE_CODES[language] || 'en-US'
-        console.log(`Using voice: ${voice.name} (${voice.lang}) for language: ${language}`)
         shouldSpeak = true
-      } else if (language === 'si' || language === 'ta') {
-        // No Sinhala/Tamil voice found, use best English voice as fallback
-        console.warn(`No ${language} voice found, using English voice with ${language} text`)
-        const englishVoice = findBestVoice('en')
-        if (englishVoice) {
-          utterance.voice = englishVoice
-          utterance.lang = 'en-US'
-          console.log(`Fallback: Using English voice "${englishVoice.name}" for ${language} text`)
-          shouldSpeak = true
-        } else {
-          // Even English voice not found, try Microsoft voices first, then any
-          const microsoftVoice = availableVoices.find(v => v.name.includes('Microsoft'))
-          const anyVoice = microsoftVoice || availableVoices.find(v => v.default) || availableVoices[0]
-          if (anyVoice) {
-            utterance.voice = anyVoice
-            utterance.lang = 'en-US'
-            console.log(`Fallback: Using available voice "${anyVoice.name}" for ${language} text`)
-            shouldSpeak = true
-          }
-        }
       } else if (language === 'en') {
-        // For English, try to get any English voice or fallback to any voice
         const englishVoice = availableVoices.find(v => v.lang.startsWith('en')) || availableVoices[0]
         if (englishVoice) {
           utterance.voice = englishVoice
           utterance.lang = 'en-US'
-          console.log(`Using English voice: ${englishVoice.name}`)
           shouldSpeak = true
         }
       }
@@ -335,23 +346,12 @@ export default function IPSpeakerPage() {
         utterance.rate = 0.9
         utterance.pitch = 1.0
 
-        utterance.onstart = () => {
-          console.log(`Speech started for ${language}: ${text.substring(0, 50)}...`)
-          setIsPlaying(true)
-        }
-        utterance.onend = () => {
-          console.log(`Speech ended for ${language}`)
-          setIsPlaying(false)
-        }
-        utterance.onerror = (event) => {
-          console.error(`Speech synthesis error for ${language}:`, event)
-          setIsPlaying(false)
-        }
+        utterance.onstart = () => { setIsPlaying(true) }
+        utterance.onend = () => { setIsPlaying(false) }
+        utterance.onerror = () => { setIsPlaying(false) }
 
-        console.log(`About to speak ${language} text: "${text.substring(0, 50)}..."`)
         speechSynthesis.speak(utterance)
       } else {
-        console.error(`No voice available for ${language} and no fallback found`)
         setIsPlaying(false)
       }
     }, 100)
@@ -634,7 +634,7 @@ export default function IPSpeakerPage() {
                         : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                     }`}
                   >
-                    {lang === 'en' ? 'English' : lang === 'si' ? 'à·ƒà·’à¶‚à·„à¶½' : 'à®¤à®®à®¿à®´à¯'}
+                    {lang === 'en' ? 'English' : lang === 'si' ? 'සිංහල' : 'தமிழ்'}
                   </button>
                 ))}
               </div>
