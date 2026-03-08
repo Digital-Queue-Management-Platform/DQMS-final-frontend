@@ -16,7 +16,9 @@ export default defineConfig({
           if (id.includes('node_modules')) {
             if (id.includes('react-router')) return 'react-router'
             if (id.includes('recharts')) return 'recharts'
+            if (id.includes('framer-motion')) return 'framer-motion'
             if (id.includes('lucide-react')) return 'icons'
+            if (id.includes('react-icons')) return 'icons'
             return 'vendor'
           }
         },
