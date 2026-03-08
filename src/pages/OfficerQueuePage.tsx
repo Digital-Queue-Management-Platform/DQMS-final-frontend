@@ -257,18 +257,19 @@ export default function OfficerQueuePage() {
 
     if (window.speechSynthesis) window.speechSynthesis.cancel()
 
-    if (lang === 'si' || lang === 'ta') {
-      try {
-        const resp = await api.get('/tts/speak', { params: { text, lang }, responseType: 'blob' })
-        const url = URL.createObjectURL(resp.data)
-        const audio = new Audio(url)
-        audio.volume = 1.0
-        audio.onended = () => URL.revokeObjectURL(url)
-        await audio.play()
-      } catch (e) {
-        console.error('Auto-speak TTS error:', e)
-      }
-    } else {
+    // Always use Google Translate TTS (Sinhala engine) so Sinhala names are pronounced correctly
+    // even in English-language announcements. 'si' lang handles mixed Sinhala/English text well.
+    const ttsLang = lang === 'ta' ? 'ta' : 'si'
+    try {
+      const resp = await api.get('/tts/speak', { params: { text, lang: ttsLang }, responseType: 'blob' })
+      const url = URL.createObjectURL(resp.data)
+      const audio = new Audio(url)
+      audio.volume = 1.0
+      audio.onended = () => URL.revokeObjectURL(url)
+      await audio.play()
+    } catch (e) {
+      console.error('Auto-speak TTS error:', e)
+      // Fallback to browser speech synthesis if TTS API fails
       const synth = window.speechSynthesis
       if (!synth) return
       const voices = synth.getVoices()
@@ -421,10 +422,6 @@ export default function OfficerQueuePage() {
     const targetTokenId = tokenId || currentToken?.id
     if (!targetTokenId) return
     if (!confirm('Are you sure you want to skip this customer?')) return
-    // Capture token data before state is cleared
-    const skippedToken = tokenId
-      ? queue?.waiting.find(t => t.id === tokenId) || queue?.inService.find(t => t.id === tokenId) || null
-      : currentToken
     setLoading(true)
     try {
       await api.post('/officer/skip-token', { officerId: officer.id, tokenId: targetTokenId })
