@@ -30,6 +30,7 @@ import {
   Briefcase as BriefcaseIcon,
   UserCheck as UserCheckIcon,
   BarChart2,
+  Database,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useUser } from '../../../contexts/UserContext'
@@ -68,6 +69,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed, activePa
     { name: 'Appointments', icon: Calendar, to: '/admin/appointments' },
     { name: 'Feedbacks ', icon: MessageSquare, to: '/admin/feedback' },
     { name: 'Compare', icon: Scale3D, to: '/admin/compare' },
+    { name: 'Backup', icon: Database, to: '/admin/backup' },
   ]
   // Officer navigation items - Queue is now the primary page (first in order)
   const officerItems: NavigationItem[] = [

@@ -16,6 +16,7 @@ const AdminOfficers = React.lazy(() => import("./admin/adminPages/AdminOfficers"
 const BranchesPage = React.lazy(() => import("./admin/adminPages/BranchesPage"))
 const ServicesPage = React.lazy(() => import("./admin/adminPages/ServicesPage"))
 const BranchComparePage = React.lazy(() => import("./admin/adminPages/BranchComparePage"))
+const AdminBackupPage = React.lazy(() => import("./admin/adminPages/AdminBackupPage"))
 const AdminAllOfficers = React.lazy(() => import("./admin/adminPages/AdminAllOfficers"))
 const ManagerManagement = React.lazy(() => import("./admin/adminPages/ManagerManagement"))
 import OfficerQueuePage from "./pages/OfficerQueuePage"
@@ -512,6 +513,10 @@ function App() {
         <Route
           element={<Layout><ProtectedAdminRoute><BranchComparePage /></ProtectedAdminRoute></Layout>}
           path="/admin/compare"
+        />
+        <Route
+          element={<Layout><ProtectedAdminRoute><AdminBackupPage /></ProtectedAdminRoute></Layout>}
+          path="/admin/backup"
         />
         <Route
           element={<Layout><ProtectedAdminRoute><AdminOutletPasswords /></ProtectedAdminRoute></Layout>}
