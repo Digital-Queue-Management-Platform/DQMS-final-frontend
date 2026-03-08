@@ -383,6 +383,9 @@ export default function OfficerQueuePage() {
         setAccountRef("")
         fetchQueue(officer.outletId, officer.id)
         autoSpeak(response.data.token, 'call', officer.counterNumber)
+      } else {
+        const msg = response.data.message || response.data.error || 'No matching customers in queue right now.'
+        alert(msg)
       }
     } catch (err: any) {
       console.error('failed to get next token', err)

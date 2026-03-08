@@ -648,7 +648,7 @@ export default function KioskDashboard() {
           {/* Language buttons */}
           <div className="flex gap-2">
             <button
-              onClick={() => setLanguage("en")}
+              onClick={() => { setLanguage("en"); setPreferredLanguage("en"); }}
               className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${language === "en"
                 ? "bg-blue-600 text-white"
                 : "bg-gray-100 text-gray-700 hover:bg-gray-200"
@@ -657,7 +657,7 @@ export default function KioskDashboard() {
               English
             </button>
             <button
-              onClick={() => setLanguage("si")}
+              onClick={() => { setLanguage("si"); setPreferredLanguage("si"); }}
               className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${language === "si"
                 ? "bg-blue-600 text-white"
                 : "bg-gray-100 text-gray-700 hover:bg-gray-200"
@@ -666,7 +666,7 @@ export default function KioskDashboard() {
               සිංහල
             </button>
             <button
-              onClick={() => setLanguage("ta")}
+              onClick={() => { setLanguage("ta"); setPreferredLanguage("ta"); }}
               className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${language === "ta"
                 ? "bg-blue-600 text-white"
                 : "bg-gray-100 text-gray-700 hover:bg-gray-200"

@@ -779,21 +779,21 @@ export default function CustomerRegistration() {
             {/* Language Selector */}
             <div className="flex justify-end gap-1 sm:gap-2 mb-4 sm:mb-6">
               <button
-                onClick={() => setLanguage("en")}
+                onClick={() => { setLanguage("en"); setPreferredLanguage("en"); }}
                 className={`px-2 sm:px-3 py-1 rounded-xl text-xs sm:text-sm font-medium transition-colors ${language === "en" ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-600"
                   }`}
               >
                 English
               </button>
               <button
-                onClick={() => setLanguage("si")}
+                onClick={() => { setLanguage("si"); setPreferredLanguage("si"); }}
                 className={`px-2 sm:px-3 py-1 rounded-xl text-xs sm:text-sm font-medium transition-colors ${language === "si" ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-600"
                   }`}
               >
                 සිංහල
               </button>
               <button
-                onClick={() => setLanguage("ta")}
+                onClick={() => { setLanguage("ta"); setPreferredLanguage("ta"); }}
                 className={`px-2 sm:px-3 py-1 rounded-xl text-xs sm:text-sm font-medium transition-colors ${language === "ta" ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-600"
                   }`}
               >
