@@ -85,7 +85,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed, activePa
     { name: 'Feedback (2-Star)', icon: MessageSquare, to: '/manager/feedback' },
     { name: 'Teleshop Managers', icon: Phone, to: '/manager/teleshop-managers' },
     { name: 'Officer Assignment', icon: UserCog, to: '/manager/officer-assignment' },
-    { name: 'Closure Notices', icon: BellOff, to: '/manager/closure-notices' },
+    { name: 'Branch Notices', icon: BellOff, to: '/manager/closure-notices' },
     { name: 'Branches', icon: Building2, to: '/manager/branches' },
     { name: 'Break Oversight', icon: Coffee, to: '/manager/breaks' },
     { name: 'QR Codes', icon: QrCode, to: '/manager/qr-codes' },
@@ -120,7 +120,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed, activePa
     { name: 'Manage DGMs', icon: UserCheckIcon, to: '/gm/manage-dgms' },
     { name: 'Location Dashboard', icon: BarChart2, to: '/gm/location-dashboard' },
     { name: 'Feedbacks', icon: MessageSquare, to: '/gm/feedback' },
-    { name: 'Closure Notices', icon: BellOff, to: '/gm/closure-notices' },
+    { name: 'Branch Notices', icon: BellOff, to: '/gm/closure-notices' },
   ]
 
   const dgmItems: NavigationItem[] = [
@@ -128,7 +128,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed, activePa
     { name: 'Manage RTOMs', icon: Users, to: '/dgm/manage-rtoms' },
     { name: 'Location Dashboard', icon: BarChart2, to: '/dgm/location-dashboard' },
     { name: 'Feedbacks', icon: MessageSquare, to: '/dgm/feedback' },
-    { name: 'Closure Notices', icon: BellOff, to: '/dgm/closure-notices' },
+    { name: 'Branch Notices', icon: BellOff, to: '/dgm/closure-notices' },
   ]
 
   const navigationItems: NavigationItem[] = onOfficerPath

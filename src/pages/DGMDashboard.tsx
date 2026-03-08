@@ -1,7 +1,7 @@
 ﻿import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
 import { useNavigate } from "react-router-dom"
-import { LayoutDashboard, Building2, Users, Star, RefreshCw, MapPin, BellOff } from "lucide-react"
+import { LayoutDashboard, Building2, Users, Star, RefreshCw, MapPin, Bell } from "lucide-react"
 import api from "../config/api"
 
 interface Outlet { id: string; name: string; location: string; isActive: boolean; _count?: { officers: number } }
@@ -81,7 +81,7 @@ export default function DGMDashboard() {
                 {[
                     { label: "Manage RTOMs", icon: Users, to: "/dgm/manage-rtoms", color: "bg-teal-600 hover:bg-teal-700" },
                     { label: "View Feedbacks", icon: Star, to: "/dgm/feedback", color: "bg-indigo-600 hover:bg-indigo-700" },
-                    { label: "Closure Notices", icon: BellOff, to: "/dgm/closure-notices", color: "bg-amber-600 hover:bg-amber-700" },
+                    { label: "Branch Notices", icon: Bell, to: "/dgm/closure-notices", color: "bg-amber-600 hover:bg-amber-700" },
                 ].map((action, i) => (
                     <motion.button key={action.label} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 + i * 0.07 }}
                         whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }} onClick={() => navigate(action.to)}

@@ -1,7 +1,7 @@
 ﻿import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
 import { useNavigate } from "react-router-dom"
-import { LayoutDashboard, Users, Star, RefreshCw, Globe, MapPin, Building2, BellOff } from "lucide-react"
+import { LayoutDashboard, Users, Star, RefreshCw, Globe, MapPin, Building2, Bell } from "lucide-react"
 import api from "../config/api"
 
 interface GMProfile { id: string; name: string; email?: string; mobileNumber: string; isActive: boolean; dgmCount: number; regionCount: number; outletCount: number }
@@ -79,7 +79,7 @@ export default function GMDashboard() {
                 {[
                     { label: "Manage DGMs", icon: Users, to: "/gm/manage-dgms", color: "bg-violet-600 hover:bg-violet-700" },
                     { label: "View Feedbacks", icon: Star, to: "/gm/feedback", color: "bg-indigo-600 hover:bg-indigo-700" },
-                    { label: "Closure Notices", icon: BellOff, to: "/gm/closure-notices", color: "bg-amber-600 hover:bg-amber-700" },
+                    { label: "Branch Notices", icon: Bell, to: "/gm/closure-notices", color: "bg-amber-600 hover:bg-amber-700" },
                 ].map((action, i) => (
                     <motion.button key={action.label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 + i * 0.07 }}
                         whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }} onClick={() => navigate(action.to)}
