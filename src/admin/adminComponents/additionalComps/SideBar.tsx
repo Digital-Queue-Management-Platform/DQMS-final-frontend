@@ -74,6 +74,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed, activePa
     { name: 'IP Speaker', icon: Headphones, to: '/officer/ip-speaker' },
     { name: 'Serve Customers', icon: UserCheck, to: '/officer/served-customers' },
     { name: 'Service Tracking', icon: MessageSquare, to: '/officer/service-tracking' },
+    { name: 'Branch Notices', icon: BellOff, to: '/officer/branch-notices' },
   ]
   const regionManagerItems: NavigationItem[] = [
     //{ name: 'Home', icon: Home, to: '/' },
@@ -100,7 +101,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed, activePa
     { name: 'Manage Officers', icon: Users, to: '/teleshop-manager/officers' },
     { name: 'Register Officer', icon: UserPlus, to: '/teleshop-manager/officers/add' },
     { name: 'Service Tracking', icon: MessageSquare, to: '/teleshop-manager/service-tracking' },
-    { name: 'Closure Notices', icon: BellOff, to: '/teleshop-manager/closure-notices' },
+    { name: 'Branch Notices', icon: BellOff, to: '/teleshop-manager/closure-notices' },
   ]
 
   // Fix flickering: prioritize URL path over role, and handle loading state

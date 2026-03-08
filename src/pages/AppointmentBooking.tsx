@@ -9,7 +9,9 @@ import type { Outlet } from "../types"
 import OTPInput from "../components/OTPInput"
 import OTPPopup from "../components/OTPPopup"
 import BranchClosedModal from "../components/BranchClosedModal"
+import NoticeModal from "../components/NoticeModal"
 import { useBranchStatus } from "../hooks/useBranchStatus"
+import { useOutletNotices } from "../hooks/useOutletNotices"
 
 interface Service {
   id: string
@@ -74,6 +76,7 @@ export default function AppointmentBooking() {
   const [otpToken, setOtpToken] = useState<string>("")
   const [otpError, setOtpError] = useState("")
   const [otpSending, setOtpSending] = useState(false)
+  const [autoSendingOtp, setAutoSendingOtp] = useState(false)
   const [showOtpPopup, setShowOtpPopup] = useState(false)
   const [devOtpCode, setDevOtpCode] = useState<string>("")
 
@@ -88,6 +91,7 @@ export default function AppointmentBooking() {
   // Branch closed dismissal (for "right now" status modal on AppointmentBooking)
   const [closedDismissed, setClosedDismissed] = useState(false)
   const branchStatus = useBranchStatus(outletId || null)
+  const { notices: activeNotices, dismiss: dismissNotice } = useOutletNotices(outletId || null)
   // Error shown when selected appointment date/time is on a closed day
   const [closedOnDateError, setClosedOnDateError] = useState<string | null>(null)
   const [checkingDate, setCheckingDate] = useState(false)
@@ -96,6 +100,28 @@ export default function AppointmentBooking() {
     fetchOutlets()
     fetchServices()
   }, [])
+
+  // Auto-advance from step 3 when mobile number is complete
+  useEffect(() => {
+    if (currentStep === 3 && isValidMobile(mobileNumber) && canProceedFromStep3() && otpStep === 'idle' && !otpSending && !autoSendingOtp) {
+      setAutoSendingOtp(true);
+      const timer = setTimeout(async () => {
+        await goToNextStep();
+        setAutoSendingOtp(false);
+      }, 800);
+      return () => clearTimeout(timer);
+    }
+  }, [mobileNumber, currentStep])
+
+  // Auto-send OTP when entering step 4
+  useEffect(() => {
+    if (currentStep === 4 && otpStep === 'idle' && !otpSending && isValidMobile(mobileNumber)) {
+      const timer = setTimeout(() => {
+        sendOtp();
+      }, 400);
+      return () => clearTimeout(timer);
+    }
+  }, [currentStep, otpStep])
 
   const fetchOutlets = async () => {
     try {
@@ -110,18 +136,12 @@ export default function AppointmentBooking() {
     try {
       const res = await api.get('/queue/services')
       if (res.data && Array.isArray(res.data)) {
-        // Filter to only active services
         const activeServices = res.data.filter((s: Service) => s.isActive !== false)
         setServices(activeServices)
       }
     } catch (e) {
       console.error('Failed to load services:', e)
-      // Fallback to default services if API fails
-      const DEFAULT_SERVICES = [
-        { id: 'BILL_PAYMENT', code: 'BILL_PAYMENT', title: 'Bill Payment', isActive: true },
-        { id: 'OTHERS', code: 'OTHERS', title: 'Others', isActive: true },
-      ]
-      setServices(DEFAULT_SERVICES)
+      setServices([])
     }
   }
 
@@ -558,15 +578,15 @@ export default function AppointmentBooking() {
     setCurrentStep(prev => Math.max(prev - 1, 1))
   }
 
+  const isValidMobile = (m: string) => m.length === 10 && (m.startsWith('07') || m.startsWith('01'))
+  const isValidSlt = (s: string) => /^\d{10}$/.test(s) && s.startsWith('0') && !s.startsWith('07')
+
   const canProceedFromStep1 = preferredLanguage !== ''
   const canProceedFromStep2 = selectedService !== ''
   const canProceedFromStep3 = () => {
-    // Must have: outlet, datetime, name, mobile
-    // Datetime must be at least 24 hours in advance
-    // If bill payment selected: must also have SLT number
-    const hasBasicInfo = outletId && datetime && name && mobileNumber && isValidAppointmentTime(datetime)
+    const hasBasicInfo = outletId && datetime && name.trim().length >= 2 && isValidMobile(mobileNumber) && isValidAppointmentTime(datetime)
     if (isSltRequiredService(selectedService)) {
-      return hasBasicInfo && sltTelephoneNumber
+      return hasBasicInfo && isValidSlt(sltTelephoneNumber)
     }
     return hasBasicInfo
   }
@@ -580,6 +600,10 @@ export default function AppointmentBooking() {
           activeNotice={branchStatus.activeNotice}
           onDismiss={() => setClosedDismissed(true)}
         />
+      )}
+      {/* Standard notices – dismissable */}
+      {outletId && !branchStatus.isClosed && activeNotices.length > 0 && (
+        <NoticeModal notices={activeNotices} onDismiss={dismissNotice} />
       )}
       <div className="bg-white rounded-xl shadow-xl w-full max-w-lg p-6">
         {/* Language Tabs (same style as CustomerRegistration) */}
@@ -772,14 +796,18 @@ export default function AppointmentBooking() {
                             type="tel"
                             value={sltTelephoneNumber}
                             onChange={(e) => {
-                              setSltTelephoneNumber(e.target.value)
+                              setSltTelephoneNumber(e.target.value.replace(/\D/g, '').slice(0, 10))
                               setError("")
                               setSltVerified(false)
                             }}
                             className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                             placeholder={t.sltTelephonePlaceholder}
+                            maxLength={10}
                           />
                         </div>
+                        {sltTelephoneNumber.length > 0 && !isValidSlt(sltTelephoneNumber) && (
+                          <p className="text-xs text-red-500 mt-1">Enter a valid 10-digit SLT number (e.g. 011XXXXXXX)</p>
+                        )}
                         <p className="text-xs text-blue-600 mt-2"> {t.enterSltNumber}</p>
                       </div>
                     </div>
@@ -837,12 +865,16 @@ export default function AppointmentBooking() {
                     <input
                       type="text"
                       value={name}
-                      onChange={(e) => setName(e.target.value)}
+                      onChange={(e) => setName(e.target.value.replace(/[^a-zA-Z\s\-'.]/g, ''))}
                       className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       placeholder={t.fullNamePh}
+                      maxLength={100}
                       required
                     />
                   </div>
+                  {name.length > 0 && name.trim().length < 2 && (
+                    <p className="text-xs text-red-500 mt-1">Please enter your full name (at least 2 characters)</p>
+                  )}
                 </div>
 
                 <div>
@@ -852,13 +884,16 @@ export default function AppointmentBooking() {
                     <input
                       type="tel"
                       value={mobileNumber}
-                      onChange={(e) => setMobileNumber(e.target.value)}
+                      onChange={(e) => setMobileNumber(e.target.value.replace(/\D/g, '').slice(0, 10))}
                       className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       placeholder={t.mobilePh}
-                      pattern="[0-9]{10}"
+                      maxLength={10}
                       required
                     />
                   </div>
+                  {mobileNumber.length > 0 && !isValidMobile(mobileNumber) && (
+                    <p className="text-xs text-red-500 mt-1">Enter a valid 10-digit number starting with 07 or 01</p>
+                  )}
                 </div>
               </div>
 
