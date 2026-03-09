@@ -121,6 +121,35 @@ svg:focus {
 }
 
 /* ============================================================
+   DARK THEME AUTOFILL FIX
+   Prevents browser autofill from replacing the background with
+   white/yellow, which makes white input text invisible.
+   ============================================================ */
+
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-text-fill-color: inherit;
+  -webkit-box-shadow: 0 0 0px 1000px transparent inset;
+  box-shadow: 0 0 0px 1000px transparent inset;
+  transition: background-color 9999s ease-in-out 0s;
+  caret-color: currentColor;
+}
+
+/* For dark-background inputs (e.g. Kiosk / Officer / Teleshop login pages) */
+.dark-input:-webkit-autofill,
+.dark-input:-webkit-autofill:hover,
+.dark-input:-webkit-autofill:focus,
+.dark-input:-webkit-autofill:active {
+  -webkit-text-fill-color: #ffffff;
+  -webkit-box-shadow: 0 0 0px 1000px rgba(255, 255, 255, 0.08) inset;
+  box-shadow: 0 0 0px 1000px rgba(255, 255, 255, 0.08) inset;
+  transition: background-color 9999s ease-in-out 0s;
+  caret-color: #ffffff;
+}
+
+/* ============================================================
    REUSABLE UI COMPONENT CLASSES
    ============================================================ */
 

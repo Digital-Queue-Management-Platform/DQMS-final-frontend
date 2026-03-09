@@ -15,6 +15,7 @@ export default function OfficerQueuePage() {
   const navigate = useNavigate()
   const [officer, setOfficer] = useState<Officer | null>(null)
   const [currentToken, setCurrentToken] = useState<Token | null>(null)
+  const [billInfo, setBillInfo] = useState<{ telephoneNumber: string; accountName: string; currentBill: number; dueDate: string; status: string; updatedAt: string } | null>(null)
   const [queue, setQueue] = useState<{ waiting: Token[]; inService: Token[]; availableOfficers: number; totalWaiting: number } | null>(null)
   const [accountRef, setAccountRef] = useState("")
   const [loading, setLoading] = useState(false)
@@ -176,9 +177,10 @@ export default function OfficerQueuePage() {
 
   const fetchCurrentToken = async (officerId: string) => {
     try {
-      // Officer stats returns currentToken; re-use it to keep parity with dashboard
+      // Officer stats returns currentToken and billData; re-use it to keep parity with dashboard
       const res = await api.get(`/officer/stats/${officerId}`)
       setCurrentToken(res.data.currentToken)
+      setBillInfo(res.data.billData || null)
     } catch (e) {
       console.error('failed to fetch current token', e)
     }
@@ -356,8 +358,10 @@ export default function OfficerQueuePage() {
 
         if (response.data.token) {
           setCurrentToken(response.data.token)
+          setBillInfo(null)
           setAccountRef("")
           fetchQueue(officer.outletId, officer.id)
+          fetchCurrentToken(officer.id)
           autoSpeak(response.data.token, 'call', officer.counterNumber)
         }
         setLoading(false)
@@ -372,16 +376,20 @@ export default function OfficerQueuePage() {
         const confirmRes = await api.post('/officer/next-token', { officerId: officer.id, allowFallback: true })
         if (confirmRes.data.token) {
           setCurrentToken(confirmRes.data.token)
+          setBillInfo(null)
           setAccountRef("")
           fetchQueue(officer.outletId, officer.id)
+          fetchCurrentToken(officer.id)
           autoSpeak(confirmRes.data.token, 'call', officer.counterNumber)
         }
       } else if (response.data.token) {
         console.log('Received token data:', response.data.token)
         console.log('Customer name:', response.data.token.customer?.name)
         setCurrentToken(response.data.token)
+        setBillInfo(null)
         setAccountRef("")
         fetchQueue(officer.outletId, officer.id)
+        fetchCurrentToken(officer.id)
         autoSpeak(response.data.token, 'call', officer.counterNumber)
       } else {
         const msg = response.data.message || response.data.error || 'No matching customers in queue right now.'
@@ -409,6 +417,7 @@ export default function OfficerQueuePage() {
       // First complete the service to get reference number
       await api.post('/officer/complete-service', { tokenId: currentToken.id, officerId: officer.id, accountRef })
       setCurrentToken(null)
+      setBillInfo(null)
       setAccountRef("")
       fetchQueue(officer.outletId, officer.id)
     } catch (err) {
@@ -428,6 +437,7 @@ export default function OfficerQueuePage() {
       await api.post('/officer/skip-token', { officerId: officer.id, tokenId: targetTokenId })
       if (!tokenId) {
         setCurrentToken(null)
+        setBillInfo(null)
       }
       fetchQueue(officer.outletId, officer.id)
     } catch (err) {
@@ -445,7 +455,9 @@ export default function OfficerQueuePage() {
       const response = await api.post('/officer/recall-token', { officerId: officer.id, tokenId })
       if (response.data.token) {
         setCurrentToken(response.data.token)
+        setBillInfo(null)
         setAccountRef("")
+        fetchCurrentToken(officer.id)
       }
       fetchQueue(officer.outletId, officer.id)
     } catch (err) {
@@ -506,9 +518,11 @@ export default function OfficerQueuePage() {
       })
       if (response.data.token) {
         setCurrentToken(response.data.token)
+        setBillInfo(null)
         setAccountRef("")
-        // Refresh queue
+        // Refresh queue and fetch bill info if applicable
         fetchQueue(officer.outletId, officer.id)
+        fetchCurrentToken(officer.id)
         autoSpeak(response.data.token, 'call', officer.counterNumber)
       }
     } catch (err: any) {
@@ -767,6 +781,81 @@ export default function OfficerQueuePage() {
                       </div>
                     )}
                   </div>
+
+                  {/* Bill Payment Info Card — shown when serving a bill payment customer */}
+                  {currentToken.serviceTypes.includes('SVC002') && (
+                    <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 mb-4">
+                      <div className="flex items-center gap-2 mb-3">
+                        <div className="w-2 h-2 rounded-full bg-amber-500 flex-shrink-0"></div>
+                        <h3 className="text-sm font-bold text-amber-900">Bill Payment Details</h3>
+                      </div>
+
+                      {/* SLT Telephone */}
+                      {currentToken.sltTelephoneNumber && (
+                        <div className="flex justify-between items-center text-sm mb-2">
+                          <span className="text-gray-500 text-xs">SLT Number</span>
+                          <span className="font-mono font-semibold text-gray-800">{currentToken.sltTelephoneNumber}</span>
+                        </div>
+                      )}
+
+                      {/* Bill Due Amount from DB */}
+                      {billInfo ? (
+                        <>
+                          <div className="flex justify-between items-center mb-1">
+                            <span className="text-xs text-gray-500">Account Name</span>
+                            <span className="text-sm font-semibold text-gray-800">{billInfo.accountName}</span>
+                          </div>
+                          <div className="flex justify-between items-center mb-2">
+                            <span className="text-xs text-gray-500">Due Amount</span>
+                            <span className="text-lg font-bold text-red-600">Rs. {billInfo.currentBill.toFixed(2)}</span>
+                          </div>
+                          <div className="flex justify-between items-center mb-3">
+                            <span className="text-xs text-gray-500">Bill Status</span>
+                            <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${billInfo.status === 'paid' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                              {billInfo.status.toUpperCase()}
+                            </span>
+                          </div>
+                        </>
+                      ) : currentToken.sltTelephoneNumber ? (
+                        <p className="text-xs text-amber-700 italic mb-2">Fetching bill details...</p>
+                      ) : null}
+
+                      {/* Customer Payment Intent */}
+                      <div className="border-t border-amber-200 pt-3 mt-1">
+                        <div className="text-xs text-gray-500 mb-1">Customer's Payment Plan</div>
+                        {currentToken.billPaymentIntent === 'full' ? (
+                          <div className="flex items-center gap-2 bg-green-100 text-green-800 px-3 py-2 rounded-xl">
+                            <span className="text-sm font-bold">✓ Full Payment</span>
+                            {billInfo && (
+                              <span className="ml-auto text-sm font-bold">Rs. {billInfo.currentBill.toFixed(2)}</span>
+                            )}
+                          </div>
+                        ) : currentToken.billPaymentIntent === 'partial' ? (
+                          <div className="flex items-center gap-2 bg-blue-100 text-blue-800 px-3 py-2 rounded-xl">
+                            <span className="text-sm font-bold">◑ Partial Payment</span>
+                            <span className="ml-auto text-base font-bold">Rs. {(currentToken.billPaymentAmount ?? 0).toFixed(2)}</span>
+                          </div>
+                        ) : (
+                          <div className="bg-gray-100 text-gray-500 px-3 py-2 rounded-xl text-sm italic">
+                            Customer did not specify payment amount
+                          </div>
+                        )}
+                        {currentToken.billPaymentIntent === 'partial' && billInfo && (
+                          <p className="text-xs text-orange-700 mt-1 font-medium">
+                            ⚠ Remaining after payment: Rs. {Math.max(0, billInfo.currentBill - (currentToken.billPaymentAmount ?? 0)).toFixed(2)}
+                          </p>
+                        )}
+                        {currentToken.billPaymentMethod && (
+                          <div className="mt-2 flex items-center gap-2 bg-slate-100 text-slate-700 px-3 py-2 rounded-xl">
+                            <span className="text-xs text-gray-500">Payment Method</span>
+                            <span className="ml-auto text-sm font-semibold capitalize">
+                              {currentToken.billPaymentMethod === 'bank_transfer' ? 'Bank Transfer' : currentToken.billPaymentMethod.charAt(0).toUpperCase() + currentToken.billPaymentMethod.slice(1)}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
 
                   {/* IP Speaker Component */}
                   <div className="mb-4">

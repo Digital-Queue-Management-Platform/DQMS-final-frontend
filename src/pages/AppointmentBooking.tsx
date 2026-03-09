@@ -83,8 +83,11 @@ export default function AppointmentBooking() {
   // Bill payment specific states
   const [sltTelephoneNumber, setSltTelephoneNumber] = useState("")
   const [sltVerified, setSltVerified] = useState(false)
-  // Removed unused notificationSent, notificationMessage, and billData state
+  const [billData, setBillData] = useState<{ currentBill: number; status: string; accountName?: string } | null>(null)
   const [isOwnerOfAccount, setIsOwnerOfAccount] = useState(false)
+  const [billPaymentIntent, setBillPaymentIntent] = useState<'full' | 'partial' | null>(null)
+  const [billPaymentCustomAmount, setBillPaymentCustomAmount] = useState("")
+  const [billPaymentMethod, setBillPaymentMethod] = useState<'cash' | 'card' | 'cheque' | 'bank_transfer' | null>(null)
 
   // Multi-step form state
   const [currentStep, setCurrentStep] = useState(1)
@@ -210,7 +213,18 @@ export default function AppointmentBooking() {
       verifiedAccount: "Account Verified",
       minBookingTime: "Appointments must be booked at least 24 hours in advance",
       continueWithYourNumber: "You can continue with any mobile number to complete the appointment.",
-      notificationSent: "Notification Sent"
+      notificationSent: "Notification Sent",
+      paymentIntentTitle: "Payment Details",
+      payFullAmount: "Pay Full Amount",
+      payPartialAmount: "Partial Payment",
+      partialAmountLabel: "Enter Partial Amount (Rs.)",
+      partialAmountPlaceholder: "Enter amount",
+      partialAmountHint: "Max:",
+      paymentMethodTitle: "Select Payment Method",
+      payByCash: "Cash",
+      payByCard: "Card",
+      payByCheque: "Cheque",
+      payByBankTransfer: "Bank Transfer"
     },
     si: {
       title: 'වේලාවක් වෙන්කරන්න',
@@ -266,7 +280,18 @@ export default function AppointmentBooking() {
       verifiedAccount: "ගිණුම තහවුරු කර ඇත",
       minBookingTime: "වෙන්කරවාගැනීම් අවම වශයෙන් 24 ساعत ඉතින් වෙන්කරගත යුතුය",
       continueWithYourNumber: "ඔබ වෙනත් ජංගම අංකයකින් වැඩ සම්පූර්ණ කළ හැක.",
-      notificationSent: "දැනුම්දීම යවා ඇත"
+      notificationSent: "දැනුම්දීම යවා ඇත",
+      paymentIntentTitle: "ගෙවීම් විස්තර",
+      payFullAmount: "සම්පූර්ණ ගෙවීම",
+      payPartialAmount: "අර්ධ ගෙවීම",
+      partialAmountLabel: "අර්ධ මුදල ඇතුළත් කරන්න (රු.)",
+      partialAmountPlaceholder: "මුදල ඇතුළත් කරන්න",
+      partialAmountHint: "උපරිම:",
+      paymentMethodTitle: "ගෙවීම් ක්‍රමය තෝරන්න",
+      payByCash: "මුදල්",
+      payByCard: "කාඩ්",
+      payByCheque: "චෙක්",
+      payByBankTransfer: "බැංකු හැරීම"
     },
     ta: {
       title: 'ஒரு நேரம் பதிவு செய்யவும்',
@@ -322,7 +347,18 @@ export default function AppointmentBooking() {
       verifiedAccount: "கணக்கு சரிபார்க்கப்பட்டது",
       minBookingTime: "நேரங்கள் குறைந்தபட்சம் 24 மணி நேரத்திற்கு முன் பதிவு செய்யப்பட வேண்டும்",
       continueWithYourNumber: "சேவையை முடிக்க நீங்கள் எந்த மொபைல் எண்ணைக் கொண்டு தொடரலாம்.",
-      notificationSent: "அறிவிப்பு அனுப்பப்பட்டது"
+      notificationSent: "அறிவிப்பு அனுப்பப்பட்டது",
+      paymentIntentTitle: "கட்டண விவரங்கள்",
+      payFullAmount: "முழு தொகை செலுத்து",
+      payPartialAmount: "பகுதி கட்டணம்",
+      partialAmountLabel: "பகுதி தொகையை உள்ளிடவும் (ரூ.)",
+      partialAmountPlaceholder: "தொகையை உள்ளிடவும்",
+      partialAmountHint: "அதிகபட்சம்:",
+      paymentMethodTitle: "கட்டண முறையைத் தேர்வுசெய்க",
+      payByCash: "பணம்",
+      payByCard: "அட்டை",
+      payByCheque: "காசோலை",
+      payByBankTransfer: "வங்கி பரிமாற்றம்"
     },
   } as const
 
@@ -420,7 +456,10 @@ export default function AppointmentBooking() {
 
         setSltVerified(true)
         setError("")
-        // setBillData(bill) removed as billData is unused
+        setBillData(bill)
+        setBillPaymentIntent(null)
+        setBillPaymentCustomAmount("")
+        setBillPaymentMethod(null)
 
         // Auto-fill account name from bill (but NOT the mobile number)
         // The user will enter their own mobile number separately
@@ -521,6 +560,9 @@ export default function AppointmentBooking() {
         appointmentAt: appointmentAt.toISOString(),
         verifiedMobileToken: tokenForSubmit,
         sltTelephoneNumber: isSltRequiredService(selectedService) ? sltTelephoneNumber : undefined,
+        billPaymentIntent: isSltRequiredService(selectedService) && sltVerified ? billPaymentIntent : undefined,
+        billPaymentAmount: isSltRequiredService(selectedService) && billPaymentIntent === 'partial' ? parseFloat(billPaymentCustomAmount) || undefined : undefined,
+        billPaymentMethod: isSltRequiredService(selectedService) && sltVerified ? billPaymentMethod : undefined,
       })
 
       if (res.data?.success) {
@@ -1058,6 +1100,82 @@ export default function AppointmentBooking() {
                 </div>
               )}
 
+              {/* Bill Payment Intent + Method — shown after OTP verified, for advance booking */}
+              {isSltRequiredService(selectedService) && sltVerified && billData && otpStep === 'verified' && (
+                <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 space-y-4">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-amber-500"></div>
+                    <h3 className="text-sm font-semibold text-amber-900">{t.paymentIntentTitle} <span className="font-normal text-amber-600 text-xs">({t.optionalDetails})</span></h3>
+                  </div>
+                  <div className="bg-white rounded-lg p-3 border border-amber-100">
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs text-gray-500">{t.billAmount}</span>
+                      <span className="text-base font-bold text-red-600">Rs. {Number(billData.currentBill).toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between items-center mt-1">
+                      <span className="text-xs text-gray-500">{t.billStatus}</span>
+                      <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${billData.status === 'paid' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                        {billData.status === 'paid' ? t.paid : t.unpaid}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <button
+                      type="button"
+                      onClick={() => { setBillPaymentIntent('full'); setBillPaymentCustomAmount('') }}
+                      className={`py-3 px-4 rounded-xl border-2 text-sm font-semibold transition-all ${billPaymentIntent === 'full' ? 'border-green-600 bg-green-600 text-white' : 'border-green-300 bg-white text-green-700 hover:border-green-500'}`}
+                    >
+                      ✓ {t.payFullAmount} — Rs. {Number(billData.currentBill).toFixed(2)}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setBillPaymentIntent('partial')}
+                      className={`py-3 px-4 rounded-xl border-2 text-sm font-semibold transition-all ${billPaymentIntent === 'partial' ? 'border-blue-600 bg-blue-600 text-white' : 'border-blue-300 bg-white text-blue-700 hover:border-blue-500'}`}
+                    >
+                      ◑ {t.payPartialAmount}
+                    </button>
+                    {billPaymentIntent === 'partial' && (
+                      <div className="mt-1 space-y-1">
+                        <label className="block text-xs font-medium text-gray-700">{t.partialAmountLabel}</label>
+                        <input
+                          type="number"
+                          value={billPaymentCustomAmount}
+                          onChange={(e) => setBillPaymentCustomAmount(e.target.value)}
+                          min="1"
+                          max={billData.currentBill}
+                          step="0.01"
+                          className="w-full px-3 py-2.5 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          placeholder={t.partialAmountPlaceholder}
+                        />
+                        <p className="text-xs text-gray-500">{t.partialAmountHint} {Number(billData.currentBill).toFixed(2)}</p>
+                      </div>
+                    )}
+                    {billPaymentIntent && (
+                      <div className="mt-1 space-y-2">
+                        <div className="text-xs font-semibold text-amber-900">{t.paymentMethodTitle}</div>
+                        <div className="grid grid-cols-2 gap-2">
+                          {(['cash', 'card', 'cheque', 'bank_transfer'] as const).map((method) => {
+                            const labels: Record<string, string> = { cash: t.payByCash, card: t.payByCard, cheque: t.payByCheque, bank_transfer: t.payByBankTransfer }
+                            const icons: Record<string, string> = { cash: '💵', card: '💳', cheque: '📄', bank_transfer: '🏦' }
+                            return (
+                              <button
+                                key={method}
+                                type="button"
+                                onClick={() => setBillPaymentMethod(method)}
+                                className={`py-2.5 px-3 rounded-xl border-2 text-sm font-semibold transition-all flex items-center gap-2 ${billPaymentMethod === method ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-indigo-200 bg-white text-indigo-700 hover:border-indigo-400'}`}
+                              >
+                                <span>{icons[method]}</span>
+                                <span>{labels[method]}</span>
+                              </button>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {/* Book Appointment Button - Show after OTP verified */}
               {otpStep === 'verified' && (
                 <button
@@ -1088,6 +1206,10 @@ export default function AppointmentBooking() {
                     setDatetime('')
                     setSltTelephoneNumber('')
                     setSltVerified(false)
+                    setBillData(null)
+                    setBillPaymentIntent(null)
+                    setBillPaymentCustomAmount('')
+                    setBillPaymentMethod(null)
                     setOtpStep('idle')
                     setOtpCode('')
                     setOtpToken('')

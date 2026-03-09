@@ -52,6 +52,9 @@ export default function CustomerRegistration() {
   const [sltTelephoneNumber, setSltTelephoneNumber] = useState("")
   const [billData, setBillData] = useState<any>(null)
   const [sltVerified, setSltVerified] = useState(false)
+  const [billPaymentIntent, setBillPaymentIntent] = useState<'full' | 'partial' | null>(null)
+  const [billPaymentCustomAmount, setBillPaymentCustomAmount] = useState("")
+  const [billPaymentMethod, setBillPaymentMethod] = useState<'cash' | 'card' | 'cheque' | 'bank_transfer' | null>(null)
 
   // Multi-step form state
   const [currentStep, setCurrentStep] = useState(1)
@@ -88,6 +91,9 @@ export default function CustomerRegistration() {
     setBillData(null)
     setError("")
     setSltVerified(false)
+    setBillPaymentIntent(null)
+    setBillPaymentCustomAmount("")
+    setBillPaymentMethod(null)
 
     // Additional browser form clearing
     setTimeout(() => {
@@ -459,6 +465,9 @@ export default function CustomerRegistration() {
         const bill = response.data.bill
         setBillData(bill)
         setSltVerified(true)
+        setBillPaymentIntent(null)
+        setBillPaymentCustomAmount("")
+        setBillPaymentMethod(null)
         setError("")
       } else {
         setError("No account found for this telephone number")
@@ -497,6 +506,10 @@ export default function CustomerRegistration() {
         qrToken,
         verifiedMobileToken: tokenForSubmit,
         preferredLanguages: preferredLanguage ? [preferredLanguage] : undefined,
+        sltTelephoneNumber: isSltRequiredService(selectedService) ? sltTelephoneNumber || undefined : undefined,
+        billPaymentIntent: isSltRequiredService(selectedService) && sltVerified ? billPaymentIntent : undefined,
+        billPaymentAmount: isSltRequiredService(selectedService) && billPaymentIntent === 'partial' ? parseFloat(billPaymentCustomAmount) || undefined : undefined,
+        billPaymentMethod: isSltRequiredService(selectedService) && sltVerified ? billPaymentMethod : undefined,
       })
 
       if (response.data.success) {
@@ -616,7 +629,18 @@ export default function CustomerRegistration() {
       billSummary: "Bill Summary",
       verified: "Phone Verified",
       readyToRegister: "Ready to generate your token",
-      billSentNotification: "Due amount has been sent to the registered owner ({mobile}). Please ask the owner for the bill details."
+      billSentNotification: "Due amount has been sent to the registered owner ({mobile}). Please ask the owner for the bill details.",
+      paymentIntentTitle: "How would you like to pay?",
+      payFullAmount: "Pay Full Amount",
+      payPartialAmount: "Pay Partial Amount",
+      partialAmountLabel: "Enter Amount to Pay (Rs.)",
+      partialAmountPlaceholder: "Enter amount",
+      partialAmountHint: "Due amount: Rs.",
+      paymentMethodTitle: "Payment Method",
+      payByCash: "Cash",
+      payByCard: "Card",
+      payByCheque: "Cheque",
+      payByBankTransfer: "Bank Transfer"
     },
     si: {
       title: "ඩිජිටල් පෝලිම වේදිකාව",
@@ -678,7 +702,18 @@ export default function CustomerRegistration() {
       billSummary: "බිල් සාරාංශය",
       verified: "දුරකථන තහවුරු විය",
       readyToRegister: "ටෝකන් උත්පාදනය කිරීමට සූදානම්",
-      billSentNotification: "ගෙවිය යුතු මුදල ලියාපදිංචි අයිතිකරුට ({mobile}) යවා ඇත. කරුණාකර බිල්පතේ විස්තර අයිතිකරුගෙන් විමසන්න."
+      billSentNotification: "ගෙවිය යුතු මුදල ලියාපදිංචි අයිතිකරුට ({mobile}) යවා ඇත. කරුණාකර බිල්පතේ විස්තර අයිතිකරුගෙන් විමසන්න.",
+      paymentIntentTitle: "ඔබ ගෙවීම සිදු කරන්නේ කෙසේද?",
+      payFullAmount: "සම්පූර්ණ ගෙවීම",
+      payPartialAmount: "අර්ධ ගෙවීම",
+      partialAmountLabel: "ගෙවිය යුතු මුදල (රු.)",
+      partialAmountPlaceholder: "මුදල ඇතුළත් කරන්න",
+      partialAmountHint: "ශේෂ මුදල: රු.",
+      paymentMethodTitle: "ගෙවීමේ ක්‍රමය",
+      payByCash: "මුදල්",
+      payByCard: "කාඩ්",
+      payByCheque: "චෙකක්",
+      payByBankTransfer: "බැංකු හුළමාරුව"
     },
     ta: {
       title: "டிஜிட்டல் வரிசை மேடை",
@@ -740,8 +775,19 @@ export default function CustomerRegistration() {
       billSummary: "பில் சுருக்கம்",
       verified: "தொலைபேசி சரிபார்க்கப்பட்டது",
       readyToRegister: "டோக்கன் உருவாக்க தயாரானது",
-      billSentNotification: "செலுத்த வேண்டிய தொகை பதிவு செய்யப்பட்ட உரிமையாளருக்கு ({mobile}) அனுப்பப்பட்டுள்ளது. பில் விவரங்களை உரிமையாளரிடம் கேளுங்கள்."
-    },
+      billSentNotification: "செலுத்த வேண்டிய தொகை பதிவு செய்யப்பட்ட உரிமையாளருக்கு ({mobile}) அனுப்பப்பட்டுள்ளது. பில் விவரங்களை உரிமையாளரிடம் கேளுங்கள்.",
+      paymentIntentTitle: "நீங்கள் எவ்வாறு செலுத்த விரும்புகிறீர்கள்?",
+      payFullAmount: "முழு தொகை செலுத்துங்கள்",
+      payPartialAmount: "பகுதி தொகை செலுத்துங்கள்",
+      partialAmountLabel: "செலுத்த வேண்டிய தொகை (ரூ.)",
+      partialAmountPlaceholder: "தொகையை உள்ளிடவும்",
+      partialAmountHint: "நிலுவை தொகை: ரூ.",
+      paymentMethodTitle: "கட்டண முறை",
+      payByCash: "பணம்",
+      payByCard: "அட்டை",
+      payByCheque: "காசோலை",
+      payByBankTransfer: "வங்கி பரிமாற்றம்"
+    }
   }
 
   const t = translations[language]
@@ -1214,10 +1260,86 @@ export default function CustomerRegistration() {
                     </div>
                   )}
 
+                  {/* Bill Payment Intent + Method Selection — shown after OTP verified for bill payment */}
+                  {isSltRequiredService(selectedService) && sltVerified && billData && otpStep === 'verified' && (
+                    <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 space-y-4">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-amber-500"></div>
+                        <h3 className="text-sm font-semibold text-amber-900">{t.paymentIntentTitle}</h3>
+                      </div>
+                      <div className="bg-white rounded-lg p-3 border border-amber-100">
+                        <div className="flex justify-between items-center">
+                          <span className="text-xs text-gray-500">{t.billAmount}</span>
+                          <span className="text-base font-bold text-red-600">Rs. {Number(billData.currentBill).toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between items-center mt-1">
+                          <span className="text-xs text-gray-500">{t.billStatus}</span>
+                          <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${billData.status === 'paid' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                            {billData.status === 'paid' ? t.paid : t.unpaid}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        <button
+                          type="button"
+                          onClick={() => { setBillPaymentIntent('full'); setBillPaymentCustomAmount('') }}
+                          className={`py-3 px-4 rounded-xl border-2 text-sm font-semibold transition-all ${billPaymentIntent === 'full' ? 'border-green-600 bg-green-600 text-white' : 'border-green-300 bg-white text-green-700 hover:border-green-500'}`}
+                        >
+                          ✓ {t.payFullAmount} — Rs. {Number(billData.currentBill).toFixed(2)}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setBillPaymentIntent('partial')}
+                          className={`py-3 px-4 rounded-xl border-2 text-sm font-semibold transition-all ${billPaymentIntent === 'partial' ? 'border-blue-600 bg-blue-600 text-white' : 'border-blue-300 bg-white text-blue-700 hover:border-blue-500'}`}
+                        >
+                          ◑ {t.payPartialAmount}
+                        </button>
+                        {billPaymentIntent === 'partial' && (
+                          <div className="mt-1 space-y-1">
+                            <label className="block text-xs font-medium text-gray-700">{t.partialAmountLabel}</label>
+                            <input
+                              type="number"
+                              value={billPaymentCustomAmount}
+                              onChange={(e) => setBillPaymentCustomAmount(e.target.value)}
+                              min="1"
+                              max={billData.currentBill}
+                              step="0.01"
+                              className="w-full px-3 py-2.5 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                              placeholder={t.partialAmountPlaceholder}
+                            />
+                            <p className="text-xs text-gray-500">{t.partialAmountHint} {Number(billData.currentBill).toFixed(2)}</p>
+                          </div>
+                        )}
+                        {billPaymentIntent && (
+                          <div className="mt-1 space-y-2">
+                            <div className="text-xs font-semibold text-amber-900">{t.paymentMethodTitle}</div>
+                            <div className="grid grid-cols-2 gap-2">
+                              {(['cash', 'card', 'cheque', 'bank_transfer'] as const).map((method) => {
+                                const labels: Record<string, string> = { cash: t.payByCash, card: t.payByCard, cheque: t.payByCheque, bank_transfer: t.payByBankTransfer }
+                                const icons: Record<string, string> = { cash: '💵', card: '💳', cheque: '📄', bank_transfer: '🏦' }
+                                return (
+                                  <button
+                                    key={method}
+                                    type="button"
+                                    onClick={() => setBillPaymentMethod(method)}
+                                    className={`py-2.5 px-3 rounded-xl border-2 text-sm font-semibold transition-all flex items-center gap-2 ${billPaymentMethod === method ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-indigo-200 bg-white text-indigo-700 hover:border-indigo-400'}`}
+                                  >
+                                    <span>{icons[method]}</span>
+                                    <span>{labels[method]}</span>
+                                  </button>
+                                )
+                              })}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
                   {(otpStep === 'sent' || otpStep === 'verified') && (
                     <button
                       type="submit"
-                      disabled={!qrValid || loading || !selectedOutlet || !selectedService || (otpStep === 'sent' && otpCode.length !== 4)}
+                      disabled={!qrValid || loading || !selectedOutlet || !selectedService || (otpStep === 'sent' && otpCode.length !== 4) || (isSltRequiredService(selectedService) && sltVerified && (!billPaymentIntent || !billPaymentMethod))}
                       className="w-full bg-blue-600 text-white py-3 rounded-xl font-semibold hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
                     >
                       {loading ? t.registering : t.register}

@@ -99,7 +99,8 @@ export default function KioskLogin() {
               <div className="relative">
                 <Hash className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
                 <input type="text" value={outletId} onChange={(e) => !isPreFilled && setOutletId(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 bg-white/8 border border-white/15 rounded-xl text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-400/50 transition disabled:opacity-60"
+                  style={{ background: 'rgba(255,255,255,0.08)', WebkitTextFillColor: '#ffffff', caretColor: '#ffffff' }}
+                  className="dark-input w-full pl-10 pr-4 py-3 border border-white/15 rounded-xl text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-400/50 transition disabled:opacity-60"
                   placeholder="Enter outlet ID" required readOnly={isPreFilled} disabled={isPreFilled} />
               </div>
               {!isPreFilled && <p className="text-xs text-slate-500 mt-1.5">Get this from your branch manager</p>}
@@ -110,7 +111,8 @@ export default function KioskLogin() {
               <div className="relative">
                 <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
                 <input type="password" value={password} onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 bg-white/8 border border-white/15 rounded-xl text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-400/50 transition"
+                  style={{ background: 'rgba(255,255,255,0.08)', WebkitTextFillColor: '#ffffff', caretColor: '#ffffff' }}
+                  className="dark-input w-full pl-10 pr-4 py-3 border border-white/15 rounded-xl text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-400/50 transition"
                   placeholder="Enter kiosk password" required />
               </div>
             </div>
