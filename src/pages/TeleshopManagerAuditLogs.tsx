@@ -197,6 +197,7 @@ export default function TeleshopManagerAuditLogs() {
 
   // Expanded log entry
   const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [exporting, setExporting] = useState(false)
 
   // ── Auth helper ─────────────────────────────────────────────────────────────
   const getToken = useCallback(() => {
@@ -284,26 +285,117 @@ export default function TeleshopManagerAuditLogs() {
   }
 
   // ── Export to CSV ───────────────────────────────────────────────────────────
-  const exportCSV = () => {
-    if (!logs.length) return
-    const header = "Timestamp,Type,Officer,Counter,Description,Notes/Ref"
-    const rows = logs.map((l) => {
-      const ts = `"${formatTimestamp(l.timestamp)}"`
-      const type = `"${TYPE_CONFIG[l.type].label}"`
-      const officer = `"${l.officer?.name ?? "—"}"`
-      const counter = l.officer?.counterNumber ? `Counter ${l.officer.counterNumber}` : "—"
-      const desc = `"${l.description.replace(/"/g, '""')}"`
-      const notes = `"${l.meta.notes ?? l.meta.refNumber ?? ""}"`
-      return [ts, type, officer, counter, desc, notes].join(",")
-    })
-    const csv = [header, ...rows].join("\n")
-    const blob = new Blob([csv], { type: "text/csv" })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement("a")
-    a.href = url
-    a.download = `audit-logs-${period}-${new Date().toISOString().slice(0, 10)}.csv`
-    a.click()
-    URL.revokeObjectURL(url)
+  const exportCSV = async () => {
+    const token = getToken()
+    if (!token) return
+
+    setExporting(true)
+    try {
+      // Fetch ALL records (no pagination limit) for the current filters
+      const params = new URLSearchParams({
+        period,
+        logType,
+        page: "1",
+        limit: "10000",
+        export: "true",
+      })
+      if (officerId) params.set("officerId", officerId)
+      if (period === "custom") {
+        if (startDate) params.set("startDate", startDate)
+        if (endDate) params.set("endDate", endDate)
+      }
+
+      const res = await api.get(`/teleshop-manager/audit-logs?${params}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+
+      const allLogs: AuditEntry[] = res.data?.logs || []
+      if (!allLogs.length) return
+
+      // Quote helper — escapes double-quotes, wraps in quotes, empty for null/undefined
+      const q = (v: string | number | null | undefined): string => {
+        if (v === null || v === undefined || v === "") return ""
+        return `"${String(v).replace(/"/g, '""')}"`
+      }
+
+      const headers = [
+        "Timestamp",
+        "Event Type",
+        "Officer Name",
+        "Counter No.",
+        "Token No.",
+        "Service / Case Ref",
+        "Customer Name",
+        "Customer Mobile",
+        "Is Priority",
+        "Wait Duration",
+        "Service Duration",
+        "Bill Payment Method",
+        "Bill Payment Amount (LKR)",
+        "Status / Notes",
+        "Transfer (From → To Counter)",
+        "Break Duration (mins)",
+      ]
+
+      const rows = allLogs.map((l) => {
+        const m = l.meta
+        const isCS = l.type === "completed_service"
+        const isSC = l.type === "service_case"
+        const isTr = l.type === "transfer"
+        const isBr = l.type === "break"
+
+        const serviceOrCaseRef = isCS
+          ? m.service?.title ?? m.service?.code
+          : isSC
+          ? m.refNumber
+          : null
+
+        const statusOrNotes = isCS
+          ? (m.notes ?? m.serviceCase?.refNumber ?? null)
+          : isSC
+          ? (m.latestUpdate?.note ?? m.status)
+          : isTr
+          ? m.notes
+          : null
+
+        const transferDetails = isTr
+          ? `Counter ${m.fromCounterNumber ?? "?"} → Counter ${m.toCounterNumber ?? "?"}`
+          : null
+
+        return [
+          q(formatTimestamp(l.timestamp)),
+          q(TYPE_CONFIG[l.type].label),
+          q(l.officer?.name),
+          q(l.officer?.counterNumber != null ? `C${l.officer.counterNumber}` : null),
+          q(isCS || isSC || isTr ? m.tokenNumber : null),
+          q(serviceOrCaseRef),
+          q(isCS || isSC || isTr ? m.customer?.name : null),
+          q(isCS || isSC || isTr ? m.customer?.mobileNumber : null),
+          q(isCS || isSC ? (m.isPriority ? "Yes" : "No") : null),
+          q(isCS || isSC ? fmtDuration(m.waitDurationMs) : null),
+          q(isCS || isSC ? fmtDuration(m.serviceDurationMs) : null),
+          q(isCS || isSC ? methodLabel(m.billPaymentMethod) : null),
+          q(isCS || isSC ? (m.billPaymentAmount != null ? m.billPaymentAmount : null) : null),
+          q(statusOrNotes),
+          q(transferDetails),
+          q(isBr ? m.durationMinutes : null),
+        ].join(",")
+      })
+
+      // BOM prefix makes Excel open UTF-8 CSV correctly
+      const csv = "\uFEFF" + [headers.join(","), ...rows].join("\n")
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      a.download = `audit-logs-${period}-${new Date().toISOString().slice(0, 10)}.csv`
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch {
+      // silently ignore — user can retry
+    } finally {
+      setExporting(false)
+    }
   }
 
   // ── Loading state ───────────────────────────────────────────────────────────
@@ -341,11 +433,11 @@ export default function TeleshopManagerAuditLogs() {
           </button>
           <button
             onClick={exportCSV}
-            disabled={!logs.length}
+            disabled={exporting}
             className="flex items-center gap-1.5 bg-green-600 text-white px-3 py-2 rounded-lg hover:bg-green-700 disabled:bg-gray-400 text-sm font-medium"
           >
-            <Download className="w-4 h-4" />
-            Export CSV
+            <Download className={`w-4 h-4 ${exporting ? "animate-bounce" : ""}`} />
+            {exporting ? "Exporting…" : "Export CSV"}
           </button>
         </div>
       </div>
