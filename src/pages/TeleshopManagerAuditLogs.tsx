@@ -579,23 +579,7 @@ export default function TeleshopManagerAuditLogs() {
 
                     {/* ── Service case detail ───────────────────────────────────── */}
                     {entry.type === "service_case" && (
-                      <div className={`px-4 pb-4 pt-3 ${cfg.bg}`}>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 text-sm">
-                          <Detail label="Ref #" value={entry.meta.refNumber} />
-                          <Detail label="Services" value={(entry.meta.serviceTypes ?? []).join(", ") || "—"} />
-                          <Detail label="Status" value={entry.meta.status} />
-                          {entry.meta.completedAt && (
-                            <Detail label="Completed" value={formatTimestamp(entry.meta.completedAt)} />
-                          )}
-                          {entry.meta.latestUpdate && (
-                            <Detail
-                              label="Latest Note"
-                              value={`[${entry.meta.latestUpdate.actorRole}] ${entry.meta.latestUpdate.note || entry.meta.latestUpdate.status}`}
-                              span
-                            />
-                          )}
-                        </div>
-                      </div>
+                      <ServiceCaseDetail entry={entry} cfg={cfg} />
                     )}
                   </div>
                 )}
@@ -880,6 +864,132 @@ function CompletedServiceDetail({
         <div className="bg-white rounded-xl border border-slate-200 p-4">
           <div className="text-xs text-gray-500 mb-1 font-medium">Notes</div>
           <p className="text-sm text-gray-800">{m.notes}</p>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── Comprehensive expanded view for service_case entries ─────────────────────────
+function ServiceCaseDetail({
+  entry,
+  cfg,
+}: {
+  entry: AuditEntry
+  cfg: { label: string; icon: any; bg: string; text: string; border: string; dot: string }
+}) {
+  const m = entry.meta
+
+  return (
+    <div className={`px-4 pb-5 pt-3 space-y-4 ${cfg.bg}`}>
+      {/* Case header */}
+      <div className="bg-white rounded-xl border border-slate-200 p-4">
+        <div className="flex flex-wrap items-start gap-3 mb-3">
+          <div className="flex-1 min-w-0 space-y-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="font-mono text-sm bg-gray-100 px-2 py-0.5 rounded font-semibold">{m.refNumber}</span>
+              <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${statusColor(m.status ?? "open")}`}>
+                {(m.status ?? "open").replace("_", " ").toUpperCase()}
+              </span>
+            </div>
+            {m.outlet && (
+              <div className="flex items-center gap-1 text-xs text-gray-500">
+                <MapPin className="w-3.5 h-3.5" />
+                {m.outlet.name} — {m.outlet.location}
+              </div>
+            )}
+          </div>
+          <div className="text-right text-xs text-gray-500 space-y-0.5 flex-shrink-0">
+            {m.createdAt && <div>Created: <span className="font-medium text-gray-700">{fmtDateTime(m.createdAt)}</span></div>}
+            {m.completedAt && <div>Completed: <span className="font-medium text-green-700">{fmtDateTime(m.completedAt)}</span></div>}
+            {m.lastUpdatedAt && <div>Last Updated: <span className="font-medium text-gray-700">{fmtDateTime(m.lastUpdatedAt)}</span></div>}
+          </div>
+        </div>
+        {(m.serviceTypes ?? []).length > 0 && (
+          <div className="flex flex-wrap gap-1.5">
+            {(m.serviceTypes as string[]).map((svc: string) => (
+              <span key={svc} className="inline-flex items-center gap-1 text-xs px-2.5 py-1 bg-purple-50 text-purple-700 rounded-full font-medium">
+                <Hash className="w-3 h-3" />{svc}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Customer / Officer cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {m.customer && (
+          <div className="bg-white rounded-xl border border-slate-200 p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-7 h-7 rounded-full bg-indigo-100 flex items-center justify-center">
+                <User className="w-3.5 h-3.5 text-indigo-600" />
+              </div>
+              <span className="font-semibold text-gray-800 text-sm">Customer</span>
+            </div>
+            <div className="space-y-1.5 text-sm">
+              <div className="font-medium text-gray-900">{m.customer.name}</div>
+              <div className="flex items-center gap-1 text-gray-600 text-xs">
+                <Phone className="w-3 h-3" />{m.customer.mobileNumber}
+              </div>
+              {m.customer.nicNumber && (
+                <div className="text-gray-500 text-xs">NIC: {m.customer.nicNumber}</div>
+              )}
+              {m.customer.email && (
+                <div className="text-gray-500 text-xs truncate">{m.customer.email}</div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {entry.officer && (
+          <div className="bg-white rounded-xl border border-slate-200 p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-7 h-7 rounded-full bg-emerald-100 flex items-center justify-center">
+                <User className="w-3.5 h-3.5 text-emerald-600" />
+              </div>
+              <span className="font-semibold text-gray-800 text-sm">Customer Service Officer</span>
+            </div>
+            <div className="space-y-1.5 text-sm">
+              <div className="font-medium text-gray-900">{entry.officer.name}</div>
+              {entry.officer.mobileNumber && (
+                <div className="flex items-center gap-1 text-gray-600 text-xs">
+                  <Phone className="w-3 h-3" />{entry.officer.mobileNumber}
+                </div>
+              )}
+              {entry.officer.counterNumber != null && (
+                <div className="text-gray-500 text-xs">Counter #{entry.officer.counterNumber}</div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Case updates timeline */}
+      {(m.updates ?? []).length > 0 && (
+        <div className="bg-white rounded-xl border border-slate-200 p-4">
+          <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2 text-sm">
+            <FileText className="w-4 h-4 text-slate-500" /> Case Updates ({(m.updates as ServiceCaseUpdate[]).length})
+          </h3>
+          <div className="space-y-2">
+            {[...(m.updates as ServiceCaseUpdate[])].reverse().map((u) => (
+              <div key={u.id} className="border rounded-xl p-3 text-sm bg-slate-50">
+                <div className="flex items-center justify-between mb-1 flex-wrap gap-1">
+                  <div className="flex items-center gap-2">
+                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                      u.actorRole === "officer" ? "bg-emerald-100 text-emerald-700" :
+                      u.actorRole === "teleshop_manager" ? "bg-indigo-100 text-indigo-700" :
+                      "bg-gray-100 text-gray-600"
+                    }`}>{roleLabel(u.actorRole)}</span>
+                    {u.status && (
+                      <span className={`text-xs px-2 py-0.5 rounded-full ${statusColor(u.status)}`}>{u.status}</span>
+                    )}
+                  </div>
+                  <span className="text-xs text-gray-400">{fmtDateTime(u.createdAt)}</span>
+                </div>
+                <p className="text-gray-800 whitespace-pre-wrap text-xs">{u.note}</p>
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>
