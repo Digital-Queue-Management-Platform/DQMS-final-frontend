@@ -879,6 +879,17 @@ function ServiceCaseDetail({
   cfg: { label: string; icon: any; bg: string; text: string; border: string; dot: string }
 }) {
   const m = entry.meta
+  const langs: string[] = Array.isArray(m.preferredLanguages) ? m.preferredLanguages : []
+
+  const timelineSteps = [
+    { label: "Token Issued", time: m.tokenIssuedAt, color: "bg-blue-500", durationLabel: m.waitDurationMs != null ? `Wait: ${fmtDuration(m.waitDurationMs)}` : null, durationColor: "text-blue-600" },
+    { label: "Customer Called", time: m.calledAt, color: "bg-yellow-500", durationLabel: null, durationColor: "" },
+    { label: "Service Started", time: m.startedAt, color: "bg-orange-500", durationLabel: m.serviceDurationMs != null ? `Service: ${fmtDuration(m.serviceDurationMs)}` : null, durationColor: "text-green-600" },
+    { label: "Service Completed", time: m.tokenCompletedAt, color: "bg-green-500", durationLabel: null, durationColor: "" },
+  ]
+
+  const hasBillPayment = m.billPaymentIntent != null || m.billPaymentMethod != null ||
+    m.billPaymentAmount != null || m.sltTelephoneNumber != null || m.accountRef != null
 
   return (
     <div className={`px-4 pb-5 pt-3 space-y-4 ${cfg.bg}`}>
@@ -891,6 +902,12 @@ function ServiceCaseDetail({
               <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${statusColor(m.status ?? "open")}`}>
                 {(m.status ?? "open").replace("_", " ").toUpperCase()}
               </span>
+              {m.isPriority && (
+                <span className="text-xs px-2 py-0.5 rounded-full font-semibold bg-orange-100 text-orange-700">PRIORITY</span>
+              )}
+              {m.isTransferred && (
+                <span className="text-xs px-2 py-0.5 rounded-full font-semibold bg-purple-100 text-purple-700">TRANSFERRED</span>
+              )}
             </div>
             {m.outlet && (
               <div className="flex items-center gap-1 text-xs text-gray-500">
@@ -916,8 +933,9 @@ function ServiceCaseDetail({
         )}
       </div>
 
-      {/* Customer / Officer cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      {/* Customer / Officer / Token cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        {/* Customer */}
         {m.customer && (
           <div className="bg-white rounded-xl border border-slate-200 p-4">
             <div className="flex items-center gap-2 mb-3">
@@ -937,10 +955,18 @@ function ServiceCaseDetail({
               {m.customer.email && (
                 <div className="text-gray-500 text-xs truncate">{m.customer.email}</div>
               )}
+              {langs.length > 0 && (
+                <div className="flex flex-wrap gap-1 pt-0.5">
+                  {langs.map((l: string) => (
+                    <span key={l} className="text-xs bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded capitalize">{l}</span>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         )}
 
+        {/* Officer */}
         {entry.officer && (
           <div className="bg-white rounded-xl border border-slate-200 p-4">
             <div className="flex items-center gap-2 mb-3">
@@ -962,13 +988,105 @@ function ServiceCaseDetail({
             </div>
           </div>
         )}
+
+        {/* Queue Token */}
+        {m.tokenNumber != null && (
+          <div className="bg-white rounded-xl border border-slate-200 p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-7 h-7 rounded-full bg-amber-100 flex items-center justify-center">
+                <Hash className="w-3.5 h-3.5 text-amber-600" />
+              </div>
+              <span className="font-semibold text-gray-800 text-sm">Queue Token</span>
+            </div>
+            <div className="space-y-1.5 text-sm">
+              <div className="font-bold text-2xl text-amber-600">#{m.tokenNumber}</div>
+              {m.accountRef && <div className="text-gray-500 text-xs">A/C Ref: {m.accountRef}</div>}
+              {m.sltTelephoneNumber && <div className="text-gray-500 text-xs">SLT Tel: {m.sltTelephoneNumber}</div>}
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Case updates timeline */}
+      {/* Service Timeline */}
+      {m.tokenIssuedAt && (
+        <div className="bg-white rounded-xl border border-slate-200 p-4">
+          <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2 text-sm">
+            <Clock className="w-4 h-4 text-blue-500" /> Service Timeline
+          </h3>
+          <div className="space-y-0">
+            {timelineSteps.map((step, idx) => (
+              <div key={step.label} className="flex items-start gap-3">
+                <div className="flex flex-col items-center">
+                  <div className={`w-3 h-3 rounded-full mt-0.5 ${step.time ? step.color : "bg-gray-200"}`} />
+                  {idx < timelineSteps.length - 1 && (
+                    <div className={`w-0.5 h-6 ${step.time ? "bg-gray-300" : "bg-gray-100"}`} />
+                  )}
+                </div>
+                <div className="pb-2 flex-1">
+                  <div className={`text-sm font-medium ${step.time ? "text-gray-900" : "text-gray-400"}`}>{step.label}</div>
+                  <div className="text-xs text-gray-500">{step.time ? fmtDateTime(step.time) : "Not recorded"}</div>
+                </div>
+                {step.durationLabel && (
+                  <div className={`text-xs font-medium mt-0.5 ${step.durationColor}`}>{step.durationLabel}</div>
+                )}
+              </div>
+            ))}
+          </div>
+          {m.totalDurationMs != null && (
+            <div className="mt-3 pt-3 border-t flex items-center justify-between">
+              <span className="text-sm text-gray-500">Total Duration</span>
+              <span className="text-sm font-semibold text-gray-900">{fmtDuration(m.totalDurationMs)}</span>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Bill Payment Details */}
+      {hasBillPayment && (
+        <div className="bg-white rounded-xl border border-slate-200 p-4">
+          <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2 text-sm">
+            <CreditCard className="w-4 h-4 text-green-500" /> Bill Payment Details
+          </h3>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 text-sm">
+            {m.sltTelephoneNumber != null && (
+              <div>
+                <div className="text-xs text-gray-500 mb-0.5">SLT Telephone</div>
+                <div className="font-medium">{m.sltTelephoneNumber}</div>
+              </div>
+            )}
+            {m.billPaymentIntent != null && (
+              <div>
+                <div className="text-xs text-gray-500 mb-0.5">Payment Intent</div>
+                <div className="font-medium capitalize">{m.billPaymentIntent.replace("_", " ")}</div>
+              </div>
+            )}
+            {m.billPaymentMethod != null && (
+              <div>
+                <div className="text-xs text-gray-500 mb-0.5">Method</div>
+                <div className="font-medium">{methodLabel(m.billPaymentMethod)}</div>
+              </div>
+            )}
+            {m.billPaymentAmount != null && (
+              <div>
+                <div className="text-xs text-gray-500 mb-0.5">Amount</div>
+                <div className="font-semibold text-green-700">LKR {Number(m.billPaymentAmount).toLocaleString()}</div>
+              </div>
+            )}
+            {m.accountRef != null && (
+              <div>
+                <div className="text-xs text-gray-500 mb-0.5">A/C Reference</div>
+                <div className="font-medium">{m.accountRef}</div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Transaction History / Case Updates */}
       {(m.updates ?? []).length > 0 && (
         <div className="bg-white rounded-xl border border-slate-200 p-4">
           <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2 text-sm">
-            <FileText className="w-4 h-4 text-slate-500" /> Case Updates ({(m.updates as ServiceCaseUpdate[]).length})
+            <FileText className="w-4 h-4 text-slate-500" /> Transaction History ({(m.updates as ServiceCaseUpdate[]).length})
           </h3>
           <div className="space-y-2">
             {[...(m.updates as ServiceCaseUpdate[])].reverse().map((u) => (
@@ -990,6 +1108,9 @@ function ServiceCaseDetail({
               </div>
             ))}
           </div>
+          {m.status === "completed" && (
+            <p className="text-xs text-gray-400 mt-3 italic">This service case has been completed.</p>
+          )}
         </div>
       )}
     </div>

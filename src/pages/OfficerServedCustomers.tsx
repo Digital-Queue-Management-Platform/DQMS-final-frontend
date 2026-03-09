@@ -533,6 +533,50 @@ export default function OfficerServedCustomers() {
                                     </dl>
                                   </div>
                                 </div>
+                                {/* Bill Payment Details */}
+                                {caseDetails[t.refNumber].token && (
+                                  caseDetails[t.refNumber].token.billPaymentIntent != null ||
+                                  caseDetails[t.refNumber].token.billPaymentMethod != null ||
+                                  caseDetails[t.refNumber].token.billPaymentAmount != null ||
+                                  caseDetails[t.refNumber].token.sltTelephoneNumber != null ||
+                                  caseDetails[t.refNumber].token.accountRef != null
+                                ) && (
+                                  <div>
+                                    <h4 className="text-sm font-semibold text-gray-900 mb-2">Bill Payment Details</h4>
+                                    <dl className="space-y-1 text-xs">
+                                      {caseDetails[t.refNumber].token.sltTelephoneNumber && (
+                                        <div className="flex gap-2">
+                                          <dt className="font-medium text-gray-600">SLT Telephone:</dt>
+                                          <dd className="text-gray-900">{caseDetails[t.refNumber].token.sltTelephoneNumber}</dd>
+                                        </div>
+                                      )}
+                                      {caseDetails[t.refNumber].token.billPaymentIntent && (
+                                        <div className="flex gap-2">
+                                          <dt className="font-medium text-gray-600">Payment Intent:</dt>
+                                          <dd className="text-gray-900 capitalize">{caseDetails[t.refNumber].token.billPaymentIntent.replace('_', ' ')}</dd>
+                                        </div>
+                                      )}
+                                      {caseDetails[t.refNumber].token.billPaymentMethod && (
+                                        <div className="flex gap-2">
+                                          <dt className="font-medium text-gray-600">Method:</dt>
+                                          <dd className="text-gray-900 capitalize">{caseDetails[t.refNumber].token.billPaymentMethod}</dd>
+                                        </div>
+                                      )}
+                                      {caseDetails[t.refNumber].token.billPaymentAmount != null && (
+                                        <div className="flex gap-2">
+                                          <dt className="font-medium text-gray-600">Amount:</dt>
+                                          <dd className="text-gray-900 font-semibold text-green-700">LKR {Number(caseDetails[t.refNumber].token.billPaymentAmount).toLocaleString()}</dd>
+                                        </div>
+                                      )}
+                                      {caseDetails[t.refNumber].token.accountRef && (
+                                        <div className="flex gap-2">
+                                          <dt className="font-medium text-gray-600">A/C Reference:</dt>
+                                          <dd className="text-gray-900">{caseDetails[t.refNumber].token.accountRef}</dd>
+                                        </div>
+                                      )}
+                                    </dl>
+                                  </div>
+                                )}
                                 {caseDetails[t.refNumber].updates && caseDetails[t.refNumber].updates.length > 0 && (
                                   <div>
                                     <h4 className="text-sm font-semibold text-gray-900 mb-2">Case Updates</h4>
