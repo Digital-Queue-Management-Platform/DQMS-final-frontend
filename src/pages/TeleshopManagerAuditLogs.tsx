@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback } from "react"
 import { useNavigate } from "react-router-dom"
 import {
-  ArrowLeft,
   RefreshCw,
   Filter,
   Calendar,
@@ -16,8 +15,12 @@ import {
   ChevronRight,
   Download,
   ClipboardList,
+  MapPin,
+  Phone,
+  Hash,
+  Clock,
+  CreditCard,
 } from "lucide-react"
-import TeleshopManagerTopBar from "../components/TeleshopManagerTopBar"
 import api from "../config/api"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -29,6 +32,14 @@ interface Officer {
   name: string
   counterNumber?: number | null
   mobileNumber?: string
+}
+
+interface ServiceCaseUpdate {
+  id: string
+  actorRole: string
+  status?: string | null
+  note: string
+  createdAt: string
 }
 
 interface AuditEntry {
@@ -132,6 +143,22 @@ function formatTimestamp(ts: string): string {
   })
 }
 
+function fmtDateTime(iso: string | null | undefined): string {
+  if (!iso) return "—"
+  return new Date(iso).toLocaleString()
+}
+
+function fmtDuration(ms: number | null | undefined): string {
+  if (ms == null || ms < 0) return "—"
+  const totalSec = Math.floor(ms / 1000)
+  const h = Math.floor(totalSec / 3600)
+  const m = Math.floor((totalSec % 3600) / 60)
+  const s = totalSec % 60
+  if (h > 0) return `${h}h ${m}m ${s}s`
+  if (m > 0) return `${m}m ${s}s`
+  return `${s}s`
+}
+
 function formatDuration(seconds: number | null): string {
   if (seconds === null) return "—"
   if (seconds < 60) return `${seconds}s`
@@ -144,6 +171,17 @@ function methodLabel(method: string | null): string {
   if (!method) return "—"
   return { cash: "Cash", card: "Card", cheque: "Cheque", bank_transfer: "Bank Transfer" }[method] ?? method
 }
+
+const roleLabel = (role: string) =>
+  role === "officer" ? "Officer" :
+  role === "teleshop_manager" ? "Teleshop Manager" :
+  role === "manager" ? "Manager" : role
+
+const statusColor = (s: string) =>
+  s === "completed" ? "bg-green-100 text-green-700" :
+  s === "open" ? "bg-blue-100 text-blue-700" :
+  s === "in_progress" ? "bg-yellow-100 text-yellow-700" :
+  "bg-gray-100 text-gray-700"
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function TeleshopManagerAuditLogs() {
@@ -287,69 +325,56 @@ export default function TeleshopManagerAuditLogs() {
 
   // ── Render ──────────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-gray-50">
-      <TeleshopManagerTopBar teleshopManager={teleshopManager} title="Audit Logs" />
+    <div className="p-4 sm:p-6 space-y-6">
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
-
-        {/* Page header */}
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => navigate("/teleshop-manager/dashboard")}
-              className="flex items-center text-sky-600 hover:text-sky-800 text-sm font-medium"
-            >
-              <ArrowLeft className="w-4 h-4 mr-1" />
-              Back
-            </button>
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-                <ClipboardList className="w-6 h-6 text-sky-600" />
-                Audit Logs
-              </h1>
-              <p className="text-sm text-gray-500 mt-0.5">
-                Complete event history for your branch
-              </p>
-            </div>
+      {/* Header */}
+      <div className="mb-2 flex items-start justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-sky-600 rounded-xl flex items-center justify-center shadow-sm">
+            <ClipboardList className="w-5 h-5 text-white" />
           </div>
-
-          <div className="flex items-center gap-2">
-            <button
-              onClick={fetchLogs}
-              disabled={loading}
-              className="flex items-center gap-1.5 bg-sky-600 text-white px-3 py-2 rounded-lg hover:bg-sky-700 disabled:bg-gray-400 text-sm font-medium"
-            >
-              <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
-              Refresh
-            </button>
-            <button
-              onClick={exportCSV}
-              disabled={!logs.length}
-              className="flex items-center gap-1.5 bg-green-600 text-white px-3 py-2 rounded-lg hover:bg-green-700 disabled:bg-gray-400 text-sm font-medium"
-            >
-              <Download className="w-4 h-4" />
-              Export CSV
-            </button>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Audit Logs</h1>
+            <p className="text-sm text-gray-500">Complete event history for your branch</p>
           </div>
         </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={fetchLogs}
+            disabled={loading}
+            className="flex items-center gap-1.5 bg-sky-600 text-white px-3 py-2 rounded-lg hover:bg-sky-700 disabled:bg-gray-400 text-sm font-medium"
+          >
+            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
+            Refresh
+          </button>
+          <button
+            onClick={exportCSV}
+            disabled={!logs.length}
+            className="flex items-center gap-1.5 bg-green-600 text-white px-3 py-2 rounded-lg hover:bg-green-700 disabled:bg-gray-400 text-sm font-medium"
+          >
+            <Download className="w-4 h-4" />
+            Export CSV
+          </button>
+        </div>
+      </div>
 
         {/* Summary cards */}
-        {summary && (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-            {[
-              { label: "Total Events", value: summary.total, color: "text-gray-900" },
-              { label: "Completed Services", value: summary.completedServices, color: "text-green-600" },
-              { label: "Transfers", value: summary.transfers, color: "text-blue-600" },
-              { label: "Breaks", value: summary.breaks, color: "text-orange-600" },
-              { label: "Service Cases", value: summary.serviceCases, color: "text-purple-600" },
-            ].map((s) => (
-              <div key={s.label} className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
-                <p className="text-xs font-medium text-gray-500 mb-1">{s.label}</p>
-                <p className={`text-2xl font-bold ${s.color}`}>{s.value}</p>
-              </div>
-            ))}
-          </div>
-        )}
+      {summary && (
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+          {[
+            { label: "Total Events", value: summary.total, color: "text-gray-900" },
+            { label: "Completed Services", value: summary.completedServices, color: "text-green-600" },
+            { label: "Transfers", value: summary.transfers, color: "text-blue-600" },
+            { label: "Breaks", value: summary.breaks, color: "text-orange-600" },
+            { label: "Service Cases", value: summary.serviceCases, color: "text-purple-600" },
+          ].map((s) => (
+            <div key={s.label} className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+              <p className="text-xs font-medium text-gray-500 mb-1">{s.label}</p>
+              <p className={`text-2xl font-bold ${s.color}`}>{s.value}</p>
+            </div>
+          ))}
+        </div>
+      )}
 
         {/* Filters */}
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 space-y-4">
@@ -529,46 +554,41 @@ export default function TeleshopManagerAuditLogs() {
 
                 {/* Expanded detail */}
                 {isExpanded && (
-                  <div className={`px-4 pb-4 pt-2 border-t ${cfg.border} ${cfg.bg}`}>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 text-sm">
-                      {/* Completed service details */}
-                      {entry.type === "completed_service" && (
-                        <>
-                          <Detail label="Token #" value={entry.meta.tokenNumber} />
-                          <Detail label="Service" value={`${entry.meta.service?.title} (${entry.meta.service?.code})`} />
-                          <Detail label="Duration" value={formatDuration(entry.meta.durationSeconds)} />
-                          <Detail label="Bill Payment" value={entry.meta.billPaymentIntent
-                            ? `${entry.meta.billPaymentIntent === "full" ? "Full" : "Partial"}${entry.meta.billPaymentAmount ? ` · Rs. ${Number(entry.meta.billPaymentAmount).toFixed(2)}` : ""}`
-                            : "—"} />
-                          <Detail label="Payment Method" value={methodLabel(entry.meta.billPaymentMethod)} />
-                          {entry.meta.notes && <Detail label="Notes" value={entry.meta.notes} span />}
-                        </>
-                      )}
+                  <div className={`border-t ${cfg.border}`}>
+                    {/* ── Completed Service — comprehensive view ───────────────── */}
+                    {entry.type === "completed_service" && (
+                      <CompletedServiceDetail entry={entry} cfg={cfg} />
+                    )}
 
-                      {/* Transfer details */}
-                      {entry.type === "transfer" && (
-                        <>
+                    {/* ── Transfer detail ──────────────────────────────────────── */}
+                    {entry.type === "transfer" && (
+                      <div className={`px-4 pb-4 pt-3 ${cfg.bg}`}>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 text-sm">
                           <Detail label="Token #" value={entry.meta.tokenNumber} />
                           <Detail label="From Counter" value={entry.meta.fromCounterNumber ?? "—"} />
                           <Detail label="To Counter" value={entry.meta.toCounterNumber ?? "—"} />
                           <Detail label="Prev. Services" value={(entry.meta.previousServiceTypes ?? []).join(", ") || "—"} />
                           <Detail label="New Services" value={(entry.meta.newServiceTypes ?? []).join(", ") || "—"} />
                           {entry.meta.notes && <Detail label="Notes" value={entry.meta.notes} span />}
-                        </>
-                      )}
+                        </div>
+                      </div>
+                    )}
 
-                      {/* Break details */}
-                      {entry.type === "break" && (
-                        <>
+                    {/* ── Break detail ─────────────────────────────────────────── */}
+                    {entry.type === "break" && (
+                      <div className={`px-4 pb-4 pt-3 ${cfg.bg}`}>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
                           <Detail label="Started" value={formatTimestamp(entry.meta.startedAt)} />
                           <Detail label="Ended" value={entry.meta.endedAt ? formatTimestamp(entry.meta.endedAt) : "In progress"} />
                           <Detail label="Duration" value={entry.meta.durationMinutes !== null ? `${entry.meta.durationMinutes} min` : "—"} />
-                        </>
-                      )}
+                        </div>
+                      </div>
+                    )}
 
-                      {/* Service case details */}
-                      {entry.type === "service_case" && (
-                        <>
+                    {/* ── Service case detail ───────────────────────────────────── */}
+                    {entry.type === "service_case" && (
+                      <div className={`px-4 pb-4 pt-3 ${cfg.bg}`}>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 text-sm">
                           <Detail label="Ref #" value={entry.meta.refNumber} />
                           <Detail label="Services" value={(entry.meta.serviceTypes ?? []).join(", ") || "—"} />
                           <Detail label="Status" value={entry.meta.status} />
@@ -582,9 +602,9 @@ export default function TeleshopManagerAuditLogs() {
                               span
                             />
                           )}
-                        </>
-                      )}
-                    </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -617,6 +637,259 @@ export default function TeleshopManagerAuditLogs() {
           </div>
         )}
       </div>
+  )
+}
+
+// ── Comprehensive expanded view for completed_service entries ─────────────────
+function CompletedServiceDetail({
+  entry,
+  cfg,
+}: {
+  entry: AuditEntry
+  cfg: { label: string; icon: any; bg: string; text: string; border: string; dot: string }
+}) {
+  const m = entry.meta
+  const sc = m.serviceCase
+  const langs: string[] = Array.isArray(m.customer?.preferredLanguages)
+    ? m.customer.preferredLanguages
+    : []
+
+  const timelineSteps = [
+    { label: "Token Issued", time: m.tokenIssuedAt, color: "bg-blue-500", durationLabel: m.waitDurationMs != null ? `Wait: ${fmtDuration(m.waitDurationMs)}` : null, durationColor: "text-blue-600" },
+    { label: "Customer Called", time: m.calledAt, color: "bg-yellow-500", durationLabel: null, durationColor: "" },
+    { label: "Service Started", time: m.startedAt, color: "bg-orange-500", durationLabel: m.serviceDurationMs != null ? `Service: ${fmtDuration(m.serviceDurationMs)}` : null, durationColor: "text-green-600" },
+    { label: "Service Completed", time: m.completedAt, color: "bg-green-500", durationLabel: null, durationColor: "" },
+  ]
+
+  return (
+    <div className={`px-4 pb-5 pt-3 space-y-4 ${cfg.bg}`}>
+      {/* Case header — ref + outlet + timestamps */}
+      <div className="bg-white rounded-xl border border-slate-200 p-4">
+        <div className="flex flex-wrap items-start gap-3 mb-3">
+          <div className="flex-1 min-w-0 space-y-1">
+            <div className="flex flex-wrap items-center gap-2">
+              {sc?.refNumber && (
+                <span className="font-mono text-sm bg-gray-100 px-2 py-0.5 rounded font-semibold">{sc.refNumber}</span>
+              )}
+              <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${statusColor(sc?.status ?? "completed")}`}>
+                {(sc?.status ?? "completed").replace("_", " ").toUpperCase()}
+              </span>
+              {m.isPriority && (
+                <span className="text-xs px-2 py-0.5 rounded-full font-semibold bg-orange-100 text-orange-700">PRIORITY</span>
+              )}
+              {m.isTransferred && (
+                <span className="text-xs px-2 py-0.5 rounded-full font-semibold bg-purple-100 text-purple-700">TRANSFERRED</span>
+              )}
+            </div>
+            {m.outlet && (
+              <div className="flex items-center gap-1 text-xs text-gray-500">
+                <MapPin className="w-3.5 h-3.5" />
+                {m.outlet.name} — {m.outlet.location}
+              </div>
+            )}
+          </div>
+          <div className="text-right text-xs text-gray-500 space-y-0.5 flex-shrink-0">
+            {sc?.createdAt && <div>Created: <span className="font-medium text-gray-700">{fmtDateTime(sc.createdAt)}</span></div>}
+            {sc?.completedAt && <div>Completed: <span className="font-medium text-green-700">{fmtDateTime(sc.completedAt)}</span></div>}
+            {sc?.lastUpdatedAt && <div>Last Updated: <span className="font-medium text-gray-700">{fmtDateTime(sc.lastUpdatedAt)}</span></div>}
+          </div>
+        </div>
+        {/* Service badge */}
+        {m.service && (
+          <span className="inline-flex items-center gap-1 text-xs px-2.5 py-1 bg-blue-50 text-blue-700 rounded-full font-medium">
+            <Hash className="w-3 h-3" />{m.service.code} — {m.service.title}
+          </span>
+        )}
+      </div>
+
+      {/* Customer / Officer / Token cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        {/* Customer */}
+        {m.customer && (
+          <div className="bg-white rounded-xl border border-slate-200 p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-7 h-7 rounded-full bg-indigo-100 flex items-center justify-center">
+                <User className="w-3.5 h-3.5 text-indigo-600" />
+              </div>
+              <span className="font-semibold text-gray-800 text-sm">Customer</span>
+            </div>
+            <div className="space-y-1.5 text-sm">
+              <div className="font-medium text-gray-900">{m.customer.name}</div>
+              <div className="flex items-center gap-1 text-gray-600 text-xs">
+                <Phone className="w-3 h-3" />{m.customer.mobileNumber}
+              </div>
+              {m.customer.nicNumber && (
+                <div className="text-gray-500 text-xs">NIC: {m.customer.nicNumber}</div>
+              )}
+              {m.customer.email && (
+                <div className="text-gray-500 text-xs truncate">{m.customer.email}</div>
+              )}
+              {langs.length > 0 && (
+                <div className="flex flex-wrap gap-1 pt-0.5">
+                  {langs.map((l: string) => (
+                    <span key={l} className="text-xs bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded capitalize">{l}</span>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Officer */}
+        {entry.officer && (
+          <div className="bg-white rounded-xl border border-slate-200 p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-7 h-7 rounded-full bg-emerald-100 flex items-center justify-center">
+                <User className="w-3.5 h-3.5 text-emerald-600" />
+              </div>
+              <span className="font-semibold text-gray-800 text-sm">Customer Service Officer</span>
+            </div>
+            <div className="space-y-1.5 text-sm">
+              <div className="font-medium text-gray-900">{entry.officer.name}</div>
+              {m.officerMobile && (
+                <div className="flex items-center gap-1 text-gray-600 text-xs">
+                  <Phone className="w-3 h-3" />{m.officerMobile}
+                </div>
+              )}
+              {entry.officer.counterNumber != null && (
+                <div className="text-gray-500 text-xs">Counter #{entry.officer.counterNumber}</div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Token */}
+        {m.tokenNumber != null && (
+          <div className="bg-white rounded-xl border border-slate-200 p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-7 h-7 rounded-full bg-amber-100 flex items-center justify-center">
+                <Hash className="w-3.5 h-3.5 text-amber-600" />
+              </div>
+              <span className="font-semibold text-gray-800 text-sm">Queue Token</span>
+            </div>
+            <div className="space-y-1.5 text-sm">
+              <div className="font-bold text-2xl text-amber-600">#{m.tokenNumber}</div>
+              {m.accountRef && <div className="text-gray-500 text-xs">A/C Ref: {m.accountRef}</div>}
+              {m.sltTelephoneNumber && <div className="text-gray-500 text-xs">SLT Tel: {m.sltTelephoneNumber}</div>}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Service Timeline */}
+      <div className="bg-white rounded-xl border border-slate-200 p-4">
+        <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2 text-sm">
+          <Clock className="w-4 h-4 text-blue-500" /> Service Timeline
+        </h3>
+        <div className="space-y-0">
+          {timelineSteps.map((step, idx) => (
+            <div key={step.label} className="flex items-start gap-3">
+              <div className="flex flex-col items-center">
+                <div className={`w-3 h-3 rounded-full mt-0.5 ${step.time ? step.color : "bg-gray-200"}`} />
+                {idx < timelineSteps.length - 1 && (
+                  <div className={`w-0.5 h-6 ${step.time ? "bg-gray-300" : "bg-gray-100"}`} />
+                )}
+              </div>
+              <div className="pb-2 flex-1">
+                <div className={`text-sm font-medium ${step.time ? "text-gray-900" : "text-gray-400"}`}>{step.label}</div>
+                <div className="text-xs text-gray-500">{step.time ? fmtDateTime(step.time) : "Not recorded"}</div>
+              </div>
+              {step.durationLabel && (
+                <div className={`text-xs font-medium mt-0.5 ${step.durationColor}`}>{step.durationLabel}</div>
+              )}
+            </div>
+          ))}
+        </div>
+        {m.totalDurationMs != null && (
+          <div className="mt-3 pt-3 border-t flex items-center justify-between">
+            <span className="text-sm text-gray-500">Total Duration</span>
+            <span className="text-sm font-semibold text-gray-900">{fmtDuration(m.totalDurationMs)}</span>
+          </div>
+        )}
+      </div>
+
+      {/* Bill Payment Details */}
+      {(m.billPaymentIntent != null || m.sltTelephoneNumber != null ||
+        m.billPaymentMethod != null || m.billPaymentAmount != null ||
+        m.accountRef != null) && (
+        <div className="bg-white rounded-xl border border-slate-200 p-4">
+          <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2 text-sm">
+            <CreditCard className="w-4 h-4 text-green-500" /> Bill Payment Details
+          </h3>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 text-sm">
+            {m.sltTelephoneNumber != null && (
+              <div>
+                <div className="text-xs text-gray-500 mb-0.5">SLT Telephone</div>
+                <div className="font-medium">{m.sltTelephoneNumber}</div>
+              </div>
+            )}
+            {m.billPaymentIntent != null && (
+              <div>
+                <div className="text-xs text-gray-500 mb-0.5">Payment Intent</div>
+                <div className="font-medium capitalize">{m.billPaymentIntent.replace("_", " ")}</div>
+              </div>
+            )}
+            {m.billPaymentMethod != null && (
+              <div>
+                <div className="text-xs text-gray-500 mb-0.5">Method</div>
+                <div className="font-medium">{methodLabel(m.billPaymentMethod)}</div>
+              </div>
+            )}
+            {m.billPaymentAmount != null && (
+              <div>
+                <div className="text-xs text-gray-500 mb-0.5">Amount</div>
+                <div className="font-semibold text-green-700">LKR {Number(m.billPaymentAmount).toLocaleString()}</div>
+              </div>
+            )}
+            {m.accountRef != null && (
+              <div>
+                <div className="text-xs text-gray-500 mb-0.5">A/C Reference</div>
+                <div className="font-medium">{m.accountRef}</div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Transaction History */}
+      {sc?.updates?.length > 0 && (
+        <div className="bg-white rounded-xl border border-slate-200 p-4">
+          <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2 text-sm">
+            <FileText className="w-4 h-4 text-slate-500" /> Transaction History ({sc.updates.length})
+          </h3>
+          <div className="space-y-2">
+            {(sc.updates as ServiceCaseUpdate[]).map((u) => (
+              <div key={u.id} className="border rounded-xl p-3 text-sm bg-slate-50">
+                <div className="flex items-center justify-between mb-1 flex-wrap gap-1">
+                  <div className="flex items-center gap-2">
+                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                      u.actorRole === "officer" ? "bg-emerald-100 text-emerald-700" :
+                      u.actorRole === "teleshop_manager" ? "bg-indigo-100 text-indigo-700" :
+                      "bg-gray-100 text-gray-600"
+                    }`}>{roleLabel(u.actorRole)}</span>
+                    {u.status && (
+                      <span className={`text-xs px-2 py-0.5 rounded-full ${statusColor(u.status)}`}>{u.status}</span>
+                    )}
+                  </div>
+                  <span className="text-xs text-gray-400">{fmtDateTime(u.createdAt)}</span>
+                </div>
+                <p className="text-gray-800 whitespace-pre-wrap text-xs">{u.note}</p>
+              </div>
+            ))}
+          </div>
+          {sc.status === "completed" && (
+            <p className="text-xs text-gray-400 mt-3 italic">This service case has been completed.</p>
+          )}
+        </div>
+      )}
+
+      {/* Notes */}
+      {m.notes && (
+        <div className="bg-white rounded-xl border border-slate-200 p-4">
+          <div className="text-xs text-gray-500 mb-1 font-medium">Notes</div>
+          <p className="text-sm text-gray-800">{m.notes}</p>
+        </div>
+      )}
     </div>
   )
 }

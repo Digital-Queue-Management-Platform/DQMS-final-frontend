@@ -1,7 +1,7 @@
 ﻿// Removed unused billData state
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { User, Phone, Eye, EyeOff, Send, MessageSquare, CheckCircle } from 'lucide-react'
+import { User, Phone, Eye, EyeOff, Send, MessageSquare, CheckCircle, Banknote, CreditCard, FileText, Landmark } from 'lucide-react'
 import { API_URL } from '../config/api'
 import api from '../config/api'
 import OTPInput from '../components/OTPInput'
@@ -1208,7 +1208,7 @@ export default function KioskDashboard() {
                           <div className="grid grid-cols-2 gap-2">
                             {(['cash', 'card', 'cheque', 'bank_transfer'] as const).map((method) => {
                               const labels: Record<string, string> = { cash: t.payByCash, card: t.payByCard, cheque: t.payByCheque, bank_transfer: t.payByBankTransfer }
-                              const icons: Record<string, string> = { cash: '💵', card: '💳', cheque: '📄', bank_transfer: '🏦' }
+                              const icons: Record<string, React.ReactNode> = { cash: <Banknote className="w-4 h-4" />, card: <CreditCard className="w-4 h-4" />, cheque: <FileText className="w-4 h-4" />, bank_transfer: <Landmark className="w-4 h-4" /> }
                               return (
                                 <button
                                   key={method}

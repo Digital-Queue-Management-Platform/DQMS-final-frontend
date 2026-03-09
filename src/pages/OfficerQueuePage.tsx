@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { motion } from "framer-motion"
-import { User, Clock, Phone, FileText, Users, RefreshCwIcon, Calendar, AlertTriangle } from "lucide-react"
+import { User, Clock, Phone, FileText, Users, RefreshCwIcon, Calendar, AlertTriangle, CheckCircle2, CircleDashed, Banknote, CreditCard, Landmark } from "lucide-react"
 // OfficerTopBar is provided globally from Layout for officer routes
 import api, { WS_URL } from "../config/api"
 import type { Officer, Token } from "../types"
@@ -783,7 +783,7 @@ export default function OfficerQueuePage() {
                   </div>
 
                   {/* Bill Payment Info Card — shown when serving a bill payment customer */}
-                  {currentToken.serviceTypes.includes('SVC002') && (
+                  {(currentToken.serviceTypes.includes('SVC002') || currentToken.serviceTypes.includes('BILL_PAYMENT')) && (
                     <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 mb-4">
                       <div className="flex items-center gap-2 mb-3">
                         <div className="w-2 h-2 rounded-full bg-amber-500 flex-shrink-0"></div>
@@ -825,14 +825,16 @@ export default function OfficerQueuePage() {
                         <div className="text-xs text-gray-500 mb-1">Customer's Payment Plan</div>
                         {currentToken.billPaymentIntent === 'full' ? (
                           <div className="flex items-center gap-2 bg-green-100 text-green-800 px-3 py-2 rounded-xl">
-                            <span className="text-sm font-bold">✓ Full Payment</span>
+                            <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+                            <span className="text-sm font-bold">Full Payment</span>
                             {billInfo && (
                               <span className="ml-auto text-sm font-bold">Rs. {billInfo.currentBill.toFixed(2)}</span>
                             )}
                           </div>
                         ) : currentToken.billPaymentIntent === 'partial' ? (
                           <div className="flex items-center gap-2 bg-blue-100 text-blue-800 px-3 py-2 rounded-xl">
-                            <span className="text-sm font-bold">◑ Partial Payment</span>
+                            <CircleDashed className="w-4 h-4 flex-shrink-0" />
+                            <span className="text-sm font-bold">Partial Payment</span>
                             <span className="ml-auto text-base font-bold">Rs. {(currentToken.billPaymentAmount ?? 0).toFixed(2)}</span>
                           </div>
                         ) : (
@@ -841,12 +843,16 @@ export default function OfficerQueuePage() {
                           </div>
                         )}
                         {currentToken.billPaymentIntent === 'partial' && billInfo && (
-                          <p className="text-xs text-orange-700 mt-1 font-medium">
-                            ⚠ Remaining after payment: Rs. {Math.max(0, billInfo.currentBill - (currentToken.billPaymentAmount ?? 0)).toFixed(2)}
+                          <p className="text-xs text-orange-700 mt-1 font-medium flex items-center gap-1">
+                            <AlertTriangle className="w-3 h-3" /> Remaining after payment: Rs. {Math.max(0, billInfo.currentBill - (currentToken.billPaymentAmount ?? 0)).toFixed(2)}
                           </p>
                         )}
                         {currentToken.billPaymentMethod && (
                           <div className="mt-2 flex items-center gap-2 bg-slate-100 text-slate-700 px-3 py-2 rounded-xl">
+                            {currentToken.billPaymentMethod === 'cash' ? <Banknote className="w-4 h-4" /> :
+                             currentToken.billPaymentMethod === 'card' ? <CreditCard className="w-4 h-4" /> :
+                             currentToken.billPaymentMethod === 'cheque' ? <FileText className="w-4 h-4" /> :
+                             <Landmark className="w-4 h-4" />}
                             <span className="text-xs text-gray-500">Payment Method</span>
                             <span className="ml-auto text-sm font-semibold capitalize">
                               {currentToken.billPaymentMethod === 'bank_transfer' ? 'Bank Transfer' : currentToken.billPaymentMethod.charAt(0).toUpperCase() + currentToken.billPaymentMethod.slice(1)}
