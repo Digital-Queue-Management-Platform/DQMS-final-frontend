@@ -3,7 +3,7 @@
 import { useState } from "react"
 import {
   Search, Send, CheckCircle, User, Clock, MapPin, Phone, Hash, Star,
-  ArrowRight, AlertCircle, FileText, RefreshCw, Repeat2, CreditCard, Info
+  ArrowRight, FileText, RefreshCw, Repeat2, CreditCard
 } from "lucide-react"
 import api from "../config/api"
 
@@ -74,11 +74,6 @@ function fmtDuration(ms: number | null): string {
   if (h > 0) return `${h}h ${m}m ${s}s`
   if (m > 0) return `${m}m ${s}s`
   return `${s}s`
-}
-
-function fmtTime(iso: string | null | undefined): string {
-  if (!iso) return '—'
-  return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
 }
 
 function fmtDateTime(iso: string | null | undefined): string {
@@ -479,7 +474,7 @@ export default function TeleshopManagerServiceTracking() {
               <p className="text-sm text-gray-400">No updates recorded.</p>
             ) : (
               <div className="space-y-2">
-                {data.updates.map((u, idx) => (
+                {data.updates.map((u) => (
                   <div key={u.id} className="border rounded-xl p-3 text-sm bg-slate-50">
                     <div className="flex items-center justify-between mb-1">
                       <div className="flex items-center gap-2">

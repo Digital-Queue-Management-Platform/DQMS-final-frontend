@@ -159,14 +159,6 @@ function fmtDuration(ms: number | null | undefined): string {
   return `${s}s`
 }
 
-function formatDuration(seconds: number | null): string {
-  if (seconds === null) return "—"
-  if (seconds < 60) return `${seconds}s`
-  const m = Math.floor(seconds / 60)
-  const s = seconds % 60
-  return s > 0 ? `${m}m ${s}s` : `${m}m`
-}
-
 function methodLabel(method: string | null): string {
   if (!method) return "—"
   return { cash: "Cash", card: "Card", cheque: "Cheque", bank_transfer: "Bank Transfer" }[method] ?? method
