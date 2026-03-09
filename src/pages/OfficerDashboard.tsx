@@ -94,13 +94,18 @@ export default function OfficerDashboard() {
         ws.onmessage = (event) => {
           try {
             const data = JSON.parse(event.data)
-            // refresh stats and queue on relevant events
-            if (data.type === "NEW_TOKEN" || data.type === "TOKEN_COMPLETED" || data.type === 'TOKEN_SKIPPED' || data.type === 'TOKEN_CALLED' || data.type === 'TOKEN_RECALLED' || data.type === 'BREAK_STATUS_CHANGE' || data.type === 'FEEDBACK_SUBMITTED') {
-              fetchStats(officerData.id)
+            // Only re-fetch what actually changed — avoids firing 5 API calls for a simple queue update
+            if (data.type === "NEW_TOKEN" || data.type === 'TOKEN_CALLED' || data.type === 'TOKEN_RECALLED' || data.type === 'TOKEN_SKIPPED') {
               fetchQueue(officerData.outletId)
+            } else if (data.type === "TOKEN_COMPLETED") {
+              fetchQueue(officerData.outletId)
+              fetchStats(officerData.id)
               fetchServed(officerData.id)
-              fetchBreaks(officerData.id)
+            } else if (data.type === 'FEEDBACK_SUBMITTED') {
+              fetchStats(officerData.id)
               fetchFeedback(officerData.id)
+            } else if (data.type === 'BREAK_STATUS_CHANGE') {
+              fetchBreaks(officerData.id)
             }
           } catch (error) {
             console.error('WebSocket message parsing error:', error)
