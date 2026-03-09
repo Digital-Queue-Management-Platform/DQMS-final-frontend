@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
-import { Users, Clock, Star, TrendingUp, Filter, Download, Bell, Activity, BarChart3, AlertCircle, MessageSquare, X } from "lucide-react"
+import { Users, Clock, Star, TrendingUp, Filter, Download, Bell, Activity, BarChart3, AlertCircle, MessageSquare, X, Send, Phone } from "lucide-react"
 import api, { WS_URL } from "../config/api"
 import type { Alert } from "../types"
 
@@ -42,6 +42,14 @@ export default function AdminDashboard() {
   const [dashboardLoading, setDashboardLoading] = useState(false)
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date())
   const [isAuthenticated, setIsAuthenticated] = useState(true) // Track authentication state
+  
+  // Test SMS and Email states
+  const [showTestEmail, setShowTestEmail] = useState(false)
+  const [showTestSms, setShowTestSms] = useState(false)
+  const [testEmail, setTestEmail] = useState("")
+  const [testPhone, setTestPhone] = useState("")
+  const [testLoading, setTestLoading] = useState(false)
+  const [testMessage, setTestMessage] = useState<{ type: "success" | "error"; message: string } | null>(null)
 
   const fetchOutlets = async () => {
     // Check if admin is still authenticated before making API call
@@ -236,6 +244,50 @@ export default function AdminDashboard() {
     }
   }
 
+  const sendTestEmail = async () => {
+    if (!testEmail.trim()) {
+      setTestMessage({ type: "error", message: "Please enter an email address" })
+      return
+    }
+
+    setTestLoading(true)
+    try {
+      const response = await api.post("/admin/test/email", { email: testEmail })
+      setTestMessage({ type: "success", message: response.data.message })
+      setTestEmail("")
+      setTimeout(() => {
+        setShowTestEmail(false)
+        setTestMessage(null)
+      }, 2000)
+    } catch (err: any) {
+      setTestMessage({ type: "error", message: err.response?.data?.error || "Failed to send test email" })
+    } finally {
+      setTestLoading(false)
+    }
+  }
+
+  const sendTestSms = async () => {
+    if (!testPhone.trim()) {
+      setTestMessage({ type: "error", message: "Please enter a phone number" })
+      return
+    }
+
+    setTestLoading(true)
+    try {
+      const response = await api.post("/admin/test/sms", { phoneNumber: testPhone })
+      setTestMessage({ type: "success", message: response.data.message })
+      setTestPhone("")
+      setTimeout(() => {
+        setShowTestSms(false)
+        setTestMessage(null)
+      }, 2000)
+    } catch (err: any) {
+      setTestMessage({ type: "error", message: err.response?.data?.error || "Failed to send test SMS" })
+    } finally {
+      setTestLoading(false)
+    }
+  }
+
   const calculateRatingDistribution = () => {
     if (!analytics) return []
 
@@ -274,6 +326,24 @@ export default function AdminDashboard() {
             </div>
 
             <div className="flex items-center gap-2 sm:gap-4">
+              {/* Test SMS Button */}
+              <button
+                onClick={() => setShowTestSms(true)}
+                className="relative p-2 bg-purple-100 rounded-lg hover:bg-purple-200 transition-colors"
+                title="Test SMS Service"
+              >
+                <Phone className="w-5 h-5 sm:w-6 sm:h-6 text-purple-700" />
+              </button>
+
+              {/* Test Email Button */}
+              <button
+                onClick={() => setShowTestEmail(true)}
+                className="relative p-2 bg-blue-100 rounded-lg hover:bg-blue-200 transition-colors"
+                title="Test Email Service"
+              >
+                <Send className="w-5 h-5 sm:w-6 sm:h-6 text-blue-700" />
+              </button>
+
               {/* Alerts Button */}
               <button
                 onClick={() => setShowAlerts(!showAlerts)}
@@ -420,6 +490,169 @@ export default function AdminDashboard() {
               )}
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Test Email Modal */}
+      {showTestEmail && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 flex items-center justify-center p-2 sm:p-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="bg-white rounded-xl shadow-2xl w-full max-w-md"
+          >
+            <div className="border-b border-slate-200 p-4 sm:p-6 flex items-center justify-between">
+              <h2 className="text-lg sm:text-xl font-bold text-gray-900 flex items-center gap-2">
+                <Send className="w-5 h-5 text-blue-600" />
+                Test Email Service
+              </h2>
+              <button
+                onClick={() => {
+                  setShowTestEmail(false)
+                  setTestMessage(null)
+                  setTestEmail("")
+                }}
+                className="p-1 hover:bg-slate-100 rounded-lg transition-colors text-gray-500 hover:text-gray-700"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-4 sm:p-6 space-y-4">
+              {testMessage && (
+                <div
+                  className={`p-4 rounded-lg ${
+                    testMessage.type === "success"
+                      ? "bg-green-50 border border-green-200 text-green-700"
+                      : "bg-red-50 border border-red-200 text-red-700"
+                  }`}
+                >
+                  {testMessage.message}
+                </div>
+              )}
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
+                <input
+                  type="email"
+                  value={testEmail}
+                  onChange={(e) => setTestEmail(e.target.value)}
+                  placeholder="admin@example.com"
+                  className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  disabled={testLoading}
+                />
+              </div>
+
+              <p className="text-sm text-gray-600">
+                A test email will be sent to the provided email address to verify that the email service is working correctly.
+              </p>
+
+              <div className="flex gap-3 pt-4">
+                <button
+                  onClick={sendTestEmail}
+                  disabled={testLoading}
+                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  {testLoading ? "Sending..." : "Send Test Email"}
+                </button>
+                <button
+                  onClick={() => {
+                    setShowTestEmail(false)
+                    setTestMessage(null)
+                    setTestEmail("")
+                  }}
+                  disabled={testLoading}
+                  className="flex-1 px-4 py-2 border border-slate-200 text-gray-700 rounded-lg font-medium hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Test SMS Modal */}
+      {showTestSms && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 flex items-center justify-center p-2 sm:p-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="bg-white rounded-xl shadow-2xl w-full max-w-md"
+          >
+            <div className="border-b border-slate-200 p-4 sm:p-6 flex items-center justify-between">
+              <h2 className="text-lg sm:text-xl font-bold text-gray-900 flex items-center gap-2">
+                <Phone className="w-5 h-5 text-purple-600" />
+                Test SMS Service
+              </h2>
+              <button
+                onClick={() => {
+                  setShowTestSms(false)
+                  setTestMessage(null)
+                  setTestPhone("")
+                }}
+                className="p-1 hover:bg-slate-100 rounded-lg transition-colors text-gray-500 hover:text-gray-700"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-4 sm:p-6 space-y-4">
+              {testMessage && (
+                <div
+                  className={`p-4 rounded-lg ${
+                    testMessage.type === "success"
+                      ? "bg-green-50 border border-green-200 text-green-700"
+                      : "bg-red-50 border border-red-200 text-red-700"
+                  }`}
+                >
+                  {testMessage.message}
+                </div>
+              )}
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Phone Number</label>
+                <input
+                  type="tel"
+                  value={testPhone}
+                  onChange={(e) => setTestPhone(e.target.value)}
+                  placeholder="+94771234567 or 0771234567"
+                  className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  disabled={testLoading}
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Sri Lankan format: +94771234567 or 0771234567
+                </p>
+              </div>
+
+              <p className="text-sm text-gray-600">
+                A test SMS will be sent to the provided phone number to verify that the SMS service is working correctly.
+              </p>
+
+              <div className="flex gap-3 pt-4">
+                <button
+                  onClick={sendTestSms}
+                  disabled={testLoading}
+                  className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  {testLoading ? "Sending..." : "Send Test SMS"}
+                </button>
+                <button
+                  onClick={() => {
+                    setShowTestSms(false)
+                    setTestMessage(null)
+                    setTestPhone("")
+                  }}
+                  disabled={testLoading}
+                  className="flex-1 px-4 py-2 border border-slate-200 text-gray-700 rounded-lg font-medium hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </motion.div>
         </div>
       )}
 
