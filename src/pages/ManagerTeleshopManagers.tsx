@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
@@ -267,10 +267,10 @@ export default function ManagerTeleshopManagers() {
 
       {/* Add Form Modal */}
       {showAddForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-sm-xl w-full max-w-md">
             <div className="p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Add New Teleshop Manager</h3>
+              <h3 className="text-lg font-semibold text-slate-900 mb-4">Add New Teleshop Manager</h3>
 
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
@@ -281,7 +281,7 @@ export default function ManagerTeleshopManagers() {
                     type="text"
                     value={formData.name}
                     onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent"
                     placeholder="Enter Teleshop Manager's name"
                     required
                   />
@@ -295,7 +295,7 @@ export default function ManagerTeleshopManagers() {
                     type="email"
                     value={formData.email}
                     onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent"
                     placeholder="Enter email address"
                     required
                   />
@@ -311,7 +311,7 @@ export default function ManagerTeleshopManagers() {
                       type="tel"
                       value={formData.mobileNumber}
                       onChange={(e) => setFormData(prev => ({ ...prev, mobileNumber: e.target.value }))}
-                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent"
                       placeholder="070XXXXXXX"
                       required
                     />
@@ -342,8 +342,8 @@ export default function ManagerTeleshopManagers() {
 
       {/* Success Dialog */}
       {showSuccessDialog && successData && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-sm-xl w-full max-w-md">
             <div className="p-6">
               <div className="text-center mb-6">
                 <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 mb-4">
@@ -357,7 +357,7 @@ export default function ManagerTeleshopManagers() {
                 </p>
               </div>
 
-              <div className="bg-gray-50 rounded-lg p-4 mb-6">
+              <div className="bg-slate-50 rounded-xl p-4 mb-6">
                 <h4 className="font-medium text-gray-900 mb-3">Account Details:</h4>
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
@@ -400,28 +400,28 @@ export default function ManagerTeleshopManagers() {
 
       {/* Teleshop Managers List */}
       {teleshopManagers.length > 0 ? (
-        <div className="bg-white rounded-lg shadow overflow-hidden">
+        <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+              <thead className="bg-slate-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
                     Manager
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
                     Contact
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
                     Branch
                   </th>
 
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
                     Status
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
                     Created
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
                     Actions
                   </th>
                 </tr>
@@ -519,7 +519,7 @@ export default function ManagerTeleshopManagers() {
           </div>
         </div>
       ) : (
-        <div className="bg-white rounded-lg shadow p-8 text-center">
+        <div className="bg-white rounded-2xl shadow-sm p-8 text-center">
           <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">No Teleshop Managers</h3>
           <p className="text-gray-500 mb-4">You haven't added any teleshop managers yet</p>
@@ -534,10 +534,10 @@ export default function ManagerTeleshopManagers() {
 
       {/* Assign Branch Modal */}
       {showAssignBranchModal && selectedTeleshopManager && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-sm-xl w-full max-w-md">
             <div className="p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">
+              <h3 className="text-lg font-semibold text-slate-900 mb-4">
                 Assign Branch
               </h3>
 
@@ -554,7 +554,7 @@ export default function ManagerTeleshopManagers() {
                 <select
                   value={selectedBranchId || ""}
                   onChange={(e) => setSelectedBranchId(e.target.value || null)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500"
                 >
                   <option value="">No Branch (Unassign)</option>
                   {branches.map(branch => (

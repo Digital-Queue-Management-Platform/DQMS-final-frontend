@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+﻿import { useState, useEffect } from "react"
 import { PlusCircle, Trash2, AlertTriangle, Calendar, Clock, MapPin, RefreshCw, Bell, Pencil } from "lucide-react"
 import api from "../config/api"
 
@@ -240,13 +240,13 @@ export default function ManagerClosureNotices() {
 
     return (
         <div className="p-6 max-w-4xl mx-auto">
-            <h1 className="text-2xl font-bold text-gray-900 mb-1">Branch Closures</h1>
+            <h1 className="text-2xl font-bold text-gray-900 mb-1">Branch Notices</h1>
             <p className="text-sm text-gray-500 mb-6">
                 Manage closure notices for outlets in your region, and configure mercantile holidays.
             </p>
 
             {/* Tabs */}
-            <div className="flex gap-1 mb-6 border-b border-gray-200">
+            <div className="flex gap-1 mb-6 border-b border-slate-200">
                 {(["notices", "holidays"] as Tab[]).map(tab => (
                     <button
                         key={tab}
@@ -256,7 +256,7 @@ export default function ManagerClosureNotices() {
                                 : "border-transparent text-gray-500 hover:text-gray-700"
                             }`}
                     >
-                        {tab === "notices" ? "Closure Notices" : "Mercantile Holidays"}
+                        {tab === "notices" ? "Branch Notices" : "Mercantile Holidays"}
                     </button>
                 ))}
             </div>
@@ -271,7 +271,7 @@ export default function ManagerClosureNotices() {
                             <select
                                 value={filterOutlet}
                                 onChange={e => setFilterOutlet(e.target.value)}
-                                className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                                className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
                             >
                                 <option value="">All outlets</option>
                                 {outlets.map(o => (
@@ -299,14 +299,14 @@ export default function ManagerClosureNotices() {
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Notice Type</label>
                                 <div className="flex gap-3">
-                                    <label className={`flex-1 flex items-center gap-2 p-3 rounded-lg border-2 cursor-pointer transition-colors ${noticeForm.noticeType === "closure" ? "border-red-500 bg-red-50" : "border-gray-200 bg-white"}`}>
+                                    <label className={`flex-1 flex items-center gap-2 p-3 rounded-lg border-2 cursor-pointer transition-colors ${noticeForm.noticeType === "closure" ? "border-red-500 bg-red-50" : "border-slate-200 bg-white"}`}>
                                         <input type="radio" name="noticeType" value="closure" checked={noticeForm.noticeType === "closure"} onChange={() => setNoticeForm(f => ({ ...f, noticeType: "closure" }))} className="accent-red-500" />
                                         <div>
                                             <p className="text-sm font-semibold text-gray-800">Closure Notice</p>
                                             <p className="text-xs text-gray-500">Blocks customers – they must wait until reopening</p>
                                         </div>
                                     </label>
-                                    <label className={`flex-1 flex items-center gap-2 p-3 rounded-lg border-2 cursor-pointer transition-colors ${noticeForm.noticeType === "standard" ? "border-blue-500 bg-blue-50" : "border-gray-200 bg-white"}`}>
+                                    <label className={`flex-1 flex items-center gap-2 p-3 rounded-lg border-2 cursor-pointer transition-colors ${noticeForm.noticeType === "standard" ? "border-blue-500 bg-blue-50" : "border-slate-200 bg-white"}`}>
                                         <input type="radio" name="noticeType" value="standard" checked={noticeForm.noticeType === "standard"} onChange={() => setNoticeForm(f => ({ ...f, noticeType: "standard" }))} className="accent-blue-500" />
                                         <div>
                                             <p className="text-sm font-semibold text-gray-800">Standard Notice</p>
@@ -318,18 +318,18 @@ export default function ManagerClosureNotices() {
 
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Outlet</label>
-                                <select value={noticeForm.outletId} onChange={e => setNoticeForm(f => ({ ...f, outletId: e.target.value }))} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" required>
+                                <select value={noticeForm.outletId} onChange={e => setNoticeForm(f => ({ ...f, outletId: e.target.value }))} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none" required>
                                     <option value="">Select outlet…</option>
                                     {outlets.map(o => <option key={o.id} value={o.id}>{o.name} – {o.location}</option>)}
                                 </select>
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
-                                <input type="text" value={noticeForm.title} onChange={e => setNoticeForm(f => ({ ...f, title: e.target.value }))} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="e.g. Branch Closed – System Maintenance" required />
+                                <input type="text" value={noticeForm.title} onChange={e => setNoticeForm(f => ({ ...f, title: e.target.value }))} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="e.g. Branch Closed – System Maintenance" required />
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Message</label>
-                                <textarea value={noticeForm.message} onChange={e => setNoticeForm(f => ({ ...f, message: e.target.value }))} rows={3} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="We are temporarily closed…" required />
+                                <textarea value={noticeForm.message} onChange={e => setNoticeForm(f => ({ ...f, message: e.target.value }))} rows={3} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="We are temporarily closed…" required />
                             </div>
 
                             {/* Recurring toggle */}
@@ -354,27 +354,27 @@ export default function ManagerClosureNotices() {
                                     <div className="grid grid-cols-2 gap-4">
                                         <div>
                                             <label className="block text-sm font-medium text-gray-700 mb-1">From time (e.g. 12:30 start)</label>
-                                            <input type="time" value={noticeForm.startsAt} onChange={e => setNoticeForm(f => ({ ...f, startsAt: e.target.value }))} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" required />
+                                            <input type="time" value={noticeForm.startsAt} onChange={e => setNoticeForm(f => ({ ...f, startsAt: e.target.value }))} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none" required />
                                         </div>
                                         <div>
                                             <label className="block text-sm font-medium text-gray-700 mb-1">Until time</label>
-                                            <input type="time" value={noticeForm.endsAt} onChange={e => setNoticeForm(f => ({ ...f, endsAt: e.target.value }))} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" required />
+                                            <input type="time" value={noticeForm.endsAt} onChange={e => setNoticeForm(f => ({ ...f, endsAt: e.target.value }))} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none" required />
                                         </div>
                                     </div>
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">End date (optional – leave blank for indefinitely)</label>
-                                        <input type="date" value={noticeForm.recurringEndDate} onChange={e => setNoticeForm(f => ({ ...f, recurringEndDate: e.target.value }))} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" />
+                                        <input type="date" value={noticeForm.recurringEndDate} onChange={e => setNoticeForm(f => ({ ...f, recurringEndDate: e.target.value }))} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
                                     </div>
                                 </>
                             ) : (
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">Starts At</label>
-                                        <input type="datetime-local" value={noticeForm.startsAt} onChange={e => setNoticeForm(f => ({ ...f, startsAt: e.target.value }))} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" required />
+                                        <input type="datetime-local" value={noticeForm.startsAt} onChange={e => setNoticeForm(f => ({ ...f, startsAt: e.target.value }))} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none" required />
                                     </div>
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">Ends At</label>
-                                        <input type="datetime-local" value={noticeForm.endsAt} onChange={e => setNoticeForm(f => ({ ...f, endsAt: e.target.value }))} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" required />
+                                        <input type="datetime-local" value={noticeForm.endsAt} onChange={e => setNoticeForm(f => ({ ...f, endsAt: e.target.value }))} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none" required />
                                     </div>
                                 </div>
                             )}
@@ -397,7 +397,7 @@ export default function ManagerClosureNotices() {
                     ) : (
                         <div className="space-y-3">
                             {filteredNotices.map(notice => (
-                                <div key={notice.id} className={`rounded-xl border p-4 ${isActive(notice) ? (notice.noticeType === "standard" ? "border-blue-300 bg-blue-50" : "border-red-300 bg-red-50") : "border-gray-200 bg-white"}`}>
+                                <div key={notice.id} className={`rounded-xl border p-4 ${isActive(notice) ? (notice.noticeType === "standard" ? "border-blue-300 bg-blue-50" : "border-red-300 bg-red-50") : "border-slate-200 bg-white"}`}>
                                     <div className="flex items-start justify-between gap-3">
                                         <div className="flex-1 min-w-0">
                                             <div className="flex flex-wrap items-center gap-2 mb-1">
@@ -460,11 +460,11 @@ export default function ManagerClosureNotices() {
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
-                                    <input type="date" value={holidayForm.date} onChange={e => setHolidayForm(f => ({ ...f, date: e.target.value }))} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" required />
+                                    <input type="date" value={holidayForm.date} onChange={e => setHolidayForm(f => ({ ...f, date: e.target.value }))} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none" required />
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
-                                    <input type="text" value={holidayForm.name} onChange={e => setHolidayForm(f => ({ ...f, name: e.target.value }))} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="e.g. Sinhalese & Tamil New Year" required />
+                                    <input type="text" value={holidayForm.name} onChange={e => setHolidayForm(f => ({ ...f, name: e.target.value }))} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="e.g. Sinhalese & Tamil New Year" required />
                                 </div>
                             </div>
                             <label className="flex items-center gap-2 text-sm font-medium text-gray-700 cursor-pointer">
@@ -489,7 +489,7 @@ export default function ManagerClosureNotices() {
                     ) : (
                         <div className="space-y-2">
                             {holidays.map(h => (
-                                <div key={h.id} className="flex items-center justify-between bg-white border border-gray-200 rounded-xl px-4 py-3 gap-3">
+                                <div key={h.id} className="flex items-center justify-between bg-white border border-slate-200 rounded-xl px-4 py-3 gap-3">
                                     <div>
                                         <span className="text-sm font-medium text-gray-900">{h.name}</span>
                                         <div className="text-xs text-gray-500 mt-0.5 flex items-center gap-2">

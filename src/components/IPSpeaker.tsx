@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react'
+﻿import { useState, useEffect } from 'react'
 import { Volume2, VolumeX, Play, Square, Settings } from 'lucide-react'
+import api from '../config/api'
 import type { Token } from '../types'
 
 interface IPSpeakerProps {
@@ -130,68 +131,67 @@ export default function IPSpeaker({ token, counterNumber, onCall }: IPSpeakerPro
     return femaleVoice || voices[0] || null
   }
 
-  const speak = (text: string, language: 'en' | 'si' | 'ta') => {
+  const speakWithBrowser = (text: string, language: 'en' | 'si' | 'ta') => {
     if (!speechSynthesis || isMuted) return
-
-    // Stop any current speech
     speechSynthesis.cancel()
-
-    // Wait a bit to ensure cancellation is complete
     setTimeout(() => {
       const utterance = new SpeechSynthesisUtterance(text)
       const voice = findBestVoice(language)
-
-      // If no appropriate voice found for Sinhala or Tamil, use English voice but keep the original text
-      if (!voice && (language === 'si' || language === 'ta')) {
-        console.warn(`No ${language} voice found, using English voice with ${language} text`)
-        const englishVoice = findBestVoice('en')
-        if (englishVoice) {
-          utterance.voice = englishVoice
-        }
-        utterance.lang = 'en-US' // Use English for pronunciation guidance
-      } else if (voice) {
+      if (voice) {
         utterance.voice = voice
         utterance.lang = LANGUAGE_CODES[language] || 'en-US'
-        console.log(`Using voice: ${voice.name} (${voice.lang}) for language: ${language}`)
-      } else if (language === 'en') {
-        // For English, try to get any available voice
-        const anyVoice = availableVoices.find(v => v.lang.startsWith('en')) || availableVoices[0]
-        if (anyVoice) {
-          utterance.voice = anyVoice
+      } else {
+        const englishVoice = availableVoices.find(v => v.lang.startsWith('en')) || availableVoices[0]
+        if (englishVoice) {
+          utterance.voice = englishVoice
           utterance.lang = 'en-US'
         }
       }
-
       utterance.volume = volume
-      // For Sinhala and Tamil names, use slower rate for better clarity
       utterance.rate = (language === 'si' || language === 'ta') ? 0.7 : 0.9
       utterance.pitch = 1.0
-
       utterance.onstart = () => setIsPlaying(true)
       utterance.onend = () => setIsPlaying(false)
-      utterance.onerror = (event) => {
-        console.error('Speech synthesis error:', event)
-        setIsPlaying(false)
-      }
-
+      utterance.onerror = () => setIsPlaying(false)
       speechSynthesis.speak(utterance)
     }, 100)
   }
 
-  const callCustomer = () => {
-    // Cancel any ongoing speech synthesis globally
-    if (window.speechSynthesis) {
-      window.speechSynthesis.cancel()
+  const speak = async (text: string, language: 'en' | 'si' | 'ta') => {
+    if (isMuted) return
+    if (window.speechSynthesis) window.speechSynthesis.cancel()
+
+    if (language === 'en') {
+      speakWithBrowser(text, language)
+      return
     }
 
+    // Use Google TTS for Sinhala and Tamil for proper pronunciation
+    try {
+      setIsPlaying(true)
+      const response = await api.get('/tts/speak', {
+        params: { text, lang: language },
+        responseType: 'blob',
+      })
+      const url = URL.createObjectURL(response.data)
+      const audio = new Audio(url)
+      audio.volume = volume
+      audio.onended = () => { setIsPlaying(false); URL.revokeObjectURL(url) }
+      audio.onerror = () => { setIsPlaying(false); URL.revokeObjectURL(url) }
+      await audio.play()
+    } catch {
+      setIsPlaying(false)
+      speakWithBrowser(text, language)
+    }
+  }
+
+  const callCustomer = () => {
     const template = ANNOUNCEMENT_TEMPLATES[selectedLanguage]
     const customerName = token.customer.name
     const announcement = template.call(token.tokenNumber, customerName, counterNumber || token.counterNumber || undefined)
 
-    console.log(`Calling customer in ${selectedLanguage}: ${announcement}`)
     speak(announcement, selectedLanguage)
 
-    // Call parent callback if provided
     if (onCall) {
       onCall()
     }
@@ -219,7 +219,7 @@ export default function IPSpeaker({ token, counterNumber, onCall }: IPSpeakerPro
   const preferredLanguages = getPreferredLanguages()
 
   return (
-    <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+    <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center space-x-2">
           <Volume2 className="w-5 h-5 text-blue-600" />

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react'
+﻿import React, { useEffect, useMemo, useRef, useState } from 'react'
 
 interface OTPInputProps {
   length?: number
@@ -124,7 +124,7 @@ const OTPInput: React.FC<OTPInputProps> = ({
                 }
               }}
               className="w-10 h-12 sm:w-12 sm:h-14 text-center text-lg sm:text-2xl font-semibold border-2 rounded-xl bg-white shadow-sm
-                         border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500
+                         border-slate-200 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500
                          transition-transform focus:scale-105"
             />
           )

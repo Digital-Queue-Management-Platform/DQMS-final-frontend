@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 //import SLTlogo from '../../../assets/logo.png';
 import {
   LayoutDashboard,
@@ -12,6 +13,7 @@ import {
   LogOut,
   Menu,
   SidebarIcon,
+  PanelLeftOpen,
   Scale3D,
   ListOrdered,
   Building2,
@@ -28,6 +30,8 @@ import {
   Briefcase as BriefcaseIcon,
   UserCheck as UserCheckIcon,
   BarChart2,
+  Database,
+  ClipboardList,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useUser } from '../../../contexts/UserContext'
@@ -66,6 +70,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed, activePa
     { name: 'Appointments', icon: Calendar, to: '/admin/appointments' },
     { name: 'Feedbacks ', icon: MessageSquare, to: '/admin/feedback' },
     { name: 'Compare', icon: Scale3D, to: '/admin/compare' },
+    { name: 'Backup', icon: Database, to: '/admin/backup' },
   ]
   // Officer navigation items - Queue is now the primary page (first in order)
   const officerItems: NavigationItem[] = [
@@ -83,7 +88,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed, activePa
     { name: 'Feedback (2-Star)', icon: MessageSquare, to: '/manager/feedback' },
     { name: 'Teleshop Managers', icon: Phone, to: '/manager/teleshop-managers' },
     { name: 'Officer Assignment', icon: UserCog, to: '/manager/officer-assignment' },
-    { name: 'Closure Notices', icon: BellOff, to: '/manager/closure-notices' },
+    { name: 'Branch Notices', icon: BellOff, to: '/manager/closure-notices' },
     { name: 'Branches', icon: Building2, to: '/manager/branches' },
     { name: 'Break Oversight', icon: Coffee, to: '/manager/breaks' },
     { name: 'QR Codes', icon: QrCode, to: '/manager/qr-codes' },
@@ -96,6 +101,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed, activePa
     { name: 'Kiosk Settings', icon: Monitor, to: '/teleshop-manager/kiosk-settings' },
     { name: 'Appointments', icon: Calendar, to: '/teleshop-manager/appointments' },
     { name: 'Completed Services', icon: ListOrdered, to: '/teleshop-manager/completed-services' },
+    { name: 'Audit Logs', icon: ClipboardList, to: '/teleshop-manager/audit-logs' },
     { name: 'Served Customers', icon: UserCheck, to: '/teleshop-manager/served-customers' },
     { name: 'Feedback Management', icon: MessageSquare, to: '/teleshop-manager/feedback' },
     { name: 'Manage Officers', icon: Users, to: '/teleshop-manager/officers' },
@@ -118,7 +124,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed, activePa
     { name: 'Manage DGMs', icon: UserCheckIcon, to: '/gm/manage-dgms' },
     { name: 'Location Dashboard', icon: BarChart2, to: '/gm/location-dashboard' },
     { name: 'Feedbacks', icon: MessageSquare, to: '/gm/feedback' },
-    { name: 'Closure Notices', icon: BellOff, to: '/gm/closure-notices' },
+    { name: 'Branch Notices', icon: BellOff, to: '/gm/closure-notices' },
   ]
 
   const dgmItems: NavigationItem[] = [
@@ -126,7 +132,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed, activePa
     { name: 'Manage RTOMs', icon: Users, to: '/dgm/manage-rtoms' },
     { name: 'Location Dashboard', icon: BarChart2, to: '/dgm/location-dashboard' },
     { name: 'Feedbacks', icon: MessageSquare, to: '/dgm/feedback' },
-    { name: 'Closure Notices', icon: BellOff, to: '/dgm/closure-notices' },
+    { name: 'Branch Notices', icon: BellOff, to: '/dgm/closure-notices' },
   ]
 
   const navigationItems: NavigationItem[] = onOfficerPath
@@ -241,6 +247,19 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed, activePa
   // collapsed for rendering: true when user has collapsed sidebar and we're NOT hovering
   const collapsed = isCollapsed && !hoverExpanded
 
+  // Role-specific accent color classes
+  const roleAccent = onOfficerPath
+    ? { bg: 'bg-amber-600', hover: 'hover:bg-amber-600', ring: 'bg-amber-600', shadow: 'shadow-amber-200', btn: 'bg-amber-600' }
+    : onManagerPath
+      ? { bg: 'bg-emerald-600', hover: 'hover:bg-emerald-600', ring: 'bg-emerald-600', shadow: 'shadow-emerald-200', btn: 'bg-emerald-600' }
+      : onTeleshopManagerPath
+        ? { bg: 'bg-sky-600', hover: 'hover:bg-sky-600', ring: 'bg-sky-600', shadow: 'shadow-sky-200', btn: 'bg-sky-600' }
+        : onGMPath
+          ? { bg: 'bg-violet-600', hover: 'hover:bg-violet-600', ring: 'bg-violet-600', shadow: 'shadow-violet-200', btn: 'bg-violet-600' }
+          : onDGMPath
+            ? { bg: 'bg-teal-600', hover: 'hover:bg-teal-600', ring: 'bg-teal-600', shadow: 'shadow-teal-200', btn: 'bg-teal-600' }
+            : { bg: 'bg-indigo-600', hover: 'hover:bg-indigo-600', ring: 'bg-indigo-600', shadow: 'shadow-indigo-200', btn: 'bg-indigo-600' }
+
   const handleLogout = async (): Promise<void> => {
     try {
       // Call appropriate backend logout to clear httpOnly cookies
@@ -308,20 +327,23 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed, activePa
   return (
     <>
       {/* Mobile menu button */}
-      <button
+      <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
         onClick={() => setIsMobileMenuOpen(true)}
-        className="fixed top-4 left-4 z-50 lg:hidden bg-blue-600 text-white p-3 rounded-lg shadow-lg cursor-pointer"
+        className={`fixed top-4 left-4 z-50 lg:hidden ${roleAccent.btn} text-white p-3 rounded-xl shadow-lg cursor-pointer`}
       >
         <Menu className="h-5 w-5" />
-      </button>
+      </motion.button>
 
       {/* Mobile backdrop */}
-      {isMobileMenuOpen && (
-        <div
-          className="fixed inset-0 bg-opacity-50 z-40 lg:hidden"
-          onClick={() => setIsMobileMenuOpen(false)}
-        />
-      )}
+      <AnimatePresence>
+        {isMobileMenuOpen && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 lg:hidden"
+            onClick={() => setIsMobileMenuOpen(false)}
+          />
+        )}
+      </AnimatePresence>
 
       {/* Sidebar */}
       <div
@@ -329,13 +351,13 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed, activePa
           if (window.innerWidth >= 1024) setHoverExpanded(false)
         }}
         className={`
-        fixed left-0 top-0 bg-white shadow-xl border-r border-gray-200 h-full min-h-screen z-50 transition-all duration-300 overflow-x-hidden
+        fixed left-0 top-0 bg-white shadow-xl border-r border-slate-200/80 h-full min-h-screen z-50 transition-all duration-300 overflow-x-hidden
         ${isMobileMenuOpen ? 'w-72' : 'hidden lg:block'}
         ${collapsed ? 'lg:w-16' : 'lg:w-72'}
       `}>
 
         {/* Header */}
-        {/*<div className="border-b border-gray-200 h-20 flex items-center justify-between p-5 relative">*/}
+        {/*<div className="border-b border-slate-200 h-20 flex items-center justify-between p-5 relative">*/}
         <div className="h-20 flex items-center justify-between p-5 relative">
           {collapsed ? (
             <button
@@ -354,18 +376,28 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed, activePa
                   className='w-36 pr-2 p-1'
                 />
               </div>
-              {/* Close button - inside header for expanded state */}
+              {/* Toggle button: pin-open when hover-expanded, collapse when pinned */}
               <button
                 onClick={() => {
                   if (window.innerWidth < 1024) {
                     setIsMobileMenuOpen(false);
+                  } else if (isCollapsed) {
+                    // Sidebar is hover-expanded — pin it open permanently
+                    setIsCollapsed(false);
+                    setHoverExpanded(false);
                   } else {
+                    // Sidebar is pinned open — collapse it
                     setIsCollapsed(true);
+                    setHoverExpanded(false);
                   }
                 }}
                 className="p-2 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
+                title={isCollapsed ? 'Pin sidebar open' : 'Collapse sidebar'}
               >
-                <SidebarIcon className="h-6 w-6 text-gray-600" />
+                {isCollapsed
+                  ? <PanelLeftOpen className="h-6 w-6 text-gray-600" />
+                  : <SidebarIcon className="h-6 w-6 text-gray-600" />
+                }
               </button>
             </>
           )}
@@ -380,9 +412,9 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed, activePa
                   <Link
                     to={item.to}
                     onClick={() => handleNavClick(item.name)}
-                    className={`group w-full flex items-center ${collapsed ? 'px-3 py-3 justify-center' : 'px-4 py-3'} text-sm font-semibold rounded-lg transition-all duration-200 relative cursor-pointer ${(location.pathname === item.to || activePage === item.name)
-                      ? 'bg-blue-600 text-white shadow-lg'
-                      : 'text-gray-600 hover:text-white hover:bg-blue-600'
+                    className={`group w-full flex items-center ${collapsed ? 'px-3 py-3 justify-center' : 'px-4 py-3'} text-sm font-semibold rounded-xl transition-all duration-200 relative cursor-pointer ${(location.pathname === item.to || activePage === item.name)
+                      ? `${roleAccent.bg} text-white shadow-md`
+                      : `text-slate-600 hover:text-white ${roleAccent.hover}`
                       }`}
                   >
                     <item.icon className="h-5 w-5 flex-shrink-0" />
@@ -396,9 +428,9 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed, activePa
                 ) : (
                   <button
                     onClick={() => handleNavClick(item.name)}
-                    className={`group w-full flex items-center ${collapsed ? 'px-3 py-3 justify-center' : 'px-4 py-3'} text-sm font-semibold rounded-lg transition-all duration-200 relative cursor-pointer ${activePage === item.name
-                      ? 'bg-blue-600 text-white shadow-lg'
-                      : 'text-gray-600 hover:text-white hover:bg-blue-600'
+                    className={`group w-full flex items-center ${collapsed ? 'px-3 py-3 justify-center' : 'px-4 py-3'} text-sm font-semibold rounded-xl transition-all duration-200 relative cursor-pointer ${activePage === item.name
+                      ? `${roleAccent.bg} text-white shadow-md`
+                      : `text-slate-600 hover:text-white ${roleAccent.hover}`
                       }`}
                   >
                     <item.icon className="h-5 w-5 flex-shrink-0" />
@@ -416,11 +448,11 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed, activePa
         </nav>
 
         {/* User info and logout */}
-        <div className="absolute bottom-0 left-0 right-0 border-t border-gray-200 bg-white">
+        <div className="absolute bottom-0 left-0 right-0 border-t border-slate-200 bg-white">
           <div className="p-6">
             {collapsed ? (
               <div className="flex flex-col items-center space-y-3">
-                <div className="h-10 w-10 bg-gray-800 rounded-full flex items-center justify-center">
+                <div className={`h-10 w-10 ${roleAccent.bg} rounded-xl flex items-center justify-center shadow-sm`}>
                   <span className="text-white text-sm font-semibold">{userInfo.initials}</span>
                 </div>
                 <button
@@ -454,13 +486,13 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed, activePa
                     )}
                   </div>
                 </div>
-                <button
+                <motion.button whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.98 }}
                   onClick={handleLogout}
-                  className="flex items-center px-4 py-2 text-sm text-red-600 font-semibold rounded-lg transition-all duration-200 hover:bg-red-50"
+                  className="flex items-center px-4 py-2 text-sm text-red-600 font-semibold rounded-xl transition-all duration-200 hover:bg-red-50"
                 >
                   <LogOut className="mr-3 h-4 w-4" />
                   <span>Sign Out</span>
-                </button>
+                </motion.button>
               </>
             )}
           </div>

@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { MapPinIcon, UsersIcon, ClockIcon, StarIcon, TrendingUpIcon, TrendingDownIcon } from 'lucide-react';
 
 interface Branch {
@@ -46,7 +46,7 @@ const SriLankaMap: React.FC<SriLankaMapProps> = ({ branchData }) => {
         {branchData.map((branch) => (
           <div
             key={branch.id}
-            className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-shadow"
+            className="bg-white border border-slate-200 rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-shadow"
           >
             <div className="p-3 sm:p-4 border-b border-gray-100">
               <div className="flex justify-between items-start sm:items-center flex-col sm:flex-row gap-2 sm:gap-0">
@@ -124,7 +124,7 @@ const SriLankaMap: React.FC<SriLankaMapProps> = ({ branchData }) => {
                 <div className="text-xs text-gray-500">
                   Service: {branch.avgServiceTime}min
                 </div>
-                <div className="text-xs font-medium text-blue-600 hover:text-blue-800 cursor-pointer">
+                <div className="text-xs font-medium text-indigo-600 hover:text-indigo-800 cursor-pointer">
                   <span className="hidden sm:inline">View details →</span>
                   <span className="sm:hidden">Details</span>
                 </div>
@@ -135,7 +135,7 @@ const SriLankaMap: React.FC<SriLankaMapProps> = ({ branchData }) => {
       </div>
 
       {/* Legend - Responsive */}
-      <div className="mt-6 sm:mt-8 bg-white p-3 sm:p-4 rounded-lg shadow-sm border border-gray-200">
+      <div className="mt-6 sm:mt-8 bg-white p-3 sm:p-4 rounded-lg shadow-sm border border-slate-200">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4 text-xs">
           {/* Wait time indicators */}
           <div className="flex items-center">

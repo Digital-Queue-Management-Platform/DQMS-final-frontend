@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
@@ -463,7 +463,7 @@ export default function TeleshopManagerCompletedServices() {
 
           {/* Pagination */}
           {pagination && pagination.totalPages > 1 && (
-            <div className="flex items-center justify-between bg-white border border-gray-200 rounded-lg p-4">
+            <div className="flex items-center justify-between bg-white border border-slate-200 rounded-lg p-4">
               <div className="text-sm text-gray-700">
                 Showing page {pagination.page} of {pagination.totalPages}
                 ({pagination.total} total services)
@@ -496,7 +496,7 @@ export default function TeleshopManagerCompletedServices() {
           )}
         </>
       ) : (
-        <div className="text-center py-12 bg-white rounded-lg shadow border border-gray-100">
+        <div className="text-center py-12 bg-white rounded-2xl shadow-sm border border-slate-100">
           <div className="text-gray-500 mb-4">No completed services found</div>
           <p className="text-sm text-gray-400">
             Services will appear here as officers complete customer requests

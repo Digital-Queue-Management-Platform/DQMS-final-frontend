@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useEffect, useMemo, useState } from "react"
 import { Calendar, Filter, RefreshCwIcon, Search } from "lucide-react"
@@ -161,7 +161,7 @@ export default function AdminAppointments() {
 
   return (
     <div className="p-3 sm:p-4 lg:p-6">
-      <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 mb-4">
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 sm:p-6 mb-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-2 gap-3 sm:gap-0">
           <div className="min-w-0 flex-1">
             <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 truncate">Appointment Pool</h1>
@@ -180,7 +180,7 @@ export default function AdminAppointments() {
         <p className="text-xs sm:text-sm text-gray-600 sm:hidden">View and filter all booked appointments. Updates automatically every 30 seconds.</p>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 mb-4">
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 sm:p-6 mb-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           {/* Outlet */}
           <div>
@@ -224,7 +224,7 @@ export default function AdminAppointments() {
       </div>
 
       {/* Results */}
-      <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6">
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 sm:p-6">
         {error && <div className="mb-3 p-3 bg-red-50 text-red-700 rounded text-sm">{error}</div>}
         {loading ? (
           <div className="text-center py-8">

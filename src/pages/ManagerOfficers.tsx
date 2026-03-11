@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+﻿import { useEffect, useState } from 'react'
 import api, { WS_URL } from '../config/api'
 import { Users, Hash, CheckCircle2, XCircle, Edit3, X, Search, Phone, MapPin, Save } from 'lucide-react'
 
@@ -181,7 +181,7 @@ export default function ManagerOfficers() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-8">
+    <div className="min-h-screen bg-slate-50 p-4 sm:p-6 lg:p-8">
       <div className="mx-auto">
         {/* Header Section in Body */}
         <div className="mb-8">
@@ -199,7 +199,7 @@ export default function ManagerOfficers() {
         {/* Main Content */}
         <div className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">{/* Existing content continues */}
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 border border-slate-200 p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-slate-600 mb-1">Total Officers</p>
@@ -211,7 +211,7 @@ export default function ManagerOfficers() {
             </div>
           </div>
 
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 border border-slate-200 p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-slate-600 mb-1">With Counters</p>
@@ -223,7 +223,7 @@ export default function ManagerOfficers() {
             </div>
           </div>
 
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 border border-slate-200 p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-slate-600 mb-1">Active Services</p>
@@ -235,7 +235,7 @@ export default function ManagerOfficers() {
             </div>
           </div>
 
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 border border-slate-200 p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-slate-600 mb-1">Unassigned</p>
@@ -248,7 +248,7 @@ export default function ManagerOfficers() {
           </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 border border-slate-200 p-6 mb-6">
           <div className="relative">
             <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" />
             <input
@@ -267,10 +267,10 @@ export default function ManagerOfficers() {
             const langs = Array.isArray(o.languages) ? (o.languages as string[]) : []
             const langLabel = (c: string) => c === 'en' ? 'EN' : c === 'si' ? 'SI' : c === 'ta' ? 'TA' : c.toUpperCase()
             return (
-              <div key={o.id} className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 hover:shadow-md transition-all">
+              <div key={o.id} className="bg-white rounded-2xl shadow-sm border border-slate-100 border border-slate-200 p-6 hover:shadow-md transition-all">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 border border-slate-500 rounded-full flex items-center justify-center font-semibold text-lg">
+                    <div className="w-12 h-12 border border-slate-500 rounded-xl flex items-center justify-center font-semibold text-lg">
                       {o.name.charAt(0).toUpperCase()}
                     </div>
                     <div>
@@ -333,7 +333,7 @@ export default function ManagerOfficers() {
         </div>
 
         {filteredOfficers.length === 0 && (
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-12 text-center">
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 border border-slate-200 p-12 text-center">
             <Users className="w-16 h-16 text-slate-300 mx-auto mb-4" />
             <p className="text-slate-600 text-lg">{searchTerm ? 'No officers found matching your search' : 'No officers available'}</p>
           </div>

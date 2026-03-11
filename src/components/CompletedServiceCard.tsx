@@ -1,4 +1,4 @@
-import { Clock, User, MapPin, FileText, CheckCircle } from "lucide-react"
+﻿import { Clock, User, MapPin, FileText, CheckCircle } from "lucide-react"
 
 interface CompletedServiceCardProps {
   service: {
@@ -56,7 +56,7 @@ function CompletedServiceCardComponent({ service }: CompletedServiceCardProps) {
   }
 
   return (
-    <div className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+    <div className="bg-white border border-slate-200 rounded-lg p-4 hover:shadow-md transition-shadow">
       <div className="flex justify-between items-start mb-3">
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-2">

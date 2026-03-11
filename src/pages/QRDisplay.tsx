@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useParams } from "react-router-dom"
 import { QRCodeSVG } from "qrcode.react"
@@ -111,7 +111,7 @@ export default function QRDisplay() {
               {/* Steps */}
               <div className="space-y-4">
                 <div className="flex items-start gap-4 bg-gradient-to-r from-indigo-50 to-purple-50 p-4 rounded-xl">
-                  <div className="flex-shrink-0 w-10 h-10 bg-indigo-600 text-white rounded-full flex items-center justify-center font-bold">
+                  <div className="flex-shrink-0 w-10 h-10 bg-indigo-600 text-white rounded-xl flex items-center justify-center font-bold">
                     1
                   </div>
                   <div>
@@ -124,7 +124,7 @@ export default function QRDisplay() {
                 </div>
 
                 <div className="flex items-start gap-4 bg-gradient-to-r from-purple-50 to-blue-50 p-4 rounded-xl">
-                  <div className="flex-shrink-0 w-10 h-10 bg-purple-600 text-white rounded-full flex items-center justify-center font-bold">
+                  <div className="flex-shrink-0 w-10 h-10 bg-purple-600 text-white rounded-xl flex items-center justify-center font-bold">
                     2
                   </div>
                   <div>
@@ -137,7 +137,7 @@ export default function QRDisplay() {
                 </div>
 
                 <div className="flex items-start gap-4 bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-xl">
-                  <div className="flex-shrink-0 w-10 h-10 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">
+                  <div className="flex-shrink-0 w-10 h-10 bg-blue-600 text-white rounded-xl flex items-center justify-center font-bold">
                     3
                   </div>
                   <div>
@@ -151,7 +151,7 @@ export default function QRDisplay() {
               </div>
 
               {/* Footer */}
-              <div className="pt-4 border-t border-gray-200">
+              <div className="pt-4 border-t border-slate-200">
                 <p className="text-sm text-gray-500 text-center lg:text-left">
                   Digital Queue Management Platform
                 </p>

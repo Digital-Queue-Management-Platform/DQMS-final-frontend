@@ -1,4 +1,4 @@
-import React from "react"
+﻿import React from "react"
 import { useSearchParams } from "react-router-dom"
 import { Search, Filter, RefreshCcw, ChevronDown, ChevronUp } from "lucide-react"
 import api from "../config/api"
@@ -370,15 +370,15 @@ export default function OfficerServedCustomers() {
 
         {/* Content */}
         {loading ? (
-          <div className="bg-white border border-gray-200 rounded-xl p-6 text-gray-600">Loading...</div>
+          <div className="bg-white border border-slate-200 rounded-xl p-6 text-gray-600">Loading...</div>
         ) : error ? (
           <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-red-700 text-sm">{error}</div>
         ) : filtered.length === 0 ? (
-          <div className="bg-white border border-gray-200 rounded-xl p-6 text-gray-600">No served customers found for today.</div>
+          <div className="bg-white border border-slate-200 rounded-xl p-6 text-gray-600">No served customers found for today.</div>
         ) : (
-          <div className="bg-white border border-gray-200 rounded-xl overflow-x-auto shadow-sm">
+          <div className="bg-white border border-slate-200 rounded-xl overflow-x-auto shadow-sm">
             <table className="w-full min-w-max">
-              <thead className="bg-black border-b border-gray-200">
+              <thead className="bg-black border-b border-slate-200">
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wider">Token</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wider">Customer</th>
@@ -533,12 +533,56 @@ export default function OfficerServedCustomers() {
                                     </dl>
                                   </div>
                                 </div>
+                                {/* Bill Payment Details */}
+                                {caseDetails[t.refNumber].token && (
+                                  caseDetails[t.refNumber].token.billPaymentIntent != null ||
+                                  caseDetails[t.refNumber].token.billPaymentMethod != null ||
+                                  caseDetails[t.refNumber].token.billPaymentAmount != null ||
+                                  caseDetails[t.refNumber].token.sltTelephoneNumber != null ||
+                                  caseDetails[t.refNumber].token.accountRef != null
+                                ) && (
+                                  <div>
+                                    <h4 className="text-sm font-semibold text-gray-900 mb-2">Bill Payment Details</h4>
+                                    <dl className="space-y-1 text-xs">
+                                      {caseDetails[t.refNumber].token.sltTelephoneNumber && (
+                                        <div className="flex gap-2">
+                                          <dt className="font-medium text-gray-600">SLT Telephone:</dt>
+                                          <dd className="text-gray-900">{caseDetails[t.refNumber].token.sltTelephoneNumber}</dd>
+                                        </div>
+                                      )}
+                                      {caseDetails[t.refNumber].token.billPaymentIntent && (
+                                        <div className="flex gap-2">
+                                          <dt className="font-medium text-gray-600">Payment Intent:</dt>
+                                          <dd className="text-gray-900 capitalize">{caseDetails[t.refNumber].token.billPaymentIntent.replace('_', ' ')}</dd>
+                                        </div>
+                                      )}
+                                      {caseDetails[t.refNumber].token.billPaymentMethod && (
+                                        <div className="flex gap-2">
+                                          <dt className="font-medium text-gray-600">Method:</dt>
+                                          <dd className="text-gray-900 capitalize">{caseDetails[t.refNumber].token.billPaymentMethod}</dd>
+                                        </div>
+                                      )}
+                                      {caseDetails[t.refNumber].token.billPaymentAmount != null && (
+                                        <div className="flex gap-2">
+                                          <dt className="font-medium text-gray-600">Amount:</dt>
+                                          <dd className="text-gray-900 font-semibold text-green-700">LKR {Number(caseDetails[t.refNumber].token.billPaymentAmount).toLocaleString()}</dd>
+                                        </div>
+                                      )}
+                                      {caseDetails[t.refNumber].token.accountRef && (
+                                        <div className="flex gap-2">
+                                          <dt className="font-medium text-gray-600">A/C Reference:</dt>
+                                          <dd className="text-gray-900">{caseDetails[t.refNumber].token.accountRef}</dd>
+                                        </div>
+                                      )}
+                                    </dl>
+                                  </div>
+                                )}
                                 {caseDetails[t.refNumber].updates && caseDetails[t.refNumber].updates.length > 0 && (
                                   <div>
                                     <h4 className="text-sm font-semibold text-gray-900 mb-2">Case Updates</h4>
                                     <div className="space-y-2">
                                       {caseDetails[t.refNumber].updates.map((update: any) => (
-                                        <div key={update.id} className="bg-white border border-gray-200 rounded-lg p-3">
+                                        <div key={update.id} className="bg-white border border-slate-200 rounded-lg p-3">
                                           <div className="flex items-start justify-between mb-1">
                                             <div className="flex items-center gap-2">
                                               <span className="text-xs font-medium text-gray-900">{update.actorRole}</span>

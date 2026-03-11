@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useState, useEffect } from "react"
 //import { useNavigate } from "react-router-dom"
@@ -206,7 +206,7 @@ export default function ManagerOfficerAssignment() {
             serving: { label: 'Serving', color: 'bg-blue-100 text-blue-700 border-blue-200' },
             on_break: { label: 'On Break', color: 'bg-orange-100 text-orange-700 border-orange-200' },
             break: { label: 'On Break', color: 'bg-orange-100 text-orange-700 border-orange-200' },
-            offline: { label: 'Offline', color: 'bg-gray-100 text-gray-700 border-gray-200' },
+            offline: { label: 'Offline', color: 'bg-gray-100 text-gray-700 border-slate-200' },
             busy: { label: 'Busy', color: 'bg-red-100 text-red-700 border-red-200' }
         }
 
@@ -225,7 +225,7 @@ export default function ManagerOfficerAssignment() {
     )
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-8">
+        <div className="min-h-screen bg-slate-50 p-4 sm:p-6 lg:p-8">
             <div className="max-w-7xl mx-auto">
                 {/* Header */}
                 <div className="mb-8">
@@ -249,7 +249,7 @@ export default function ManagerOfficerAssignment() {
                 )}
 
                 {/* Branch Selector */}
-                <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
+                <div className="bg-white rounded-2xl shadow-sm border border-slate-100 border border-slate-200 p-6 mb-6">
                     <label className="block text-sm font-medium text-gray-700 mb-3">
                         <Building2 className="w-4 h-4 inline-block mr-2" />
                         Select Branch
@@ -278,7 +278,7 @@ export default function ManagerOfficerAssignment() {
                 {selectedBranch && (
                     <>
                         {/* Search */}
-                        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
+                        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 border border-slate-200 p-6 mb-6">
                             <div className="relative">
                                 <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" />
                                 <input
@@ -293,7 +293,7 @@ export default function ManagerOfficerAssignment() {
 
                         {/* Stats */}
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 border border-slate-200 p-6">
                                 <div className="flex items-center justify-between">
                                     <div>
                                         <p className="text-sm text-slate-600 mb-1">Total Officers</p>
@@ -303,7 +303,7 @@ export default function ManagerOfficerAssignment() {
                                 </div>
                             </div>
 
-                            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 border border-slate-200 p-6">
                                 <div className="flex items-center justify-between">
                                     <div>
                                         <p className="text-sm text-slate-600 mb-1">Assigned to Counters</p>
@@ -315,7 +315,7 @@ export default function ManagerOfficerAssignment() {
                                 </div>
                             </div>
 
-                            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 border border-slate-200 p-6">
                                 <div className="flex items-center justify-between">
                                     <div>
                                         <p className="text-sm text-slate-600 mb-1">Available Counters</p>
@@ -330,12 +330,12 @@ export default function ManagerOfficerAssignment() {
 
                         {/* Officers List */}
                         {loading ? (
-                            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-12 text-center">
+                            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 border border-slate-200 p-12 text-center">
                                 <RefreshCw className="w-12 h-12 text-slate-300 mx-auto mb-4 animate-spin" />
                                 <p className="text-slate-600">Loading officers...</p>
                             </div>
                         ) : filteredOfficers.length === 0 ? (
-                            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-12 text-center">
+                            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 border border-slate-200 p-12 text-center">
                                 <Users className="w-16 h-16 text-slate-300 mx-auto mb-4" />
                                 <p className="text-slate-600 text-lg">
                                     {searchTerm ? 'No officers found matching your search' : 'No officers in this branch'}
@@ -346,11 +346,11 @@ export default function ManagerOfficerAssignment() {
                                 {filteredOfficers.map((officer) => (
                                     <div
                                         key={officer.id}
-                                        className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 hover:shadow-md transition-all"
+                                        className="bg-white rounded-2xl shadow-sm border border-slate-100 border border-slate-200 p-6 hover:shadow-md transition-all"
                                     >
                                         <div className="flex items-start justify-between mb-4">
                                             <div className="flex items-center gap-3">
-                                                <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center font-semibold text-lg text-purple-600">
+                                                <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center font-semibold text-lg text-purple-600">
                                                     {officer.name.charAt(0).toUpperCase()}
                                                 </div>
                                                 <div>
@@ -403,7 +403,7 @@ export default function ManagerOfficerAssignment() {
                 )}
 
                 {!selectedBranch && (
-                    <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-12 text-center">
+                    <div className="bg-white rounded-2xl shadow-sm border border-slate-100 border border-slate-200 p-12 text-center">
                         <Building2 className="w-16 h-16 text-slate-300 mx-auto mb-4" />
                         <p className="text-slate-600 text-lg">Please select a branch to view and assign officers</p>
                     </div>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+﻿import { useState, useEffect } from "react"
 import { Plus, Trash2, Edit2, X, CheckCircle, AlertCircle, Users } from "lucide-react"
 import api from "../../config/api"
 
@@ -117,7 +117,7 @@ export default function AdminGMs() {
             {loading ? (
                 <div className="py-16 text-center text-gray-400">Loading GMs…</div>
             ) : gms.length === 0 ? (
-                <div className="py-16 text-center bg-white rounded-2xl border border-dashed border-gray-200 text-gray-400">
+                <div className="py-16 text-center bg-white rounded-2xl border border-dashed border-slate-200 text-gray-400">
                     <Users className="w-12 h-12 mx-auto mb-3" /><p>No GMs yet. Create the first one.</p>
                 </div>
             ) : (

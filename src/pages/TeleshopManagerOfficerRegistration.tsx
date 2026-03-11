@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
@@ -269,7 +269,7 @@ export default function TeleshopManagerOfficerRegistration() {
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Personal Information */}
           <div className="bg-white rounded-lg border border-gray-300 p-6">
-            <h2 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+            <h2 className="text-lg font-medium text-slate-900 mb-4 flex items-center">
               <User className="w-5 h-5 mr-2 text-blue-600" />
               Personal Information
             </h2>
@@ -283,7 +283,7 @@ export default function TeleshopManagerOfficerRegistration() {
                   type="text"
                   value={formData.name}
                   onChange={(e) => { handleInputChange("name", e.target.value); clearFieldError('name') }}
-                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${fieldErrors.name ? 'border-red-500' : 'border-gray-300'}`}
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent ${fieldErrors.name ? 'border-red-500' : 'border-gray-300'}`}
                   placeholder="Enter officer's full name"
                   required
                 />
@@ -304,7 +304,7 @@ export default function TeleshopManagerOfficerRegistration() {
                       clearFieldError('mobileNumber')
                       checkMobile(e.target.value, (msg) => setFieldError('mobileNumber', msg))
                     }}
-                    className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${fieldErrors.mobileNumber ? 'border-red-500' : 'border-gray-300'}`}
+                    className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent ${fieldErrors.mobileNumber ? 'border-red-500' : 'border-gray-300'}`}
                     placeholder="070XXXXXXX"
                     maxLength={10}
                     required
@@ -325,7 +325,7 @@ export default function TeleshopManagerOfficerRegistration() {
                     clearFieldError('email')
                     checkEmail(e.target.value, (msg) => setFieldError('email', msg))
                   }}
-                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${fieldErrors.email ? 'border-red-500' : 'border-gray-300'}`}
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent ${fieldErrors.email ? 'border-red-500' : 'border-gray-300'}`}
                   placeholder="officer@slt.lk"
                 />
                 <p className="text-xs text-gray-400 mt-1">If provided, login credentials will be emailed to the officer.</p>
@@ -336,7 +336,7 @@ export default function TeleshopManagerOfficerRegistration() {
 
           {/* Work Assignment */}
           <div className="bg-white rounded-lg border border-gray-300 p-6">
-            <h2 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+            <h2 className="text-lg font-medium text-slate-900 mb-4 flex items-center">
               <MapPin className="w-5 h-5 mr-2 text-blue-600" />
               Work Assignment
             </h2>
@@ -349,7 +349,7 @@ export default function TeleshopManagerOfficerRegistration() {
                 <select
                   value={formData.outletId}
                   onChange={(e) => handleInputChange("outletId", e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                   disabled={loadingOutlets}
                   required
                 >
@@ -391,7 +391,7 @@ export default function TeleshopManagerOfficerRegistration() {
                   type="checkbox"
                   checked={formData.isTraining}
                   onChange={(e) => handleInputChange("isTraining", e.target.checked)}
-                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  className="rounded border-gray-300 text-blue-600 focus:ring-indigo-500"
                 />
                 <span className="ml-2 text-sm text-gray-700">Officer is currently in training</span>
               </label>
@@ -400,7 +400,7 @@ export default function TeleshopManagerOfficerRegistration() {
 
           {/* Languages */}
           <div className="bg-white rounded-lg border border-gray-300 p-6">
-            <h2 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+            <h2 className="text-lg font-medium text-slate-900 mb-4 flex items-center">
               <Languages className="w-5 h-5 mr-2 text-blue-600" />
               Language Capabilities
             </h2>
@@ -412,7 +412,7 @@ export default function TeleshopManagerOfficerRegistration() {
                     type="checkbox"
                     checked={formData.languages.includes(language.code)}
                     onChange={() => toggleLanguage(language.code)}
-                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    className="rounded border-gray-300 text-blue-600 focus:ring-indigo-500"
                   />
                   <span className="ml-2 text-sm text-gray-700">{language.name}</span>
                 </label>
@@ -422,7 +422,7 @@ export default function TeleshopManagerOfficerRegistration() {
 
           {/* Services */}
           <div className="bg-white rounded-lg border border-gray-300 p-6">
-            <h2 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+            <h2 className="text-lg font-medium text-slate-900 mb-4 flex items-center">
               <Briefcase className="w-5 h-5 mr-2 text-blue-600" />
               Assigned Services
             </h2>
@@ -434,7 +434,7 @@ export default function TeleshopManagerOfficerRegistration() {
                     type="checkbox"
                     checked={formData.assignedServices.includes(service.code)}
                     onChange={() => toggleService(service.code)}
-                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    className="rounded border-gray-300 text-blue-600 focus:ring-indigo-500"
                   />
                   <span className="ml-2 text-sm text-gray-700">{service.title}</span>
                 </label>
@@ -454,7 +454,7 @@ export default function TeleshopManagerOfficerRegistration() {
             <button
               type="submit"
               disabled={loading}
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+              className="px-6 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
             >
               {loading ? "Creating..." : "Create Officer"}
             </button>

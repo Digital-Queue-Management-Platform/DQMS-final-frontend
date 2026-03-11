@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
@@ -134,7 +134,7 @@ export default function ManagerCompare() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-8">
+    <div className="min-h-screen bg-slate-50 p-4 sm:p-6 lg:p-8">
       <div className="mx-auto">
         {/* Header Section in Body */}
         <div className="mb-8">
@@ -162,7 +162,7 @@ export default function ManagerCompare() {
         </div>
         {/* Top Performers Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white rounded-xl shadow-sm p-6">
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-sm font-medium text-gray-600">Most Customers Served</h3>
               <Users className="w-5 h-5 text-blue-500" />
@@ -178,7 +178,7 @@ export default function ManagerCompare() {
             )}
           </div>
 
-          <div className="bg-white rounded-xl shadow-sm p-6">
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-sm font-medium text-gray-600">Shortest Wait Time</h3>
               <Clock className="w-5 h-5 text-green-500" />
@@ -194,7 +194,7 @@ export default function ManagerCompare() {
             )}
           </div>
 
-          <div className="bg-white rounded-xl shadow-sm p-6">
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-sm font-medium text-gray-600">Highest Rating</h3>
               <Star className="w-5 h-5 text-yellow-500" />
@@ -210,7 +210,7 @@ export default function ManagerCompare() {
             )}
           </div>
 
-          <div className="bg-white rounded-xl shadow-sm p-6">
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-sm font-medium text-gray-600">Most Efficient</h3>
               <Building2 className="w-5 h-5 text-purple-500" />
@@ -230,8 +230,8 @@ export default function ManagerCompare() {
         {/* Charts */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
           {/* Customers Served Comparison */}
-          <div className="bg-white rounded-xl shadow-sm p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Customers Served</h3>
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
+            <h3 className="text-lg font-semibold text-slate-900 mb-4">Customers Served</h3>
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={comparisonData}>
                 <CartesianGrid strokeDasharray="3 3" />
@@ -244,8 +244,8 @@ export default function ManagerCompare() {
           </div>
 
           {/* Wait Time Comparison */}
-          <div className="bg-white rounded-xl shadow-sm p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Average Wait Time</h3>
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
+            <h3 className="text-lg font-semibold text-slate-900 mb-4">Average Wait Time</h3>
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={comparisonData}>
                 <CartesianGrid strokeDasharray="3 3" />
@@ -261,8 +261,8 @@ export default function ManagerCompare() {
         {/* Rating and Efficiency Comparison */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Rating Comparison */}
-          <div className="bg-white rounded-xl shadow-sm p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Customer Ratings</h3>
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
+            <h3 className="text-lg font-semibold text-slate-900 mb-4">Customer Ratings</h3>
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={comparisonData}>
                 <CartesianGrid strokeDasharray="3 3" />
@@ -276,8 +276,8 @@ export default function ManagerCompare() {
           </div>
 
           {/* Efficiency Comparison */}
-          <div className="bg-white rounded-xl shadow-sm p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Efficiency Score</h3>
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
+            <h3 className="text-lg font-semibold text-slate-900 mb-4">Efficiency Score</h3>
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={comparisonData}>
                 <CartesianGrid strokeDasharray="3 3" />

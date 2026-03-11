@@ -1,6 +1,15 @@
-//import React from "react";
 import { useNavigate } from "react-router-dom";
-import { ShieldCheck, Building2, PhoneCall, UserCircle2, ArrowRight, Briefcase, UserCheck } from "lucide-react";
+import { motion } from "framer-motion";
+import { ShieldCheck, Building2, PhoneCall, UserCircle2, ArrowRight, Briefcase, UserCheck, CalendarDays, ClipboardCheck, Search, MonitorSmartphone } from "lucide-react";
+
+const containerVariants = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.07 } },
+};
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: "easeOut" as const } },
+};
 
 export default function ProLoginLanding() {
   const navigate = useNavigate();
@@ -11,153 +20,211 @@ export default function ProLoginLanding() {
       subtitle: "Full system control & analytics",
       icon: ShieldCheck,
       action: () => navigate("/admin"),
-      gradient: "from-slate-900 to-slate-700",
+      accent: "bg-slate-700",
+      iconColor: "text-slate-700",
+      iconBg: "bg-slate-100",
+      border: "hover:border-slate-400",
     },
     {
       title: "General Manager (GM)",
       subtitle: "Multi-region oversight & reporting",
       icon: Briefcase,
       action: () => navigate("/gm/login"),
-      gradient: "from-violet-700 to-purple-600",
+      accent: "bg-violet-600",
+      iconColor: "text-violet-600",
+      iconBg: "bg-violet-100",
+      border: "hover:border-violet-400",
     },
     {
-      title: "Deputy General Manager (DGM)",
+      title: "Deputy General Manager",
       subtitle: "Outlet-level oversight & management",
       icon: UserCheck,
       action: () => navigate("/dgm/login"),
-      gradient: "from-teal-600 to-cyan-500",
+      accent: "bg-cyan-600",
+      iconColor: "text-cyan-600",
+      iconBg: "bg-cyan-100",
+      border: "hover:border-cyan-400",
     },
     {
       title: "Regional Manager (RTOM)",
       subtitle: "Branch oversight & reporting",
       icon: Building2,
       action: () => navigate("/manager/login"),
-      gradient: "from-emerald-700 to-green-600",
+      accent: "bg-emerald-600",
+      iconColor: "text-emerald-600",
+      iconBg: "bg-emerald-100",
+      border: "hover:border-emerald-400",
     },
     {
       title: "Teleshop Manager",
       subtitle: "Officer & service supervision",
       icon: PhoneCall,
       action: () => navigate("/teleshop-manager/login"),
-      gradient: "from-blue-500 to-indigo-500",
+      accent: "bg-sky-600",
+      iconColor: "text-sky-600",
+      iconBg: "bg-sky-100",
+      border: "hover:border-sky-400",
     },
     {
       title: "Customer Service Officer",
       subtitle: "Queue handling & customer service",
       icon: UserCircle2,
       action: () => navigate("/officer/login"),
-      gradient: "from-yellow-200 to-orange-600",
+      accent: "bg-amber-500",
+      iconColor: "text-amber-600",
+      iconBg: "bg-amber-100",
+      border: "hover:border-amber-400",
     },
   ];
 
+  const customerActions = [
+    { label: "Book Appointment", icon: CalendarDays, path: "/appointment/book", solid: true, color: "bg-indigo-600 hover:bg-indigo-700 text-white" },
+    { label: "My Appointments", icon: ClipboardCheck, path: "/appointment/my", solid: false, color: "bg-white hover:bg-indigo-50 text-indigo-700 border border-indigo-200" },
+    { label: "Check Service Status", icon: Search, path: "/service/status", solid: false, color: "bg-white hover:bg-blue-50 text-blue-700 border border-blue-200" },
+    { label: "Walk-in Queue", icon: MonitorSmartphone, path: "/kiosk/login", solid: true, color: "bg-purple-600 hover:bg-purple-700 text-white" },
+  ];
+
   return (
-    <div className="min-h-screen flex flex-col lg:grid lg:grid-cols-2 bg-slate-50">
-      {/* Left Brand Panel - Mobile Header / Desktop Sidebar */}
-      <div className="flex flex-col justify-between p-4 sm:p-6 lg:p-12 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-700 text-white">
-        <div>
-          <img
+    <div className="min-h-screen flex flex-col lg:grid lg:grid-cols-[420px_1fr] xl:grid-cols-[480px_1fr] bg-slate-50 overflow-hidden">
+      {/* ── Left Brand Panel ── */}
+      <motion.div
+        initial={{ opacity: 0, x: -40 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 0.6, ease: [0.4, 0, 0.2, 1] }}
+        className="relative flex flex-col justify-between p-6 sm:p-8 lg:p-12 bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-900 text-white overflow-hidden"
+      >
+        {/* Decorative circles */}
+        <div className="absolute -top-20 -right-20 w-64 h-64 rounded-full bg-white/5 pointer-events-none" />
+        <div className="absolute -bottom-10 -left-10 w-48 h-48 rounded-full bg-white/5 pointer-events-none" />
+
+        <div className="relative z-10">
+          <motion.img
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ delay: 0.2, duration: 0.5 }}
             src="/logo_white.png"
-            alt="Queue Management Platform Logo"
-            className="w-16 h-16 sm:w-24 sm:h-24 lg:w-32 lg:h-32 xl:w-40 xl:h-40 rounded-xl object-contain mb-3 sm:mb-4 mx-auto lg:mx-0"
+            alt="DQMP Logo"
+            className="w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24 rounded-2xl object-contain mb-4 sm:mb-6 mx-auto lg:mx-0"
           />
-          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold leading-tight text-center lg:text-left">
-            Queue Management
-            <span className="block text-slate-300">Platform</span>
-          </h1>
-          <p className="mt-2 sm:mt-3 lg:mt-4 text-slate-300 text-sm sm:text-base max-w-md mx-auto lg:mx-0 text-center lg:text-left">
-            Enterprise-grade queue orchestration designed for high-volume service environments.
-          </p>
-          <p className="mt-3 sm:mt-4 text-slate-400 text-xs sm:text-sm max-w-md mx-auto lg:mx-0 text-center lg:text-left">
-            © {new Date().getFullYear()} SLT-Mobitel Digital Platforms Section. All rights reserved.
-          </p>
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3, duration: 0.5 }}
+          >
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold leading-tight text-center lg:text-left">
+              Digital Queue
+              <span className="block text-indigo-300">Management Platform</span>
+            </h1>
+            <p className="mt-3 text-slate-300 text-sm sm:text-base max-w-sm mx-auto lg:mx-0 text-center lg:text-left leading-relaxed">
+              Enterprise-grade queue orchestration designed for high-volume service environments.
+            </p>
+          </motion.div>
         </div>
 
-        <div className="grid grid-cols-3 gap-3 sm:gap-4 lg:gap-6 text-center mt-6 lg:mt-0">
-          <div>
-            <p className="text-xl sm:text-2xl lg:text-3xl font-bold">99.9%</p>
-            <p className="text-xs sm:text-sm text-slate-300">Uptime</p>
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5, duration: 0.5 }}
+          className="relative z-10 mt-8 lg:mt-0"
+        >
+          <div className="grid grid-cols-3 gap-4 text-center">
+            {[["99.9%", "Uptime"], ["120+", "Branches"], ["24/7", "Support"]].map(([val, lbl]) => (
+              <div key={lbl} className="bg-white/10 rounded-xl py-3 px-2 backdrop-blur-sm">
+                <p className="text-xl sm:text-2xl font-bold">{val}</p>
+                <p className="text-xs text-slate-300 mt-0.5">{lbl}</p>
+              </div>
+            ))}
           </div>
-          <div>
-            <p className="text-xl sm:text-2xl lg:text-3xl font-bold">120+</p>
-            <p className="text-xs sm:text-sm text-slate-300">Branches</p>
-          </div>
-          <div>
-            <p className="text-xl sm:text-2xl lg:text-3xl font-bold">24/7</p>
-            <p className="text-xs sm:text-sm text-slate-300">Monitoring</p>
-          </div>
-        </div>
-      </div>
+          <p className="mt-6 text-slate-500 text-xs text-center lg:text-left">
+            © {new Date().getFullYear()} SLT-Mobitel Digital Platforms Section
+          </p>
+        </motion.div>
+      </motion.div>
 
-      {/* Right Login Selector */}
-      <div className="flex items-center justify-center p-4 sm:p-6 lg:p-8 xl:p-12 flex-1">
+      {/* ── Right: Portal Selector ── */}
+      <div className="flex items-center justify-center p-4 sm:p-6 lg:p-8 xl:p-12 overflow-y-auto">
         <div className="w-full max-w-2xl">
-          <div className="mb-4 sm:mb-6 text-center">
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.45 }}
+            className="mb-6 text-center"
+          >
             <h2 className="text-2xl sm:text-3xl font-bold text-slate-900">Secure Portal Access</h2>
-            <p className="mt-1 sm:mt-2 text-sm sm:text-base text-slate-600">Select your authorized role to continue</p>
-          </div>
+            <p className="mt-1.5 text-sm sm:text-base text-slate-500">Select your authorized role to continue</p>
+          </motion.div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 lg:gap-6">
-            {portals.map((portal, i) => {
+          {/* Portal grid */}
+          <motion.div
+            variants={containerVariants}
+            initial="hidden"
+            animate="show"
+            className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4"
+          >
+            {portals.map((portal) => {
               const Icon = portal.icon;
               return (
-                <button
-                  key={i}
+                <motion.button
+                  key={portal.title}
+                  variants={itemVariants}
+                  whileHover={{ y: -3, boxShadow: "0 8px 24px rgb(0 0 0 / 0.1)" }}
+                  whileTap={{ scale: 0.98 }}
                   onClick={portal.action}
-                  className="group relative overflow-hidden rounded-xl sm:rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 text-left shadow-sm hover:shadow-xl transition-all"
+                  className={`group relative overflow-hidden rounded-xl bg-white border border-slate-200 ${portal.border} p-4 sm:p-5 text-left transition-all duration-200 cursor-pointer`}
+                  style={{ boxShadow: "0 1px 3px rgb(0 0 0 / 0.06)" }}
                 >
-                  <div
-                    className={`absolute inset-0 opacity-0 group-hover:opacity-10 bg-gradient-to-br ${portal.gradient} transition-opacity`}
-                  />
+                  {/* Accent bar */}
+                  <div className={`absolute left-0 top-0 bottom-0 w-1 rounded-l-xl ${portal.accent}`} />
 
-                  <div className="relative z-10">
-                    <Icon className="w-6 h-6 sm:w-7 sm:h-7 text-slate-800 mb-3 sm:mb-4" />
-                    <h3 className="text-base sm:text-lg font-semibold text-slate-900">{portal.title}</h3>
-                    <p className="text-xs sm:text-sm text-slate-600 mt-1">{portal.subtitle}</p>
-
-                    <div className="mt-4 sm:mt-6 flex items-center gap-2 text-xs sm:text-sm font-medium text-slate-800">
+                  <div className="pl-3">
+                    <div className={`w-9 h-9 rounded-lg ${portal.iconBg} flex items-center justify-center mb-3`}>
+                      <Icon className={`w-5 h-5 ${portal.iconColor}`} />
+                    </div>
+                    <h3 className="text-sm sm:text-base font-semibold text-slate-900">{portal.title}</h3>
+                    <p className="text-xs text-slate-500 mt-0.5">{portal.subtitle}</p>
+                    <div className="mt-3 flex items-center gap-1.5 text-xs font-medium text-slate-400 group-hover:text-slate-700 transition-colors">
                       Access Portal
-                      <ArrowRight className="w-3 h-3 sm:w-4 sm:h-4 transition-transform group-hover:translate-x-1" />
+                      <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-1" />
                     </div>
                   </div>
-                </button>
+                </motion.button>
               );
             })}
-          </div>
+          </motion.div>
 
-          {/*<div className="mt-10 text-center text-xs text-slate-500">
-            © {new Date().getFullYear()} Queue Management Platform · Secure & Audited
-          </div>*/}
-
-          {/* Quick access for customers */}
-          <div className="mt-4 sm:mt-6 text-center">
-            <div className="grid grid-cols-2 lg:flex gap-2 sm:gap-3 justify-center">
-              <button
-                onClick={() => navigate('/appointment/book')}
-                className="px-3 sm:px-4 lg:px-5 py-2 sm:py-2.5 text-xs sm:text-sm lg:text-base bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 transition-all shadow-sm"
-              >
-                Book Appointment
-              </button>
-              <button
-                onClick={() => navigate('/appointment/my')}
-                className="px-3 sm:px-4 lg:px-5 py-2 sm:py-2.5 text-xs sm:text-sm lg:text-base bg-white text-indigo-700 font-semibold rounded-lg border border-indigo-200 hover:bg-indigo-50 transition-all"
-              >
-                My Appointments
-              </button>
-              <button
-                onClick={() => navigate('/service/status')}
-                className="px-3 sm:px-4 lg:px-5 py-2 sm:py-2.5 text-xs sm:text-sm lg:text-base bg-white text-blue-700 font-semibold rounded-lg border border-blue-200 hover:bg-blue-50 transition-all"
-              >
-                Check Service Status
-              </button>
-              <button
-                onClick={() => navigate('/kiosk/login')}
-                className="px-3 sm:px-4 lg:px-5 py-2 sm:py-2.5 text-xs sm:text-sm lg:text-base bg-purple-600 text-white font-semibold rounded-lg hover:bg-purple-700 transition-all shadow-sm"
-              >
-                Walk-in Appoinment
-              </button>
+          {/* ── Customer Quick Access ── */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.55, duration: 0.4 }}
+            className="mt-6"
+          >
+            <div className="relative flex items-center mb-4">
+              <div className="flex-1 border-t border-slate-200" />
+              <span className="px-3 text-xs text-slate-400 font-medium bg-slate-50">Customer Services</span>
+              <div className="flex-1 border-t border-slate-200" />
             </div>
-            <p className="mt-2 text-xs sm:text-sm text-gray-500 px-2">Use mobile number on "My Appointments" to view bookings, or your reference number to check service status.</p>
-          </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
+              {customerActions.map((action) => {
+                const Icon = action.icon;
+                return (
+                  <motion.button
+                    key={action.label}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.97 }}
+                    onClick={() => navigate(action.path)}
+                    className={`flex flex-col items-center gap-1.5 px-3 py-3 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-150 ${action.color}`}
+                  >
+                    <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
+                    <span className="text-center leading-tight">{action.label}</span>
+                  </motion.button>
+                );
+              })}
+            </div>
+            <p className="mt-3 text-center text-xs text-slate-400">
+              Use your mobile number to view appointments · Reference number for service status
+            </p>
+          </motion.div>
         </div>
       </div>
     </div>

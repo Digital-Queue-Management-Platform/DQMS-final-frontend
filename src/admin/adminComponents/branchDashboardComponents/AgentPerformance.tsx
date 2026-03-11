@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { UserIcon } from 'lucide-react';
 
 interface Agent {
@@ -16,18 +16,18 @@ interface AgentPerformanceProps {
 
 const AgentPerformance: React.FC<AgentPerformanceProps> = ({ agents }) => {
   return (
-    <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+    <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 mb-6">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-lg font-semibold text-gray-800">
           Agent Performance
         </h2>
-        <button className="text-sm text-blue-600 hover:text-blue-800">
+        <button className="text-sm text-indigo-600 hover:text-indigo-800">
           View All
         </button>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {agents.map((agent) => (
-          <div key={agent.id} className="border border-gray-200 rounded-lg p-4">
+          <div key={agent.id} className="border border-slate-200 rounded-lg p-4">
             <div className="flex items-center mb-3">
               <div className="bg-blue-100 p-2 rounded-full mr-3">
                 <UserIcon size={20} className="text-blue-600" />

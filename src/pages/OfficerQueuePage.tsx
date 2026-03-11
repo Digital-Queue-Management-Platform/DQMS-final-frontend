@@ -1,8 +1,9 @@
-"use client"
+﻿"use client"
 
 import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { User, Clock, Phone, FileText, Users, RefreshCwIcon, Calendar, AlertTriangle } from "lucide-react"
+import { motion } from "framer-motion"
+import { User, Clock, Phone, FileText, Users, RefreshCwIcon, Calendar, AlertTriangle, CheckCircle2, CircleDashed, Banknote, CreditCard, Landmark } from "lucide-react"
 // OfficerTopBar is provided globally from Layout for officer routes
 import api, { WS_URL } from "../config/api"
 import type { Officer, Token } from "../types"
@@ -14,13 +15,14 @@ export default function OfficerQueuePage() {
   const navigate = useNavigate()
   const [officer, setOfficer] = useState<Officer | null>(null)
   const [currentToken, setCurrentToken] = useState<Token | null>(null)
+  const [billInfo, setBillInfo] = useState<{ telephoneNumber: string; accountName: string; currentBill: number; dueDate: string; status: string; updatedAt: string } | null>(null)
   const [queue, setQueue] = useState<{ waiting: Token[]; inService: Token[]; availableOfficers: number; totalWaiting: number } | null>(null)
   const [accountRef, setAccountRef] = useState("")
   const [loading, setLoading] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
   const [currentDateTime, setCurrentDateTime] = useState(new Date())
   const [queueLoading, setQueueLoading] = useState(false)
-  const [lastUpdated, setLastUpdated] = useState<Date>(new Date())
+  const [_lastUpdated, setLastUpdated] = useState<Date>(new Date())
   const [activeTab, setActiveTab] = useState<'my-queue' | 'transferred' | 'unmatched'>('my-queue')
   const [unmatchedTokens, setUnmatchedTokens] = useState<Token[]>([])
   const [isTransferModalOpen, setIsTransferModalOpen] = useState(false)
@@ -175,9 +177,10 @@ export default function OfficerQueuePage() {
 
   const fetchCurrentToken = async (officerId: string) => {
     try {
-      // Officer stats returns currentToken; re-use it to keep parity with dashboard
+      // Officer stats returns currentToken and billData; re-use it to keep parity with dashboard
       const res = await api.get(`/officer/stats/${officerId}`)
       setCurrentToken(res.data.currentToken)
+      setBillInfo(res.data.billData || null)
     } catch (e) {
       console.error('failed to fetch current token', e)
     }
@@ -210,6 +213,74 @@ export default function OfficerQueuePage() {
       setCounters(resp.data || [])
     } catch (err) {
       console.error('failed to fetch counters', err)
+    }
+  }
+
+  // --- Auto-speech helpers ---
+  const AUTO_SPEAK_TEMPLATES = {
+    call: {
+      en: (name: string, num: number, counter?: number) =>
+        `${name}. Token number ${num}. Please proceed to counter ${counter || 'assigned'}. ${name}, counter ${counter || 'assigned'}.`,
+      si: (name: string, num: number, counter?: number) =>
+        `${name}. ${name}. අංක ${num}. කවුන්ටරය ${counter || 'නියම කළ'} වෙත පැමිණෙන්න.`,
+      ta: (name: string, num: number, counter?: number) =>
+        `${name}. ${name}. எண் ${num}. கவுண்டர் ${counter || 'ஒதுக்கப்பட்ட'} க்கு வாருங்கள்.`,
+    },
+    skip: {
+      en: (name: string, num: number, _counter?: number) =>
+        `${name}, token ${num}, you have been skipped. Please return to the counter.`,
+      si: (name: string, num: number, _counter?: number) =>
+        `${name}. ටෝකන් ${num}. ඔබ මග හැරී ඇත. කරුණාකර කවුන්ටරය වෙත ආපසු එන්න.`,
+      ta: (name: string, num: number, _counter?: number) =>
+        `${name}. எண் ${num}. நீங்கள் தவிர்க்கப்பட்டீர்கள். தயவுசெய்து கவுண்டருக்கு திரும்பவும்.`,
+    },
+    recall: {
+      en: (name: string, num: number, counter?: number) =>
+        `${name}. Token ${num} is being recalled. Please return to counter ${counter || 'assigned'} immediately.`,
+      si: (name: string, num: number, counter?: number) =>
+        `${name}. ටෝකන් ${num} නැවත කැඳවනු ලැබේ. කරුණාකර වහාම කවුන්ටර් ${counter || 'නියම'} වෙත එන්න.`,
+      ta: (name: string, num: number, counter?: number) =>
+        `${name}. எண் ${num} மீண்டும் அழைக்கப்படுகிறது. தயவுசெய்து உடனடியாக கவுண்டர் ${counter || ''} க்கு வாருங்கள்.`,
+    },
+  }
+
+  const autoSpeak = async (token: any, eventType: 'call' | 'skip' | 'recall', counterNum?: number | null) => {
+    if (!token) return
+    const prefs = token?.preferredLanguages
+    let lang: 'en' | 'si' | 'ta' = 'en'
+    if (Array.isArray(prefs) && prefs.length > 0) {
+      const p = String(prefs[0]).toLowerCase()
+      if (p === 'si') lang = 'si'
+      else if (p === 'ta') lang = 'ta'
+    }
+    const name = token.customer?.name || ''
+    const counter = token.counterNumber || counterNum || undefined
+    const text = AUTO_SPEAK_TEMPLATES[eventType][lang](name, token.tokenNumber, counter)
+
+    if (window.speechSynthesis) window.speechSynthesis.cancel()
+
+    const ttsLang = lang
+    try {
+      const resp = await api.get('/tts/speak', { params: { text, lang: ttsLang }, responseType: 'blob' })
+      const url = URL.createObjectURL(resp.data)
+      const audio = new Audio(url)
+      audio.volume = 1.0
+      audio.onended = () => URL.revokeObjectURL(url)
+      await audio.play()
+    } catch (e) {
+      console.error('Auto-speak TTS error:', e)
+      // Fallback to browser speech synthesis if TTS API fails
+      const synth = window.speechSynthesis
+      if (!synth) return
+      const voices = synth.getVoices()
+      const utterance = new SpeechSynthesisUtterance(text)
+      const voice = voices.find(v => v.lang.startsWith('en') && v.name.includes('Microsoft')) ||
+                    voices.find(v => v.lang.startsWith('en')) ||
+                    voices[0]
+      if (voice) { utterance.voice = voice; utterance.lang = 'en-US' }
+      utterance.volume = 1.0
+      utterance.rate = 0.9
+      synth.speak(utterance)
     }
   }
 
@@ -287,8 +358,11 @@ export default function OfficerQueuePage() {
 
         if (response.data.token) {
           setCurrentToken(response.data.token)
+          setBillInfo(null)
           setAccountRef("")
           fetchQueue(officer.outletId, officer.id)
+          fetchCurrentToken(officer.id)
+          autoSpeak(response.data.token, 'call', officer.counterNumber)
         }
         setLoading(false)
         return
@@ -302,15 +376,24 @@ export default function OfficerQueuePage() {
         const confirmRes = await api.post('/officer/next-token', { officerId: officer.id, allowFallback: true })
         if (confirmRes.data.token) {
           setCurrentToken(confirmRes.data.token)
+          setBillInfo(null)
           setAccountRef("")
           fetchQueue(officer.outletId, officer.id)
+          fetchCurrentToken(officer.id)
+          autoSpeak(confirmRes.data.token, 'call', officer.counterNumber)
         }
       } else if (response.data.token) {
         console.log('Received token data:', response.data.token)
         console.log('Customer name:', response.data.token.customer?.name)
         setCurrentToken(response.data.token)
+        setBillInfo(null)
         setAccountRef("")
         fetchQueue(officer.outletId, officer.id)
+        fetchCurrentToken(officer.id)
+        autoSpeak(response.data.token, 'call', officer.counterNumber)
+      } else {
+        const msg = response.data.message || response.data.error || 'No matching customers in queue right now.'
+        alert(msg)
       }
     } catch (err: any) {
       console.error('failed to get next token', err)
@@ -334,6 +417,7 @@ export default function OfficerQueuePage() {
       // First complete the service to get reference number
       await api.post('/officer/complete-service', { tokenId: currentToken.id, officerId: officer.id, accountRef })
       setCurrentToken(null)
+      setBillInfo(null)
       setAccountRef("")
       fetchQueue(officer.outletId, officer.id)
     } catch (err) {
@@ -353,6 +437,7 @@ export default function OfficerQueuePage() {
       await api.post('/officer/skip-token', { officerId: officer.id, tokenId: targetTokenId })
       if (!tokenId) {
         setCurrentToken(null)
+        setBillInfo(null)
       }
       fetchQueue(officer.outletId, officer.id)
     } catch (err) {
@@ -370,7 +455,9 @@ export default function OfficerQueuePage() {
       const response = await api.post('/officer/recall-token', { officerId: officer.id, tokenId })
       if (response.data.token) {
         setCurrentToken(response.data.token)
+        setBillInfo(null)
         setAccountRef("")
+        fetchCurrentToken(officer.id)
       }
       fetchQueue(officer.outletId, officer.id)
     } catch (err) {
@@ -431,9 +518,12 @@ export default function OfficerQueuePage() {
       })
       if (response.data.token) {
         setCurrentToken(response.data.token)
+        setBillInfo(null)
         setAccountRef("")
-        // Refresh queue
+        // Refresh queue and fetch bill info if applicable
         fetchQueue(officer.outletId, officer.id)
+        fetchCurrentToken(officer.id)
+        autoSpeak(response.data.token, 'call', officer.counterNumber)
       }
     } catch (err: any) {
       console.error('failed to call token', err)
@@ -471,35 +561,27 @@ export default function OfficerQueuePage() {
   if (!officer) return null
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-4">
+    <div className="min-h-screen bg-slate-50 p-4">
       <div className="mx-auto">
         {/* Header Section in Body */}
-        <div className="mb-6">
-          <div className="flex items-center justify-between mb-2">
+        <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
+          <div className="flex items-center justify-between">
             <div>
-              {/*<h1 className="text-2xl font-bold text-gray-900">Queue Management</h1>*/}
               <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-                <p className="text-sm text-gray-500">
-                  {formatDate(currentDateTime)} | {formatTime(currentDateTime)}
-                </p>
-                <div className="flex items-center gap-3 text-sm text-slate-600">
-                  {queueLoading && <span className="flex items-center gap-1">🔄 Refreshing...</span>}
-                  <span>Queue updated: {lastUpdated.toLocaleTimeString()}</span>
-                </div>
+                <p className="text-sm text-slate-500">{formatDate(currentDateTime)} &bull; {formatTime(currentDateTime)}</p>
+                {queueLoading && <span className="text-xs text-amber-600 font-medium">Refreshing...</span>}
               </div>
             </div>
-            <div className="flex items-center space-x-4">
-              <button
-                onClick={handleRefresh}
-                disabled={refreshing}
-                className={`px-2 py-1.5 rounded-lg bg-blue-500 text-white hover:bg-blue-700 flex items-center gap-2 ${refreshing ? 'cursor-not-allowed' : 'cursor-pointer'}`}
-              >
-                <RefreshCwIcon className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
-                Refresh
-              </button>
-            </div>
+            <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+              onClick={handleRefresh}
+              disabled={refreshing}
+              className={`px-3 py-1.5 rounded-xl bg-amber-600 text-white hover:bg-amber-700 flex items-center gap-2 text-sm font-medium transition-colors ${refreshing ? 'opacity-75 cursor-not-allowed' : ''}`}
+            >
+              <RefreshCwIcon className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+              Refresh
+            </motion.button>
           </div>
-        </div>
+        </motion.div>
 
         {/* Main Content */}
         <div className="space-y-6">
@@ -508,15 +590,15 @@ export default function OfficerQueuePage() {
             <div className="flex gap-4 justify-center">
               <button
                 onClick={() => setActiveTab('my-queue')}
-                className={`px-6 py-2.5 font-medium text-sm transition-colors ${activeTab === 'my-queue'
-                  ? 'border-b-2 border-black bg-white rounded-full hover:bg-gray-50'
-                  : 'bg-white text-gray-500 hover:text-gray-700 hover:bg-gray-50 border border-gray-300 rounded-full'
+                className={`px-5 py-2 font-medium text-sm rounded-xl transition-all ${activeTab === 'my-queue'
+                  ? 'bg-amber-600 text-white shadow-sm'
+                  : 'bg-white text-slate-500 hover:text-slate-700 hover:bg-slate-50 border border-slate-200'
                   }`}
               >
                 <div className="flex items-center justify-center gap-2">
                   <span>My Queue</span>
                   {queue && (
-                    <span className="px-1.5 py-0.5 bg-black text-white rounded-full text-xs font-semibold">
+                    <span className="px-1.5 py-0.5 bg-amber-600 text-white rounded-full text-xs font-semibold">
                       {queue.waiting.filter((t) => {
                         if ((t as any).isTransferred === true) return false
                         const tokenServices = Array.isArray(t.serviceTypes) ? t.serviceTypes : []
@@ -535,9 +617,9 @@ export default function OfficerQueuePage() {
 
               <button
                 onClick={() => setActiveTab('transferred')}
-                className={`px-6 py-2.5 font-medium text-sm transition-colors ${activeTab === 'transferred'
-                  ? 'border-b-2 border-blue-600 bg-white rounded-full hover:bg-gray-50'
-                  : 'bg-white text-gray-500 hover:text-gray-700 hover:bg-gray-50 border border-gray-300 rounded-full'
+                className={`px-5 py-2 font-medium text-sm rounded-xl transition-all ${activeTab === 'transferred'
+                  ? 'bg-indigo-600 text-white shadow-sm'
+                  : 'bg-white text-slate-500 hover:text-slate-700 hover:bg-slate-50 border border-slate-200'
                   }`}
               >
                 <div className="flex items-center justify-center gap-2">
@@ -560,16 +642,16 @@ export default function OfficerQueuePage() {
 
               <button
                 onClick={() => setActiveTab('unmatched')}
-                className={`px-6 py-2.5 font-medium text-sm transition-colors ${activeTab === 'unmatched'
-                  ? 'border-b-2 border-black bg-white rounded-full hover:bg-gray-50'
-                  : 'bg-white text-gray-500 hover:text-gray-700 hover:bg-gray-50 border border-gray-300 rounded-full'
+                className={`px-5 py-2 font-medium text-sm rounded-xl transition-all ${activeTab === 'unmatched'
+                  ? 'bg-slate-700 text-white shadow-sm'
+                  : 'bg-white text-slate-500 hover:text-slate-700 hover:bg-slate-50 border border-slate-200'
                   }`}
               >
                 <div className="flex items-center justify-center gap-2">
                   <span>Unmatched Tokens</span>
                   <span className={`px-1.5 py-0.5 rounded-full text-xs font-semibold ${unmatchedTokens.length > 0
-                    ? 'bg-black text-white'
-                    : 'bg-black text-white'
+                    ? 'bg-red-600 text-white'
+                    : 'bg-slate-500 text-white'
                     }`}>
                     {unmatchedTokens.length}
                   </span>
@@ -587,10 +669,10 @@ export default function OfficerQueuePage() {
           {/* Flex Container for Current Customer (Left) and Queue List (Right) */}
           <div className="flex gap-4 items-start">
             {/* Current Customer Section - Left Side (1/3 width) */}
-            <div className="w-1/3 bg-white rounded-xl shadow-sm p-4 self-start sticky top-4">
+            <div className="w-1/3 bg-white rounded-2xl shadow-sm border border-slate-100 p-4 self-start sticky top-4">
               {!currentToken ? (
                 <>
-                  <h2 className="text-lg font-bold text-gray-900 mb-4">Current Customer</h2>
+                  <h2 className="text-lg font-bold text-slate-900 mb-4">Current Customer</h2>
                   <div className="text-center py-6">
                     <div className="w-10 h-10 flex items-center justify-center mx-auto mb-4">
                       <Users className="w-10 h-10" />
@@ -609,7 +691,7 @@ export default function OfficerQueuePage() {
                           ? queue.waiting.filter(t => (t as any).status !== 'skipped' && !(t as any).isTransferred).length === 0
                           : true)
                       }
-                      className="px-6 py-1.5 bg-black text-white hover:text-black border-2 border-black rounded-full font-semibold hover:bg-gray-50 transition-colors disabled:bg-gray-200 disabled:border-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed text-md"
+                      className="px-6 py-2 bg-amber-600 text-white hover:bg-amber-700 border-2 border-amber-600 rounded-xl font-semibold transition-colors disabled:bg-gray-200 disabled:border-gray-200 disabled:text-gray-500 disabled:cursor-not-allowed text-sm"
                     >
                       {loading ? "Loading..." : "Call Next Token"}
                     </button>
@@ -623,18 +705,18 @@ export default function OfficerQueuePage() {
                 </>
               ) : (
                 <>
-                  <h2 className="text-lg font-bold text-gray-900 mb-4">Current Customer</h2>
+                  <h2 className="text-lg font-bold text-slate-900 mb-4">Current Customer</h2>
 
                   {/* Token Number Card */}
-                  <div className="rounded-2xl border border-gray-200 p-4 mb-4 text-center">
+                  <div className="rounded-2xl border border-slate-200 p-4 mb-4 text-center">
                     <div className="text-xs text-gray-600 mb-2">TOKEN NUMBER</div>
                     <div className="text-5xl font-bold text-blue-600">{currentToken.tokenNumber}</div>
                   </div>
 
                   {/* Customer Details Card */}
-                  <div className="bg-gray-50 rounded-2xl p-4 mb-4 space-y-3">
-                    <div className="flex items-center gap-3 pb-3 border-b border-gray-200">
-                      <div className="w-8 h-8 bg-white rounded-full border-b-2 border-black flex items-center justify-center">
+                  <div className="bg-slate-50 rounded-2xl p-4 mb-4 space-y-3">
+                    <div className="flex items-center gap-3 pb-3 border-b border-slate-200">
+                      <div className="w-8 h-8 bg-white rounded-xl border border-slate-200 flex items-center justify-center">
                         <User className="w-4 h-4 text-gray-700" />
                       </div>
                       <div className="flex-1">
@@ -643,8 +725,8 @@ export default function OfficerQueuePage() {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-3 pb-3 border-b border-gray-200">
-                      <div className="w-8 h-8 bg-white rounded-full border-b-2 border-black flex items-center justify-center">
+                    <div className="flex items-center gap-3 pb-3 border-b border-slate-200">
+                      <div className="w-8 h-8 bg-white rounded-xl border border-slate-200 flex items-center justify-center">
                         <Phone className="w-4 h-4 text-gray-700" />
                       </div>
                       <div className="flex-1">
@@ -653,12 +735,12 @@ export default function OfficerQueuePage() {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-3 pb-3 border-b border-gray-200">
-                      <div className="w-8 h-8 bg-white rounded-full border-b-2 border-black flex items-center justify-center">
+                    <div className="flex items-center gap-3 pb-3 border-b border-slate-200">
+                      <div className="w-8 h-8 bg-white rounded-xl border border-slate-200 flex items-center justify-center">
                         <FileText className="w-4 h-4 text-gray-700" />
                       </div>
                       <div className="flex-1">
-                        <div className="text-xs text-gray-500 mb-1">Service Type</div>
+                        <div className="text-xs text-slate-500 mb-1">Service Type</div>
                         <div className="flex flex-wrap gap-1">
                           {Array.isArray(currentToken.serviceTypes) && currentToken.serviceTypes.length > 0 ? (
                             currentToken.serviceTypes.map((stype: string) => (
@@ -674,7 +756,7 @@ export default function OfficerQueuePage() {
                     </div>
 
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 bg-white rounded-full border-b-2 border-black flex items-center justify-center">
+                      <div className="w-8 h-8 bg-white rounded-xl border border-slate-200 flex items-center justify-center">
                         <Clock className="w-4 h-4 text-gray-700" />
                       </div>
                       <div className="flex-1">
@@ -687,7 +769,7 @@ export default function OfficerQueuePage() {
 
                     {/* Preferred Languages */}
                     {Array.isArray((currentToken as any).preferredLanguages) && (currentToken as any).preferredLanguages.length > 0 && (
-                      <div className="flex items-center gap-3 pt-3 border-t border-gray-200">
+                      <div className="flex items-center gap-3 pt-3 border-t border-slate-200">
                         <div className="text-xs text-gray-500">Preferred Languages:</div>
                         <div className="flex gap-1">
                           {(currentToken as any).preferredLanguages.map((lang: string) => (
@@ -699,6 +781,87 @@ export default function OfficerQueuePage() {
                       </div>
                     )}
                   </div>
+
+                  {/* Bill Payment Info Card — shown when serving a bill payment customer */}
+                  {(currentToken.serviceTypes.includes('SVC002') || currentToken.serviceTypes.includes('BILL_PAYMENT')) && (
+                    <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 mb-4">
+                      <div className="flex items-center gap-2 mb-3">
+                        <div className="w-2 h-2 rounded-full bg-amber-500 flex-shrink-0"></div>
+                        <h3 className="text-sm font-bold text-amber-900">Bill Payment Details</h3>
+                      </div>
+
+                      {/* SLT Telephone */}
+                      {currentToken.sltTelephoneNumber && (
+                        <div className="flex justify-between items-center text-sm mb-2">
+                          <span className="text-gray-500 text-xs">SLT Number</span>
+                          <span className="font-mono font-semibold text-gray-800">{currentToken.sltTelephoneNumber}</span>
+                        </div>
+                      )}
+
+                      {/* Bill Due Amount from DB */}
+                      {billInfo ? (
+                        <>
+                          <div className="flex justify-between items-center mb-1">
+                            <span className="text-xs text-gray-500">Account Name</span>
+                            <span className="text-sm font-semibold text-gray-800">{billInfo.accountName}</span>
+                          </div>
+                          <div className="flex justify-between items-center mb-2">
+                            <span className="text-xs text-gray-500">Due Amount</span>
+                            <span className="text-lg font-bold text-red-600">Rs. {billInfo.currentBill.toFixed(2)}</span>
+                          </div>
+                          <div className="flex justify-between items-center mb-3">
+                            <span className="text-xs text-gray-500">Bill Status</span>
+                            <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${billInfo.status === 'paid' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                              {billInfo.status.toUpperCase()}
+                            </span>
+                          </div>
+                        </>
+                      ) : currentToken.sltTelephoneNumber ? (
+                        <p className="text-xs text-amber-700 italic mb-2">Fetching bill details...</p>
+                      ) : null}
+
+                      {/* Customer Payment Intent */}
+                      <div className="border-t border-amber-200 pt-3 mt-1">
+                        <div className="text-xs text-gray-500 mb-1">Customer's Payment Plan</div>
+                        {currentToken.billPaymentIntent === 'full' ? (
+                          <div className="flex items-center gap-2 bg-green-100 text-green-800 px-3 py-2 rounded-xl">
+                            <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+                            <span className="text-sm font-bold">Full Payment</span>
+                            {billInfo && (
+                              <span className="ml-auto text-sm font-bold">Rs. {billInfo.currentBill.toFixed(2)}</span>
+                            )}
+                          </div>
+                        ) : currentToken.billPaymentIntent === 'partial' ? (
+                          <div className="flex items-center gap-2 bg-blue-100 text-blue-800 px-3 py-2 rounded-xl">
+                            <CircleDashed className="w-4 h-4 flex-shrink-0" />
+                            <span className="text-sm font-bold">Partial Payment</span>
+                            <span className="ml-auto text-base font-bold">Rs. {(currentToken.billPaymentAmount ?? 0).toFixed(2)}</span>
+                          </div>
+                        ) : (
+                          <div className="bg-gray-100 text-gray-500 px-3 py-2 rounded-xl text-sm italic">
+                            Customer did not specify payment amount
+                          </div>
+                        )}
+                        {currentToken.billPaymentIntent === 'partial' && billInfo && (
+                          <p className="text-xs text-orange-700 mt-1 font-medium flex items-center gap-1">
+                            <AlertTriangle className="w-3 h-3" /> Remaining after payment: Rs. {Math.max(0, billInfo.currentBill - (currentToken.billPaymentAmount ?? 0)).toFixed(2)}
+                          </p>
+                        )}
+                        {currentToken.billPaymentMethod && (
+                          <div className="mt-2 flex items-center gap-2 bg-slate-100 text-slate-700 px-3 py-2 rounded-xl">
+                            {currentToken.billPaymentMethod === 'cash' ? <Banknote className="w-4 h-4" /> :
+                             currentToken.billPaymentMethod === 'card' ? <CreditCard className="w-4 h-4" /> :
+                             currentToken.billPaymentMethod === 'cheque' ? <FileText className="w-4 h-4" /> :
+                             <Landmark className="w-4 h-4" />}
+                            <span className="text-xs text-gray-500">Payment Method</span>
+                            <span className="ml-auto text-sm font-semibold capitalize">
+                              {currentToken.billPaymentMethod === 'bank_transfer' ? 'Bank Transfer' : currentToken.billPaymentMethod.charAt(0).toUpperCase() + currentToken.billPaymentMethod.slice(1)}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
 
                   {/* IP Speaker Component */}
                   <div className="mb-4">
@@ -721,11 +884,11 @@ export default function OfficerQueuePage() {
                   </div>
 
                   {/* Action Buttons */}
-                  <div className="flex gap-3 justify-center">
+                  <div className="flex gap-3 justify-center flex-wrap">
                     <button
                       onClick={() => handleSkip()}
                       disabled={loading}
-                      className="px-4 py-2.5 bg-orange-500 text-white font-bold border-b-2 border-black rounded-full text-sm hover:bg-gray-50 hover:text-orange-500 transition-colors disabled:bg-gray-200 disabled:border-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed"
+                      className="px-4 py-2.5 bg-orange-500 text-white font-semibold rounded-xl text-sm hover:bg-orange-600 transition-colors disabled:bg-gray-200 disabled:text-gray-500 disabled:cursor-not-allowed"
                     >
                       Skip Customer
                     </button>
@@ -736,7 +899,7 @@ export default function OfficerQueuePage() {
                         if (officer) fetchCounters(officer.outletId)
                       }}
                       disabled={loading}
-                      className="px-4 py-2.5 bg-blue-500 text-white font-bold border-b-2 border-black rounded-full text-sm hover:bg-gray-50 hover:text-blue-500 transition-colors disabled:bg-gray-200 disabled:border-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed"
+                      className="px-4 py-2.5 bg-indigo-600 text-white font-semibold rounded-xl text-sm hover:bg-indigo-700 transition-colors disabled:bg-gray-200 disabled:text-gray-500 disabled:cursor-not-allowed"
                     >
                       Transfer
                     </button>
@@ -744,7 +907,7 @@ export default function OfficerQueuePage() {
                     <button
                       onClick={handleCompleteService}
                       disabled={loading}
-                      className="px-6 py-2.5 bg-green-500 text-white font-bold border-b-2 border-black rounded-full text-sm hover:bg-gray-50 hover:text-green-500 transition-colors disabled:bg-gray-200 disabled:border-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed"
+                      className="px-6 py-2.5 bg-emerald-600 text-white font-semibold rounded-xl text-sm hover:bg-emerald-700 transition-colors disabled:bg-gray-200 disabled:text-gray-500 disabled:cursor-not-allowed"
                     >
                       Complete Service
                     </button>
@@ -754,7 +917,7 @@ export default function OfficerQueuePage() {
             </div>
 
             {/* Queue List Section - Right Side (2/3 width) */}
-            <div className="w-2/3 bg-white rounded-xl shadow-sm p-4">
+            <div className="w-2/3 bg-white rounded-2xl shadow-sm border border-slate-100 p-4">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-lg font-bold text-gray-900">
                   {activeTab === 'my-queue' ? 'My Queue' : activeTab === 'transferred' ? 'Transferred Tokens' : 'Unmatched Tokens'}
@@ -802,7 +965,7 @@ export default function OfficerQueuePage() {
                   return hasServiceMatch && hasLanguageMatch && !isTransferredByMe
                 }).length === 0 ? (
                   <div className="text-center py-12">
-                    <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <div className="w-16 h-16 bg-gray-100 rounded-xl flex items-center justify-center mx-auto mb-4">
                       <Users className="w-8 h-8 text-gray-400" />
                     </div>
                     <p className="text-gray-500">No customers in your queue</p>
@@ -811,7 +974,7 @@ export default function OfficerQueuePage() {
                 ) : (
                   <>
                     {/* Table Header */}
-                    <div className="grid grid-cols-12 gap-4 px-4 py-2.5 bg-gray-900 border-b text-sm text-white rounded-full mb-3">
+                    <div className="grid grid-cols-12 gap-4 px-4 py-2.5 bg-slate-800 border-b text-xs font-semibold text-slate-200 rounded-xl tracking-wide mb-3">
                       <div className="col-span-2">TOKEN</div>
                       <div className="col-span-2">CUSTOMER</div>
                       <div className="col-span-2">SERVICE TYPE</div>
@@ -892,7 +1055,7 @@ export default function OfficerQueuePage() {
                                   <button
                                     onClick={() => handleRecall(t.id)}
                                     disabled={loading || currentToken !== null}
-                                    className="px-2 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed whitespace-nowrap"
+                                    className="px-2 py-1 bg-indigo-600 text-white text-xs rounded-lg hover:bg-indigo-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed whitespace-nowrap"
                                   >
                                     Recall
                                   </button>
@@ -939,7 +1102,7 @@ export default function OfficerQueuePage() {
                   return (counterMatch || serviceMatch) && !isTransferredByMe
                 }).length === 0 ? (
                   <div className="text-center py-12">
-                    <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <div className="w-16 h-16 bg-blue-50 rounded-xl flex items-center justify-center mx-auto mb-4">
                       <RefreshCwIcon className="w-8 h-8 text-blue-400" />
                     </div>
                     <p className="text-gray-500">No transferred tokens for you</p>
@@ -1017,16 +1180,16 @@ export default function OfficerQueuePage() {
                 // UNMATCHED TOKENS TAB - Show unmatched tokens
                 unmatchedTokens.length === 0 ? (
                   <div className="text-center py-12">
-                    <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <div className="w-16 h-16 bg-green-100 rounded-xl flex items-center justify-center mx-auto mb-4">
                       <Users className="w-8 h-8 text-green-600" />
                     </div>
-                    <p className="text-gray-700 font-medium">All tokens are matched! ✅</p>
+                    <p className="text-gray-700 font-medium">All tokens are matched!</p>
                     <p className="text-xs text-gray-500 mt-2">No unmatched tokens at the moment</p>
                   </div>
                 ) : (
                   <>
                     {/* Table Header */}
-                    <div className="grid grid-cols-12 gap-4 px-4 py-2.5 bg-gray-900 border-b text-sm text-white rounded-full mb-3">
+                    <div className="grid grid-cols-12 gap-4 px-4 py-2.5 bg-slate-800 border-b text-xs font-semibold text-slate-200 rounded-xl tracking-wide mb-3">
                       <div className="col-span-2">TOKEN</div>
                       <div className="col-span-2">CUSTOMER</div>
                       <div className="col-span-2">SERVICE TYPE</div>
@@ -1091,7 +1254,7 @@ export default function OfficerQueuePage() {
                                   <button
                                     onClick={() => handleRecall(t.id)}
                                     disabled={loading || currentToken !== null}
-                                    className="px-2 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed whitespace-nowrap"
+                                    className="px-2 py-1 bg-indigo-600 text-white text-xs rounded-lg hover:bg-indigo-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed whitespace-nowrap"
                                   >
                                     Recall
                                   </button>
@@ -1130,7 +1293,7 @@ export default function OfficerQueuePage() {
 
       {/* Transfer Modal */}
       {isTransferModalOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
           <div className="bg-white rounded-2xl shadow-xl max-w-lg w-full p-6 animate-in zoom-in duration-200">
             <h2 className="text-xl font-bold text-gray-900 mb-2">Transfer Customer</h2>
             <p className="text-sm text-gray-600 mb-6">Select a new service or a specific counter to transfer the customer.</p>
@@ -1144,7 +1307,7 @@ export default function OfficerQueuePage() {
                     <label key={service.id} className={`flex items-start gap-3 p-2.5 rounded-xl border cursor-pointer transition-all group ${transferServices.includes(service.code) ? 'bg-blue-50 border-blue-200' : 'bg-gray-50 border-gray-100'}`}>
                       <input
                         type="checkbox"
-                        className="mt-1 w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                        className="mt-1 w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-indigo-500 cursor-pointer"
                         checked={transferServices.includes(service.code)}
                         onChange={(e) => {
                           if (e.target.checked) setTransferServices([...transferServices, service.code])
@@ -1201,7 +1364,7 @@ export default function OfficerQueuePage() {
                 value={transferNotes}
                 onChange={(e) => setTransferNotes(e.target.value)}
                 placeholder="Brief reason for transfer (e.g., requires manager override)"
-                className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none resize-none"
+                className="w-full px-4 py-2.5 bg-gray-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all outline-none resize-none"
                 rows={2}
               />
             </div>

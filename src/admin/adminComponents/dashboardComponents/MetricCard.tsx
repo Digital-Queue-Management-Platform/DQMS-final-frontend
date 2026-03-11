@@ -1,4 +1,4 @@
-//import React from 'react';
+﻿//import React from 'react';
 import { TrendingUpIcon, TrendingDownIcon } from 'lucide-react';
 
 interface MetricCardProps {
@@ -19,7 +19,7 @@ const MetricCard: React.FC<MetricCardProps> = ({
   detail
 }) => {
   return (
-    <div className="p-6 rounded-2xl border border-gray-200 bg-white">
+    <div className="p-6 rounded-2xl border border-slate-200 bg-white">
       <div className="flex justify-between items-start">
         <div>
           <p className="text-sm font-medium text-gray-600">{title}</p>

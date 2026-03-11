@@ -19,6 +19,10 @@ export interface Token {
   status: string
   isPriority?: boolean
   isTransferred?: boolean
+  sltTelephoneNumber?: string | null
+  billPaymentIntent?: 'full' | 'partial' | null
+  billPaymentAmount?: number | null
+  billPaymentMethod?: string | null
   outletId: string
   outlet?: Outlet
   assignedTo?: string

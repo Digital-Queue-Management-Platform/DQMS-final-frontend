@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+﻿import React, { useState, useRef, useEffect } from 'react';
 import { ChevronDown } from 'lucide-react';
 
 interface DropdownOption {
@@ -76,7 +76,7 @@ const AnimatedDropdown: React.FC<AnimatedDropdownProps> = ({
 
       {/* Dropdown Menu */}
       <div
-        className={`absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden transition-all duration-200 origin-top ${isOpen
+        className={`absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg overflow-hidden transition-all duration-200 origin-top ${isOpen
           ? 'opacity-100 scale-y-100 translate-y-0'
           : 'opacity-0 scale-y-95 -translate-y-2 pointer-events-none'
           }`}

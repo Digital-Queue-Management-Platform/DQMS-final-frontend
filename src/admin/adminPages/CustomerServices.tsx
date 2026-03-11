@@ -1,4 +1,4 @@
-import { useState } from "react"
+﻿import { useState } from "react"
 import { Search } from "lucide-react"
 
 interface Service {
@@ -89,7 +89,7 @@ const CustomerServices: React.FC = () => {
   return (
     <div className="min-h-screen bg-white">
       {/* Header 
-      <header className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+      <header className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
         <div className="text-center flex-1">
           <div className="text-gray-700 font-medium">Tuesday, September</div>
           <div className="text-gray-700 font-medium">23, 2025</div>
@@ -113,7 +113,7 @@ const CustomerServices: React.FC = () => {
 
           {/* User Profile 
           <div className="flex items-center gap-2 cursor-pointer">
-            <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
+            <div className="w-8 h-8 bg-blue-600 rounded-xl flex items-center justify-center">
               <User className="w-4 h-4 text-white" />
             </div>
             <div className="text-left">
@@ -139,7 +139,7 @@ const CustomerServices: React.FC = () => {
             <input
               type="text"
               placeholder="Search Services..."
-              className="pl-10 w-80 border border-gray-300 rounded-md text-gray-600 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:outline-none py-2 px-3"
+              className="pl-10 w-80 border border-gray-300 rounded-md text-gray-600 placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:outline-none py-2 px-3"
             />
           </div>
         </div>
@@ -149,14 +149,14 @@ const CustomerServices: React.FC = () => {
           {services.map((service) => (
             <div
               key={service.id}
-              className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow"
+              className="bg-white border border-slate-200 rounded-lg p-6 hover:shadow-md transition-shadow"
             >
               <div className="flex items-start gap-3">
                 <input
                   type="checkbox"
                   checked={service.checked}
                   onChange={() => handleServiceToggle(service.id)}
-                  className="mt-1 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                  className="mt-1 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-indigo-500"
                 />
                 <div className="flex-1">
                   <h3 className="font-medium text-gray-800 mb-2">

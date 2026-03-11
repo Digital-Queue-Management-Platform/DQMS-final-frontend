@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+﻿import { useState, useEffect } from "react"
 import { Plus, Trash2, Edit2, X, CheckCircle, AlertCircle, UserCheck, MapPin } from "lucide-react"
 import api from "../../config/api"
 
@@ -125,7 +125,7 @@ export default function AdminDGMs() {
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">Assign Regions</label>
-                                <div className="border border-gray-200 rounded-xl p-3 max-h-48 overflow-y-auto space-y-2">
+                                <div className="border border-slate-200 rounded-xl p-3 max-h-48 overflow-y-auto space-y-2">
                                     {regions.length === 0 && <p className="text-sm text-gray-400 text-center py-2">No regions available yet</p>}
                                     {regions.map((r: any) => {
                                         const isTakenGlobally = r.assignedDgm && r.assignedDgm.id !== editingDGM?.id
@@ -169,7 +169,7 @@ export default function AdminDGMs() {
             {loading ? (
                 <div className="py-16 text-center text-gray-400">Loading DGMs…</div>
             ) : dgms.length === 0 ? (
-                <div className="py-16 text-center bg-white rounded-2xl border border-dashed border-gray-200 text-gray-400">
+                <div className="py-16 text-center bg-white rounded-2xl border border-dashed border-slate-200 text-gray-400">
                     <UserCheck className="w-12 h-12 mx-auto mb-3" /><p>No DGMs yet. Create the first one.</p>
                 </div>
             ) : (

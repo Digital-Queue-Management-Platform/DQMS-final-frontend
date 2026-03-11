@@ -1,8 +1,9 @@
-"use client"
+﻿"use client"
 
 import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import { Clock, Star, Users, Building2, TrendingUp, TrendingDown, Bell, X, Activity, Building, Calendar, MessageSquare } from "lucide-react"
+import { motion } from "framer-motion"
 // ManagerTopBar is provided globally from Layout for manager routes
 import api, { WS_URL } from "../config/api"
 import type { Alert } from "../types"
@@ -25,7 +26,7 @@ export default function ManagerDashboard() {
   const [loading, setLoading] = useState(true)
   const [currentDateTime, setCurrentDateTime] = useState<Date>(new Date())
   const [dashboardLoading, setDashboardLoading] = useState(false)
-  const [lastUpdated, setLastUpdated] = useState<Date>(new Date())
+  const [_lastUpdated, setLastUpdated] = useState<Date>(new Date())
   const [regionStats, setRegionStats] = useState({
     totalCustomersServed: 0,
     avgRegionalWaitTime: 0,
@@ -96,7 +97,7 @@ export default function ManagerDashboard() {
               
               // Show immediate notification for RTOM 2-star feedback alerts
               if (data.type === "RTOM_FEEDBACK_ALERT") {
-                console.log('⚠️ RTOM FEEDBACK ALERT (2-star):', data.data)
+                console.log('âš ï¸ RTOM FEEDBACK ALERT (2-star):', data.data)
                 fetchAlerts(false) // Refresh alerts when new 2-star feedback arrives (without filters)
               }
             }
@@ -306,21 +307,16 @@ export default function ManagerDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-8">
+    <div className="min-h-screen bg-slate-50 p-4 sm:p-6 lg:p-8">
       <div className="mx-auto">
         {/* Header Section in Body */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-2">
+        <motion.div initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="mb-6">
+          <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">RTOM Dashboard</h1>
-              <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-                <p className="text-sm text-gray-500">
-                  {formatDate(currentDateTime)} | {formatTime(currentDateTime)}
-                </p>
-                <div className="flex items-center gap-3 text-sm text-slate-600">
-                  {dashboardLoading && <span className="flex items-center gap-1">Refreshing...</span>}
-                  <span>Last updated: {lastUpdated.toLocaleTimeString()}</span>
-                </div>
+              <h1 className="text-xl sm:text-2xl font-bold text-slate-900">RTOM Dashboard</h1>
+              <div className="flex flex-wrap items-center gap-2 mt-1">
+                <p className="text-xs text-slate-500">{formatDate(currentDateTime)} &bull; {formatTime(currentDateTime)}</p>
+                {dashboardLoading && <span className="text-xs text-emerald-600 font-medium">Refreshing...</span>}
               </div>
             </div>
 
@@ -328,14 +324,14 @@ export default function ManagerDashboard() {
             <div className="flex items-center gap-4">
               <button
                 onClick={() => setShowAlerts(!showAlerts)}
-                className={`relative p-2 bg-white rounded-lg hover:bg-gray-50 transition-colors border border-gray-200 shadow-sm ${
+                className={`relative p-2 bg-white rounded-lg hover:bg-gray-50 transition-colors border border-slate-200 shadow-sm ${
                   alertsLoading ? 'animate-pulse' : ''
                 }`}
                 title="2-Star Feedback Alerts"
               >
                 <Bell className={`w-5 h-5 ${alertsLoading ? 'text-blue-600' : 'text-gray-700'}`} />
                 {unreadAlertCount > 0 && (
-                  <span className="absolute -top-1 -right-1 w-4 h-4 bg-yellow-500 text-white text-xs rounded-full flex items-center justify-center text-[10px]">
+                  <span className="absolute -top-1 -right-1 w-4 h-4 bg-yellow-500 text-white text-xs rounded-xl flex items-center justify-center text-[10px]">
                     {unreadAlertCount > 99 ? '99+' : unreadAlertCount}
                   </span>
                 )}
@@ -345,79 +341,79 @@ export default function ManagerDashboard() {
               </button>
             </div>
           </div>
-        </div>
+        </motion.div>
 
         {/* Main Content */}
         <div className="space-y-6">
           {/* Regional Overview Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4 lg:gap-6">{/* Existing card content */}
-          <div className="bg-white rounded-lg sm:rounded-xl shadow-sm p-4 sm:p-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4 lg:gap-6">
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 sm:p-6">
             <div className="flex items-center justify-between">
               <div className="min-w-0 flex-1">
                 <p className="text-xs sm:text-sm text-gray-600 mb-1 truncate">Customers Served Today</p>
                 <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">{regionStats.totalCustomersServed}</p>
               </div>
-              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 ml-3">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-100 rounded-xl flex items-center justify-center flex-shrink-0 ml-3">
                 <Users className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-lg sm:rounded-xl shadow-sm p-4 sm:p-6">
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 sm:p-6">
             <div className="flex items-center justify-between">
               <div className="min-w-0 flex-1">
                 <p className="text-xs sm:text-sm text-gray-600 mb-1 truncate">Avg Regional Wait</p>
                 <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">{regionStats.avgRegionalWaitTime}m</p>
               </div>
-              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-yellow-100 rounded-full flex items-center justify-center flex-shrink-0 ml-3">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-yellow-100 rounded-xl flex items-center justify-center flex-shrink-0 ml-3">
                 <Clock className="w-5 h-5 sm:w-6 sm:h-6 text-yellow-600" />
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-lg sm:rounded-xl shadow-sm p-4 sm:p-6">
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 sm:p-6">
             <div className="flex items-center justify-between">
               <div className="min-w-0 flex-1">
                 <p className="text-xs sm:text-sm text-gray-600 mb-1 truncate">Regional Rating</p>
                 <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">{regionStats.avgRegionalRating}</p>
               </div>
-              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0 ml-3">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-green-100 rounded-xl flex items-center justify-center flex-shrink-0 ml-3">
                 <Star className="w-5 h-5 sm:w-6 sm:h-6 text-green-600" />
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-xl shadow-sm p-6">
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600 mb-1">Active Branches</p>
+                <p className="text-sm text-slate-500 mb-1">Active Branches</p>
                 <p className="text-3xl font-bold text-gray-900">{regionStats.totalActiveBranches}</p>
               </div>
-              <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
+              <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
                 <Building2 className="w-6 h-6 text-purple-600" />
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-xl shadow-sm p-6">
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600 mb-1">Active Officers</p>
+                <p className="text-sm text-slate-500 mb-1">Active Officers</p>
                 <p className="text-3xl font-bold text-gray-900">{regionStats.totalActiveOfficers}</p>
               </div>
-              <div className="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center">
+              <div className="w-12 h-12 bg-indigo-100 rounded-xl flex items-center justify-center">
                 <Users className="w-6 h-6 text-indigo-600" />
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-xl shadow-sm p-6">
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600 mb-1">Currently Waiting</p>
+                <p className="text-sm text-slate-500 mb-1">Currently Waiting</p>
                 <p className="text-3xl font-bold text-gray-900">{regionStats.totalCustomersWaiting}</p>
               </div>
-              <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center">
+              <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center">
                 <Clock className="w-6 h-6 text-orange-600" />
               </div>
             </div>
@@ -425,32 +421,32 @@ export default function ManagerDashboard() {
         </div>
 
         {/* Branch Performance Table */}
-        <div className="bg-white rounded-xl shadow-sm p-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-6">Branch Performance</h2>
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
+          <h2 className="text-xl font-bold text-slate-900 mb-6">Branch Performance</h2>
           
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-gray-50">
+              <thead className="bg-slate-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
                     Branch
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
                     Served Today
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
                     Avg Wait Time
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
                     Rating
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
                     Officers
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
                     Waiting
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
                     Trend
                   </th>
                 </tr>
@@ -494,7 +490,7 @@ export default function ManagerDashboard() {
         </div>
 
         {/* Quick Actions Section */}
-        <div className="bg-white rounded-lg shadow border">
+        <div className="bg-white rounded-2xl shadow-sm border">
           <div className="px-6 py-4 border-b">
             <h3 className="text-lg font-semibold text-gray-900">Quick Actions</h3>
           </div>
@@ -536,9 +532,9 @@ export default function ManagerDashboard() {
 
       {/* RTOM Alerts Panel */}
       {showAlerts && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-20 flex items-start justify-center sm:justify-end p-2 sm:p-4">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-20 flex items-start justify-center sm:justify-end p-2 sm:p-4">
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm sm:max-w-md max-h-[90vh] sm:max-h-[80vh] overflow-y-auto">
-            <div className="sticky top-0 bg-white border-b border-gray-200 p-3 sm:p-4">
+            <div className="sticky top-0 bg-white border-b border-slate-200 p-3 sm:p-4">
               <div className="flex items-center justify-between">
                 <h2 className="text-base sm:text-lg font-bold text-gray-900">2-Star Feedback Alerts</h2>
                 <button onClick={() => setShowAlerts(false)} className="text-gray-500 hover:text-gray-700 p-1">
@@ -604,7 +600,7 @@ export default function ManagerDashboard() {
                           </div>
                           <p className="text-sm text-gray-700 mb-2">{alert.message}</p>
                           {(alert as any).outletInfo?.customerName && (
-                            <p className="text-xs text-gray-600 mb-1">
+                            <p className="text-xs text-slate-500 mb-1">
                               Customer: {(alert as any).outletInfo.customerName}
                             </p>
                           )}

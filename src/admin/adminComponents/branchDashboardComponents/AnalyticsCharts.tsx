@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import {
   LineChart,
   Line,
@@ -85,7 +85,7 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ data, tokenData, outl
   }, [data.serviceTypes]);
 
   return (
-    <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+    <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 mb-6">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-lg font-semibold text-gray-800">
           Branch Analytics

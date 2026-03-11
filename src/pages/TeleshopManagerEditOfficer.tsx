@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useState, useEffect } from "react"
 import { useNavigate, useParams } from "react-router-dom"
@@ -234,7 +234,7 @@ export default function TeleshopManagerEditOfficer() {
       <div className="mb-8">
         <button
           onClick={() => navigate("/teleshop-manager/officers")}
-          className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4"
+          className="flex items-center gap-2 text-gray-600 hover:text-slate-900 mb-4"
         >
           <ArrowLeft className="w-4 h-4" />
           Back to Officers
@@ -264,7 +264,7 @@ export default function TeleshopManagerEditOfficer() {
       )}
 
       {/* Edit Form */}
-      <div className="max-w-2xl mx-auto bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+      <div className="max-w-2xl mx-auto bg-white rounded-2xl shadow-sm border border-slate-100 border border-slate-200 p-6">
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Officer Name */}
           <div>
@@ -276,7 +276,7 @@ export default function TeleshopManagerEditOfficer() {
               type="text"
               value={formData.name}
               onChange={(e) => handleInputChange('name', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent"
               placeholder="Enter officer name"
               required
             />
@@ -320,7 +320,7 @@ export default function TeleshopManagerEditOfficer() {
             <select
               value={formData.counterNumber}
               onChange={(e) => handleInputChange('counterNumber', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent"
               disabled={!formData.outletId || outlets.length === 0}
             >
               <option value="">Select counter (optional)</option>
@@ -361,7 +361,7 @@ export default function TeleshopManagerEditOfficer() {
                     type="checkbox"
                     checked={formData.assignedServices.includes(service.code)}
                     onChange={() => toggleService(service.code)}
-                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    className="rounded border-gray-300 text-blue-600 focus:ring-indigo-500"
                   />
                   <span className="ml-2 text-sm text-gray-700">{service.title}</span>
                 </label>

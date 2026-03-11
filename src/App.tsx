@@ -6,34 +6,34 @@ import Sidebar from "./admin/adminComponents/additionalComps/SideBar"
 import ProtectedAdminRoute from "./components/ProtectedAdminRoute"
 import ProtectedManagerRoute from "./components/ProtectedManagerRoute"
 import CustomerRegistration from "./pages/CustomerRegistration"
-import QueueStatus from "./pages/QueueStatus"
 import OfficerLogin from "./pages/OfficerLogin"
-import OfficerDashboard from "./pages/OfficerDashboard"
 import AdminLogin from "./pages/AdminLogin"
+const OfficerDashboard = React.lazy(() => import("./pages/OfficerDashboard"))
+const QueueStatus = React.lazy(() => import("./pages/QueueStatus"))
 // Lazily-loaded heavy admin/manager pages to reduce initial bundle
 const DashboardPage = React.lazy(() => import("./admin/adminPages/DashboardPage"))
 const AdminOfficers = React.lazy(() => import("./admin/adminPages/AdminOfficers"))
 const BranchesPage = React.lazy(() => import("./admin/adminPages/BranchesPage"))
 const ServicesPage = React.lazy(() => import("./admin/adminPages/ServicesPage"))
 const BranchComparePage = React.lazy(() => import("./admin/adminPages/BranchComparePage"))
+const AdminBackupPage = React.lazy(() => import("./admin/adminPages/AdminBackupPage"))
 const AdminAllOfficers = React.lazy(() => import("./admin/adminPages/AdminAllOfficers"))
 const ManagerManagement = React.lazy(() => import("./admin/adminPages/ManagerManagement"))
-import FeedbackPage from "./pages/FeedbackPage"
-import QRDisplay from "./pages/QRDisplay"
-// import OfficerRegistration from "./pages/OfficerRegistration" // moved under manager portal
 import OfficerQueuePage from "./pages/OfficerQueuePage"
 import IPSpeakerPage from "./pages/IPSpeakerPage"
-import OfficerServedCustomers from "./pages/OfficerServedCustomers"
-import OfficerServiceTracking from "./pages/OfficerServiceTracking"
-import OfficerBranchNotices from "./pages/OfficerBranchNotices"
 import ManagerLogin from "./pages/ManagerLogin"
+const FeedbackPage = React.lazy(() => import("./pages/FeedbackPage"))
+const QRDisplay = React.lazy(() => import("./pages/QRDisplay"))
+const OfficerServedCustomers = React.lazy(() => import("./pages/OfficerServedCustomers"))
+const OfficerServiceTracking = React.lazy(() => import("./pages/OfficerServiceTracking"))
+const OfficerBranchNotices = React.lazy(() => import("./pages/OfficerBranchNotices"))
 const ManagerDashboard = React.lazy(() => import("./pages/ManagerDashboard"))
 const ManagerBranches = React.lazy(() => import("./pages/ManagerBranches"))
 const ManagerCompare = React.lazy(() => import("./pages/ManagerCompare"))
 const ManagerQRCodes = React.lazy(() => import("./pages/ManagerQRCodes"))
 const ManagerBreakOversight = React.lazy(() => import("./pages/ManagerBreakOversight"))
 const ManagerAppointments = React.lazy(() => import("./pages/ManagerAppointments"))
-import TeleshopManagerLogin from "./pages/TeleshopManagerLogin"
+const TeleshopManagerLogin = React.lazy(() => import("./pages/TeleshopManagerLogin"))
 const TeleshopManagerDashboard = React.lazy(() => import("./pages/TeleshopManagerDashboard"))
 const TeleshopManagerOfficerRegistration = React.lazy(() => import("./pages/TeleshopManagerOfficerRegistration"))
 const TeleshopManagerOfficers = React.lazy(() => import("./pages/TeleshopManagerOfficers"))
@@ -46,23 +46,24 @@ const TeleshopManagerKioskSettings = React.lazy(() => import("./pages/TeleshopMa
 const ManagerFeedback = React.lazy(() => import("./pages/ManagerFeedback"))
 const AdminFeedback = React.lazy(() => import("./pages/AdminFeedback"))
 const ManagerOfficerAssignment = React.lazy(() => import("./pages/ManagerOfficerAssignment"))
-import ManagerTeleshopManagers from "./pages/ManagerTeleshopManagers"
 import ProtectedTeleshopManagerRoute from "./components/ProtectedTeleshopManagerRoute"
-import AppointmentBooking from "./pages/AppointmentBooking"
-import AppointmentMy from "./pages/AppointmentMy"
-import AdminAppointments from "./admin/adminPages/AdminAppointments"
-import AdminOutletPasswords from "./admin/adminPages/AdminOutletPasswords"
-import ServiceStatus from "./pages/ServiceStatus"
-import ManagerServiceTracking from "./pages/ManagerServiceTracking"
-import TeleshopManagerServiceTracking from "./pages/TeleshopManagerServiceTracking"
 import KioskLogin from "./pages/KioskLogin"
 import KioskDashboard from "./pages/KioskDashboard"
+const ManagerTeleshopManagers = React.lazy(() => import("./pages/ManagerTeleshopManagers"))
+const AppointmentBooking = React.lazy(() => import("./pages/AppointmentBooking"))
+const AppointmentMy = React.lazy(() => import("./pages/AppointmentMy"))
+const AdminAppointments = React.lazy(() => import("./admin/adminPages/AdminAppointments"))
+const AdminOutletPasswords = React.lazy(() => import("./admin/adminPages/AdminOutletPasswords"))
+const ServiceStatus = React.lazy(() => import("./pages/ServiceStatus"))
+const ManagerServiceTracking = React.lazy(() => import("./pages/ManagerServiceTracking"))
+const TeleshopManagerServiceTracking = React.lazy(() => import("./pages/TeleshopManagerServiceTracking"))
 const TeleshopManagerClosureNotices = React.lazy(() => import("./pages/TeleshopManagerClosureNotices"))
+const TeleshopManagerAuditLogs = React.lazy(() => import("./pages/TeleshopManagerAuditLogs"))
 const ManagerClosureNotices = React.lazy(() => import("./pages/ManagerClosureNotices"))
 const AdminGMs = React.lazy(() => import("./admin/adminPages/AdminGMs"))
 const AdminDGMs = React.lazy(() => import("./admin/adminPages/AdminDGMs"))
-import GMLogin from "./pages/GMLogin"
-import DGMLogin from "./pages/DGMLogin"
+const GMLogin = React.lazy(() => import("./pages/GMLogin"))
+const DGMLogin = React.lazy(() => import("./pages/DGMLogin"))
 const GMDashboard = React.lazy(() => import("./pages/GMDashboard"))
 const GMFeedback = React.lazy(() => import("./pages/GMFeedback"))
 const GMClosureNotices = React.lazy(() => import("./pages/GMClosureNotices"))
@@ -515,6 +516,10 @@ function App() {
           path="/admin/compare"
         />
         <Route
+          element={<Layout><ProtectedAdminRoute><AdminBackupPage /></ProtectedAdminRoute></Layout>}
+          path="/admin/backup"
+        />
+        <Route
           element={<Layout><ProtectedAdminRoute><AdminOutletPasswords /></ProtectedAdminRoute></Layout>}
           path="/admin/outlet-passwords"
         />
@@ -633,6 +638,10 @@ function App() {
         <Route
           element={<Layout><ProtectedTeleshopManagerRoute><TeleshopManagerClosureNotices /></ProtectedTeleshopManagerRoute></Layout>}
           path="/teleshop-manager/closure-notices"
+        />
+        <Route
+          element={<Layout><ProtectedTeleshopManagerRoute><TeleshopManagerAuditLogs /></ProtectedTeleshopManagerRoute></Layout>}
+          path="/teleshop-manager/audit-logs"
         />
         <Route element={<GMLogin />} path="/gm/login" />
         <Route

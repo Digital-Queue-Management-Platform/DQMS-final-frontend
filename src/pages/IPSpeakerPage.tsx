@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+﻿import { useState, useEffect } from 'react'
 import { Volume2, VolumeX, Play, Square, Wifi, WifiOff, TestTube, Save, RefreshCw, Eye, EyeOff } from 'lucide-react'
 import api from '../config/api'
 import type { Token } from '../types'
@@ -281,8 +281,44 @@ export default function IPSpeakerPage() {
     }
   }
 
+  const speakWithGoogleTTS = async (text: string, language: 'si' | 'ta' | 'en') => {
+    if (isMuted) return
+    try {
+      setIsPlaying(true)
+      const response = await api.get('/tts/speak', {
+        params: { text, lang: language },
+        responseType: 'blob',
+      })
+      const url = URL.createObjectURL(response.data)
+      const audio = new Audio(url)
+      audio.volume = volume
+      audio.onended = () => {
+        setIsPlaying(false)
+        URL.revokeObjectURL(url)
+      }
+      audio.onerror = () => {
+        setIsPlaying(false)
+        URL.revokeObjectURL(url)
+      }
+      await audio.play()
+    } catch {
+      setIsPlaying(false)
+    }
+  }
+
   const speakWithBrowser = (text: string, language: 'en' | 'si' | 'ta') => {
-    if (!speechSynthesis || isMuted) return
+    if (isMuted) return
+
+    const voice = findBestVoice(language)
+    const hasNativeVoice = voice && voice.lang.startsWith(language === 'si' ? 'si' : language === 'ta' ? 'ta' : 'en')
+
+    // For Sinhala/Tamil with no native voice, use Google TTS proxy
+    if ((language === 'si' || language === 'ta') && !hasNativeVoice) {
+      speakWithGoogleTTS(text, language)
+      return
+    }
+
+    if (!speechSynthesis) return
 
     // Stop any current speech globally
     speechSynthesis.cancel()
@@ -290,42 +326,17 @@ export default function IPSpeakerPage() {
     // Wait a bit to ensure cancellation is complete
     setTimeout(() => {
       const utterance = new SpeechSynthesisUtterance(text)
-      let voice = findBestVoice(language)
       let shouldSpeak = false
       
       if (voice) {
-        // Found appropriate voice for the language
         utterance.voice = voice
         utterance.lang = LANGUAGE_CODES[language] || 'en-US'
-        console.log(`Using voice: ${voice.name} (${voice.lang}) for language: ${language}`)
         shouldSpeak = true
-      } else if (language === 'si' || language === 'ta') {
-        // No Sinhala/Tamil voice found, use best English voice as fallback
-        console.warn(`No ${language} voice found, using English voice with ${language} text`)
-        const englishVoice = findBestVoice('en')
-        if (englishVoice) {
-          utterance.voice = englishVoice
-          utterance.lang = 'en-US'
-          console.log(`Fallback: Using English voice "${englishVoice.name}" for ${language} text`)
-          shouldSpeak = true
-        } else {
-          // Even English voice not found, try Microsoft voices first, then any
-          const microsoftVoice = availableVoices.find(v => v.name.includes('Microsoft'))
-          const anyVoice = microsoftVoice || availableVoices.find(v => v.default) || availableVoices[0]
-          if (anyVoice) {
-            utterance.voice = anyVoice
-            utterance.lang = 'en-US'
-            console.log(`Fallback: Using available voice "${anyVoice.name}" for ${language} text`)
-            shouldSpeak = true
-          }
-        }
       } else if (language === 'en') {
-        // For English, try to get any English voice or fallback to any voice
         const englishVoice = availableVoices.find(v => v.lang.startsWith('en')) || availableVoices[0]
         if (englishVoice) {
           utterance.voice = englishVoice
           utterance.lang = 'en-US'
-          console.log(`Using English voice: ${englishVoice.name}`)
           shouldSpeak = true
         }
       }
@@ -335,23 +346,12 @@ export default function IPSpeakerPage() {
         utterance.rate = 0.9
         utterance.pitch = 1.0
 
-        utterance.onstart = () => {
-          console.log(`Speech started for ${language}: ${text.substring(0, 50)}...`)
-          setIsPlaying(true)
-        }
-        utterance.onend = () => {
-          console.log(`Speech ended for ${language}`)
-          setIsPlaying(false)
-        }
-        utterance.onerror = (event) => {
-          console.error(`Speech synthesis error for ${language}:`, event)
-          setIsPlaying(false)
-        }
+        utterance.onstart = () => { setIsPlaying(true) }
+        utterance.onend = () => { setIsPlaying(false) }
+        utterance.onerror = () => { setIsPlaying(false) }
 
-        console.log(`About to speak ${language} text: "${text.substring(0, 50)}..."`)
         speechSynthesis.speak(utterance)
       } else {
-        console.error(`No voice available for ${language} and no fallback found`)
         setIsPlaying(false)
       }
     }, 100)
@@ -434,7 +434,7 @@ export default function IPSpeakerPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-8">
+    <div className="min-h-screen bg-slate-50 p-4 sm:p-6 lg:p-8">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="mb-8">
@@ -444,7 +444,7 @@ export default function IPSpeakerPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Configuration Panel */}
-          <div className="bg-white rounded-xl shadow-sm p-6">
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-semibold text-gray-900">Configuration</h2>
               <div className="flex items-center space-x-2">
@@ -498,7 +498,7 @@ export default function IPSpeakerPage() {
 
             {/* IP Speaker Configuration */}
             {useIPSpeaker && (
-              <div className="space-y-4 p-4 bg-gray-50 rounded-lg">
+              <div className="space-y-4 p-4 bg-slate-50 rounded-xl">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">IP Address</label>
@@ -506,7 +506,7 @@ export default function IPSpeakerPage() {
                       type="text"
                       value={ipSpeakerConfig.ip}
                       onChange={(e) => setIpSpeakerConfig(prev => ({ ...prev, ip: e.target.value }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                       placeholder="192.168.1.100"
                     />
                   </div>
@@ -516,7 +516,7 @@ export default function IPSpeakerPage() {
                       type="number"
                       value={ipSpeakerConfig.port}
                       onChange={(e) => setIpSpeakerConfig(prev => ({ ...prev, port: parseInt(e.target.value) }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                       placeholder="80"
                     />
                   </div>
@@ -529,7 +529,7 @@ export default function IPSpeakerPage() {
                       type="text"
                       value={ipSpeakerConfig.username}
                       onChange={(e) => setIpSpeakerConfig(prev => ({ ...prev, username: e.target.value }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                       placeholder="admin"
                     />
                   </div>
@@ -540,7 +540,7 @@ export default function IPSpeakerPage() {
                         type={showPassword ? "text" : "password"}
                         value={ipSpeakerConfig.password}
                         onChange={(e) => setIpSpeakerConfig(prev => ({ ...prev, password: e.target.value }))}
-                        className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                         placeholder="admin123"
                       />
                       <button
@@ -563,7 +563,7 @@ export default function IPSpeakerPage() {
                   <select
                     value={ipSpeakerConfig.model}
                     onChange={(e) => setIpSpeakerConfig(prev => ({ ...prev, model: e.target.value as any }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                   >
                     {IP_SPEAKER_MODELS.map(model => (
                       <option key={model.id} value={model.id}>
@@ -654,8 +654,8 @@ export default function IPSpeakerPage() {
           </div>
 
           {/* Test Panel */}
-          <div className="bg-white rounded-xl shadow-sm p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-6">Test Announcements</h2>
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
+            <h2 className="text-xl font-semibold text-slate-900 mb-6">Test Announcements</h2>
 
             {/* Current Token Info */}
             {currentToken && (
@@ -723,7 +723,7 @@ export default function IPSpeakerPage() {
                   value={customMessage}
                   onChange={(e) => setCustomMessage(e.target.value)}
                   rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                   placeholder="Enter custom announcement text..."
                 />
                 <button

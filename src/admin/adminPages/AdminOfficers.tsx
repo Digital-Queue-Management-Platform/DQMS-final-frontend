@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+﻿import React, { useEffect, useState } from 'react'
 import api, { WS_URL } from '../../config/api'
 import { Users, Hash, CheckCircle2, XCircle, Search, UserCog } from 'lucide-react'
 
@@ -130,7 +130,7 @@ const AdminOfficers: React.FC = () => {
 
         {/* Stats Overview */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-8">
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 sm:p-6">
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 border border-slate-200 p-4 sm:p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs sm:text-sm text-slate-600 mb-1">Total Officers</p>
@@ -142,7 +142,7 @@ const AdminOfficers: React.FC = () => {
             </div>
           </div>
 
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 sm:p-6">
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 border border-slate-200 p-4 sm:p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs sm:text-sm text-slate-600 mb-1">With Counters</p>
@@ -154,7 +154,7 @@ const AdminOfficers: React.FC = () => {
             </div>
           </div>
 
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 sm:p-6">
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 border border-slate-200 p-4 sm:p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs sm:text-sm text-slate-600 mb-1">Active Services</p>
@@ -166,7 +166,7 @@ const AdminOfficers: React.FC = () => {
             </div>
           </div>
 
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 sm:p-6">
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 border border-slate-200 p-4 sm:p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs sm:text-sm text-slate-600 mb-1">Unassigned</p>
@@ -180,7 +180,7 @@ const AdminOfficers: React.FC = () => {
         </div>
 
         {/* Search Bar */}
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 sm:p-6 mb-6">
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 border border-slate-200 p-4 sm:p-6 mb-6">
           <div className="relative">
             <Search className="absolute left-3 sm:left-4 top-1/2 transform -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-slate-400" />
             <input

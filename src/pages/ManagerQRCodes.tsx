@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
@@ -375,7 +375,7 @@ export default function ManagerQRCodes() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-8">
+    <div className="min-h-screen bg-slate-50 p-4 sm:p-6 lg:p-8">
       <div className="mx-auto">
         {/* Header */}
         <div className="mb-8">
@@ -396,7 +396,7 @@ export default function ManagerQRCodes() {
         {/* Branches Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {branches.map((branch) => (
-            <div key={branch.id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+            <div key={branch.id} className="bg-white rounded-2xl shadow-sm border border-slate-100 border border-slate-200 p-6 hover:shadow-md transition-shadow">
               {/* Branch Header */}
               <div className="flex items-start justify-between mb-4">
                 <div className="flex-1">
@@ -431,7 +431,7 @@ export default function ManagerQRCodes() {
               {/* QR Actions */}
               <div className="space-y-3">
                 {/* QR Status and Actions */}
-                <div className="bg-gray-50 rounded-lg p-3">
+                <div className="bg-slate-50 rounded-xl p-3">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-xs text-gray-600">QR Status:</span>
                     {qrCodes.has(branch.id) ? (
@@ -471,7 +471,7 @@ export default function ManagerQRCodes() {
                   </button>
                   <button
                     onClick={() => handlePrintQR(branch.id)}
-                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors text-sm font-medium"
                   >
                     <Printer className="w-4 h-4" />
                     Print
@@ -497,8 +497,8 @@ export default function ManagerQRCodes() {
               </div>
 
               {/* URL Display */}
-              <div className="mt-4 p-3 bg-gray-50 rounded-lg">
-                <p className="text-xs text-gray-600 mb-1">QR Code URL:</p>
+              <div className="mt-4 p-3 bg-slate-50 rounded-xl">
+                <p className="text-xs text-slate-500 mb-1">QR Code URL:</p>
                 <p className="text-xs font-mono text-gray-800 break-all">
                   {generateQRUrl(branch.id)}
                 </p>
@@ -518,7 +518,7 @@ export default function ManagerQRCodes() {
 
         {/* QR Modal */}
         {showQRModal && selectedBranch && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
             <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-semibold text-gray-900">QR Code Preview</h3>
@@ -526,7 +526,7 @@ export default function ManagerQRCodes() {
                   onClick={() => setShowQRModal(false)}
                   className="text-gray-400 hover:text-gray-600"
                 >
-                  ✕
+                  âœ•
                 </button>
               </div>
               
@@ -554,7 +554,7 @@ export default function ManagerQRCodes() {
                 <p className="text-xs text-yellow-700 mt-1">Click refresh to generate a new QR code for security</p>
               </div>
 
-              <div className="bg-gray-50 rounded-lg p-4 mb-4">
+              <div className="bg-slate-50 rounded-xl p-4 mb-4">
                 <p className="text-sm text-gray-600 mb-2">QR Code URL:</p>
                 <p className="text-sm font-mono text-gray-800 break-all bg-white p-2 rounded border">
                   {generateQRUrl(selectedBranch.id)}
@@ -574,7 +574,7 @@ export default function ManagerQRCodes() {
                     handlePrintQR(selectedBranch.id)
                     setShowQRModal(false)
                   }}
-                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors text-sm font-medium"
                 >
                   <ExternalLink className="w-4 h-4" />
                   Open QR Page
@@ -586,7 +586,7 @@ export default function ManagerQRCodes() {
 
         {/* Confirmation Dialog */}
         {showConfirmDialog && branchToRefresh && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
             <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-semibold text-red-600">Confirm QR Code Refresh</h3>
@@ -594,13 +594,13 @@ export default function ManagerQRCodes() {
                   onClick={handleCancelRefresh}
                   className="text-gray-400 hover:text-gray-600"
                 >
-                  ✕
+                  âœ•
                 </button>
               </div>
               
               <div className="mb-4">
                 <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
-                  <h4 className="font-medium text-red-800 mb-2">⚠️ Security Warning</h4>
+                  <h4 className="font-medium text-red-800 mb-2">âš ï¸ Security Warning</h4>
                   <p className="text-sm text-red-700 mb-2">
                     You are about to refresh the QR code for <strong>{branchToRefresh.name}</strong>.
                   </p>
@@ -621,7 +621,7 @@ export default function ManagerQRCodes() {
                       setConfirmError("")
                     }}
                     placeholder="Type the confirmation text..."
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none"
                     autoFocus
                   />
                   {confirmError && (
@@ -640,7 +640,7 @@ export default function ManagerQRCodes() {
                 <button
                   onClick={handleConfirmRefresh}
                   disabled={!confirmationText.trim()}
-                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium disabled:bg-gray-400 disabled:cursor-not-allowed"
+                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-colors text-sm font-medium disabled:bg-gray-400 disabled:cursor-not-allowed"
                 >
                   Refresh QR Code
                 </button>
