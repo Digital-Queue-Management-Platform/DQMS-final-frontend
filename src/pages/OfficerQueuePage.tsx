@@ -1183,7 +1183,7 @@ export default function OfficerQueuePage() {
                     <div className="w-16 h-16 bg-green-100 rounded-xl flex items-center justify-center mx-auto mb-4">
                       <Users className="w-8 h-8 text-green-600" />
                     </div>
-                    <p className="text-gray-700 font-medium">All tokens are matched! ✅</p>
+                    <p className="text-gray-700 font-medium">All tokens are matched!</p>
                     <p className="text-xs text-gray-500 mt-2">No unmatched tokens at the moment</p>
                   </div>
                 ) : (
