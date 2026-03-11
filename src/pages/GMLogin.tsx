@@ -1,5 +1,5 @@
 ﻿import type React from "react"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import { Phone, LogIn, KeyRound, Briefcase } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
@@ -17,8 +17,9 @@ export default function GMLogin() {
   const urlParams = new URLSearchParams(window.location.search)
   const returnTo = urlParams.get("returnTo") || "/gm/dashboard"
 
-  const handleRequestOTP = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleRequestOTP = async (e?: React.FormEvent) => {
+    e?.preventDefault()
+    if (loading) return
     setError("")
     setLoading(true)
     try {
@@ -34,8 +35,9 @@ export default function GMLogin() {
     }
   }
 
-  const handleVerifyOTP = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleVerifyOTP = async (e?: React.FormEvent) => {
+    e?.preventDefault()
+    if (loading) return
     setError("")
     setLoading(true)
     try {
@@ -64,6 +66,18 @@ export default function GMLogin() {
     setOtpCode("")
     setError("")
   }
+
+  useEffect(() => {
+    if (mobileNumber.length === 10 && step === "mobile") {
+      handleRequestOTP()
+    }
+  }, [mobileNumber]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (otpCode.length === 4) {
+      handleVerifyOTP()
+    }
+  }, [otpCode]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4"
@@ -115,7 +129,7 @@ export default function GMLogin() {
                   <label className="label">Mobile Number</label>
                   <div className="relative">
                     <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                    <input type="tel" value={mobileNumber} onChange={(e) => setMobileNumber(e.target.value)}
+                    <input type="tel" value={mobileNumber} onChange={(e) => setMobileNumber(e.target.value.replace(/\D/g, '').slice(0, 10))}
                       className="input pl-10" placeholder="07XXXXXXXX" pattern="[0-9]{10}" required />
                   </div>
                 </div>
