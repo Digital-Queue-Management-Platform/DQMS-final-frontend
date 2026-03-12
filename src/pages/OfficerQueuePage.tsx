@@ -29,7 +29,7 @@ export default function OfficerQueuePage() {
   const [transferServices, setTransferServices] = useState<string[]>([])
   const [allServices, setAllServices] = useState<any[]>([])
   const [counters, setCounters] = useState<any[]>([])
-  const [targetCounter, setTargetCounter] = useState<number | null>(null)
+  const [targetOfficer, setTargetOfficer] = useState<{ id: string; name: string; counterNumber: number | null } | null>(null)
   const [transferNotes, setTransferNotes] = useState("")
 
 
@@ -286,8 +286,12 @@ export default function OfficerQueuePage() {
 
   const handleTransfer = async () => {
     if (!officer || !currentToken) return
-    if (transferServices.length === 0 && !targetCounter) {
-      alert('Please select at least one service or a target counter')
+    if (transferServices.length === 0) {
+      alert('Please select a service')
+      return
+    }
+    if (!targetOfficer) {
+      alert('Please select a target officer')
       return
     }
 
@@ -296,22 +300,21 @@ export default function OfficerQueuePage() {
       const res = await api.post('/officer/transfer-token', {
         officerId: officer.id,
         tokenId: currentToken.id,
-        newServiceTypes: transferServices.length > 0 ? transferServices : currentToken.serviceTypes,
-        targetCounterNumber: targetCounter,
-        notes: transferNotes || accountRef || "(Transferred)"
+        newServiceTypes: transferServices,
+        targetCounterNumber: targetOfficer.counterNumber,
+        notes: transferNotes || accountRef || `(Transferred to ${targetOfficer.name})`
       })
 
       if (res.data.success) {
         setIsTransferModalOpen(false)
         setTransferServices([])
-        setTargetCounter(null)
+        setTargetOfficer(null)
         setTransferNotes("")
 
         setCurrentToken(null)
         setAccountRef("")
-        // Refresh queue
         fetchQueue(officer.outletId, officer.id)
-        alert("Customer successfully transferred!")
+        alert(`Customer successfully transferred to ${targetOfficer.name}!`)
       } else {
         alert(res.data.error || 'Failed to transfer customer')
       }
@@ -603,7 +606,7 @@ export default function OfficerQueuePage() {
                         if ((t as any).isTransferred === true) return false
                         const tokenServices = Array.isArray(t.serviceTypes) ? t.serviceTypes : []
                         const officerServices = Array.isArray((officer as any)?.assignedServices) ? (officer as any).assignedServices : []
-                        const hasServiceMatch = tokenServices.length === 0 || officerServices.length === 0 || tokenServices.some(s => officerServices.includes(s))
+                        const hasServiceMatch = tokenServices.length === 0 || officerServices.length === 0 || tokenServices.some((s: any) => officerServices.includes(s))
                         const prefs = Array.isArray((t as any).preferredLanguages) ? (t as any).preferredLanguages : []
                         const langs = Array.isArray((officer as any)?.languages) ? (officer as any).languages : []
                         const hasLanguageMatch = prefs.length === 0 || langs.length === 0 || prefs.some((p: any) => langs.includes(p))
@@ -1296,63 +1299,64 @@ export default function OfficerQueuePage() {
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
           <div className="bg-white rounded-2xl shadow-xl max-w-lg w-full p-6 animate-in zoom-in duration-200">
             <h2 className="text-xl font-bold text-gray-900 mb-2">Transfer Customer</h2>
-            <p className="text-sm text-gray-600 mb-6">Select a new service or a specific counter to transfer the customer.</p>
+            <p className="text-sm text-gray-600 mb-6">Select a service and the officer to transfer to.</p>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-              {/* Service Selection */}
+              {/* Service Selection — single choice */}
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-3">Service Types</label>
+                <label className="block text-sm font-semibold text-gray-700 mb-3">Service</label>
                 <div className="space-y-2 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
                   {allServices.map((service) => (
-                    <label key={service.id} className={`flex items-start gap-3 p-2.5 rounded-xl border cursor-pointer transition-all group ${transferServices.includes(service.code) ? 'bg-blue-50 border-blue-200' : 'bg-gray-50 border-gray-100'}`}>
+                    <label key={service.id} className={`flex items-start gap-3 p-2.5 rounded-xl border cursor-pointer transition-all ${transferServices[0] === service.code ? 'bg-blue-50 border-blue-200' : 'bg-gray-50 border-gray-100 hover:bg-gray-100'}`}>
                       <input
-                        type="checkbox"
-                        className="mt-1 w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-indigo-500 cursor-pointer"
-                        checked={transferServices.includes(service.code)}
-                        onChange={(e) => {
-                          if (e.target.checked) setTransferServices([...transferServices, service.code])
-                          else setTransferServices(transferServices.filter(s => s !== service.code))
-                        }}
+                        type="radio"
+                        name="transferService"
+                        className="mt-0.5 w-4 h-4 border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                        checked={transferServices[0] === service.code}
+                        onChange={() => setTransferServices([service.code])}
                       />
                       <div className="flex-1">
-                        <div className={`text-xs font-semibold ${transferServices.includes(service.code) ? 'text-blue-700' : 'text-gray-900'}`}>{service.title}</div>
+                        <div className={`text-xs font-semibold ${transferServices[0] === service.code ? 'text-blue-700' : 'text-gray-900'}`}>{service.title}</div>
                       </div>
                     </label>
                   ))}
                 </div>
               </div>
 
-              {/* Counter Selection */}
+              {/* Officer Selection */}
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-3">Target Counter (Optional)</label>
+                <label className="block text-sm font-semibold text-gray-700 mb-3">Transfer To Officer</label>
                 <div className="space-y-1.5 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
-                  <button
-                    onClick={() => setTargetCounter(null)}
-                    className={`w-full text-left p-2.5 rounded-xl border text-xs font-medium transition-all ${targetCounter === null ? 'bg-blue-50 border-blue-200 text-blue-700' : 'bg-gray-50 border-gray-100 text-gray-700 hover:bg-gray-100'}`}
-                  >
-                    Any Counter (General Queue)
-                  </button>
-                  {counters.map((c) => (
-                    <button
-                      key={c.number}
-                      onClick={() => setTargetCounter(c.number)}
-                      className={`w-full text-left p-2.5 rounded-xl border text-xs font-medium transition-all group flex justify-between items-center ${targetCounter === c.number ? 'bg-blue-50 border-blue-200 text-blue-700' : 'bg-gray-50 border-gray-100 text-gray-700 hover:bg-gray-100'}`}
-                    >
-                      <div className="flex items-center gap-2">
-                        <span>Counter #{c.number}</span>
-                        {c.isStaffed ? (
-                          <span className="flex items-center gap-1 text-[10px] text-green-600 bg-green-50 px-1.5 py-0.5 rounded-full font-bold">
-                            Active
-                          </span>
-                        ) : (
-                          <span className="flex items-center gap-1 text-[10px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded-full font-bold">
-                            Idle
-                          </span>
-                        )}
-                      </div>
-                      {c.isStaffed && <span className="text-[10px] text-gray-500 font-normal">({c.officer.name})</span>}
-                    </button>
-                  ))}
+                  {counters.filter(c => c.isStaffed && c.officer && c.officer.id !== officer?.id).length === 0 ? (
+                    <p className="text-xs text-gray-500 py-2 text-center">No other officers currently available</p>
+                  ) : (
+                    counters
+                      .filter(c => c.isStaffed && c.officer && c.officer.id !== officer?.id)
+                      .map((c) => (
+                        <button
+                          key={c.officer.id}
+                          type="button"
+                          onClick={() => {
+                            setTargetOfficer({ id: c.officer.id, name: c.officer.name, counterNumber: c.number })
+                          }}
+                          className={`w-full text-left p-2.5 rounded-xl border text-xs font-medium transition-all flex justify-between items-center ${
+                            targetOfficer?.id === c.officer.id
+                              ? 'bg-blue-50 border-blue-200 text-blue-700'
+                              : 'bg-gray-50 border-gray-100 text-gray-700 hover:bg-gray-100'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2">
+                            <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                              c.officer.status === 'available' ? 'bg-green-400'
+                              : c.officer.status === 'serving' ? 'bg-amber-400'
+                              : 'bg-gray-300'
+                            }`} />
+                            <span>{c.officer.name}</span>
+                          </div>
+                          <span className="text-[10px] text-gray-500">{c.number ? `Counter #${c.number}` : 'No counter'}</span>
+                        </button>
+                      ))
+                  )}
                 </div>
               </div>
             </div>
@@ -1373,7 +1377,7 @@ export default function OfficerQueuePage() {
               <button
                 onClick={() => {
                   setIsTransferModalOpen(false)
-                  setTargetCounter(null)
+                  setTargetOfficer(null)
                   setTransferServices([])
                   setTransferNotes("")
                 }}
@@ -1384,7 +1388,7 @@ export default function OfficerQueuePage() {
               </button>
               <button
                 onClick={handleTransfer}
-                disabled={loading || (transferServices.length === 0 && !targetCounter)}
+                disabled={loading || transferServices.length === 0 || !targetOfficer}
                 className="flex-[2] px-4 py-3 bg-blue-600 text-white font-bold border-b-2 border-black rounded-2xl text-sm hover:bg-blue-700 shadow-lg shadow-blue-200 transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:translate-y-[-1px] active:translate-y-[1px]"
               >
                 {loading ? (

@@ -98,6 +98,23 @@ export default function KioskDashboard() {
     }
   }, [shouldAutoSubmit, otpStep, otpToken])
 
+  // Auto-submit for bill payment once intent + method (+ amount if partial) are all set
+  useEffect(() => {
+    if (selectedService !== 'SVC002' && selectedService !== 'BILL_PAYMENT') return
+    if (!sltVerified || otpStep !== 'verified') return
+    if (!billPaymentIntent || !billPaymentMethod) return
+    if (billPaymentIntent === 'partial') {
+      const amount = parseFloat(billPaymentCustomAmount)
+      if (!billPaymentCustomAmount || isNaN(amount) || amount <= 0) return
+    }
+    const timer = setTimeout(() => {
+      if (formRef.current) {
+        formRef.current.dispatchEvent(new Event('submit', { bubbles: true }))
+      }
+    }, 500)
+    return () => clearTimeout(timer)
+  }, [billPaymentIntent, billPaymentMethod, billPaymentCustomAmount, otpStep, selectedService, sltVerified])
+
   // Auto-send OTP when mobile number reaches 10 valid digits on step 3
   useEffect(() => {
     if (currentStep === 3 && mobileNumber.length === 10 && (mobileNumber.startsWith('07') || mobileNumber.startsWith('01'))) {
@@ -282,11 +299,9 @@ export default function KioskDashboard() {
 
         // Create appropriate message
         const maskedPhone = getMaskedPhoneNumber(bill.mobileNumber)
-        const formattedAmount = Number(bill.currentBill).toFixed(2)
 
         if (isOwner) {
-          // Owner can see the due amount directly
-          setNotificationMessage(`Due amount: Rs. ${formattedAmount}`)
+          setNotificationMessage(`Bill details have been sent to your registered mobile number.`)
         } else {
           // Non-owner: message says amount was sent to owner, but does NOT show the amount
           setNotificationMessage(`Bill details have been sent to the account holder at ${maskedPhone}`)
@@ -377,11 +392,6 @@ export default function KioskDashboard() {
           const amount = parseFloat(billPaymentCustomAmount)
           if (!billPaymentCustomAmount || isNaN(amount) || amount <= 0) {
             setError('Please enter a valid payment amount')
-            setSubmitting(false)
-            return
-          }
-          if (billData && amount > billData.currentBill) {
-            setError(`Payment amount cannot exceed the due amount of Rs. ${billData.currentBill.toFixed(2)}`)
             setSubmitting(false)
             return
           }
@@ -554,7 +564,8 @@ export default function KioskDashboard() {
       payByCash: "Cash",
       payByCard: "Card",
       payByCheque: "Cheque",
-      payByBankTransfer: "Bank Transfer"
+      payByBankTransfer: "Bank Transfer",
+      dueAmountNote: "Please ask the account holder to confirm the due amount with the officer at the counter."
     },
     si: {
       title: "ඩිජිටල් පෝලිම වේදිකාව",
@@ -628,7 +639,8 @@ export default function KioskDashboard() {
       payByCash: "මුදල්",
       payByCard: "කාඩ්",
       payByCheque: "චෙකක්",
-      payByBankTransfer: "බැංකු හුවමාරුව"
+      payByBankTransfer: "බැංකු හුවමාරුව",
+      dueAmountNote: "ගිණුම් හිමිකරුගෙන් ගෙවිය යුතු නිවැරදි මුදල ශාලාවේ නිලධාරීට ලබා දෙන ලෙස කරුණාකර ඉල්ලා සිටින්න."
     },
     ta: {
       title: "டிஜிட்டல் வரிசை தளம்",
@@ -702,7 +714,8 @@ export default function KioskDashboard() {
       payByCash: "பணம்",
       payByCard: "அட்டை",
       payByCheque: "காசோலை",
-      payByBankTransfer: "வங்கி பரிமாற்றம்"
+      payByBankTransfer: "வங்கி பரிமாற்றம்",
+      dueAmountNote: "கணக்கு வைத்திருப்பவர் கவுண்டரில் உள்ள அதிகாரியிடம் நிலுவைத் தொகையை உறுதிப்படுத்துமாறு கேட்கவும்."
     }
   }
 
@@ -1152,17 +1165,8 @@ export default function KioskDashboard() {
                         <div className="w-2 h-2 rounded-full bg-amber-500"></div>
                         <h3 className="text-sm font-semibold text-amber-900">{t.paymentIntentTitle}</h3>
                       </div>
-                      <div className="bg-white rounded-lg p-3 border border-amber-100">
-                        <div className="flex justify-between items-center">
-                          <span className="text-xs text-gray-500">{t.billAmount}</span>
-                          <span className="text-base font-bold text-red-600">Rs. {billData.currentBill.toFixed(2)}</span>
-                        </div>
-                        <div className="flex justify-between items-center mt-1">
-                          <span className="text-xs text-gray-500">{t.billStatus}</span>
-                          <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${billData.status === 'paid' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                            {billData.status === 'paid' ? t.paid : t.unpaid}
-                          </span>
-                        </div>
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                        <p className="text-xs text-blue-800"> {t.dueAmountNote}</p>
                       </div>
                       <div className="flex flex-col gap-2">
                         <button
@@ -1172,7 +1176,7 @@ export default function KioskDashboard() {
                             ? 'border-green-600 bg-green-600 text-white'
                             : 'border-green-300 bg-white text-green-700 hover:border-green-500'}`}
                         >
-                          ✓ {t.payFullAmount} — Rs. {billData.currentBill.toFixed(2)}
+                          ✓ {t.payFullAmount}
                         </button>
                         <button
                           type="button"
@@ -1191,12 +1195,10 @@ export default function KioskDashboard() {
                               value={billPaymentCustomAmount}
                               onChange={(e) => setBillPaymentCustomAmount(e.target.value)}
                               min="1"
-                              max={billData.currentBill}
                               step="0.01"
                               className="w-full px-3 py-2.5 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                               placeholder={t.partialAmountPlaceholder}
                             />
-                            <p className="text-xs text-gray-500">{t.partialAmountHint} {billData.currentBill.toFixed(2)}</p>
                           </div>
                         )}
                       </div>
@@ -1277,15 +1279,15 @@ export default function KioskDashboard() {
                     </div>
                   )}
 
-                  {/* Generate Token button for bill payment — shown after OTP verified, intent and method selected */}
-                  {isSltRequiredService(selectedService) && otpStep === 'verified' && sltVerified && billPaymentIntent && billPaymentMethod && (
-                    <button
-                      type="submit"
-                      disabled={submitting || (billPaymentIntent === 'partial' && (!billPaymentCustomAmount || parseFloat(billPaymentCustomAmount) <= 0))}
-                      className="w-full bg-blue-600 text-white py-3 rounded-xl font-semibold hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
-                    >
-                      {submitting ? t.generating : t.generateToken}
-                    </button>
+                  {/* Auto-submit feedback — spinner shown once all bill payment selections are made */}
+                  {isSltRequiredService(selectedService) && otpStep === 'verified' && sltVerified && billPaymentIntent && billPaymentMethod && !(billPaymentIntent === 'partial' && (!billPaymentCustomAmount || parseFloat(billPaymentCustomAmount) <= 0)) && (
+                    <div className="w-full bg-blue-50 border border-blue-200 text-blue-700 py-3 rounded-xl text-sm font-medium flex items-center justify-center gap-2">
+                      <svg className="animate-spin h-4 w-4 text-blue-600" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                      </svg>
+                      {submitting ? t.generating : t.generating}
+                    </div>
                   )}
 
                   <div className="flex gap-3">

@@ -1,7 +1,7 @@
 ﻿// Removed unused billData state
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef } from "react"
 import { useNavigate } from "react-router-dom"
 import { Calendar, MapPin, User, Phone, Send, MessageSquare, CheckCircle, AlertTriangle, Check, Ban, Banknote, CreditCard, FileText, Landmark } from "lucide-react"
 import api from "../config/api"
@@ -79,6 +79,8 @@ export default function AppointmentBooking() {
   const [autoSendingOtp, setAutoSendingOtp] = useState(false)
   const [showOtpPopup, setShowOtpPopup] = useState(false)
   const [devOtpCode, setDevOtpCode] = useState<string>("")
+  const [shouldAutoSubmit, setShouldAutoSubmit] = useState(false)
+  const formRef = useRef<HTMLFormElement>(null)
 
   // Bill payment specific states
   const [sltTelephoneNumber, setSltTelephoneNumber] = useState("")
@@ -125,6 +127,33 @@ export default function AppointmentBooking() {
       return () => clearTimeout(timer);
     }
   }, [currentStep, otpStep])
+
+  // Auto-submit form after OTP verification (non-SLT services)
+  useEffect(() => {
+    if (shouldAutoSubmit && otpStep === 'verified' && otpToken) {
+      setShouldAutoSubmit(false)
+      if (formRef.current) {
+        formRef.current.dispatchEvent(new Event('submit', { bubbles: true }))
+      }
+    }
+  }, [shouldAutoSubmit, otpStep, otpToken])
+
+  // Auto-submit for bill payment once intent + method (+ amount if partial) are all set
+  useEffect(() => {
+    if (selectedService !== 'SVC002' && selectedService !== 'BILL_PAYMENT') return
+    if (!sltVerified || otpStep !== 'verified') return
+    if (!billPaymentIntent || !billPaymentMethod) return
+    if (billPaymentIntent === 'partial') {
+      const amount = parseFloat(billPaymentCustomAmount)
+      if (!billPaymentCustomAmount || isNaN(amount) || amount <= 0) return
+    }
+    const timer = setTimeout(() => {
+      if (formRef.current) {
+        formRef.current.dispatchEvent(new Event('submit', { bubbles: true }))
+      }
+    }, 500)
+    return () => clearTimeout(timer)
+  }, [billPaymentIntent, billPaymentMethod, billPaymentCustomAmount, otpStep, selectedService, sltVerified])
 
   const fetchOutlets = async () => {
     try {
@@ -224,7 +253,8 @@ export default function AppointmentBooking() {
       payByCash: "Cash",
       payByCard: "Card",
       payByCheque: "Cheque",
-      payByBankTransfer: "Bank Transfer"
+      payByBankTransfer: "Bank Transfer",
+      dueAmountNote: "Please ask the account holder to confirm the due amount with the officer at the counter."
     },
     si: {
       title: 'වේලාවක් වෙන්කරන්න',
@@ -291,7 +321,8 @@ export default function AppointmentBooking() {
       payByCash: "මුදල්",
       payByCard: "කාඩ්",
       payByCheque: "චෙක්",
-      payByBankTransfer: "බැංකු හැරීම"
+      payByBankTransfer: "බැංකු හැරීම",
+      dueAmountNote: "ගිණුම් හිමිකරුගෙන් ගෙවිය යුතු නිවැරදි මුදල ශාලාවේ නිලධාරීට ලබා දෙන ලෙස කරුණාකර ඉල්ලා සිටින්න."
     },
     ta: {
       title: 'ஒரு நேரம் பதிவு செய்யவும்',
@@ -358,7 +389,8 @@ export default function AppointmentBooking() {
       payByCash: "பணம்",
       payByCard: "அட்டை",
       payByCheque: "காசோலை",
-      payByBankTransfer: "வங்கி பரிமாற்றம்"
+      payByBankTransfer: "வங்கி பரிமாற்றம்",
+      dueAmountNote: "கணக்கு வைத்திருப்பவர் கவுண்டரில் உள்ள அதிகாரியிடம் நிலுவைத் தொகையை உறுதிப்படுத்துமாறு கேட்கவும்."
     },
   } as const
 
@@ -401,6 +433,11 @@ export default function AppointmentBooking() {
         // Auto-verify SLT number after mobile OTP (for bill payment)
         if (isSltRequiredService(selectedService) && sltTelephoneNumber && !sltVerified) {
           await verifySltNumber()
+        }
+
+        // Auto-submit for non-bill-payment services
+        if (!isSltRequiredService(selectedService)) {
+          setShouldAutoSubmit(true)
         }
 
         return res.data.verifiedMobileToken as string
@@ -489,11 +526,10 @@ export default function AppointmentBooking() {
 
         // Create appropriate message
         const maskedPhone = getMaskedPhoneNumber(bill.mobileNumber)
-        const formattedAmount = Number(bill.currentBill).toFixed(2)
 
         if (isOwner) {
           // Owner can see the due amount directly
-          setNotificationMessage(`Due amount: Rs. ${formattedAmount}`)
+          setNotificationMessage(`Bill details have been sent to your registered mobile number.`)
         } else {
           // Non-owner: message says amount was sent to owner, but does NOT show the amount
           setNotificationMessage(`Bill details have been sent to the account holder at ${maskedPhone}`)
@@ -715,7 +751,7 @@ export default function AppointmentBooking() {
           </div>
         )}
 
-        <form onSubmit={handleBook} className="space-y-4">
+        <form ref={formRef} onSubmit={handleBook} className="space-y-4">
 
           {/* STEP 1: Language Selection */}
           {currentStep === 1 && (
@@ -1107,17 +1143,8 @@ export default function AppointmentBooking() {
                     <div className="w-2 h-2 rounded-full bg-amber-500"></div>
                     <h3 className="text-sm font-semibold text-amber-900">{t.paymentIntentTitle} <span className="font-normal text-amber-600 text-xs">({t.optionalDetails})</span></h3>
                   </div>
-                  <div className="bg-white rounded-lg p-3 border border-amber-100">
-                    <div className="flex justify-between items-center">
-                      <span className="text-xs text-gray-500">{t.billAmount}</span>
-                      <span className="text-base font-bold text-red-600">Rs. {Number(billData.currentBill).toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between items-center mt-1">
-                      <span className="text-xs text-gray-500">{t.billStatus}</span>
-                      <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${billData.status === 'paid' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                        {billData.status === 'paid' ? t.paid : t.unpaid}
-                      </span>
-                    </div>
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                    <p className="text-xs text-blue-800"> {t.dueAmountNote}</p>
                   </div>
                   <div className="flex flex-col gap-2">
                     <button
@@ -1125,7 +1152,7 @@ export default function AppointmentBooking() {
                       onClick={() => { setBillPaymentIntent('full'); setBillPaymentCustomAmount('') }}
                       className={`py-3 px-4 rounded-xl border-2 text-sm font-semibold transition-all ${billPaymentIntent === 'full' ? 'border-green-600 bg-green-600 text-white' : 'border-green-300 bg-white text-green-700 hover:border-green-500'}`}
                     >
-                      ✓ {t.payFullAmount} — Rs. {Number(billData.currentBill).toFixed(2)}
+                      ✓ {t.payFullAmount}
                     </button>
                     <button
                       type="button"
@@ -1142,12 +1169,10 @@ export default function AppointmentBooking() {
                           value={billPaymentCustomAmount}
                           onChange={(e) => setBillPaymentCustomAmount(e.target.value)}
                           min="1"
-                          max={billData.currentBill}
                           step="0.01"
                           className="w-full px-3 py-2.5 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                           placeholder={t.partialAmountPlaceholder}
                         />
-                        <p className="text-xs text-gray-500">{t.partialAmountHint} {Number(billData.currentBill).toFixed(2)}</p>
                       </div>
                     )}
                     {billPaymentIntent && (
@@ -1176,15 +1201,15 @@ export default function AppointmentBooking() {
                 </div>
               )}
 
-              {/* Book Appointment Button - Show after OTP verified */}
-              {otpStep === 'verified' && (
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
-                >
-                  {loading ? t.booking : t.book}
-                </button>
+              {/* Auto-submit feedback — spinner shown once all bill payment selections are made */}
+              {otpStep === 'verified' && isSltRequiredService(selectedService) && sltVerified && billPaymentIntent && billPaymentMethod && !(billPaymentIntent === 'partial' && (!billPaymentCustomAmount || parseFloat(billPaymentCustomAmount) <= 0)) && (
+                <div className="w-full bg-blue-50 border border-blue-200 text-blue-700 py-3 rounded-xl text-sm font-medium flex items-center justify-center gap-2">
+                  <svg className="animate-spin h-4 w-4 text-blue-600" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                  </svg>
+                  {loading ? t.booking : t.booking}
+                </div>
               )}
 
               <div className="flex gap-3">
