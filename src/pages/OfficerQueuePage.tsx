@@ -604,6 +604,7 @@ export default function OfficerQueuePage() {
                     <span className="px-1.5 py-0.5 bg-amber-600 text-white rounded-full text-xs font-semibold">
                       {queue.waiting.filter((t) => {
                         if ((t as any).isTransferred === true) return false
+                        if (unmatchedTokens.some(u => u.id === t.id)) return false
                         const tokenServices = Array.isArray(t.serviceTypes) ? t.serviceTypes : []
                         const officerServices = Array.isArray((officer as any)?.assignedServices) ? (officer as any).assignedServices : []
                         const hasServiceMatch = tokenServices.length === 0 || officerServices.length === 0 || tokenServices.some((s: any) => officerServices.includes(s))
@@ -958,6 +959,7 @@ export default function OfficerQueuePage() {
                   </div>
                 ) : queue.waiting.filter((t) => {
                   if ((t as any).isTransferred === true) return false
+                  if (unmatchedTokens.some(u => u.id === t.id)) return false
                   const tokenServices = Array.isArray(t.serviceTypes) ? t.serviceTypes : []
                   const officerServices = Array.isArray((officer as any)?.assignedServices) ? (officer as any).assignedServices : []
                   const isTransferredByMe = (t as any).lastTransferByOfficerId === officer.id
@@ -990,6 +992,7 @@ export default function OfficerQueuePage() {
                     <div className="divide-y divide-gray-100">
                       {queue.waiting.filter((t) => {
                         if ((t as any).isTransferred === true) return false
+                        if (unmatchedTokens.some(u => u.id === t.id)) return false
                         const tokenServices = Array.isArray(t.serviceTypes) ? t.serviceTypes : []
                         const officerServices = Array.isArray((officer as any)?.assignedServices) ? (officer as any).assignedServices : []
                         const isTransferredByMe = (t as any).lastTransferByOfficerId === officer.id

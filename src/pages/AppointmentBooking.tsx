@@ -844,24 +844,12 @@ export default function AppointmentBooking() {
                           <span className="text-base font-medium">
                             {service.code === 'BILL_PAYMENT' ? t.billPayment : service.code === 'OTHERS' ? t.others : service.title}
                           </span>
-                          {priorityFeatureEnabled && service.isPriorityService && (
-                            <span className="px-2 py-0.5 bg-amber-100 text-amber-700 text-xs font-semibold rounded-full">
-                              Priority Queue
-                            </span>
-                          )}
                         </div>
-                        {priorityFeatureEnabled && service.isPriorityService && (
-                          <p className="text-xs text-amber-700 mt-1">When this appointment is converted to a live queue token, it should be treated as priority.</p>
-                        )}
                       </div>
                     </label>
                   ))}
                 </div>
-                {priorityFeatureEnabled && selectedServiceMeta?.isPriorityService && (
-                  <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-                    This service is marked as priority. The customer should receive priority when checked into the live queue.
-                  </div>
-                )}
+
               </div>
 
               <div className="flex gap-3">

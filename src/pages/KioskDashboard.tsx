@@ -931,25 +931,12 @@ export default function KioskDashboard() {
                           <div className="flex-1">
                             <div className="flex items-center gap-2 flex-wrap">
                               <span className="text-base font-medium">{getServiceTitle(service.code)}</span>
-                              {priorityFeatureEnabled && service.isPriorityService && (
-                                <span className="px-2 py-0.5 bg-amber-100 text-amber-700 text-xs font-semibold rounded-full">
-                                  Priority Queue
-                                </span>
-                              )}
                             </div>
-                            {priorityFeatureEnabled && service.isPriorityService && (
-                              <p className="text-xs text-amber-700 mt-1">Selecting this service sends the token to the front of the queue.</p>
-                            )}
                           </div>
                         </label>
                       ))}
                     </div>
                     <p className="text-xs text-gray-500 mt-2">{t.selectServiceTypesSubtitle}</p>
-                    {priorityFeatureEnabled && selectedServiceMeta?.isPriorityService && (
-                      <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-                        This customer will be added as a priority token and handled before standard waiting customers.
-                      </div>
-                    )}
                   </div>
 
                   <div className="flex gap-3">
