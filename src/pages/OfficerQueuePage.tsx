@@ -603,7 +603,14 @@ export default function OfficerQueuePage() {
                   {queue && (
                     <span className="px-1.5 py-0.5 bg-amber-600 text-white rounded-full text-xs font-semibold">
                       {queue.waiting.filter((t) => {
-                        if ((t as any).isTransferred === true) return false
+                        const isTransferredByMe = (t as any).lastTransferByOfficerId === officer.id
+                        if ((t as any).isTransferred === true) {
+                          if (isTransferredByMe) return false
+                          if (unmatchedTokens.some(u => u.id === t.id)) return false
+                          const ts = Array.isArray(t.serviceTypes) ? t.serviceTypes : []
+                          const os = Array.isArray((officer as any)?.assignedServices) ? (officer as any).assignedServices : []
+                          return (t as any).counterNumber === officer.counterNumber || ts.some((s: any) => os.includes(s))
+                        }
                         if (unmatchedTokens.some(u => u.id === t.id)) return false
                         const tokenServices = Array.isArray(t.serviceTypes) ? t.serviceTypes : []
                         const officerServices = Array.isArray((officer as any)?.assignedServices) ? (officer as any).assignedServices : []
@@ -611,7 +618,6 @@ export default function OfficerQueuePage() {
                         const prefs = Array.isArray((t as any).preferredLanguages) ? (t as any).preferredLanguages : []
                         const langs = Array.isArray((officer as any)?.languages) ? (officer as any).languages : []
                         const hasLanguageMatch = prefs.length === 0 || langs.length === 0 || prefs.some((p: any) => langs.includes(p))
-                        const isTransferredByMe = (t as any).lastTransferByOfficerId === officer.id
                         return hasServiceMatch && hasLanguageMatch && !isTransferredByMe
                       }).length}
                     </span>
@@ -627,18 +633,12 @@ export default function OfficerQueuePage() {
                   }`}
               >
                 <div className="flex items-center justify-center gap-2">
-                  <span>Transferred Tokens</span>
+                  <span>Sent Transfers</span>
                   {queue && (
-                    <span className="px-1.5 py-0.5 bg-blue-600 text-white rounded-full text-xs font-semibold">
-                      {queue.waiting.filter((t) => {
-                        if ((t as any).isTransferred !== true) return false
-                        const tokenServices = Array.isArray(t.serviceTypes) ? t.serviceTypes : []
-                        const officerServices = Array.isArray((officer as any)?.assignedServices) ? (officer as any).assignedServices : []
-                        const isTransferredByMe = (t as any).lastTransferByOfficerId === officer.id
-                        const counterMatch = (t as any).counterNumber === officer.counterNumber
-                        const serviceMatch = tokenServices.some(s => officerServices.includes(s))
-                        return (counterMatch || serviceMatch) && !isTransferredByMe
-                      }).length}
+                    <span className="px-1.5 py-0.5 bg-indigo-600 text-white rounded-full text-xs font-semibold">
+                      {queue.waiting.filter((t) =>
+                        (t as any).isTransferred === true && (t as any).lastTransferByOfficerId === officer.id
+                      ).length}
                     </span>
                   )}
                 </div>
@@ -690,16 +690,31 @@ export default function OfficerQueuePage() {
                         loading ||
                         officer.status !== "available" ||
                         !queue ||
-                        // If waiting array exists, check for at least one token whose status !== 'skipped' and is NOT transferred
                         (Array.isArray(queue.waiting)
-                          ? queue.waiting.filter(t => (t as any).status !== 'skipped' && !(t as any).isTransferred).length === 0
+                          ? queue.waiting.filter(t => {
+                              if ((t as any).status === 'skipped') return false
+                              if ((t as any).isTransferred) {
+                                const ts = Array.isArray(t.serviceTypes) ? t.serviceTypes : []
+                                const os = Array.isArray((officer as any)?.assignedServices) ? (officer as any).assignedServices : []
+                                return (t as any).counterNumber === officer.counterNumber || ts.some((s: any) => os.includes(s))
+                              }
+                              return true
+                            }).length === 0
                           : true)
                       }
                       className="px-6 py-2 bg-amber-600 text-white hover:bg-amber-700 border-2 border-amber-600 rounded-xl font-semibold transition-colors disabled:bg-gray-200 disabled:border-gray-200 disabled:text-gray-500 disabled:cursor-not-allowed text-sm"
                     >
                       {loading ? "Loading..." : "Call Next Token"}
                     </button>
-                    {queue && Array.isArray(queue.waiting) && queue.waiting.filter(t => (t as any).status !== 'skipped' && !(t as any).isTransferred).length === 0 && (
+                    {queue && Array.isArray(queue.waiting) && queue.waiting.filter(t => {
+                      if ((t as any).status === 'skipped') return false
+                      if ((t as any).isTransferred) {
+                        const ts = Array.isArray(t.serviceTypes) ? t.serviceTypes : []
+                        const os = Array.isArray((officer as any)?.assignedServices) ? (officer as any).assignedServices : []
+                        return (t as any).counterNumber === officer.counterNumber || ts.some((s: any) => os.includes(s))
+                      }
+                      return true
+                    }).length === 0 && (
                       <p className="mt-2 text-sm text-gray-500">No customers are waiting in your queue.</p>
                     )}
                     {officer.status !== "available" && (
@@ -924,7 +939,7 @@ export default function OfficerQueuePage() {
             <div className="w-2/3 bg-white rounded-2xl shadow-sm border border-slate-100 p-4">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-lg font-bold text-gray-900">
-                  {activeTab === 'my-queue' ? 'My Queue' : activeTab === 'transferred' ? 'Transferred Tokens' : 'Unmatched Tokens'}
+                  {activeTab === 'my-queue' ? 'My Queue' : activeTab === 'transferred' ? 'Sent Transfers' : 'Unmatched Tokens'}
                 </h2>
                 {queue && (
                   <div className="text-sm text-gray-500">
@@ -933,6 +948,23 @@ export default function OfficerQueuePage() {
                   </div>
                 )}
               </div>
+
+              {/* Alert banner for incoming transferred tokens */}
+              {activeTab === 'my-queue' && queue && queue.waiting.some(t => {
+                if (!(t as any).isTransferred) return false
+                if ((t as any).lastTransferByOfficerId === officer.id) return false
+                const ts = Array.isArray(t.serviceTypes) ? t.serviceTypes : []
+                const os = Array.isArray((officer as any)?.assignedServices) ? (officer as any).assignedServices : []
+                return (t as any).counterNumber === officer.counterNumber || ts.some((s: any) => os.includes(s))
+              }) && (
+                <div className="mb-4 bg-orange-50 border border-orange-300 rounded-xl p-3 flex items-center gap-3">
+                  <AlertTriangle className="w-5 h-5 text-orange-600 flex-shrink-0 animate-pulse" />
+                  <div>
+                    <p className="text-sm font-bold text-orange-800">Transferred customers waiting — serve them first!</p>
+                    <p className="text-xs text-orange-700">These customers already waited in another queue and have been prioritised at the top.</p>
+                  </div>
+                </div>
+              )}
 
               {/* Warning for Unmatched Tab */}
               {activeTab === 'unmatched' && unmatchedTokens.length > 0 && (
@@ -958,11 +990,17 @@ export default function OfficerQueuePage() {
                     <p className="text-gray-500">Loading queue...</p>
                   </div>
                 ) : queue.waiting.filter((t) => {
-                  if ((t as any).isTransferred === true) return false
+                  const isTransferredByMe = (t as any).lastTransferByOfficerId === officer.id
+                  if ((t as any).isTransferred === true) {
+                    if (isTransferredByMe) return false
+                    if (unmatchedTokens.some(u => u.id === t.id)) return false
+                    const ts = Array.isArray(t.serviceTypes) ? t.serviceTypes : []
+                    const os = Array.isArray((officer as any)?.assignedServices) ? (officer as any).assignedServices : []
+                    return (t as any).counterNumber === officer.counterNumber || ts.some((s: any) => os.includes(s))
+                  }
                   if (unmatchedTokens.some(u => u.id === t.id)) return false
                   const tokenServices = Array.isArray(t.serviceTypes) ? t.serviceTypes : []
                   const officerServices = Array.isArray((officer as any)?.assignedServices) ? (officer as any).assignedServices : []
-                  const isTransferredByMe = (t as any).lastTransferByOfficerId === officer.id
                   const hasServiceMatch = tokenServices.length === 0 || officerServices.length === 0 || tokenServices.some((s: any) => officerServices.includes(s))
                   const prefs = Array.isArray((t as any).preferredLanguages) ? (t as any).preferredLanguages : []
                   const langs = Array.isArray((officer as any)?.languages) ? (officer as any).languages : []
@@ -991,40 +1029,61 @@ export default function OfficerQueuePage() {
                     {/* Queue Items */}
                     <div className="divide-y divide-gray-100">
                       {queue.waiting.filter((t) => {
-                        if ((t as any).isTransferred === true) return false
+                        const isTransferredByMe = (t as any).lastTransferByOfficerId === officer.id
+                        if ((t as any).isTransferred === true) {
+                          if (isTransferredByMe) return false
+                          if (unmatchedTokens.some(u => u.id === t.id)) return false
+                          const ts = Array.isArray(t.serviceTypes) ? t.serviceTypes : []
+                          const os = Array.isArray((officer as any)?.assignedServices) ? (officer as any).assignedServices : []
+                          return (t as any).counterNumber === officer.counterNumber || ts.some((s: any) => os.includes(s))
+                        }
                         if (unmatchedTokens.some(u => u.id === t.id)) return false
                         const tokenServices = Array.isArray(t.serviceTypes) ? t.serviceTypes : []
                         const officerServices = Array.isArray((officer as any)?.assignedServices) ? (officer as any).assignedServices : []
-                        const isTransferredByMe = (t as any).lastTransferByOfficerId === officer.id
                         const hasServiceMatch = tokenServices.length === 0 || officerServices.length === 0 || tokenServices.some((s: any) => officerServices.includes(s))
                         const prefs = Array.isArray((t as any).preferredLanguages) ? (t as any).preferredLanguages : []
                         const langs = Array.isArray((officer as any)?.languages) ? (officer as any).languages : []
                         const hasLanguageMatch = prefs.length === 0 || langs.length === 0 || prefs.some((p: any) => langs.includes(p))
                         return hasServiceMatch && hasLanguageMatch && !isTransferredByMe
                       }).sort((a, b) => {
-                        // Sort priority customers to the front
+                        // Transferred tokens always first — customer already waited in another queue
+                        const aT = (a as any).isTransferred === true
+                        const bT = (b as any).isTransferred === true
+                        if (aT && !bT) return -1
+                        if (!aT && bT) return 1
+                        // Then VIP/priority customers
                         if (a.isPriority && !b.isPriority) return -1
                         if (!a.isPriority && b.isPriority) return 1
-                        // Then by creation time (oldest first)
+                        // Then oldest first
                         return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
                       }).map((t) => {
                         const waitTime = Math.floor((Date.now() - new Date(t.createdAt).getTime()) / 60000)
                         const isPriority = t.isPriority === true
                         const isSkipped = t.status === 'skipped'
+                        const isTransferredToken = (t as any).isTransferred === true
 
                         return (
-                          <div key={t.id} className={`grid grid-cols-12 gap-4 px-4 py-4 hover:bg-gray-50 transition-colors ${isSkipped ? 'bg-orange-50 rounded-lg' : isPriority ? 'bg-yellow-50 rounded-lg border-l-4 border-yellow-400' : ''}`}>
-                            <div className="col-span-2 flex items-center gap-2">
-                              {isPriority ? (
+                          <div key={t.id} className={`grid grid-cols-12 gap-4 px-4 py-4 hover:bg-gray-50 transition-colors ${isTransferredToken ? 'bg-orange-50 rounded-lg border-l-4 border-orange-400' : isSkipped ? 'bg-orange-50 rounded-lg' : isPriority ? 'bg-yellow-50 rounded-lg border-l-4 border-yellow-400' : ''}`}>
+                            <div className="col-span-2 flex items-center gap-1 flex-wrap">
+                              {isTransferredToken ? (
+                                <span className="inline-flex items-center px-2 py-1 rounded-md bg-orange-100 text-orange-800 text-sm font-semibold">
+                                  ↩ {t.tokenNumber}
+                                </span>
+                              ) : isPriority ? (
                                 <span className="inline-flex items-center px-2 py-1 rounded-md bg-yellow-100 text-yellow-800 text-sm font-semibold">
-                                  {t.tokenNumber} ★ Priority
+                                  {t.tokenNumber} ★
                                 </span>
                               ) : (
                                 <span className="text-gray-900 font-semibold">{t.tokenNumber}</span>
                               )}
+                              {isTransferredToken && (
+                                <span className="inline-flex items-center px-1.5 py-0.5 rounded-md bg-orange-200 text-orange-700 text-xs font-bold">
+                                  TRANSFERRED
+                                </span>
+                              )}
                               {(t as any)?.fromAppointment && (
                                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-indigo-100 text-indigo-700 text-xs font-semibold" title="Booked appointment">
-                                  <Calendar className="w-3 h-3" /> Appointment
+                                  <Calendar className="w-3 h-3" /> Appt
                                 </span>
                               )}
                             </div>
@@ -1048,16 +1107,26 @@ export default function OfficerQueuePage() {
                               <span className="text-gray-900">{waitTime} min</span>
                             </div>
                             <div className="col-span-2">
-                              <span className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-semibold ${isSkipped
+                              <span className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-semibold ${isTransferredToken
+                                ? 'bg-orange-100 text-orange-800'
+                                : isSkipped
                                 ? 'bg-orange-100 text-orange-800'
                                 : 'bg-yellow-100 text-yellow-800'
                                 }`}>
-                                {isSkipped ? 'Skipped' : 'Waiting'}
+                                {isTransferredToken ? 'Transferred' : isSkipped ? 'Skipped' : 'Waiting'}
                               </span>
                             </div>
                             <div className="col-span-2">
                               <div className="flex flex-col gap-2">
-                                {isSkipped ? (
+                                {isTransferredToken ? (
+                                  <button
+                                    onClick={() => handleCallToken(t.id)}
+                                    disabled={loading || currentToken !== null}
+                                    className="px-2 py-1 bg-orange-600 text-white text-xs rounded-lg hover:bg-orange-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed whitespace-nowrap font-bold"
+                                  >
+                                    Call Now
+                                  </button>
+                                ) : isSkipped ? (
                                   <button
                                     onClick={() => handleRecall(t.id)}
                                     disabled={loading || currentToken !== null}
@@ -1074,16 +1143,18 @@ export default function OfficerQueuePage() {
                                     Skip
                                   </button>
                                 )}
-                                <button
-                                  onClick={() => handleSetPriority(t.id)}
-                                  disabled={loading || currentToken !== null}
-                                  className={`px-2 py-1 text-white text-xs rounded transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed whitespace-nowrap ${isPriority
-                                    ? 'bg-yellow-600 hover:bg-yellow-700'
-                                    : 'bg-purple-600 hover:bg-purple-700'
-                                    }`}
-                                >
-                                  {isPriority ? '★ Priority' : 'Set Priority'}
-                                </button>
+                                {!isTransferredToken && (
+                                  <button
+                                    onClick={() => handleSetPriority(t.id)}
+                                    disabled={loading || currentToken !== null}
+                                    className={`px-2 py-1 text-white text-xs rounded transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed whitespace-nowrap ${isPriority
+                                      ? 'bg-yellow-600 hover:bg-yellow-700'
+                                      : 'bg-purple-600 hover:bg-purple-700'
+                                      }`}
+                                  >
+                                    {isPriority ? '★ Priority' : 'Set Priority'}
+                                  </button>
+                                )}
                               </div>
                             </div>
                           </div>
@@ -1093,53 +1164,43 @@ export default function OfficerQueuePage() {
                   </>
                 )
               ) : activeTab === 'transferred' ? (
-                // TRANSFERRED TOKENS TAB
+                // SENT TRANSFERS TAB — tokens I transferred out that are still waiting
                 !queue ? (
                   <div className="text-center py-12">
-                    <p className="text-gray-500">Loading transferred tokens...</p>
+                    <p className="text-gray-500">Loading sent transfers...</p>
                   </div>
-                ) : queue.waiting.filter((t) => {
-                  if ((t as any).isTransferred !== true) return false
-                  const tokenServices = Array.isArray(t.serviceTypes) ? t.serviceTypes : []
-                  const officerServices = Array.isArray((officer as any)?.assignedServices) ? (officer as any).assignedServices : []
-                  const isTransferredByMe = (t as any).lastTransferByOfficerId === officer.id
-                  const counterMatch = (t as any).counterNumber === officer.counterNumber
-                  const serviceMatch = tokenServices.some(s => officerServices.includes(s))
-                  return (counterMatch || serviceMatch) && !isTransferredByMe
-                }).length === 0 ? (
+                ) : queue.waiting.filter((t) =>
+                  (t as any).isTransferred === true && (t as any).lastTransferByOfficerId === officer.id
+                ).length === 0 ? (
                   <div className="text-center py-12">
-                    <div className="w-16 h-16 bg-blue-50 rounded-xl flex items-center justify-center mx-auto mb-4">
-                      <RefreshCwIcon className="w-8 h-8 text-blue-400" />
+                    <div className="w-16 h-16 bg-indigo-50 rounded-xl flex items-center justify-center mx-auto mb-4">
+                      <RefreshCwIcon className="w-8 h-8 text-indigo-400" />
                     </div>
-                    <p className="text-gray-500">No transferred tokens for you</p>
-                    <p className="text-xs text-gray-400 mt-2">Tokens transferred to your services or counter will appear here</p>
+                    <p className="text-gray-500">No pending sent transfers</p>
+                    <p className="text-xs text-gray-400 mt-2">Customers you've transferred will appear here until they are served at the new counter</p>
                   </div>
                 ) : (
                   <>
-                    <div className="grid grid-cols-12 gap-4 px-4 py-2.5 bg-blue-900 border-b text-sm text-white rounded-full mb-3">
+                    <div className="mb-3 bg-indigo-50 border border-indigo-200 rounded-xl p-3 text-xs text-indigo-700">
+                      These are customers you transferred. They are waiting to be served at their new counter. Once an officer there calls them, they will disappear from this list.
+                    </div>
+                    <div className="grid grid-cols-10 gap-4 px-4 py-2.5 bg-indigo-900 border-b text-sm text-white rounded-xl mb-3">
                       <div className="col-span-2">TOKEN</div>
                       <div className="col-span-2">CUSTOMER</div>
                       <div className="col-span-2">SERVICE TYPE</div>
-                      <div className="col-span-2">WAITED TIME</div>
-                      <div className="col-span-2">STATUS</div>
-                      <div className="col-span-2">ACTION</div>
+                      <div className="col-span-2">TOTAL WAIT</div>
+                      <div className="col-span-2">SENT TO</div>
                     </div>
                     <div className="divide-y divide-gray-100">
-                      {queue.waiting.filter((t) => {
-                        if ((t as any).isTransferred !== true) return false
-                        const tokenServices = Array.isArray(t.serviceTypes) ? t.serviceTypes : []
-                        const officerServices = Array.isArray((officer as any)?.assignedServices) ? (officer as any).assignedServices : []
-                        const isTransferredByMe = (t as any).lastTransferByOfficerId === officer.id
-                        const counterMatch = (t as any).counterNumber === officer.counterNumber
-                        const serviceMatch = tokenServices.some(s => officerServices.includes(s))
-                        return (counterMatch || serviceMatch) && !isTransferredByMe
-                      }).sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()).map((t) => {
+                      {queue.waiting.filter((t) =>
+                        (t as any).isTransferred === true && (t as any).lastTransferByOfficerId === officer.id
+                      ).sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()).map((t) => {
                         const waitTime = Math.floor((Date.now() - new Date(t.createdAt).getTime()) / 60000)
                         return (
-                          <div key={t.id} className="grid grid-cols-12 gap-4 px-4 py-4 hover:bg-blue-50 transition-colors bg-blue-50/30 rounded-lg border-l-4 border-blue-400 mb-2">
+                          <div key={t.id} className="grid grid-cols-10 gap-4 px-4 py-4 hover:bg-indigo-50 transition-colors bg-indigo-50/30 rounded-lg border-l-4 border-indigo-400 mb-2">
                             <div className="col-span-2 flex items-center gap-2">
-                              <span className="inline-flex items-center px-2 py-1 rounded-md bg-blue-100 text-blue-800 text-sm font-semibold">
-                                {t.tokenNumber}
+                              <span className="inline-flex items-center px-2 py-1 rounded-md bg-indigo-100 text-indigo-800 text-sm font-semibold">
+                                ↗ {t.tokenNumber}
                               </span>
                             </div>
                             <div className="col-span-2">
@@ -1154,27 +1215,15 @@ export default function OfficerQueuePage() {
                                 ))}
                               </div>
                             </div>
-                            <div className="col-span-2 text-gray-900">{waitTime} min</div>
+                            <div className="col-span-2 text-gray-900">{waitTime} min total</div>
                             <div className="col-span-2">
-                              <span className="inline-flex items-center px-2 py-1 rounded-md bg-blue-100 text-blue-800 text-xs font-semibold font-mono">
-                                TRANSFERRED
-                              </span>
-                            </div>
-                            <div className="col-span-2 flex flex-col gap-2">
-                              <button
-                                onClick={() => handleCallToken(t.id)}
-                                disabled={loading || currentToken !== null}
-                                className="px-2 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 disabled:bg-gray-400 font-bold"
-                              >
-                                {loading ? "..." : "Call Customer"}
-                              </button>
-                              <button
-                                onClick={() => handleSkip(t.id)}
-                                disabled={loading}
-                                className="px-2 py-1 bg-orange-500 text-white text-xs rounded hover:bg-orange-600 disabled:bg-gray-400"
-                              >
-                                Skip
-                              </button>
+                              {(t as any).counterNumber ? (
+                                <span className="inline-flex items-center px-2 py-1 rounded-md bg-indigo-100 text-indigo-800 text-xs font-semibold">
+                                  Counter {(t as any).counterNumber}
+                                </span>
+                              ) : (
+                                <span className="text-xs text-gray-400">General queue</span>
+                              )}
                             </div>
                           </div>
                         )
