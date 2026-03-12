@@ -16,6 +16,7 @@ interface Service {
   code: string
   title: string
   description: string | null
+  isPriorityService?: boolean
 }
 
 export default function KioskDashboard() {
@@ -23,6 +24,7 @@ export default function KioskDashboard() {
   const [notificationMessage, setNotificationMessage] = useState("")
   const [outlet, setOutlet] = useState<any>(null)
   const [services, setServices] = useState<Service[]>([])
+  const [priorityFeatureEnabled, setPriorityFeatureEnabled] = useState(true)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [language, setLanguage] = useState<"en" | "si" | "ta">("en")
@@ -85,6 +87,7 @@ export default function KioskDashboard() {
 
     setOutlet(JSON.parse(outletData))
     loadInitialData()
+    fetchPriorityFeatureSetting()
   }, [navigate])
 
   // Auto-submit form after OTP verification
@@ -147,6 +150,16 @@ export default function KioskDashboard() {
     }
   }
 
+  const fetchPriorityFeatureSetting = async () => {
+    try {
+      const response = await api.get('/queue/settings/priority-service')
+      setPriorityFeatureEnabled(response.data?.enabled !== false)
+    } catch (err) {
+      console.error('Failed to fetch priority feature setting:', err)
+      setPriorityFeatureEnabled(true)
+    }
+  }
+
   const isSltRequiredService = (code: string) => {
     // SVC002 and BILL_PAYMENT require SLT telephone number
     return code === 'SVC002' || code === 'BILL_PAYMENT'
@@ -160,6 +173,8 @@ export default function KioskDashboard() {
     const service = services.find(s => s.code === code)
     return service?.title || code
   }
+
+  const selectedServiceMeta = services.find((service) => service.code === selectedService)
 
   const sendOtp = async (): Promise<boolean> => {
     setOtpError("")
@@ -913,11 +928,28 @@ export default function KioskDashboard() {
                             onChange={() => handleServiceSelect(service.code)}
                             className="w-5 h-5 text-blue-600"
                           />
-                          <span className="text-base font-medium">{getServiceTitle(service.code)}</span>
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="text-base font-medium">{getServiceTitle(service.code)}</span>
+                              {priorityFeatureEnabled && service.isPriorityService && (
+                                <span className="px-2 py-0.5 bg-amber-100 text-amber-700 text-xs font-semibold rounded-full">
+                                  Priority Queue
+                                </span>
+                              )}
+                            </div>
+                            {priorityFeatureEnabled && service.isPriorityService && (
+                              <p className="text-xs text-amber-700 mt-1">Selecting this service sends the token to the front of the queue.</p>
+                            )}
+                          </div>
                         </label>
                       ))}
                     </div>
                     <p className="text-xs text-gray-500 mt-2">{t.selectServiceTypesSubtitle}</p>
+                    {priorityFeatureEnabled && selectedServiceMeta?.isPriorityService && (
+                      <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                        This customer will be added as a priority token and handled before standard waiting customers.
+                      </div>
+                    )}
                   </div>
 
                   <div className="flex gap-3">

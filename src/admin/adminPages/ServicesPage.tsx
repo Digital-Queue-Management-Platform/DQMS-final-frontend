@@ -9,10 +9,13 @@ interface Service {
   description?: string
   order?: number
   isActive?: boolean
+  isPriorityService?: boolean
 }
 
 const ServicesPage: React.FC = () => {
   const [services, setServices] = useState<Service[]>([])
+  const [priorityFeatureEnabled, setPriorityFeatureEnabled] = useState(true)
+  const [priorityFeatureLoading, setPriorityFeatureLoading] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [searchTerm, setSearchTerm] = useState('')
@@ -23,12 +26,24 @@ const ServicesPage: React.FC = () => {
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [order, setOrder] = useState<number>(999)
+  const [isPriorityService, setIsPriorityService] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [showForm, setShowForm] = useState(false)
 
   useEffect(() => {
+    fetchPriorityFeatureSetting()
     fetchServices()
   }, [])
+
+  const fetchPriorityFeatureSetting = async () => {
+    try {
+      const res = await api.get('/queue/settings/priority-service')
+      setPriorityFeatureEnabled(res.data?.enabled !== false)
+    } catch (err) {
+      console.error(err)
+      setPriorityFeatureEnabled(true)
+    }
+  }
 
   const fetchServices = async () => {
     setLoading(true)
@@ -50,11 +65,11 @@ const ServicesPage: React.FC = () => {
 
     try {
       if (editingId) {
-        const res = await api.patch(`/queue/services/${editingId}`, { title, description, order })
+        const res = await api.patch(`/queue/services/${editingId}`, { title, description, order, isPriorityService })
         setServices((prev) => prev.map((s) => (s.id === editingId ? res.data.service : s)))
         setEditingId(null)
       } else {
-        const res = await api.post('/queue/services', { code, title, description, order })
+        const res = await api.post('/queue/services', { code, title, description, order, isPriorityService })
         setServices((prev) => [res.data.service, ...prev])
       }
 
@@ -72,6 +87,7 @@ const ServicesPage: React.FC = () => {
     setTitle(s.title)
     setDescription(s.description || '')
     setOrder(s.order || 999)
+    setIsPriorityService(!!s.isPriorityService)
     setShowForm(true)
   }
 
@@ -100,11 +116,26 @@ const ServicesPage: React.FC = () => {
     }
   }
 
+  const handlePriorityFeatureToggle = async (enabled: boolean) => {
+    setPriorityFeatureLoading(true)
+    setError('')
+    try {
+      const res = await api.patch('/queue/settings/priority-service', { enabled })
+      setPriorityFeatureEnabled(res.data?.enabled === true)
+    } catch (err: any) {
+      console.error(err)
+      setError(err?.response?.data?.error || 'Failed to update priority feature setting')
+    } finally {
+      setPriorityFeatureLoading(false)
+    }
+  }
+
   const resetForm = () => {
     setCode('')
     setTitle('')
     setDescription('')
     setOrder(999)
+    setIsPriorityService(false)
     setEditingId(null)
     setError('')
   }
@@ -152,6 +183,30 @@ const ServicesPage: React.FC = () => {
             </button>
           </div>
           <p className="text-gray-600 text-sm sm:hidden">Manage your service offerings</p>
+        </div>
+
+        <div className="mb-4 sm:mb-6 bg-white rounded-2xl shadow-sm border border-slate-100 p-4 sm:p-6">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">New Service Priority Feature</h2>
+              <p className="text-sm text-gray-600 mt-1">
+                When enabled, customers who select a service marked as priority are moved ahead in the live queue. When disabled, all customers follow the standard queue order.
+              </p>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className={`px-3 py-1 rounded-full text-xs font-semibold ${priorityFeatureEnabled ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-600'}`}>
+                {priorityFeatureEnabled ? 'Enabled' : 'Disabled'}
+              </span>
+              <button
+                type="button"
+                onClick={() => handlePriorityFeatureToggle(!priorityFeatureEnabled)}
+                disabled={priorityFeatureLoading}
+                className={`px-4 py-2 rounded-xl text-sm font-semibold transition-colors disabled:opacity-60 ${priorityFeatureEnabled ? 'bg-gray-900 text-white hover:bg-gray-800' : 'bg-blue-600 text-white hover:bg-blue-700'}`}
+              >
+                {priorityFeatureLoading ? 'Saving...' : priorityFeatureEnabled ? 'Disable Feature' : 'Enable Feature'}
+              </button>
+            </div>
+          </div>
         </div>
 
         {/* Form Modal */}
@@ -209,6 +264,24 @@ const ServicesPage: React.FC = () => {
                     className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition text-sm sm:text-base"
                   />
                   <p className="text-xs text-gray-500 mt-1">Lower numbers appear first (e.g., 1 = first position)</p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Queue Priority
+                  </label>
+                  <label className="flex items-center gap-3 px-4 py-3 border border-gray-300 rounded-xl cursor-pointer hover:border-indigo-400 transition">
+                    <input
+                      type="checkbox"
+                      checked={isPriorityService}
+                      onChange={(e) => setIsPriorityService(e.target.checked)}
+                      className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                    />
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">Auto-prioritize this service</p>
+                      <p className="text-xs text-gray-500">Customers selecting this service will be placed ahead of normal waiting tokens.</p>
+                    </div>
+                  </label>
                 </div>
               </div>
 
@@ -313,6 +386,9 @@ const ServicesPage: React.FC = () => {
                     Description
                   </th>
                   <th className="px-3 sm:px-6 py-3 sm:py-4 text-center text-xs font-semibold text-white uppercase tracking-wider">
+                    Priority
+                  </th>
+                  <th className="px-3 sm:px-6 py-3 sm:py-4 text-center text-xs font-semibold text-white uppercase tracking-wider">
                     Status
                   </th>
                   <th className="px-3 sm:px-6 py-3 sm:py-4 text-center text-xs font-semibold text-white uppercase tracking-wider">
@@ -323,7 +399,7 @@ const ServicesPage: React.FC = () => {
               <tbody className="bg-white divide-y divide-gray-200">
                 {loading ? (
                   <tr>
-                    <td colSpan={6} className="text-center py-12">
+                    <td colSpan={7} className="text-center py-12">
                       <div className="flex items-center justify-center">
                         <div className="w-6 h-6 sm:w-8 sm:h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
                         <span className="ml-3 text-gray-600 text-sm sm:text-base">Loading services...</span>
@@ -332,7 +408,7 @@ const ServicesPage: React.FC = () => {
                   </tr>
                 ) : currentServices.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="text-center py-12">
+                    <td colSpan={7} className="text-center py-12">
                       <Package className="w-12 h-12 sm:w-16 sm:h-16 text-gray-300 mx-auto mb-4" />
                       <p className="text-gray-500 text-base sm:text-lg">
                         {searchTerm ? 'No services match your search' : 'No services available'}
@@ -372,6 +448,17 @@ const ServicesPage: React.FC = () => {
                         <div className="text-sm text-gray-600 max-w-md truncate">
                           {service.description || 'No description'}
                         </div>
+                      </td>
+                      <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-center">
+                        {service.isPriorityService ? (
+                          <span className="px-2 sm:px-3 py-1 bg-amber-100 text-amber-700 text-xs font-semibold rounded-full">
+                            Priority
+                          </span>
+                        ) : (
+                          <span className="px-2 sm:px-3 py-1 bg-gray-100 text-gray-500 text-xs font-semibold rounded-full">
+                            Normal
+                          </span>
+                        )}
                       </td>
                       <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-center">
                         <select

@@ -35,7 +35,8 @@ export default function CustomerRegistration() {
   const [language, setLanguage] = useState<"en" | "si" | "ta">("en")
   const [qrToken, setQrToken] = useState<string>("")
   const [qrValid, setQrValid] = useState<boolean>(false)
-  const [services, setServices] = useState<Array<{ id: string; code: string; title: string; isActive?: boolean }>>([])
+  const [services, setServices] = useState<Array<{ id: string; code: string; title: string; isActive?: boolean; isPriorityService?: boolean }>>([])
+  const [priorityFeatureEnabled, setPriorityFeatureEnabled] = useState(true)
   const [preferredLanguage, setPreferredLanguage] = useState<string>('en')
   // OTP verification states
   const [otpStep, setOtpStep] = useState<'idle' | 'sent' | 'verified'>("idle")
@@ -169,6 +170,7 @@ export default function CustomerRegistration() {
     // Always fetch outlets and services first
     fetchOutlets()
     fetchServices()
+    fetchPriorityFeatureSetting()
 
     // Clear any previous customer session data that might interfere
     // Keep only QR-related data
@@ -343,6 +345,18 @@ export default function CustomerRegistration() {
       setServices([])
     }
   }
+
+  const fetchPriorityFeatureSetting = async () => {
+    try {
+      const response = await api.get('/queue/settings/priority-service')
+      setPriorityFeatureEnabled(response.data?.enabled !== false)
+    } catch (err) {
+      console.error('Failed to fetch priority feature setting:', err)
+      setPriorityFeatureEnabled(true)
+    }
+  }
+
+  const selectedServiceMeta = services.find((service) => service.code === selectedService)
 
   // Auto-send OTP when mobile number is 10 digits
   useEffect(() => {
@@ -1076,11 +1090,28 @@ export default function CustomerRegistration() {
                             onChange={() => handleServiceSelect(service.code)}
                             className="w-5 h-5 text-blue-600"
                           />
-                          <span className="text-base font-medium">{getServiceTitle(service.code)}</span>
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="text-base font-medium">{getServiceTitle(service.code)}</span>
+                              {priorityFeatureEnabled && service.isPriorityService && (
+                                <span className="px-2 py-0.5 bg-amber-100 text-amber-700 text-xs font-semibold rounded-full">
+                                  Priority Queue
+                                </span>
+                              )}
+                            </div>
+                            {priorityFeatureEnabled && service.isPriorityService && (
+                              <p className="text-xs text-amber-700 mt-1">Customers selecting this service are placed first in the waiting queue.</p>
+                            )}
+                          </div>
                         </label>
                       ))}
                     </div>
                     <p className="text-xs text-gray-500 mt-2">{t.selectServiceTypesSubtitle}</p>
+                    {priorityFeatureEnabled && selectedServiceMeta?.isPriorityService && (
+                      <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                        This is a priority service. Your token will be placed at the front of the waiting queue.
+                      </div>
+                    )}
                   </div>
 
                   <div className="flex gap-3">
