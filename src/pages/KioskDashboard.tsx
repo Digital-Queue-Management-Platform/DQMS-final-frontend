@@ -24,7 +24,6 @@ export default function KioskDashboard() {
   const [notificationMessage, setNotificationMessage] = useState("")
   const [outlet, setOutlet] = useState<any>(null)
   const [services, setServices] = useState<Service[]>([])
-  const [priorityFeatureEnabled, setPriorityFeatureEnabled] = useState(true)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [language, setLanguage] = useState<"en" | "si" | "ta">("en")
@@ -87,7 +86,6 @@ export default function KioskDashboard() {
 
     setOutlet(JSON.parse(outletData))
     loadInitialData()
-    fetchPriorityFeatureSetting()
   }, [navigate])
 
   // Auto-submit form after OTP verification
@@ -150,16 +148,6 @@ export default function KioskDashboard() {
     }
   }
 
-  const fetchPriorityFeatureSetting = async () => {
-    try {
-      const response = await api.get('/queue/settings/priority-service')
-      setPriorityFeatureEnabled(response.data?.enabled !== false)
-    } catch (err) {
-      console.error('Failed to fetch priority feature setting:', err)
-      setPriorityFeatureEnabled(true)
-    }
-  }
-
   const isSltRequiredService = (code: string) => {
     // SVC002 and BILL_PAYMENT require SLT telephone number
     return code === 'SVC002' || code === 'BILL_PAYMENT'
@@ -173,8 +161,6 @@ export default function KioskDashboard() {
     const service = services.find(s => s.code === code)
     return service?.title || code
   }
-
-  const selectedServiceMeta = services.find((service) => service.code === selectedService)
 
   const sendOtp = async (): Promise<boolean> => {
     setOtpError("")

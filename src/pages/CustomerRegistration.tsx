@@ -36,7 +36,6 @@ export default function CustomerRegistration() {
   const [qrToken, setQrToken] = useState<string>("")
   const [qrValid, setQrValid] = useState<boolean>(false)
   const [services, setServices] = useState<Array<{ id: string; code: string; title: string; isActive?: boolean; isPriorityService?: boolean }>>([])
-  const [priorityFeatureEnabled, setPriorityFeatureEnabled] = useState(true)
   const [preferredLanguage, setPreferredLanguage] = useState<string>('en')
   // OTP verification states
   const [otpStep, setOtpStep] = useState<'idle' | 'sent' | 'verified'>("idle")
@@ -170,7 +169,6 @@ export default function CustomerRegistration() {
     // Always fetch outlets and services first
     fetchOutlets()
     fetchServices()
-    fetchPriorityFeatureSetting()
 
     // Clear any previous customer session data that might interfere
     // Keep only QR-related data
@@ -345,18 +343,6 @@ export default function CustomerRegistration() {
       setServices([])
     }
   }
-
-  const fetchPriorityFeatureSetting = async () => {
-    try {
-      const response = await api.get('/queue/settings/priority-service')
-      setPriorityFeatureEnabled(response.data?.enabled !== false)
-    } catch (err) {
-      console.error('Failed to fetch priority feature setting:', err)
-      setPriorityFeatureEnabled(true)
-    }
-  }
-
-  const selectedServiceMeta = services.find((service) => service.code === selectedService)
 
   // Auto-send OTP when mobile number is 10 digits
   useEffect(() => {

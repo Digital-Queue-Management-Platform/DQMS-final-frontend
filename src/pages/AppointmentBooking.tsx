@@ -28,7 +28,6 @@ export default function AppointmentBooking() {
   const navigate = useNavigate()
   const [outlets, setOutlets] = useState<Outlet[]>([])
   const [services, setServices] = useState<Service[]>([])
-  const [priorityFeatureEnabled, setPriorityFeatureEnabled] = useState(true)
   const [outletId, setOutletId] = useState("")
   const [name, setName] = useState("")
   const [mobileNumber, setMobileNumber] = useState("")
@@ -106,7 +105,6 @@ export default function AppointmentBooking() {
   useEffect(() => {
     fetchOutlets()
     fetchServices()
-    fetchPriorityFeatureSetting()
   }, [])
 
   // Auto-advance from step 3 when mobile number is complete
@@ -180,16 +178,6 @@ export default function AppointmentBooking() {
     }
   }
 
-  const fetchPriorityFeatureSetting = async () => {
-    try {
-      const res = await api.get('/queue/settings/priority-service')
-      setPriorityFeatureEnabled(res.data?.enabled !== false)
-    } catch (e) {
-      console.error('Failed to load priority feature setting:', e)
-      setPriorityFeatureEnabled(true)
-    }
-  }
-
   const isSltRequiredService = (code: string) => {
     // SVC002 and BILL_PAYMENT require SLT telephone number
     return code === 'SVC002' || code === 'BILL_PAYMENT'
@@ -198,8 +186,6 @@ export default function AppointmentBooking() {
   const handleServiceSelect = (code: string) => {
     setSelectedService(code)
   }
-
-  const selectedServiceMeta = services.find((service) => service.code === selectedService)
 
   // Translations for UI labels/buttons
   const translations = {
