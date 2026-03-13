@@ -205,16 +205,16 @@ export default function OutletQueueDisplay() {
 
           <div className="grid grid-cols-3 gap-2">
             <div className="rounded-2xl bg-emerald-50 border border-emerald-200 p-3 text-center">
-              <p className="text-xs text-emerald-700">Waiting</p>
-              <p className="text-2xl font-black text-emerald-900">{queue?.totalWaiting || 0}</p>
+              <p className="text-[10px] font-black uppercase tracking-widest text-emerald-700 opacity-70">Waiting</p>
+              <p className="text-2xl font-black text-slate-900">{queue?.totalWaiting || 0}</p>
             </div>
             <div className="rounded-2xl bg-sky-50 border border-sky-200 p-3 text-center">
-              <p className="text-xs text-sky-700">Serving</p>
-              <p className="text-2xl font-black text-sky-900">{queue?.inService?.length || 0}</p>
+              <p className="text-[10px] font-black uppercase tracking-widest text-sky-700 opacity-70">Serving</p>
+              <p className="text-2xl font-black text-slate-900">{queue?.inService?.length || 0}</p>
             </div>
             <div className="rounded-2xl bg-indigo-50 border border-indigo-200 p-3 text-center">
-              <p className="text-xs text-indigo-700">Active Counters</p>
-              <p className="text-2xl font-black text-indigo-900">{queue?.availableOfficers || 0}</p>
+              <p className="text-[10px] font-black uppercase tracking-widest text-indigo-700 opacity-70">Counters</p>
+              <p className="text-2xl font-black text-slate-900">{queue?.availableOfficers || 0}</p>
             </div>
           </div>
         </header>
@@ -239,7 +239,7 @@ export default function OutletQueueDisplay() {
           <section className="xl:col-span-2 rounded-3xl border border-slate-200 bg-white shadow-sm p-5">
             <div className="flex items-center gap-2 mb-4">
               <Sparkles className="w-5 h-5 text-emerald-600" />
-              <h2 className="text-xl md:text-2xl font-bold">Now Serving</h2>
+              <h2 className="text-xl md:text-2xl font-bold text-slate-900">Now Serving</h2>
             </div>
 
             {servingByCounter.length === 0 && (
@@ -253,7 +253,7 @@ export default function OutletQueueDisplay() {
                 <div key={token.id} className="rounded-2xl p-4 bg-emerald-50 border border-emerald-200">
                   <div className="flex items-center justify-between mb-2">
                     <p className="text-sm text-slate-600">Counter</p>
-                    <p className="text-lg font-bold text-emerald-700">{token.counterNumber ? `#${token.counterNumber}` : "Assigned"}</p>
+                    <p className="text-lg font-bold text-slate-900">{token.counterNumber ? `#${token.counterNumber}` : "Assigned"}</p>
                   </div>
                   <p className="text-5xl font-black tracking-wider text-slate-900">{String(token.tokenNumber).padStart(3, "0")}</p>
                   {showService && token.serviceTypes?.length ? (
@@ -273,17 +273,17 @@ export default function OutletQueueDisplay() {
           <section className="rounded-3xl border border-slate-200 bg-white shadow-sm p-5">
             <div className="flex items-center gap-2 mb-4">
               <Ticket className="w-5 h-5 text-sky-600" />
-              <h2 className="text-xl font-bold">Up Next</h2>
+              <h2 className="text-xl md:text-2xl font-bold text-slate-900">Up Next</h2>
             </div>
 
-            {upNext.length === 0 && <p className="text-slate-600 text-sm">No waiting tokens right now.</p>}
+            {upNext.length === 0 && <p className="text-slate-600 font-medium">No waiting tokens right now.</p>}
 
             <div className="space-y-2">
               {upNext.map((token, idx) => (
                 <div key={token.id} className="rounded-xl px-3 py-2 bg-slate-50 border border-slate-200 flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-slate-600">Queue #{idx + 1}</p>
-                    <p className="text-2xl font-extrabold">{String(token.tokenNumber).padStart(3, "0")}</p>
+                    <p className="text-sm font-bold text-slate-600">Queue #{idx + 1}</p>
+                    <p className="text-2xl font-black tracking-wider text-slate-900">{String(token.tokenNumber).padStart(3, "0")}</p>
                   </div>
                   {showService && token.serviceTypes?.[0] && (
                     <span className="text-xs px-2 py-1 rounded-full bg-sky-50 border border-sky-200 text-sky-700">
@@ -302,11 +302,11 @@ export default function OutletQueueDisplay() {
               <div className="absolute top-0 right-0 p-8 opacity-[0.03] pointer-events-none">
                 <Ticket className="w-32 h-32" />
               </div>
-              <div className="flex items-center gap-2 mb-6">
+              <div className="flex items-center gap-2 mb-4">
                 <div className="p-2 rounded-xl bg-indigo-50">
                   <Layers className="w-5 h-5 text-indigo-600" />
                 </div>
-                <h2 className="text-xl font-bold text-slate-800 tracking-tight">Recently Called</h2>
+                <h2 className="text-xl md:text-2xl font-bold text-slate-900">Recently Called</h2>
               </div>
 
               {recentCalled.length === 0 ? (
@@ -323,12 +323,11 @@ export default function OutletQueueDisplay() {
                         key={`${item.id}-${idx}`}
                         className="flex-shrink-0 w-40 rounded-2xl p-4 bg-indigo-50/50 border border-indigo-100 text-center transition-all duration-300 hover:bg-white hover:shadow-xl hover:shadow-indigo-100/50"
                       >
-                        <p className="text-3xl font-black text-indigo-700 tracking-tighter tabular-nums drop-shadow-sm">
+                        <p className="text-4xl font-black tracking-wider text-slate-900 drop-shadow-sm">
                           {String(item.tokenNumber).padStart(3, "0")}
                         </p>
                         <div className="flex items-center justify-center gap-1.5 mt-2">
-                          <div className="w-1.5 h-1.5 rounded-full bg-indigo-300" />
-                          <p className="text-[10px] font-black uppercase tracking-widest text-indigo-400">
+                          <p className="text-sm font-bold text-slate-600">
                             {item.counterNumber ? `Counter #${item.counterNumber}` : "Staff Station"}
                           </p>
                         </div>
@@ -345,11 +344,11 @@ export default function OutletQueueDisplay() {
               <div className="absolute top-0 right-0 p-8 opacity-[0.03] pointer-events-none">
                 <Users className="w-32 h-32" />
               </div>
-              <div className="flex items-center gap-2 mb-6">
+              <div className="flex items-center gap-2 mb-4">
                 <div className="p-2 rounded-xl bg-emerald-50">
                   <Users className="w-5 h-5 text-emerald-600" />
                 </div>
-                <h2 className="text-xl font-bold text-slate-800 tracking-tight">Counter Status</h2>
+                <h2 className="text-xl md:text-2xl font-bold text-slate-900">Counter Status</h2>
               </div>
 
               <div className="relative w-full overflow-hidden">
@@ -379,7 +378,7 @@ export default function OutletQueueDisplay() {
                             }`}
                         >
                           <div className="flex items-center gap-3">
-                            <div className={`w-12 h-12 rounded-xl flex items-center justify-center font-black text-xl shadow-sm ${isOffline ? 'bg-slate-200 text-slate-500' :
+                            <div className={`w-12 h-12 rounded-xl flex items-center justify-center font-black text-2xl shadow-sm ${isOffline ? 'bg-slate-200 text-slate-500' :
                               isServing ? 'bg-sky-500 text-white' :
                                 isOnBreak ? 'bg-amber-500 text-white' :
                                   'bg-emerald-500 text-white'
@@ -387,7 +386,7 @@ export default function OutletQueueDisplay() {
                               {counter.number}
                             </div>
                             <div className="text-left">
-                              <p className={`font-black text-sm leading-none ${isOffline ? 'text-slate-500' : 'text-slate-800'}`}>Counter #{counter.number}</p>
+                              <p className={`font-bold text-sm leading-none ${isOffline ? 'text-slate-500' : 'text-slate-600'}`}>Counter #{counter.number}</p>
                               <div className="flex items-center gap-1.5 mt-1.5">
                                 {isOffline ? (
                                   <div className="flex items-center gap-1">
@@ -469,6 +468,6 @@ export default function OutletQueueDisplay() {
           border-radius: 10px;
         }
       `}</style>
-    </div>
+    </div >
   )
 }
