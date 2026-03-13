@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { ExternalLink, Copy, Monitor, SlidersHorizontal, CheckCircle2 } from "lucide-react"
+import { ExternalLink, Copy, Monitor, SlidersHorizontal, CheckCircle2, Save, Loader2 } from "lucide-react"
 import api from "../config/api"
 
 type TeleshopManagerMe = {
@@ -20,6 +20,8 @@ export default function TeleshopManagerOutletDisplay() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
   const [copied, setCopied] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [saveSuccess, setSaveSuccess] = useState(false)
 
   const [refresh, setRefresh] = useState(10)
   const [next, setNext] = useState(8)
@@ -45,6 +47,24 @@ export default function TeleshopManagerOutletDisplay() {
 
         if (!profile?.branchId) {
           setError("You are not assigned to an outlet. Please contact your RTOM manager.")
+          return
+        }
+
+        // Load persisted settings
+        try {
+          const settingsRes = await api.get("/teleshop-manager/display-settings", {
+            headers: { Authorization: `Bearer ${token}` },
+          })
+          const s = settingsRes.data?.settings
+          if (s) {
+            if (s.refresh) setRefresh(s.refresh)
+            if (s.next) setNext(s.next)
+            if (s.services !== undefined) setServices(!!s.services)
+            if (s.counters !== undefined) setCounters(!!s.counters)
+            if (s.recent !== undefined) setRecent(!!s.recent)
+          }
+        } catch (se) {
+          console.warn("Could not load persisted display settings", se)
         }
       } catch (e: any) {
         setError(e?.response?.data?.error || "Failed to load teleshop manager profile")
@@ -81,6 +101,32 @@ export default function TeleshopManagerOutletDisplay() {
       setTimeout(() => setCopied(false), 1800)
     } catch {
       setError("Failed to copy URL. Please copy it manually.")
+    }
+  }
+
+  const saveSettings = async () => {
+    setSaving(true)
+    setError("")
+    try {
+      const token = localStorage.getItem("teleshopManagerToken")
+      await api.post("/teleshop-manager/display-settings",
+        {
+          settings: {
+            refresh,
+            next,
+            services,
+            counters,
+            recent
+          }
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
+      )
+      setSaveSuccess(true)
+      setTimeout(() => setSaveSuccess(false), 2000)
+    } catch (e: any) {
+      setError(e?.response?.data?.error || "Failed to save settings")
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -165,6 +211,17 @@ export default function TeleshopManagerOutletDisplay() {
                 <span className="text-sm text-slate-800">Show recently called tokens</span>
                 <input type="checkbox" checked={recent} onChange={(e) => setRecent(e.target.checked)} />
               </label>
+            </div>
+
+            <div className="mt-6 pt-4 border-t border-slate-100 flex justify-end">
+              <button
+                onClick={saveSettings}
+                disabled={saving}
+                className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-slate-900 text-white font-semibold hover:bg-slate-800 transition-all disabled:opacity-50"
+              >
+                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : (saveSuccess ? <CheckCircle2 className="w-4 h-4 text-emerald-400" /> : <Save className="w-4 h-4" />)}
+                {saving ? "Saving..." : (saveSuccess ? "Saved Successfully" : "Save Configuration")}
+              </button>
             </div>
           </section>
 

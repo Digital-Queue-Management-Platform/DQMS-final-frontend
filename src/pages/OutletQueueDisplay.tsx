@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react"
 import logo from "../assets/logo.png"
 import { useParams, useSearchParams } from "react-router-dom"
-import { Clock3, Users, Ticket, Layers, AlertTriangle, Sparkles, CalendarDays } from "lucide-react"
+import { Clock3, Users, Ticket, Layers, AlertTriangle, Sparkles, CalendarDays, Coffee } from "lucide-react"
 import api, { WS_URL } from "../config/api"
 import type { Token } from "../types"
 import ServiceName from "../components/ServiceName"
@@ -48,11 +48,11 @@ export default function OutletQueueDisplay() {
   const { outletId } = useParams()
   const [query] = useSearchParams()
 
-  const refreshSeconds = Math.max(5, Math.min(60, toInt(query.get("refresh"), 10)))
-  const nextLimit = Math.max(3, Math.min(20, toInt(query.get("next"), 8)))
-  const showService = toBool(query.get("services"), true)
-  const showCounters = toBool(query.get("counters"), true)
-  const showRecent = toBool(query.get("recent"), true)
+  const [refreshSeconds, setRefreshSeconds] = useState(() => Math.max(5, Math.min(60, toInt(query.get("refresh"), 10))))
+  const [nextLimit, setNextLimit] = useState(() => Math.max(3, Math.min(20, toInt(query.get("next"), 8))))
+  const [showService, setShowService] = useState(() => toBool(query.get("services"), true))
+  const [showCounters, setShowCounters] = useState(() => toBool(query.get("counters"), true))
+  const [showRecent, setShowRecent] = useState(() => toBool(query.get("recent"), true))
 
   const [queue, setQueue] = useState<QueuePayload | null>(null)
   const [counters, setCounters] = useState<CounterRow[]>([])
@@ -67,48 +67,32 @@ export default function OutletQueueDisplay() {
     if (!outletId) return
 
     try {
-      const [queueRes, counterRes, statusRes, outletsRes] = await Promise.all([
+      const [queueRes, counterRes, statusRes] = await Promise.all([
         api.get(`/queue/outlet/${outletId}`),
         api.get(`/queue/outlet/${outletId}/counters`),
         api.get(`/branch-status/${outletId}`),
-        api.get('/queue/outlets'),
       ])
 
-      const queueData: QueuePayload = queueRes.data
+      const queueData: any = queueRes.data
       setQueue(queueData)
       setCounters(Array.isArray(counterRes.data) ? counterRes.data : [])
 
-      const matchedOutlet = Array.isArray(outletsRes.data)
-        ? outletsRes.data.find((o: any) => o.id === outletId)
-        : null
-
-      if (matchedOutlet?.name) {
-        setOutletMeta({
-          name: matchedOutlet.name,
-          location: matchedOutlet.location || "",
-        })
+      // Update display settings from backend if available
+      if (queueData.displaySettings) {
+        const s = queueData.displaySettings
+        if (s.refresh) setRefreshSeconds(Math.max(5, Math.min(60, Number(s.refresh))))
+        if (s.next) setNextLimit(Math.max(3, Math.min(20, Number(s.next))))
+        if (s.services !== undefined) setShowService(!!s.services)
+        if (s.counters !== undefined) setShowCounters(!!s.counters)
+        if (s.recent !== undefined) setShowRecent(!!s.recent)
       }
 
-      if (queueData?.inService?.length > 0) {
-        const seed = queueData.inService
-          .slice()
-          .sort((a, b) => {
-            const aTime = a.calledAt ? new Date(a.calledAt).getTime() : 0
-            const bTime = b.calledAt ? new Date(b.calledAt).getTime() : 0
-            return bTime - aTime
-          })
-          .slice(0, 8)
-          .map((t) => ({
-            id: t.id,
-            tokenNumber: t.tokenNumber,
-            counterNumber: t.counterNumber,
-            calledAt: t.calledAt,
-            serviceTypes: t.serviceTypes,
-          }))
-        setRecentCalled((prev) => {
-          if (prev.length > 0) return prev
-          return seed
-        })
+      if (queueData.outletMeta) {
+        setOutletMeta(queueData.outletMeta)
+      }
+
+      if (queueData.recentlyCalled) {
+        setRecentCalled(queueData.recentlyCalled.slice(0, 8))
       }
 
       const waiting = queueData.waiting || []
@@ -160,23 +144,8 @@ export default function OutletQueueDisplay() {
         const data = msg?.data
         if (!data || !outletId) return
 
-        if (["NEW_TOKEN", "TOKEN_COMPLETED", "TOKEN_SKIPPED", "TOKEN_RECALLED", "TOKEN_UPDATED", "TOKEN_CANCELLED", "TOKEN_PRIORITY_UPDATED"].includes(type)) {
+        if (["NEW_TOKEN", "TOKEN_COMPLETED", "TOKEN_SKIPPED", "TOKEN_RECALLED", "TOKEN_UPDATED", "TOKEN_CANCELLED", "TOKEN_PRIORITY_UPDATED", "OFFICER_STATUS_CHANGE", "OFFICER_UPDATED", "TOKEN_CALLED"].includes(type)) {
           if (!data.outletId || data.outletId === outletId) fetchAll()
-        }
-
-        if (type === "TOKEN_CALLED" && data.outletId === outletId) {
-          setRecentCalled((prev) => {
-            const item: CalledRecord = {
-              id: data.id,
-              tokenNumber: data.tokenNumber,
-              counterNumber: data.counterNumber,
-              calledAt: data.calledAt,
-              serviceTypes: data.serviceTypes,
-            }
-            const merged = [item, ...prev.filter((p) => p.id !== data.id)]
-            return merged.slice(0, 8)
-          })
-          fetchAll()
         }
       } catch {
         // ignore malformed ws message
@@ -329,46 +298,126 @@ export default function OutletQueueDisplay() {
 
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mt-6">
           {showRecent && (
-            <section className="rounded-3xl border border-slate-200 bg-white shadow-sm p-5">
-              <div className="flex items-center gap-2 mb-4">
-                <Layers className="w-5 h-5 text-indigo-600" />
-                <h2 className="text-xl font-bold">Recently Called</h2>
+            <section className="rounded-3xl border border-slate-200 bg-white shadow-sm p-6 overflow-hidden relative">
+              <div className="absolute top-0 right-0 p-8 opacity-[0.03] pointer-events-none">
+                <Ticket className="w-32 h-32" />
               </div>
-              {recentCalled.length === 0 && <p className="text-slate-600 text-sm">No recent calls yet.</p>}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                {recentCalled.map((item) => (
-                  <div key={item.id} className="rounded-xl px-3 py-3 bg-indigo-50 border border-indigo-200 text-center">
-                    <p className="text-2xl font-black">{String(item.tokenNumber).padStart(3, "0")}</p>
-                    <p className="text-xs text-indigo-700 mt-1">{item.counterNumber ? `Counter #${item.counterNumber}` : "Counter assigned"}</p>
-                  </div>
-                ))}
+              <div className="flex items-center gap-2 mb-6">
+                <div className="p-2 rounded-xl bg-indigo-50">
+                  <Layers className="w-5 h-5 text-indigo-600" />
+                </div>
+                <h2 className="text-xl font-bold text-slate-800 tracking-tight">Recently Called</h2>
               </div>
+
+              {recentCalled.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-8 opacity-40">
+                  <Ticket className="w-12 h-12 mb-2 text-slate-300" />
+                  <p className="text-slate-600 font-medium">No recent calls yet.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-4">
+                  {recentCalled.map((item) => (
+                    <div
+                      key={item.id}
+                      className="group rounded-2xl p-4 bg-indigo-50/50 border border-indigo-100 text-center transition-all duration-300 hover:bg-white hover:shadow-xl hover:shadow-indigo-100/50 hover:-translate-y-1"
+                    >
+                      <p className="text-3xl font-black text-indigo-700 tracking-tighter tabular-nums drop-shadow-sm">
+                        {String(item.tokenNumber).padStart(3, "0")}
+                      </p>
+                      <div className="flex items-center justify-center gap-1.5 mt-2">
+                        <div className="w-1.5 h-1.5 rounded-full bg-indigo-300" />
+                        <p className="text-[10px] font-black uppercase tracking-widest text-indigo-400">
+                          {item.counterNumber ? `Counter #${item.counterNumber}` : "Staff Station"}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </section>
           )}
 
           {showCounters && (
-            <section className="rounded-3xl border border-slate-200 bg-white shadow-sm p-5">
-              <div className="flex items-center gap-2 mb-4">
-                <Users className="w-5 h-5 text-emerald-600" />
-                <h2 className="text-xl font-bold">Counter Status</h2>
+            <section className="rounded-3xl border border-slate-200 bg-white shadow-sm p-5 overflow-hidden relative">
+              <div className="absolute top-0 right-0 p-8 opacity-[0.03] pointer-events-none">
+                <Users className="w-32 h-32" />
+              </div>
+              <div className="flex items-center gap-2 mb-6">
+                <div className="p-2 rounded-xl bg-emerald-50">
+                  <Users className="w-5 h-5 text-emerald-600" />
+                </div>
+                <h2 className="text-xl font-bold text-slate-800 tracking-tight">Counter Status</h2>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-72 overflow-auto pr-1">
-                {counters.filter((c) => c.number !== null).map((counter) => (
-                  <div key={String(counter.number)} className="rounded-xl px-3 py-2 border border-slate-200 bg-slate-50 flex items-center justify-between">
-                    <p className="font-semibold">Counter #{counter.number}</p>
-                    {(() => {
-                      const status = counter.officer?.status
-                      if (!counter.isStaffed || !status)
-                        return <span className="text-xs px-2 py-1 rounded-full bg-slate-200 text-slate-600">Offline</span>
-                      if (status === "on_break")
-                        return <span className="text-xs px-2 py-1 rounded-full bg-amber-100 text-amber-700">On Break</span>
-                      if (status === "serving")
-                        return <span className="text-xs px-2 py-1 rounded-full bg-sky-100 text-sky-700">Serving</span>
-                      return <span className="text-xs px-2 py-1 rounded-full bg-emerald-100 text-emerald-700">Online</span>
-                    })()}
-                  </div>
-                ))}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[340px] overflow-y-auto pr-2 custom-scrollbar">
+                {counters.filter((c) => c.number !== null).map((counter) => {
+                  const status = counter.officer?.status;
+                  const isOffline = !counter.isStaffed || !status || status === 'offline';
+                  const isOnBreak = status === 'on_break' || status === 'break';
+                  const isServing = status === 'serving';
+                  const isOnline = status === 'available' || (counter.isStaffed && !isOffline && !isOnBreak && !isServing);
+
+                  return (
+                    <div
+                      key={String(counter.number)}
+                      className={`group rounded-2xl p-3 border-2 transition-all duration-300 flex items-center justify-between ${isOffline
+                        ? 'border-slate-100 bg-slate-50/50 grayscale-[0.5]'
+                        : isServing
+                          ? 'border-sky-100 bg-sky-50 shadow-sm'
+                          : isOnBreak
+                            ? 'border-amber-100 bg-amber-50 shadow-sm'
+                            : 'border-emerald-100 bg-emerald-50 shadow-sm'
+                        }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-lg ${isOffline ? 'bg-slate-200 text-slate-500' :
+                          isServing ? 'bg-sky-500 text-white shadow-lg shadow-sky-100' :
+                            isOnBreak ? 'bg-amber-500 text-white shadow-lg shadow-amber-100' :
+                              'bg-emerald-500 text-white shadow-lg shadow-emerald-100'
+                          }`}>
+                          {counter.number}
+                        </div>
+                        <div>
+                          <p className={`font-bold text-sm ${isOffline ? 'text-slate-500' : 'text-slate-800'}`}>Counter #{counter.number}</p>
+                          <div className="flex items-center gap-1.5 mt-0.5">
+                            {isOffline ? (
+                              <div className="flex items-center gap-1">
+                                <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+                                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Offline</span>
+                              </div>
+                            ) : isServing ? (
+                              <div className="flex items-center gap-1">
+                                <span className="w-1.5 h-1.5 rounded-full bg-sky-500 animate-pulse" />
+                                <span className="text-[10px] font-bold uppercase tracking-wider text-sky-600">Now Serving</span>
+                              </div>
+                            ) : isOnBreak ? (
+                              <div className="flex items-center gap-1">
+                                <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                                <span className="text-[10px] font-bold uppercase tracking-wider text-amber-600">On Break</span>
+                              </div>
+                            ) : isOnline ? (
+                              <div className="flex items-center gap-1">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
+                                <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-600">Online</span>
+                              </div>
+                            ) : null}
+                          </div>
+                        </div>
+                      </div>
+
+                      {!isOffline && (
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${isServing ? 'text-sky-500 bg-white shadow-sm' :
+                          isOnBreak ? 'text-amber-500 bg-white shadow-sm' :
+                            'text-emerald-500 bg-white shadow-sm'
+                          }`}>
+                          {isServing ? <Sparkles className="w-4 h-4" /> :
+                            isOnBreak ? <Coffee className="w-4 h-4" /> :
+                              <div className="w-2 h-2 rounded-full bg-emerald-500" />}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </section>
           )}
