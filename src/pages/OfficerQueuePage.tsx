@@ -31,6 +31,7 @@ export default function OfficerQueuePage() {
   const [counters, setCounters] = useState<any[]>([])
   const [targetOfficer, setTargetOfficer] = useState<{ id: string; name: string; counterNumber: number | null } | null>(null)
   const [transferNotes, setTransferNotes] = useState("")
+  const [showServiceTypeInQueue, setShowServiceTypeInQueue] = useState(false)
 
 
   // Helper functions for date and time formatting
@@ -54,6 +55,12 @@ export default function OfficerQueuePage() {
   useEffect(() => {
     // Fetch officer and initial queue
     let mounted = true
+
+    // Fetch show-service-type setting
+    api.get('/queue/settings/show-service-type').then(res => {
+      if (mounted) setShowServiceTypeInQueue(res.data.enabled ?? false)
+    }).catch(() => {})
+
     api.get('/officer/me').then(res => {
       if (!mounted) return
       const me: Officer = res.data.officer
@@ -994,9 +1001,9 @@ export default function OfficerQueuePage() {
                   <>
                     {/* Table Header */}
                     <div className="grid grid-cols-12 gap-4 px-4 py-2.5 bg-slate-800 border-b text-xs font-semibold text-slate-200 rounded-xl tracking-wide mb-3">
-                      <div className="col-span-2">TOKEN</div>
-                      <div className="col-span-2">CUSTOMER</div>
-                      <div className="col-span-2">SERVICE TYPE</div>
+                      <div className={showServiceTypeInQueue ? "col-span-2" : "col-span-3"}>TOKEN</div>
+                      <div className={showServiceTypeInQueue ? "col-span-2" : "col-span-3"}>CUSTOMER</div>
+                      {showServiceTypeInQueue && <div className="col-span-2">SERVICE TYPE</div>}
                       <div className="col-span-2">WAITED TIME</div>
                       <div className="col-span-2">STATUS</div>
                       <div className="col-span-2">ACTION</div>
@@ -1016,7 +1023,7 @@ export default function OfficerQueuePage() {
 
                         return (
                           <div key={t.id} className={`grid grid-cols-12 gap-4 px-4 py-4 hover:bg-gray-50 transition-colors ${isSkipped ? 'bg-orange-50 rounded-lg' : isPriority ? 'bg-yellow-50 rounded-lg border-l-4 border-yellow-400' : ''}`}>
-                            <div className="col-span-2 flex items-center gap-1 flex-wrap">
+                            <div className={`${showServiceTypeInQueue ? 'col-span-2' : 'col-span-3'} flex items-center gap-1 flex-wrap`}>
                               {isPriority ? (
                                 <span className="inline-flex items-center px-2 py-1 rounded-md bg-yellow-100 text-yellow-800 text-sm font-semibold">
                                   {t.tokenNumber} ★
@@ -1030,22 +1037,24 @@ export default function OfficerQueuePage() {
                                 </span>
                               )}
                             </div>
-                            <div className="col-span-2">
+                            <div className={showServiceTypeInQueue ? "col-span-2" : "col-span-3"}>
                               <span className={`${isSkipped ? 'text-gray-500' : 'text-gray-900'}`}>{t.customer.name}</span>
                             </div>
-                            <div className="col-span-2">
-                              {Array.isArray(t.serviceTypes) && t.serviceTypes.length > 0 ? (
-                                <div className="flex flex-col gap-1">
-                                  {t.serviceTypes.map((stype: string) => (
-                                    <span key={stype} className={`px-2 py-1 rounded-full text-xs font-medium ${getServiceColor(stype)}`}>
-                                      <ServiceName serviceType={stype} />
-                                    </span>
-                                  ))}
-                                </div>
-                              ) : (
-                                <span className="px-2 py-1 rounded-full text-xs font-medium bg-gray-200 text-gray-600">No service types</span>
-                              )}
-                            </div>
+                            {showServiceTypeInQueue && (
+                              <div className="col-span-2">
+                                {Array.isArray(t.serviceTypes) && t.serviceTypes.length > 0 ? (
+                                  <div className="flex flex-col gap-1">
+                                    {t.serviceTypes.map((stype: string) => (
+                                      <span key={stype} className={`px-2 py-1 rounded-full text-xs font-medium ${getServiceColor(stype)}`}>
+                                        <ServiceName serviceType={stype} />
+                                      </span>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <span className="px-2 py-1 rounded-full text-xs font-medium bg-gray-200 text-gray-600">No service types</span>
+                                )}
+                              </div>
+                            )}
                             <div className="col-span-2">
                               <span className="text-gray-900">{waitTime} min</span>
                             </div>
