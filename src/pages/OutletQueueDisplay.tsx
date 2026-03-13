@@ -92,7 +92,7 @@ export default function OutletQueueDisplay() {
       }
 
       if (queueData.recentlyCalled) {
-        setRecentCalled(queueData.recentlyCalled.slice(0, 8))
+        setRecentCalled(queueData.recentlyCalled.slice(0, 30))
       }
 
       const waiting = queueData.waiting || []
@@ -315,30 +315,33 @@ export default function OutletQueueDisplay() {
                   <p className="text-slate-600 font-medium">No recent calls yet.</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-4">
-                  {recentCalled.map((item) => (
-                    <div
-                      key={item.id}
-                      className="group rounded-2xl p-4 bg-indigo-50/50 border border-indigo-100 text-center transition-all duration-300 hover:bg-white hover:shadow-xl hover:shadow-indigo-100/50 hover:-translate-y-1"
-                    >
-                      <p className="text-3xl font-black text-indigo-700 tracking-tighter tabular-nums drop-shadow-sm">
-                        {String(item.tokenNumber).padStart(3, "0")}
-                      </p>
-                      <div className="flex items-center justify-center gap-1.5 mt-2">
-                        <div className="w-1.5 h-1.5 rounded-full bg-indigo-300" />
-                        <p className="text-[10px] font-black uppercase tracking-widest text-indigo-400">
-                          {item.counterNumber ? `Counter #${item.counterNumber}` : "Staff Station"}
+                <div className="relative w-full overflow-hidden">
+                  <div className="flex gap-4 animate-marquee whitespace-nowrap py-2">
+                    {/* Double the items for seamless looping */}
+                    {[...recentCalled, ...recentCalled].map((item, idx) => (
+                      <div
+                        key={`${item.id}-${idx}`}
+                        className="flex-shrink-0 w-40 rounded-2xl p-4 bg-indigo-50/50 border border-indigo-100 text-center transition-all duration-300 hover:bg-white hover:shadow-xl hover:shadow-indigo-100/50"
+                      >
+                        <p className="text-3xl font-black text-indigo-700 tracking-tighter tabular-nums drop-shadow-sm">
+                          {String(item.tokenNumber).padStart(3, "0")}
                         </p>
+                        <div className="flex items-center justify-center gap-1.5 mt-2">
+                          <div className="w-1.5 h-1.5 rounded-full bg-indigo-300" />
+                          <p className="text-[10px] font-black uppercase tracking-widest text-indigo-400">
+                            {item.counterNumber ? `Counter #${item.counterNumber}` : "Staff Station"}
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
               )}
             </section>
           )}
 
           {showCounters && (
-            <section className="rounded-3xl border border-slate-200 bg-white shadow-sm p-5 overflow-hidden relative">
+            <section className="rounded-3xl border border-slate-200 bg-white shadow-sm p-6 overflow-hidden relative">
               <div className="absolute top-0 right-0 p-8 opacity-[0.03] pointer-events-none">
                 <Users className="w-32 h-32" />
               </div>
@@ -349,75 +352,83 @@ export default function OutletQueueDisplay() {
                 <h2 className="text-xl font-bold text-slate-800 tracking-tight">Counter Status</h2>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[340px] overflow-y-auto pr-2 custom-scrollbar">
-                {counters.filter((c) => c.number !== null).map((counter) => {
-                  const status = counter.officer?.status;
-                  const isOffline = !counter.isStaffed || !status || status === 'offline';
-                  const isOnBreak = status === 'on_break' || status === 'break';
-                  const isServing = status === 'serving';
-                  const isOnline = status === 'available' || (counter.isStaffed && !isOffline && !isOnBreak && !isServing);
+              <div className="relative w-full overflow-hidden">
+                <div className="flex gap-4 animate-marquee whitespace-nowrap py-2">
+                  {/* Filter and double the counters for seamless looping */}
+                  {(() => {
+                    const activeCounters = counters.filter((c) => c.number !== null);
+                    const itemsToDisplay = activeCounters.length > 0 ? [...activeCounters, ...activeCounters] : [];
 
-                  return (
-                    <div
-                      key={String(counter.number)}
-                      className={`group rounded-2xl p-3 border-2 transition-all duration-300 flex items-center justify-between ${isOffline
-                        ? 'border-slate-100 bg-slate-50/50 grayscale-[0.5]'
-                        : isServing
-                          ? 'border-sky-100 bg-sky-50 shadow-sm'
-                          : isOnBreak
-                            ? 'border-amber-100 bg-amber-50 shadow-sm'
-                            : 'border-emerald-100 bg-emerald-50 shadow-sm'
-                        }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-lg ${isOffline ? 'bg-slate-200 text-slate-500' :
-                          isServing ? 'bg-sky-500 text-white shadow-lg shadow-sky-100' :
-                            isOnBreak ? 'bg-amber-500 text-white shadow-lg shadow-amber-100' :
-                              'bg-emerald-500 text-white shadow-lg shadow-emerald-100'
-                          }`}>
-                          {counter.number}
-                        </div>
-                        <div>
-                          <p className={`font-bold text-sm ${isOffline ? 'text-slate-500' : 'text-slate-800'}`}>Counter #{counter.number}</p>
-                          <div className="flex items-center gap-1.5 mt-0.5">
-                            {isOffline ? (
-                              <div className="flex items-center gap-1">
-                                <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
-                                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Offline</span>
+                    return itemsToDisplay.map((counter, idx) => {
+                      const status = counter.officer?.status;
+                      const isOffline = !counter.isStaffed || !status || status === 'offline';
+                      const isOnBreak = status === 'on_break' || status === 'break';
+                      const isServing = status === 'serving';
+                      const isOnline = status === 'available' || (counter.isStaffed && !isOffline && !isOnBreak && !isServing);
+
+                      return (
+                        <div
+                          key={`${String(counter.number)}-${idx}`}
+                          className={`flex-shrink-0 w-64 group rounded-2xl p-4 border-2 transition-all duration-300 flex items-center justify-between ${isOffline
+                            ? 'border-slate-100 bg-slate-50/50 grayscale-[0.5]'
+                            : isServing
+                              ? 'border-sky-100 bg-sky-50 shadow-sm'
+                              : isOnBreak
+                                ? 'border-amber-100 bg-amber-50 shadow-sm'
+                                : 'border-emerald-100 bg-emerald-50 shadow-sm'
+                            }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className={`w-12 h-12 rounded-xl flex items-center justify-center font-black text-xl shadow-sm ${isOffline ? 'bg-slate-200 text-slate-500' :
+                              isServing ? 'bg-sky-500 text-white' :
+                                isOnBreak ? 'bg-amber-500 text-white' :
+                                  'bg-emerald-500 text-white'
+                              }`}>
+                              {counter.number}
+                            </div>
+                            <div className="text-left">
+                              <p className={`font-black text-sm leading-none ${isOffline ? 'text-slate-500' : 'text-slate-800'}`}>Counter #{counter.number}</p>
+                              <div className="flex items-center gap-1.5 mt-1.5">
+                                {isOffline ? (
+                                  <div className="flex items-center gap-1">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+                                    <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">Offline</span>
+                                  </div>
+                                ) : isServing ? (
+                                  <div className="flex items-center gap-1">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-sky-500 animate-pulse" />
+                                    <span className="text-[10px] font-black uppercase tracking-wider text-sky-600">Now Serving</span>
+                                  </div>
+                                ) : isOnBreak ? (
+                                  <div className="flex items-center gap-1">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                                    <span className="text-[10px] font-black uppercase tracking-wider text-amber-600">On Break</span>
+                                  </div>
+                                ) : isOnline ? (
+                                  <div className="flex items-center gap-1">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
+                                    <span className="text-[10px] font-black uppercase tracking-wider text-emerald-600">Online</span>
+                                  </div>
+                                ) : null}
                               </div>
-                            ) : isServing ? (
-                              <div className="flex items-center gap-1">
-                                <span className="w-1.5 h-1.5 rounded-full bg-sky-500 animate-pulse" />
-                                <span className="text-[10px] font-bold uppercase tracking-wider text-sky-600">Now Serving</span>
-                              </div>
-                            ) : isOnBreak ? (
-                              <div className="flex items-center gap-1">
-                                <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-                                <span className="text-[10px] font-bold uppercase tracking-wider text-amber-600">On Break</span>
-                              </div>
-                            ) : isOnline ? (
-                              <div className="flex items-center gap-1">
-                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
-                                <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-600">Online</span>
-                              </div>
-                            ) : null}
+                            </div>
                           </div>
-                        </div>
-                      </div>
 
-                      {!isOffline && (
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${isServing ? 'text-sky-500 bg-white shadow-sm' :
-                          isOnBreak ? 'text-amber-500 bg-white shadow-sm' :
-                            'text-emerald-500 bg-white shadow-sm'
-                          }`}>
-                          {isServing ? <Sparkles className="w-4 h-4" /> :
-                            isOnBreak ? <Coffee className="w-4 h-4" /> :
-                              <div className="w-2 h-2 rounded-full bg-emerald-500" />}
+                          {!isOffline && (
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${isServing ? 'text-sky-500 bg-white shadow-sm' :
+                              isOnBreak ? 'text-amber-500 bg-white shadow-sm' :
+                                'text-emerald-500 bg-white shadow-sm'
+                              }`}>
+                              {isServing ? <Sparkles className="w-4 h-4" /> :
+                                isOnBreak ? <Coffee className="w-4 h-4" /> :
+                                  <div className="w-2 h-2 rounded-full bg-emerald-500" />}
+                            </div>
+                          )}
                         </div>
-                      )}
-                    </div>
-                  );
-                })}
+                      );
+                    });
+                  })()}
+                </div>
               </div>
             </section>
           )}
@@ -433,6 +444,31 @@ export default function OutletQueueDisplay() {
           </div>
         </footer>
       </div>
+
+      <style>{`
+        @keyframes marquee {
+          0% { transform: translateX(0); }
+          100% { transform: translateX(-50%); }
+        }
+        .animate-marquee {
+          display: flex;
+          width: fit-content;
+          animation: marquee 40s linear infinite;
+        }
+        .animate-marquee:hover {
+          animation-play-state: paused;
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: #e2e8f0;
+          border-radius: 10px;
+        }
+      `}</style>
     </div>
   )
 }
