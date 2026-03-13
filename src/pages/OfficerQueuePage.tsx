@@ -502,23 +502,6 @@ export default function OfficerQueuePage() {
     }
   }
 
-  const handleCallToken = async (tokenId: string) => {
-    if (!officer) return
-    if (currentToken && currentToken.id !== tokenId) {
-      alert("Please complete or skip the current customer first.")
-      return
-    }
-    setLoading(true)
-    try {
-      await callSpecificToken(tokenId)
-    } catch (err: any) {
-      console.error('failed to call token', err)
-      alert('Failed to call token: ' + (err.response?.data?.error || err.message || 'Unknown error'))
-    } finally {
-      setLoading(false)
-    }
-  }
-
   const handleRefresh = async () => {
     if (officer?.outletId) {
       setRefreshing(true)
