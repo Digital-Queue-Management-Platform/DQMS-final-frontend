@@ -337,81 +337,71 @@ export default function OfficerQueuePage() {
     fetchServices()
   }, [])
 
+  const refreshOfficerQueueState = async (currentOfficer: Officer) => {
+    await Promise.all([
+      fetchQueue(currentOfficer.outletId, currentOfficer.id),
+      fetchCurrentToken(currentOfficer.id),
+      fetchUnmatchedTokens(currentOfficer.outletId)
+    ])
+  }
+
+  const callSpecificToken = async (tokenId: string) => {
+    if (!officer) return null
+
+    const response = await api.post('/officer/call-token', {
+      officerId: officer.id,
+      tokenId
+    })
+
+    if (response.data.token) {
+      setCurrentToken(response.data.token)
+      setBillInfo(null)
+      setAccountRef("")
+      await refreshOfficerQueueState(officer)
+      autoSpeak(response.data.token, 'call', officer.counterNumber)
+      return response.data.token as Token
+    }
+
+    return null
+  }
+
   const handleNextToken = async () => {
     if (!officer) return
+    if (currentToken) {
+      alert("Please complete or skip the current customer first.")
+      return
+    }
+
     setLoading(true)
     try {
-      // Check if there are matching tokens in "My Queue"
-      const matchingTokens = queue?.waiting.filter((t) => {
-        const tokenServices = Array.isArray(t.serviceTypes) ? t.serviceTypes : []
-        const officerServices = Array.isArray((officer as any)?.assignedServices) ? (officer as any).assignedServices : []
-        const hasServiceMatch = tokenServices.length === 0 || officerServices.length === 0 || tokenServices.some((s: any) => officerServices.includes(s))
-        const prefs = Array.isArray((t as any).preferredLanguages) ? (t as any).preferredLanguages : []
-        const langs = Array.isArray((officer as any)?.languages) ? (officer as any).languages : []
-        const hasLanguageMatch = prefs.length === 0 || langs.length === 0 || prefs.some((p: any) => langs.includes(p))
-        return hasServiceMatch && hasLanguageMatch && (t as any).status !== 'skipped'
-      }) || []
+      let nextTokenId: string | null = null
 
-      // If no matching tokens but there are unmatched tokens, ask to call unmatched
-      if (matchingTokens.length === 0 && unmatchedTokens.length > 0) {
-        const confirmed = confirm('No tokens in your queue. Do you want to call an unmatched token? This token may require translation assistance or escalation.')
-        if (!confirmed) {
-          setLoading(false)
-          return
-        }
+      if (activeTab === 'my-queue') {
+        nextTokenId = sortedCallableMyQueueTokens[0]?.id || null
+      } else if (activeTab === 'transferred') {
+        nextTokenId = sortedCallableTransferredTokens[0]?.id || null
+      } else {
+        nextTokenId = sortedCallableUnmatchedTokens[0]?.id || null
+      }
 
-        // Call with allowUnmatched flag
-        const response = await api.post('/officer/next-token', {
-          officerId: officer.id,
-          allowUnmatched: true
-        })
-
-        if (response.data.token) {
-          setCurrentToken(response.data.token)
-          setBillInfo(null)
-          setAccountRef("")
-          fetchQueue(officer.outletId, officer.id)
-          fetchCurrentToken(officer.id)
-          autoSpeak(response.data.token, 'call', officer.counterNumber)
-        }
-        setLoading(false)
+      if (!nextTokenId) {
+        const emptyMessage = activeTab === 'my-queue'
+          ? 'No customers are waiting in My Queue.'
+          : activeTab === 'transferred'
+            ? 'No customers are waiting in Transferred Tokens.'
+            : 'No customers are waiting in Unmatched Tokens.'
+        alert(emptyMessage)
         return
       }
 
-      // Normal flow - call matching tokens or use fallback
-      const response = await api.post('/officer/next-token', { officerId: officer.id })
-      if (response.data.fallbackAllowed && !response.data.token) {
-        const confirmed = confirm('No online/available relevant officers for this service. Do you want to call the next customer cross-service?')
-        if (!confirmed) return
-        const confirmRes = await api.post('/officer/next-token', { officerId: officer.id, allowFallback: true })
-        if (confirmRes.data.token) {
-          setCurrentToken(confirmRes.data.token)
-          setBillInfo(null)
-          setAccountRef("")
-          fetchQueue(officer.outletId, officer.id)
-          fetchCurrentToken(officer.id)
-          autoSpeak(confirmRes.data.token, 'call', officer.counterNumber)
-        }
-      } else if (response.data.token) {
-        console.log('Received token data:', response.data.token)
-        console.log('Customer name:', response.data.token.customer?.name)
-        setCurrentToken(response.data.token)
-        setBillInfo(null)
-        setAccountRef("")
-        fetchQueue(officer.outletId, officer.id)
-        fetchCurrentToken(officer.id)
-        autoSpeak(response.data.token, 'call', officer.counterNumber)
-      } else {
-        const msg = response.data.message || response.data.error || 'No matching customers in queue right now.'
-        alert(msg)
-      }
+      await callSpecificToken(nextTokenId)
     } catch (err: any) {
       console.error('failed to get next token', err)
       const errorMsg = err.response?.data?.error || err.message || 'Unknown error'
       if (err.response?.status === 409) {
         alert(errorMsg)
         // Refresh queue because a token was just taken
-        fetchQueue(officer.outletId, officer.id)
+        refreshOfficerQueueState(officer)
       } else {
         alert('Failed to get next token: ' + errorMsg)
       }
@@ -479,6 +469,11 @@ export default function OfficerQueuePage() {
 
   const handleSetPriority = async (tokenId: string) => {
     if (!officer) return
+    if (currentToken) {
+      alert("Please complete or skip the current customer first.")
+      return
+    }
+
     setLoading(true)
     try {
       const response = await api.post('/officer/set-priority', { tokenId })
@@ -488,14 +483,7 @@ export default function OfficerQueuePage() {
         // If marking as priority, automatically call the customer to counter
         if (isPriority) {
           try {
-            const callResponse = await api.post('/officer/call-token', {
-              officerId: officer.id,
-              tokenId
-            })
-            if (callResponse.data.token) {
-              setCurrentToken(callResponse.data.token)
-              setAccountRef("")
-            }
+            await callSpecificToken(tokenId)
             alert('Customer marked as VIP priority and called to counter!')
           } catch (callErr: any) {
             console.error('Failed to call customer:', callErr)
@@ -503,8 +491,8 @@ export default function OfficerQueuePage() {
           }
         } else {
           alert('Priority removed from customer')
+          await refreshOfficerQueueState(officer)
         }
-        fetchQueue(officer.outletId, officer.id)
       }
     } catch (err: any) {
       console.error('Failed to set priority:', err)
@@ -522,19 +510,7 @@ export default function OfficerQueuePage() {
     }
     setLoading(true)
     try {
-      const response = await api.post('/officer/call-token', {
-        officerId: officer.id,
-        tokenId
-      })
-      if (response.data.token) {
-        setCurrentToken(response.data.token)
-        setBillInfo(null)
-        setAccountRef("")
-        // Refresh queue and fetch bill info if applicable
-        fetchQueue(officer.outletId, officer.id)
-        fetchCurrentToken(officer.id)
-        autoSpeak(response.data.token, 'call', officer.counterNumber)
-      }
+      await callSpecificToken(tokenId)
     } catch (err: any) {
       console.error('failed to call token', err)
       alert('Failed to call token: ' + (err.response?.data?.error || err.message || 'Unknown error'))
@@ -599,9 +575,33 @@ export default function OfficerQueuePage() {
 
   const myQueueTokens = queue?.waiting.filter(matchesMyQueueRules) || []
   const incomingTransferredTokens = queue?.waiting.filter(isIncomingTransferredToken) || []
+  const sortedMyQueueTokens = [...myQueueTokens].sort((a, b) => {
+    if (a.isPriority && !b.isPriority) return -1
+    if (!a.isPriority && b.isPriority) return 1
+    return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+  })
+  const sortedIncomingTransferredTokens = [...incomingTransferredTokens].sort((a, b) => {
+    if (a.isPriority && !b.isPriority) return -1
+    if (!a.isPriority && b.isPriority) return 1
+    return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+  })
+  const sortedUnmatchedTokens = [...unmatchedTokens].sort((a, b) => {
+    if (a.isPriority && !b.isPriority) return -1
+    if (!a.isPriority && b.isPriority) return 1
+    return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+  })
+  const sortedCallableMyQueueTokens = sortedMyQueueTokens.filter((t) => t.status !== 'skipped')
+  const sortedCallableTransferredTokens = sortedIncomingTransferredTokens.filter((t) => t.status !== 'skipped')
+  const sortedCallableUnmatchedTokens = sortedUnmatchedTokens.filter((t) => t.status !== 'skipped')
   const hasTransferredAttention = incomingTransferredTokens.length > 0
-  const hasCallableMyQueueToken = myQueueTokens.some((t) => (t as any).status !== 'skipped')
-  const hasCallableIncomingTransfer = incomingTransferredTokens.some((t) => (t as any).status !== 'skipped')
+  const hasCallableMyQueueToken = sortedCallableMyQueueTokens.length > 0
+  const hasCallableIncomingTransfer = sortedCallableTransferredTokens.length > 0
+  const hasCallableUnmatchedToken = sortedCallableUnmatchedTokens.length > 0
+  const hasCallableTokenForActiveTab = activeTab === 'my-queue'
+    ? hasCallableMyQueueToken
+    : activeTab === 'transferred'
+      ? hasCallableIncomingTransfer
+      : hasCallableUnmatchedToken
 
   return (
     <div className="min-h-screen bg-slate-50 p-4">
@@ -704,21 +704,26 @@ export default function OfficerQueuePage() {
                     </div>
                     <h3 className="text-2xl font-bold text-gray-900 mb-3">Ready to Serve</h3>
                     <p className="text-gray-600 mb-8 text-sm">Click the button below to call the next customer</p>
-                    {/* Disable only when there are no callable (non-skipped) tokens in "My Queue" */}
                     <button
                       onClick={handleNextToken}
                       disabled={
                         loading ||
                         officer.status !== "available" ||
                         !queue ||
-                        (!hasCallableMyQueueToken && !hasCallableIncomingTransfer)
+                        !hasCallableTokenForActiveTab
                       }
                       className="px-6 py-2 bg-amber-600 text-white hover:bg-amber-700 border-2 border-amber-600 rounded-xl font-semibold transition-colors disabled:bg-gray-200 disabled:border-gray-200 disabled:text-gray-500 disabled:cursor-not-allowed text-sm"
                     >
                       {loading ? "Loading..." : "Call Next Token"}
                     </button>
-                    {queue && !hasCallableMyQueueToken && !hasCallableIncomingTransfer && (
-                      <p className="mt-2 text-sm text-gray-500">No customers are waiting in your queue.</p>
+                    {queue && !hasCallableTokenForActiveTab && (
+                      <p className="mt-2 text-sm text-gray-500">
+                        {activeTab === 'my-queue'
+                          ? 'No customers are waiting in My Queue.'
+                          : activeTab === 'transferred'
+                            ? 'No customers are waiting in Transferred Tokens.'
+                            : 'No customers are waiting in Unmatched Tokens.'}
+                      </p>
                     )}
                     {officer.status !== "available" && (
                       <p className="mt-4 text-sm text-yellow-600">You must be available to call next token</p>
@@ -971,8 +976,7 @@ export default function OfficerQueuePage() {
                     <div>
                       <p className="text-sm font-medium text-yellow-800 mb-1">Unmatched Tokens Detected</p>
                       <p className="text-xs text-yellow-700">
-                        There are no active officers to serve these tokens.
-                        You can manually call them if needed, but they may require translation assistance or escalation because of language & service type mismatch.
+                        There are no active officers to serve these tokens. Calling from this tab will assign the oldest waiting unmatched customer to your counter.
                       </p>
                     </div>
                   </div>
@@ -1008,12 +1012,7 @@ export default function OfficerQueuePage() {
 
                     {/* Queue Items */}
                     <div className="divide-y divide-gray-100">
-                      {myQueueTokens.sort((a, b) => {
-                        // Prioritize VIP/priority customers, then oldest first.
-                        if (a.isPriority && !b.isPriority) return -1
-                        if (!a.isPriority && b.isPriority) return 1
-                        return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-                      }).map((t) => {
+                      {sortedMyQueueTokens.map((t) => {
                         const waitTime = Math.floor((Date.now() - new Date(t.createdAt).getTime()) / 60000)
                         const isPriority = t.isPriority === true
                         const isSkipped = t.status === 'skipped'
@@ -1076,13 +1075,6 @@ export default function OfficerQueuePage() {
                                 ) : (
                                   <>
                                     <button
-                                      onClick={() => handleCallToken(t.id)}
-                                      disabled={loading || currentToken !== null}
-                                      className="px-2 py-1 bg-emerald-600 text-white text-xs rounded-lg hover:bg-emerald-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed whitespace-nowrap"
-                                    >
-                                      Call & Serve
-                                    </button>
-                                    <button
                                       onClick={() => handleSkip(t.id)}
                                       disabled={loading || currentToken !== null}
                                       className="px-2 py-1 bg-orange-500 text-white text-xs rounded hover:bg-orange-600 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed whitespace-nowrap"
@@ -1137,14 +1129,21 @@ export default function OfficerQueuePage() {
                       <div className="col-span-2">ACTION</div>
                     </div>
                     <div className="divide-y divide-gray-100">
-                      {incomingTransferredTokens.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()).map((t) => {
+                      {sortedIncomingTransferredTokens.map((t) => {
                         const waitTime = Math.floor((Date.now() - new Date(t.createdAt).getTime()) / 60000)
+                        const isPriority = t.isPriority === true
                         return (
-                          <div key={t.id} className="grid grid-cols-12 gap-4 px-4 py-4 hover:bg-indigo-50 transition-colors bg-indigo-50/30 rounded-lg border-l-4 border-indigo-400 mb-2">
+                          <div key={t.id} className={`grid grid-cols-12 gap-4 px-4 py-4 hover:bg-indigo-50 transition-colors bg-indigo-50/30 rounded-lg border-l-4 mb-2 ${isPriority ? 'border-yellow-400 bg-yellow-50/60' : 'border-indigo-400'}`}>
                             <div className="col-span-2 flex items-center gap-2">
-                              <span className="inline-flex items-center px-2 py-1 rounded-md bg-indigo-100 text-indigo-800 text-sm font-semibold">
-                                ↗ {t.tokenNumber}
-                              </span>
+                              {isPriority ? (
+                                <span className="inline-flex items-center px-2 py-1 rounded-md bg-yellow-100 text-yellow-800 text-sm font-semibold">
+                                  ↗ {t.tokenNumber} ★
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center px-2 py-1 rounded-md bg-indigo-100 text-indigo-800 text-sm font-semibold">
+                                  ↗ {t.tokenNumber}
+                                </span>
+                              )}
                             </div>
                             <div className="col-span-2">
                               <span className="text-gray-900 font-medium">{t.customer.name}</span>
@@ -1170,11 +1169,14 @@ export default function OfficerQueuePage() {
                             </div>
                             <div className="col-span-2">
                               <button
-                                onClick={() => handleCallToken(t.id)}
+                                onClick={() => handleSetPriority(t.id)}
                                 disabled={loading || currentToken !== null}
-                                className="px-2 py-1 bg-indigo-600 text-white text-xs rounded-lg hover:bg-indigo-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed whitespace-nowrap"
+                                className={`px-2 py-1 text-white text-xs rounded transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed whitespace-nowrap ${isPriority
+                                  ? 'bg-yellow-600 hover:bg-yellow-700'
+                                  : 'bg-purple-600 hover:bg-purple-700'
+                                  }`}
                               >
-                                Call & Serve
+                                {isPriority ? '★ Priority' : 'Set Priority'}
                               </button>
                             </div>
                           </div>
@@ -1207,7 +1209,7 @@ export default function OfficerQueuePage() {
 
                     {/* Unmatched Tokens */}
                     <div className="divide-y divide-gray-100">
-                      {unmatchedTokens.map((t) => {
+                      {sortedUnmatchedTokens.map((t) => {
                         const waitTime = Math.floor((Date.now() - new Date(t.createdAt).getTime()) / 60000)
                         const isPriority = t.isPriority === true
                         const isSkipped = t.status === 'skipped'
@@ -1267,13 +1269,6 @@ export default function OfficerQueuePage() {
                                   </button>
                                 ) : (
                                   <>
-                                    <button
-                                      onClick={() => handleCallToken(t.id)}
-                                      disabled={loading || currentToken !== null}
-                                      className="px-2 py-1 bg-emerald-600 text-white text-xs rounded-lg hover:bg-emerald-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed whitespace-nowrap"
-                                    >
-                                      Call & Serve
-                                    </button>
                                     <button
                                       onClick={() => handleSkip(t.id)}
                                       disabled={loading || currentToken !== null}
