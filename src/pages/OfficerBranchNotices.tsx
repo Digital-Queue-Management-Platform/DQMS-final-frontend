@@ -1,16 +1,6 @@
 ﻿import { useState, useEffect } from "react"
-import { PlusCircle, Trash2, AlertTriangle, Calendar, Clock, RefreshCw, Bell, Pencil } from "lucide-react"
+import { AlertTriangle, Calendar, Clock, RefreshCw, Bell } from "lucide-react"
 import api from "../config/api"
-
-const DAYS_OF_WEEK = [
-    { label: "Sun", value: "SUN" },
-    { label: "Mon", value: "MON" },
-    { label: "Tue", value: "TUE" },
-    { label: "Wed", value: "WED" },
-    { label: "Thu", value: "THU" },
-    { label: "Fri", value: "FRI" },
-    { label: "Sat", value: "SAT" },
-]
 
 interface BranchNotice {
     id: string
@@ -31,21 +21,6 @@ export default function OfficerBranchNotices() {
     const [notices, setNotices] = useState<BranchNotice[]>([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState("")
-    const [success, setSuccess] = useState("")
-    const [showForm, setShowForm] = useState(false)
-    const [editingId, setEditingId] = useState<string | null>(null)
-
-    const [form, setForm] = useState({
-        title: "",
-        message: "",
-        startsAt: "",
-        endsAt: "",
-        noticeType: "closure",
-        isRecurring: false,
-        recurringDays: [] as string[],
-        recurringEndDate: "",
-    })
-    const [submitting, setSubmitting] = useState(false)
 
     useEffect(() => {
         fetchNotices()
@@ -61,77 +36,6 @@ export default function OfficerBranchNotices() {
             setError(err?.response?.data?.error || "Failed to load notices")
         } finally {
             setLoading(false)
-        }
-    }
-
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault()
-        setError("")
-        setSuccess("")
-        setSubmitting(true)
-        try {
-            const payload: any = {
-                title: form.title,
-                message: form.message,
-                noticeType: form.noticeType,
-                isRecurring: form.isRecurring,
-            }
-            if (form.isRecurring) {
-                payload.recurringType = "weekly"
-                payload.recurringDays = form.recurringDays
-                payload.startsAt = new Date(`1970-01-01T${form.startsAt}:00`).toISOString()
-                payload.endsAt = new Date(`1970-01-01T${form.endsAt}:00`).toISOString()
-                if (form.recurringEndDate) payload.recurringEndDate = new Date(form.recurringEndDate).toISOString()
-            } else {
-                payload.startsAt = new Date(form.startsAt).toISOString()
-                payload.endsAt = new Date(form.endsAt).toISOString()
-            }
-            if (editingId) {
-                await api.put(`/officer/branch-notices/${editingId}`, payload)
-                setSuccess("Notice updated successfully!")
-            } else {
-                await api.post("/officer/branch-notices", payload)
-                setSuccess("Notice created successfully!")
-            }
-            setForm({ title: "", message: "", startsAt: "", endsAt: "", noticeType: "closure", isRecurring: false, recurringDays: [], recurringEndDate: "" })
-            setEditingId(null)
-            setShowForm(false)
-            fetchNotices()
-        } catch (err: any) {
-            setError(err?.response?.data?.error || (editingId ? "Failed to update notice" : "Failed to create notice"))
-        } finally {
-            setSubmitting(false)
-        }
-    }
-
-    const handleEdit = (notice: BranchNotice) => {
-        const toTime = (d: string) => new Date(d).toTimeString().slice(0, 5)
-        const toLocal = (d: string) => { const dt = new Date(d); dt.setMinutes(dt.getMinutes() - dt.getTimezoneOffset()); return dt.toISOString().slice(0, 16) }
-        const toDate = (d: string) => new Date(d).toISOString().slice(0, 10)
-        setForm({
-            title: notice.title,
-            message: notice.message,
-            noticeType: notice.noticeType,
-            isRecurring: notice.isRecurring,
-            recurringDays: notice.recurringDays || [],
-            recurringEndDate: notice.recurringEndDate ? toDate(notice.recurringEndDate) : "",
-            startsAt: notice.isRecurring ? toTime(notice.startsAt) : toLocal(notice.startsAt),
-            endsAt: notice.isRecurring ? toTime(notice.endsAt) : toLocal(notice.endsAt),
-        })
-        setEditingId(notice.id)
-        setShowForm(true)
-        setError("")
-        setSuccess("")
-    }
-
-    const handleDelete = async (noticeId: string) => {
-        if (!window.confirm("Are you sure you want to delete this notice?")) return
-        try {
-            await api.delete(`/officer/branch-notices/${noticeId}`)
-            setSuccess("Notice deleted.")
-            setNotices(prev => prev.filter(n => n.id !== noticeId))
-        } catch (err: any) {
-            setError(err?.response?.data?.error || "Failed to delete notice")
         }
     }
 
@@ -161,16 +65,9 @@ export default function OfficerBranchNotices() {
                 <div>
                     <h1 className="text-2xl font-bold text-gray-900">Branch Notices</h1>
                     <p className="text-sm text-gray-500 mt-1">
-                        Create closure or standard notices for your branch.
+                        View closure and standard notices for your branch.
                     </p>
                 </div>
-                <button
-                    onClick={() => { setShowForm(f => !f); setEditingId(null); setForm({ title: "", message: "", startsAt: "", endsAt: "", noticeType: "closure", isRecurring: false, recurringDays: [], recurringEndDate: "" }); setError(""); setSuccess("") }}
-                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition-colors"
-                >
-                    <PlusCircle className="w-4 h-4" />
-                    {showForm ? "Cancel" : "New Notice"}
-                </button>
             </div>
 
             {error && (
@@ -178,195 +75,13 @@ export default function OfficerBranchNotices() {
                     {error}
                 </div>
             )}
-            {success && (
-                <div className="mb-4 p-3 bg-green-50 border border-green-200 text-green-700 rounded-lg text-sm">
-                    {success}
-                </div>
-            )}
-
-            {showForm && (
-                <form onSubmit={handleSubmit} className="mb-6 bg-blue-50 border border-blue-200 rounded-xl p-5 space-y-4">
-                    <h2 className="text-base font-semibold text-blue-900">{editingId ? "Edit Notice" : "New Notice"}</h2>
-
-                    {/* Notice Type */}
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Notice Type</label>
-                        <div className="flex gap-4 flex-wrap">
-                            <label className="flex items-center gap-2 cursor-pointer">
-                                <input
-                                    type="radio"
-                                    name="noticeType"
-                                    value="closure"
-                                    checked={form.noticeType === "closure"}
-                                    onChange={e => setForm(f => ({ ...f, noticeType: e.target.value }))}
-                                    className="text-red-600"
-                                />
-                                <span className="text-sm text-gray-700 flex items-center gap-1">
-                                    <AlertTriangle className="w-4 h-4 text-red-500" /> Closure Notice
-                                    <span className="text-xs text-gray-400">(customer cannot dismiss)</span>
-                                </span>
-                            </label>
-                            <label className="flex items-center gap-2 cursor-pointer">
-                                <input
-                                    type="radio"
-                                    name="noticeType"
-                                    value="standard"
-                                    checked={form.noticeType === "standard"}
-                                    onChange={e => setForm(f => ({ ...f, noticeType: e.target.value }))}
-                                    className="text-blue-600"
-                                />
-                                <span className="text-sm text-gray-700 flex items-center gap-1">
-                                    <Bell className="w-4 h-4 text-blue-500" /> Standard Notice
-                                    <span className="text-xs text-gray-400">(customer can dismiss)</span>
-                                </span>
-                            </label>
-                        </div>
-                    </div>
-
-                    {/* Recurring toggle */}
-                    <div className="flex items-center gap-3">
-                        <button
-                            type="button"
-                            onClick={() => setForm(f => ({ ...f, isRecurring: !f.isRecurring, recurringDays: [] }))}
-                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                                form.isRecurring ? "bg-purple-600" : "bg-gray-300"
-                            }`}
-                        >
-                            <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
-                                form.isRecurring ? "translate-x-6" : "translate-x-1"
-                            }`} />
-                        </button>
-                        <span className="text-sm font-medium text-gray-700 flex items-center gap-1">
-                            <RefreshCw className="w-4 h-4 text-purple-500" /> Recurring (weekly)
-                        </span>
-                    </div>
-
-                    {form.isRecurring && (
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Repeat on Days</label>
-                            <div className="flex flex-wrap gap-2">
-                                {DAYS_OF_WEEK.map(d => (
-                                    <button
-                                        key={d.value}
-                                        type="button"
-                                        onClick={() => setForm(f => ({
-                                            ...f,
-                                            recurringDays: f.recurringDays.includes(d.value)
-                                                ? f.recurringDays.filter(x => x !== d.value)
-                                                : [...f.recurringDays, d.value]
-                                        }))}
-                                        className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
-                                            form.recurringDays.includes(d.value)
-                                                ? "bg-purple-600 text-white border-purple-600"
-                                                : "bg-white text-gray-600 border-gray-300 hover:border-purple-400"
-                                        }`}
-                                    >
-                                        {d.label}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                    )}
-
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
-                        <input
-                            type="text"
-                            value={form.title}
-                            onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
-                            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-                            placeholder="e.g. Branch Closed – Public Holiday"
-                            required
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Message</label>
-                        <textarea
-                            value={form.message}
-                            onChange={e => setForm(f => ({ ...f, message: e.target.value }))}
-                            rows={3}
-                            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-                            placeholder="We are temporarily closed. We apologize for the inconvenience."
-                            required
-                        />
-                    </div>
-
-                    {form.isRecurring ? (
-                        <div className="grid grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Start Time</label>
-                                <input
-                                    type="time"
-                                    value={form.startsAt}
-                                    onChange={e => setForm(f => ({ ...f, startsAt: e.target.value }))}
-                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:outline-none"
-                                    required
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">End Time</label>
-                                <input
-                                    type="time"
-                                    value={form.endsAt}
-                                    onChange={e => setForm(f => ({ ...f, endsAt: e.target.value }))}
-                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:outline-none"
-                                    required
-                                />
-                            </div>
-                            <div className="col-span-2">
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Recurring End Date (optional)</label>
-                                <input
-                                    type="date"
-                                    value={form.recurringEndDate}
-                                    onChange={e => setForm(f => ({ ...f, recurringEndDate: e.target.value }))}
-                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:outline-none"
-                                />
-                            </div>
-                        </div>
-                    ) : (
-                        <div className="grid grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Starts At</label>
-                                <input
-                                    type="datetime-local"
-                                    value={form.startsAt}
-                                    onChange={e => setForm(f => ({ ...f, startsAt: e.target.value }))}
-                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-                                    required
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Ends At</label>
-                                <input
-                                    type="datetime-local"
-                                    value={form.endsAt}
-                                    onChange={e => setForm(f => ({ ...f, endsAt: e.target.value }))}
-                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-                                    required
-                                />
-                            </div>
-                        </div>
-                    )}
-
-                    <div className="flex justify-end">
-                        <button
-                            type="submit"
-                            disabled={submitting}
-                            className="px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
-                        >
-                            {submitting ? (editingId ? "Saving…" : "Creating…") : (editingId ? "Save Changes" : "Create Notice")}
-                        </button>
-                    </div>
-                </form>
-            )}
-
             {loading ? (
                 <div className="py-12 text-center text-gray-500 text-sm">Loading notices…</div>
             ) : notices.length === 0 ? (
                 <div className="py-12 flex flex-col items-center text-gray-400">
                     <AlertTriangle className="w-10 h-10 mb-3" />
                     <p className="text-sm">No notices yet.</p>
-                    <p className="text-xs mt-1">Add a notice to inform customers.</p>
+                    <p className="text-xs mt-1">Branch notices created by management will appear here.</p>
                 </div>
             ) : (
                 <div className="space-y-3">
@@ -428,22 +143,6 @@ export default function OfficerBranchNotices() {
                                             </>
                                         )}
                                     </div>
-                                </div>
-                                <div className="flex gap-1 shrink-0">
-                                    <button
-                                        onClick={() => handleEdit(notice)}
-                                        className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                                        title="Edit notice"
-                                    >
-                                        <Pencil className="w-4 h-4" />
-                                    </button>
-                                    <button
-                                        onClick={() => handleDelete(notice.id)}
-                                        className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                                        title="Delete notice"
-                                    >
-                                        <Trash2 className="w-4 h-4" />
-                                    </button>
                                 </div>
                             </div>
                         </div>
