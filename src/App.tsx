@@ -55,10 +55,12 @@ const AppointmentMy = React.lazy(() => import("./pages/AppointmentMy"))
 const AdminAppointments = React.lazy(() => import("./admin/adminPages/AdminAppointments"))
 const AdminOutletPasswords = React.lazy(() => import("./admin/adminPages/AdminOutletPasswords"))
 const ServiceStatus = React.lazy(() => import("./pages/ServiceStatus"))
+const OutletQueueDisplay = React.lazy(() => import("./pages/OutletQueueDisplay"))
 const ManagerServiceTracking = React.lazy(() => import("./pages/ManagerServiceTracking"))
 const TeleshopManagerServiceTracking = React.lazy(() => import("./pages/TeleshopManagerServiceTracking"))
 const TeleshopManagerClosureNotices = React.lazy(() => import("./pages/TeleshopManagerClosureNotices"))
 const TeleshopManagerAuditLogs = React.lazy(() => import("./pages/TeleshopManagerAuditLogs"))
+const TeleshopManagerOutletDisplay = React.lazy(() => import("./pages/TeleshopManagerOutletDisplay"))
 const ManagerClosureNotices = React.lazy(() => import("./pages/ManagerClosureNotices"))
 const AdminGMs = React.lazy(() => import("./admin/adminPages/AdminGMs"))
 const AdminDGMs = React.lazy(() => import("./admin/adminPages/AdminDGMs"))
@@ -432,6 +434,10 @@ function App() {
           path="/service/status"
         />
         <Route
+          element={<Layout><OutletQueueDisplay /></Layout>}
+          path="/display/outlet/:outletId"
+        />
+        <Route
           element={<Layout><QueueStatus /></Layout>}
           path="/queue/:tokenId"
         />
@@ -642,6 +648,10 @@ function App() {
         <Route
           element={<Layout><ProtectedTeleshopManagerRoute><TeleshopManagerAuditLogs /></ProtectedTeleshopManagerRoute></Layout>}
           path="/teleshop-manager/audit-logs"
+        />
+        <Route
+          element={<Layout><ProtectedTeleshopManagerRoute><TeleshopManagerOutletDisplay /></ProtectedTeleshopManagerRoute></Layout>}
+          path="/teleshop-manager/outlet-display"
         />
         <Route element={<GMLogin />} path="/gm/login" />
         <Route

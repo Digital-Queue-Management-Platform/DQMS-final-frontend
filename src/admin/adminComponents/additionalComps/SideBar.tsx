@@ -98,6 +98,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed, activePa
 
   const teleshopManagerItems: NavigationItem[] = [
     { name: 'Dashboard', icon: LayoutDashboard, to: '/teleshop-manager/dashboard' },
+    { name: 'Outlet Display', icon: Monitor, to: '/teleshop-manager/outlet-display' },
     { name: 'Kiosk Settings', icon: Monitor, to: '/teleshop-manager/kiosk-settings' },
     { name: 'Appointments', icon: Calendar, to: '/teleshop-manager/appointments' },
     { name: 'Completed Services', icon: ListOrdered, to: '/teleshop-manager/completed-services' },
