@@ -599,10 +599,7 @@ export default function OfficerQueuePage() {
 
   const myQueueTokens = queue?.waiting.filter(matchesMyQueueRules) || []
   const incomingTransferredTokens = queue?.waiting.filter(isIncomingTransferredToken) || []
-  const sentTransferredTokens = queue?.waiting.filter((t) =>
-    (t as any).isTransferred === true && (t as any).lastTransferByOfficerId === officer.id
-  ) || []
-  const hasTransferredAttention = incomingTransferredTokens.length > 0 || sentTransferredTokens.length > 0
+  const hasTransferredAttention = incomingTransferredTokens.length > 0
   const hasCallableMyQueueToken = myQueueTokens.some((t) => (t as any).status !== 'skipped')
   const hasCallableIncomingTransfer = incomingTransferredTokens.some((t) => (t as any).status !== 'skipped')
 
@@ -659,10 +656,10 @@ export default function OfficerQueuePage() {
                   }`}
               >
                 <div className="flex items-center justify-center gap-2">
-                  <span>Sent Transfers</span>
+                  <span>Transferred Tokens</span>
                   {queue && (
                     <span className="px-1.5 py-0.5 bg-indigo-600 text-white rounded-full text-xs font-semibold">
-                      {sentTransferredTokens.length}
+                      {incomingTransferredTokens.length}
                     </span>
                   )}
                 </div>
@@ -945,7 +942,7 @@ export default function OfficerQueuePage() {
             <div className="w-2/3 bg-white rounded-2xl shadow-sm border border-slate-100 p-4">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-lg font-bold text-gray-900">
-                  {activeTab === 'my-queue' ? 'My Queue' : activeTab === 'transferred' ? 'Sent Transfers' : 'Unmatched Tokens'}
+                  {activeTab === 'my-queue' ? 'My Queue' : activeTab === 'transferred' ? 'Transferred Tokens' : 'Unmatched Tokens'}
                 </h2>
                 {queue && (
                   <div className="text-sm text-gray-500">
@@ -961,7 +958,7 @@ export default function OfficerQueuePage() {
                   <AlertTriangle className="w-5 h-5 text-orange-600 flex-shrink-0 animate-pulse" />
                   <div>
                     <p className="text-sm font-bold text-orange-800">Transferred customers waiting — serve them first!</p>
-                    <p className="text-xs text-orange-700">These customers already waited in another queue and have been prioritised at the top.</p>
+                    <p className="text-xs text-orange-700">Open the Transferred Tokens tab. These customers already waited in another queue and are prioritised.</p>
                   </div>
                 </div>
               )}
@@ -1104,34 +1101,34 @@ export default function OfficerQueuePage() {
                   </>
                 )
               ) : activeTab === 'transferred' ? (
-                // SENT TRANSFERS TAB — tokens I transferred out that are still waiting
+                // TRANSFERRED TOKENS TAB — tokens transferred to this officer
                 !queue ? (
                   <div className="text-center py-12">
-                    <p className="text-gray-500">Loading sent transfers...</p>
+                    <p className="text-gray-500">Loading transferred tokens...</p>
                   </div>
-                ) : sentTransferredTokens.length === 0 ? (
+                ) : incomingTransferredTokens.length === 0 ? (
                   <div className="text-center py-12">
                     <div className="w-16 h-16 bg-indigo-50 rounded-xl flex items-center justify-center mx-auto mb-4">
                       <RefreshCwIcon className="w-8 h-8 text-indigo-400" />
                     </div>
-                    <p className="text-gray-500">No pending sent transfers</p>
-                    <p className="text-xs text-gray-400 mt-2">Customers you've transferred will appear here until they are served at the new counter</p>
+                    <p className="text-gray-500">No transferred tokens for your counter</p>
+                    <p className="text-xs text-gray-400 mt-2">Customers transferred from other counters to you will appear here</p>
                   </div>
                 ) : (
                   <>
                     <div className="mb-3 bg-indigo-50 border border-indigo-200 rounded-xl p-3 text-xs text-indigo-700">
-                      These are customers you transferred. They are waiting to be served at their new counter. Once an officer there calls them, they will disappear from this list.
+                      These customers were transferred from another counter to your counter. Call and serve them from here.
                     </div>
                     <div className="grid grid-cols-12 gap-4 px-4 py-2.5 bg-indigo-900 border-b text-sm text-white rounded-xl mb-3">
                       <div className="col-span-2">TOKEN</div>
                       <div className="col-span-2">CUSTOMER</div>
                       <div className="col-span-2">SERVICE TYPE</div>
                       <div className="col-span-2">TOTAL WAIT</div>
-                      <div className="col-span-2">SENT TO</div>
+                      <div className="col-span-2">TRANSFERRED TO</div>
                       <div className="col-span-2">ACTION</div>
                     </div>
                     <div className="divide-y divide-gray-100">
-                      {sentTransferredTokens.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()).map((t) => {
+                      {incomingTransferredTokens.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()).map((t) => {
                         const waitTime = Math.floor((Date.now() - new Date(t.createdAt).getTime()) / 60000)
                         return (
                           <div key={t.id} className="grid grid-cols-12 gap-4 px-4 py-4 hover:bg-indigo-50 transition-colors bg-indigo-50/30 rounded-lg border-l-4 border-indigo-400 mb-2">
