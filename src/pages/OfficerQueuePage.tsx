@@ -1266,13 +1266,22 @@ export default function OfficerQueuePage() {
                                     Recall
                                   </button>
                                 ) : (
-                                  <button
-                                    onClick={() => handleSkip(t.id)}
-                                    disabled={loading || currentToken !== null}
-                                    className="px-2 py-1 bg-orange-500 text-white text-xs rounded hover:bg-orange-600 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed whitespace-nowrap"
-                                  >
-                                    Skip
-                                  </button>
+                                  <>
+                                    <button
+                                      onClick={() => handleCallToken(t.id)}
+                                      disabled={loading || currentToken !== null}
+                                      className="px-2 py-1 bg-emerald-600 text-white text-xs rounded-lg hover:bg-emerald-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed whitespace-nowrap"
+                                    >
+                                      Call & Serve
+                                    </button>
+                                    <button
+                                      onClick={() => handleSkip(t.id)}
+                                      disabled={loading || currentToken !== null}
+                                      className="px-2 py-1 bg-orange-500 text-white text-xs rounded hover:bg-orange-600 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed whitespace-nowrap"
+                                    >
+                                      Skip
+                                    </button>
+                                  </>
                                 )}
                                 <button
                                   onClick={() => handleSetPriority(t.id)}
