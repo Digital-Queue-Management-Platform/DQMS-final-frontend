@@ -66,7 +66,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed, activePa
     { name: 'GMs', icon: BriefcaseIcon, to: '/admin/gms' },
     { name: 'DGMs', icon: UserCheckIcon, to: '/admin/dgms' },
     { name: 'RTOMs', icon: Users, to: '/admin/managers' },
-    { name: 'All Officers', icon: UserCog, to: '/admin/all-officers' },
+    { name: 'Staff Status', icon: UserCog, to: '/admin/all-officers' },
     { name: 'Appointments', icon: Calendar, to: '/admin/appointments' },
     { name: 'Feedbacks ', icon: MessageSquare, to: '/admin/feedback' },
     { name: 'Compare', icon: Scale3D, to: '/admin/compare' },
