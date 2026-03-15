@@ -314,8 +314,12 @@ export default function OutletQueueDisplay() {
 
             {upNext.length > 0 && (
               <div className="relative w-full overflow-hidden">
-                <div ref={upNextTrackRef} className="flex gap-3 animate-marquee whitespace-nowrap py-2" style={{ animationDuration: `${upNextDuration}s` }}>
-                  {[...upNext, ...upNext].map((token, idx) => (
+                <div 
+                  ref={upNextTrackRef} 
+                  className={`flex gap-3 whitespace-nowrap py-2 ${upNext.length > 5 ? "animate-marquee" : ""}`} 
+                  style={{ animationDuration: `${upNextDuration}s` }}
+                >
+                  {(upNext.length > 5 ? [...upNext, ...upNext] : upNext).map((token, idx) => (
                     <div
                       key={`${token.id}-${idx}`}
                       className="flex-shrink-0 w-[min(72vw,240px)] sm:min-w-[220px] rounded-xl px-3 py-3 bg-slate-50 border border-slate-200 flex items-center justify-between"
@@ -357,9 +361,12 @@ export default function OutletQueueDisplay() {
                 </div>
               ) : (
                 <div className="relative w-full overflow-hidden">
-                  <div ref={recentTrackRef} className="flex gap-4 animate-marquee whitespace-nowrap py-2" style={{ animationDuration: `${recentDuration}s` }}>
-                    {/* Double the items for seamless looping */}
-                    {[...recentCalled, ...recentCalled].map((item, idx) => (
+                  <div 
+                    ref={recentTrackRef} 
+                    className={`flex gap-4 whitespace-nowrap py-2 ${recentCalled.length > 5 ? "animate-marquee" : ""}`} 
+                    style={{ animationDuration: `${recentDuration}s` }}
+                  >
+                    {(recentCalled.length > 5 ? [...recentCalled, ...recentCalled] : recentCalled).map((item, idx) => (
                       <div
                         key={`${item.id}-${idx}`}
                         className="flex-shrink-0 w-[min(56vw,10rem)] sm:w-40 rounded-2xl p-3 bg-indigo-50/50 border border-indigo-100 text-center transition-all duration-300 hover:bg-white hover:shadow-xl hover:shadow-indigo-100/50"
@@ -393,11 +400,15 @@ export default function OutletQueueDisplay() {
               </div>
 
               <div className="relative w-full overflow-hidden">
-                <div ref={counterTrackRef} className="flex gap-4 animate-marquee whitespace-nowrap py-2" style={{ animationDuration: `${counterDuration}s` }}>
-                  {/* Filter and double the counters for seamless looping */}
+                <div 
+                  ref={counterTrackRef} 
+                  className={`flex gap-4 whitespace-nowrap py-2 ${counters.filter(c => c.number !== null).length > 5 ? "animate-marquee" : ""}`} 
+                  style={{ animationDuration: `${counterDuration}s` }}
+                >
+                  {/* Filter and double the counters for seamless looping if many */}
                   {(() => {
                     const activeCounters = counters.filter((c) => c.number !== null);
-                    const itemsToDisplay = activeCounters.length > 0 ? [...activeCounters, ...activeCounters] : [];
+                    const itemsToDisplay = (activeCounters.length > 5) ? [...activeCounters, ...activeCounters] : activeCounters;
 
                     return itemsToDisplay.map((counter, idx) => {
                       const status = counter.officer?.status;
