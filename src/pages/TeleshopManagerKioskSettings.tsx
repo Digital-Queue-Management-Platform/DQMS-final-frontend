@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import api from '../config/api'
 import { Eye, EyeOff, Copy, RefreshCw, Save, ExternalLink, Settings } from 'lucide-react'
@@ -163,7 +163,7 @@ export default function TeleshopManagerKioskSettings() {
                 </p>
               </div>
               <button
-                onClick={() => navigate('/kiosk/login')}
+                onClick={() => window.open('/kiosk/login', '_blank')}
                 className="flex items-center gap-2 px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors"
               >
                 <ExternalLink className="w-4 h-4" />
