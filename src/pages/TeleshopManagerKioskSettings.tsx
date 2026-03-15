@@ -1,7 +1,7 @@
 ﻿import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import api from '../config/api'
-import { Eye, EyeOff, Copy, RefreshCw, Save, ExternalLink } from 'lucide-react'
+import { Eye, EyeOff, Copy, RefreshCw, Save, ExternalLink, Settings } from 'lucide-react'
 
 export default function TeleshopManagerKioskSettings() {
   const [loading, setLoading] = useState(true)
@@ -13,10 +13,15 @@ export default function TeleshopManagerKioskSettings() {
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+  const [showServiceTypeInQueue, setShowServiceTypeInQueue] = useState(false)
+  const [togglingServiceType, setTogglingServiceType] = useState(false)
   const navigate = useNavigate()
 
   useEffect(() => {
     fetchOutletInfo()
+    api.get('/queue/settings/show-service-type')
+      .then(res => setShowServiceTypeInQueue(res.data.enabled ?? false))
+      .catch(() => {})
   }, [])
 
   const fetchOutletInfo = async () => {
@@ -96,6 +101,18 @@ export default function TeleshopManagerKioskSettings() {
   const copyPassword = (password: string) => {
     navigator.clipboard.writeText(password)
     alert('Password copied to clipboard!')
+  }
+
+  const handleToggleServiceType = async (enabled: boolean) => {
+    try {
+      setTogglingServiceType(true)
+      await api.patch('/queue/settings/show-service-type', { enabled })
+      setShowServiceTypeInQueue(enabled)
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Failed to update setting')
+    } finally {
+      setTogglingServiceType(false)
+    }
   }
 
   if (loading) {
@@ -259,6 +276,45 @@ export default function TeleshopManagerKioskSettings() {
             </div>
           </div>
         )}
+
+        {/* Queue Display Settings */}
+        <div className="bg-white rounded-2xl shadow-sm-md p-6 mb-6">
+          <div className="flex items-center gap-2 mb-4">
+            <Settings className="w-5 h-5 text-gray-600" />
+            <h2 className="text-xl font-bold text-gray-800">Queue Display Settings</h2>
+          </div>
+          <p className="text-sm text-gray-600 mb-6">
+            Control what information is visible to officers in the My Queue table.
+          </p>
+
+          <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-200">
+            <div>
+              <p className="text-sm font-semibold text-gray-800">Show Service Type in Queue</p>
+              <p className="text-xs text-gray-500 mt-0.5">
+                When enabled, officers will see the service type column in their queue list.
+                When disabled, service type is only shown in the Current Customer panel after calling.
+              </p>
+            </div>
+            <button
+              onClick={() => handleToggleServiceType(!showServiceTypeInQueue)}
+              disabled={togglingServiceType}
+              className={`relative inline-flex h-7 w-12 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed ${
+                showServiceTypeInQueue ? 'bg-indigo-600' : 'bg-gray-300'
+              }`}
+              role="switch"
+              aria-checked={showServiceTypeInQueue}
+            >
+              <span
+                className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                  showServiceTypeInQueue ? 'translate-x-5' : 'translate-x-0'
+                }`}
+              />
+            </button>
+          </div>
+          <p className="text-xs text-gray-400 mt-3">
+            Current status: Service type is <strong>{showServiceTypeInQueue ? 'visible' : 'hidden'}</strong> in the officer queue list.
+          </p>
+        </div>
       </div>
     </div>
   )

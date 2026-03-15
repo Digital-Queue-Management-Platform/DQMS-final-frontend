@@ -12,7 +12,8 @@ import {
   Activity,
   BarChart3,
   MessageSquare,
-  Store
+  Store,
+  Monitor
 } from "lucide-react"
 import TeleshopMetricCard from "../components/TeleshopMetricCard"
 import api, { WS_URL } from "../config/api"
@@ -341,7 +342,7 @@ export default function TeleshopManagerDashboard() {
       )}
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
         <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
           onClick={() => navigate("/teleshop-manager/officers/add")}
           className="bg-sky-600 text-white p-4 rounded-xl hover:bg-sky-700 flex items-center justify-center font-semibold transition-all shadow-sm"
@@ -362,6 +363,13 @@ export default function TeleshopManagerDashboard() {
         >
           <MessageSquare className="w-5 h-5 mr-2" />
           Manage Feedback
+        </motion.button>
+        <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
+          onClick={() => navigate("/teleshop-manager/outlet-display")}
+          className="bg-emerald-600 text-white p-4 rounded-xl hover:bg-emerald-700 flex items-center justify-center font-semibold transition-all shadow-sm"
+        >
+          <Monitor className="w-5 h-5 mr-2" />
+          Outlet Display
         </motion.button>
       </div>
 

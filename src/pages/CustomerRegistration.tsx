@@ -2,9 +2,9 @@
 
 import type React from "react"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useParams, useNavigate, useLocation } from "react-router-dom"
-import { User, Phone, Eye, EyeOff, Check } from "lucide-react"
+import { User, Phone, Eye, EyeOff, Check, Banknote, CreditCard, FileText, Landmark, Send, MessageSquare, CheckCircle } from "lucide-react"
 import api from "../config/api"
 import type { Outlet } from "../types"
 import OTPInput from "../components/OTPInput"
@@ -35,7 +35,7 @@ export default function CustomerRegistration() {
   const [language, setLanguage] = useState<"en" | "si" | "ta">("en")
   const [qrToken, setQrToken] = useState<string>("")
   const [qrValid, setQrValid] = useState<boolean>(false)
-  const [services, setServices] = useState<Array<{ id: string; code: string; title: string; isActive?: boolean }>>([])
+  const [services, setServices] = useState<Array<{ id: string; code: string; title: string; isActive?: boolean; isPriorityService?: boolean }>>([])
   const [preferredLanguage, setPreferredLanguage] = useState<string>('en')
   // OTP verification states
   const [otpStep, setOtpStep] = useState<'idle' | 'sent' | 'verified'>("idle")
@@ -46,12 +46,20 @@ export default function CustomerRegistration() {
   const [showOtpPopup, setShowOtpPopup] = useState(false)
   const [devOtpCode, setDevOtpCode] = useState<string>("")
   const [autoSendingOtp, setAutoSendingOtp] = useState(false)
+  const [shouldAutoSubmit, setShouldAutoSubmit] = useState(false)
+  const formRef = useRef<HTMLFormElement>(null)
 
 
   // Bill payment specific states
   const [sltTelephoneNumber, setSltTelephoneNumber] = useState("")
-  const [billData, setBillData] = useState<any>(null)
+  const [_billData, setBillData] = useState<any>(null)
   const [sltVerified, setSltVerified] = useState(false)
+  const [billPaymentIntent, setBillPaymentIntent] = useState<'full' | 'partial' | null>(null)
+  const [billPaymentCustomAmount, setBillPaymentCustomAmount] = useState("")
+  const [billPaymentMethod, setBillPaymentMethod] = useState<'cash' | 'card' | 'cheque' | 'bank_transfer' | null>(null)
+  const [notificationSent, setNotificationSent] = useState(false)
+  const [notificationMessage, setNotificationMessage] = useState("")
+  const [isOwnerOfAccount, setIsOwnerOfAccount] = useState(false)
 
 
   // Multi-step form state
@@ -89,6 +97,12 @@ export default function CustomerRegistration() {
     setBillData(null)
     setError("")
     setSltVerified(false)
+    setBillPaymentIntent(null)
+    setBillPaymentCustomAmount("")
+    setBillPaymentMethod(null)
+    setNotificationSent(false)
+    setNotificationMessage("")
+    setIsOwnerOfAccount(false)
 
     // Additional browser form clearing
     setTimeout(() => {
@@ -348,6 +362,34 @@ export default function CustomerRegistration() {
     }
   }, [mobileNumber, currentStep])
 
+  // Auto-submit form after OTP verification
+  useEffect(() => {
+    if (shouldAutoSubmit && otpStep === 'verified' && otpToken) {
+      setShouldAutoSubmit(false)
+      if (formRef.current) {
+        formRef.current.dispatchEvent(new Event('submit', { bubbles: true }))
+      }
+    }
+  }, [shouldAutoSubmit, otpStep, otpToken])
+
+
+  // Auto-submit for bill payment once intent + method (+ amount if partial) are all set
+  useEffect(() => {
+    if (!isSltRequiredService(selectedService)) return
+    if (!sltVerified || otpStep !== 'verified') return
+    if (!billPaymentIntent || !billPaymentMethod) return
+    if (billPaymentIntent === 'partial') {
+      const amount = parseFloat(billPaymentCustomAmount)
+      if (!billPaymentCustomAmount || isNaN(amount) || amount <= 0) return
+    }
+    const timer = setTimeout(() => {
+      if (formRef.current) {
+        formRef.current.dispatchEvent(new Event('submit', { bubbles: true }))
+      }
+    }, 500)
+    return () => clearTimeout(timer)
+  }, [billPaymentIntent, billPaymentMethod, billPaymentCustomAmount, otpStep, selectedService, sltVerified])
+
 
   // Handle service selection
   const handleServiceSelect = (serviceCode: string) => {
@@ -429,6 +471,11 @@ export default function CustomerRegistration() {
           await verifySltNumber()
         }
 
+        // Auto-submit for non-bill-payment services
+        if (!isSltRequiredService(selectedService)) {
+          setShouldAutoSubmit(true)
+        }
+
         return res.data.verifiedMobileToken as string
 
       }
@@ -461,6 +508,44 @@ export default function CustomerRegistration() {
         setBillData(bill)
         setSltVerified(true)
         setError("")
+
+        // Determine if the person verifying is the registered owner
+        const normalizeForComparison = (num: string) => {
+          let n = num.replace(/\D/g, '')
+          if (n.startsWith('0')) n = '94' + n.substring(1)
+          else if (!n.startsWith('94')) n = '94' + n
+          return n
+        }
+        let isOwner = false
+        if (bill.mobileNumber && mobileNumber) {
+          isOwner = normalizeForComparison(mobileNumber) === normalizeForComparison(bill.mobileNumber)
+        }
+        setIsOwnerOfAccount(isOwner)
+
+        const getMaskedPhone = (phone: string) => {
+          if (!phone || phone.length < 3) return phone
+          return `xxxxxxx${phone.slice(-3)}`
+        }
+
+        if (isOwner) {
+          setNotificationMessage(`Bill details have been sent to your registered mobile number.`)
+        } else {
+          setNotificationMessage(`Bill details have been sent to the account holder at ${getMaskedPhone(bill.mobileNumber)}`)
+        }
+        setNotificationSent(true)
+
+        // Send SMS notification
+        try {
+          await api.post('/bills/send-notification', {
+            mobileNumber: bill.mobileNumber,
+            accountName: bill.accountName,
+            billAmount: bill.currentBill,
+            dueDate: bill.dueDate,
+            sltNumber: sltTelephoneNumber,
+          })
+        } catch {
+          // Non-critical
+        }
       } else {
         setError("No account found for this telephone number")
       }
@@ -488,6 +573,28 @@ export default function CustomerRegistration() {
         tokenForSubmit = vt
       }
 
+      // Validate bill payment intent for SLT services
+      if (isSltRequiredService(selectedService) && sltVerified) {
+        if (!billPaymentIntent) {
+          setError('Please select your payment preference (full or partial payment)')
+          setLoading(false)
+          return
+        }
+        if (billPaymentIntent === 'partial') {
+          const amount = parseFloat(billPaymentCustomAmount)
+          if (!billPaymentCustomAmount || isNaN(amount) || amount <= 0) {
+            setError('Please enter a valid payment amount')
+            setLoading(false)
+            return
+          }
+        }
+        if (!billPaymentMethod) {
+          setError('Please select a payment method')
+          setLoading(false)
+          return
+        }
+      }
+
       const response = await api.post("/customer/register", {
         name,
         mobileNumber,
@@ -499,7 +606,9 @@ export default function CustomerRegistration() {
         verifiedMobileToken: tokenForSubmit,
         preferredLanguages: preferredLanguage ? [preferredLanguage] : undefined,
         sltTelephoneNumber: isSltRequiredService(selectedService) ? sltTelephoneNumber || undefined : undefined,
-
+        billPaymentIntent: isSltRequiredService(selectedService) && sltVerified ? billPaymentIntent : undefined,
+        billPaymentAmount: isSltRequiredService(selectedService) && billPaymentIntent === 'partial' ? parseFloat(billPaymentCustomAmount) || undefined : undefined,
+        billPaymentMethod: isSltRequiredService(selectedService) && sltVerified ? billPaymentMethod : undefined,
       })
 
       if (response.data.success) {
@@ -620,17 +729,19 @@ export default function CustomerRegistration() {
       verified: "Phone Verified",
       readyToRegister: "Ready to generate your token",
       billSentNotification: "Due amount has been sent to the registered owner ({mobile}). Please ask the owner for the bill details.",
-      paymentIntentTitle: "How would you like to pay?",
+      notificationSent: "Notification Sent",
+      continueWithYourNumber: "You can continue with any mobile number to complete the service.",
+      dueAmountNote: "Please ask the account holder to confirm the due amount with the officer at the counter.",
       payFullAmount: "Pay Full Amount",
       payPartialAmount: "Pay Partial Amount",
       partialAmountLabel: "Enter Amount to Pay (Rs.)",
       partialAmountPlaceholder: "Enter amount",
-      partialAmountHint: "Due amount: Rs.",
       paymentMethodTitle: "Payment Method",
       payByCash: "Cash",
       payByCard: "Card",
       payByCheque: "Cheque",
-      payByBankTransfer: "Bank Transfer"
+      payByBankTransfer: "Bank Transfer",
+      paymentIntentTitle: "How would you like to pay?"
     },
     si: {
       title: "ඩිජිටල් පෝලිම වේදිකාව",
@@ -693,17 +804,19 @@ export default function CustomerRegistration() {
       verified: "දුරකථන තහවුරු විය",
       readyToRegister: "ටෝකන් උත්පාදනය කිරීමට සූදානම්",
       billSentNotification: "ගෙවිය යුතු මුදල ලියාපදිංචි අයිතිකරුට ({mobile}) යවා ඇත. කරුණාකර බිල්පතේ විස්තර අයිතිකරුගෙන් විමසන්න.",
-      paymentIntentTitle: "ඔබ ගෙවීම සිදු කරන්නේ කෙසේද?",
+      notificationSent: "දැනුම්දීම යැවිණි",
+      continueWithYourNumber: "ඔබ ඕනෑම ජංගම අංකයකින් සේවා ඉවරයි කිරීමට ඉදිරියට යා හැක.",
+      dueAmountNote: "ගිණුම් හිමිකරුගෙන් ගෙවිය යුතු නිවැරදි මුදල ශාලාවේ නිලධාරීට ලබා දෙන ලෙස කරුණාකර ඉල්ලා සිටින්න.",
       payFullAmount: "සම්පූර්ණ ගෙවීම",
       payPartialAmount: "අර්ධ ගෙවීම",
       partialAmountLabel: "ගෙවිය යුතු මුදල (රු.)",
       partialAmountPlaceholder: "මුදල ඇතුළත් කරන්න",
-      partialAmountHint: "ශේෂ මුදල: රු.",
       paymentMethodTitle: "ගෙවීමේ ක්‍රමය",
       payByCash: "මුදල්",
       payByCard: "කාඩ්",
       payByCheque: "චෙකක්",
-      payByBankTransfer: "බැංකු හුළමාරුව"
+      payByBankTransfer: "බැංකු හුළමාරුව",
+      paymentIntentTitle: "ඔබ ගෙවීම සිදු කරන්නේ කෙසේද?"
     },
     ta: {
       title: "டிஜிட்டல் வரிசை மேடை",
@@ -766,17 +879,19 @@ export default function CustomerRegistration() {
       verified: "தொலைபேசி சரிபார்க்கப்பட்டது",
       readyToRegister: "டோக்கன் உருவாக்க தயாரானது",
       billSentNotification: "செலுத்த வேண்டிய தொகை பதிவு செய்யப்பட்ட உரிமையாளருக்கு ({mobile}) அனுப்பப்பட்டுள்ளது. பில் விவரங்களை உரிமையாளரிடம் கேளுங்கள்.",
-      paymentIntentTitle: "நீங்கள் எவ்வாறு செலுத்த விரும்புகிறீர்கள்?",
+      notificationSent: "அறிவிப்பு அனுப்பப்பட்டது",
+      continueWithYourNumber: "சேவையை முடிக்க நீங்கள் எந்த மொபைல் எண்ணைக் கொண்டும் தொடரலாம்.",
+      dueAmountNote: "கணக்கு வைத்திருப்பவர் கவுண்டரில் உள்ள அதிகாரியிடம் நிலுவைத் தொகையை உறுதிப்படுத்துமாறு கேட்கவும்.",
       payFullAmount: "முழு தொகை செலுத்துங்கள்",
       payPartialAmount: "பகுதி தொகை செலுத்துங்கள்",
       partialAmountLabel: "செலுத்த வேண்டிய தொகை (ரூ.)",
       partialAmountPlaceholder: "தொகையை உள்ளிடவும்",
-      partialAmountHint: "நிலுவை தொகை: ரூ.",
       paymentMethodTitle: "கட்டண முறை",
       payByCash: "பணம்",
       payByCard: "அட்டை",
       payByCheque: "காசோலை",
-      payByBankTransfer: "வங்கி பரிமாற்றம்"
+      payByBankTransfer: "வங்கி பரிமாற்றம்",
+      paymentIntentTitle: "நீங்கள் எவ்வாறு செலுத்த விரும்புகிறீர்கள்?"
     }
   }
 
@@ -886,7 +1001,7 @@ export default function CustomerRegistration() {
               <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm">{error}</div>
             )}
 
-            <form key={formKey} onSubmit={handleSubmit} className="space-y-4 sm:space-y-6" autoComplete="off" data-form-type="other" data-1p-ignore="true" data-bwignore="true" noValidate>
+            <form ref={formRef} key={formKey} onSubmit={handleSubmit} className="space-y-4 sm:space-y-6" autoComplete="off" data-form-type="other" data-1p-ignore="true" data-bwignore="true" noValidate>
 
               {/* STEP 1: Language Selection */}
               {currentStep === 1 && (
@@ -961,7 +1076,11 @@ export default function CustomerRegistration() {
                             onChange={() => handleServiceSelect(service.code)}
                             className="w-5 h-5 text-blue-600"
                           />
-                          <span className="text-base font-medium">{getServiceTitle(service.code)}</span>
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="text-base font-medium">{getServiceTitle(service.code)}</span>
+                            </div>
+                          </div>
                         </label>
                       ))}
                     </div>
@@ -1192,13 +1311,117 @@ export default function CustomerRegistration() {
                     </div>
                   </div>
                   {/* Bill Notification - Show after SLT verified */}
-                  {isSltRequiredService(selectedService) && sltVerified && billData && (
-                    <div className="mt-4">
-                      <div className="bg-blue-100 text-blue-800 p-3 rounded border border-blue-200">
-                        <p className="text-sm">
-                          {t.billSentNotification.replace('{mobile}', billData.mobileNumber || '***')}
-                        </p>
+                  {isSltRequiredService(selectedService) && sltVerified && notificationSent && (
+                    <div className={`rounded-lg p-4 border ${
+                      isOwnerOfAccount ? 'bg-green-50 border-green-200' : 'bg-blue-50 border-blue-200'
+                    }`}>
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className={`w-2 h-2 rounded-full ${isOwnerOfAccount ? 'bg-green-500' : 'bg-blue-500'}`}></div>
+                        <span className={`text-sm font-semibold ${isOwnerOfAccount ? 'text-green-700' : 'text-blue-700'}`}>
+                          {isOwnerOfAccount
+                            ? <><CheckCircle className="w-3 h-3 inline-block mr-1" />Bill Confirmed</>
+                            : <><Send className="w-3 h-3 inline-block mr-1" />{t.notificationSent}</>
+                          }
+                        </span>
                       </div>
+                      <p className="text-sm text-gray-700 mb-2 font-medium">{notificationMessage}</p>
+                      {!isOwnerOfAccount && (
+                        <p className="text-xs text-gray-600 bg-white p-2 rounded border border-slate-200 mb-2 flex items-start gap-2">
+                          <MessageSquare className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                          <span>The bill details have been sent as an SMS notification to the account holder.</span>
+                        </p>
+                      )}
+                      <p className="text-xs text-gray-600">{t.continueWithYourNumber}</p>
+                    </div>
+                  )}
+
+                  {/* Bill Payment Intent Selection — shown after SLT verified + OTP verified */}
+                  {isSltRequiredService(selectedService) && sltVerified && otpStep === 'verified' && (
+                    <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 space-y-4">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-amber-500"></div>
+                        <h3 className="text-sm font-semibold text-amber-900">{t.paymentIntentTitle}</h3>
+                      </div>
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                        <p className="text-xs text-blue-800"> {t.dueAmountNote}</p>
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        <button
+                          type="button"
+                          onClick={() => { setBillPaymentIntent('full'); setBillPaymentCustomAmount('') }}
+                          className={`py-3 px-4 rounded-xl border-2 text-sm font-semibold transition-all ${
+                            billPaymentIntent === 'full'
+                              ? 'border-green-600 bg-green-600 text-white'
+                              : 'border-green-300 bg-white text-green-700 hover:border-green-500'
+                          }`}
+                        >
+                          ✓ {t.payFullAmount}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setBillPaymentIntent('partial')}
+                          className={`py-3 px-4 rounded-xl border-2 text-sm font-semibold transition-all ${
+                            billPaymentIntent === 'partial'
+                              ? 'border-blue-600 bg-blue-600 text-white'
+                              : 'border-blue-300 bg-white text-blue-700 hover:border-blue-500'
+                          }`}
+                        >
+                          ◑ {t.payPartialAmount}
+                        </button>
+                        {billPaymentIntent === 'partial' && (
+                          <div className="mt-1 space-y-1">
+                            <label className="block text-xs font-medium text-gray-700">{t.partialAmountLabel}</label>
+                            <input
+                              type="number"
+                              value={billPaymentCustomAmount}
+                              onChange={(e) => setBillPaymentCustomAmount(e.target.value)}
+                              min="1"
+                              step="0.01"
+                              className="w-full px-3 py-2.5 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                              placeholder={t.partialAmountPlaceholder}
+                            />
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Payment Method — shown after intent chosen */}
+                      {billPaymentIntent && (
+                        <div className="space-y-2">
+                          <div className="text-xs font-semibold text-amber-900">{t.paymentMethodTitle}</div>
+                          <div className="grid grid-cols-2 gap-2">
+                            {(['cash', 'card', 'cheque', 'bank_transfer'] as const).map((method) => {
+                              const labels: Record<string, string> = { cash: t.payByCash, card: t.payByCard, cheque: t.payByCheque, bank_transfer: t.payByBankTransfer }
+                              const icons: Record<string, React.ReactNode> = { cash: <Banknote className="w-4 h-4" />, card: <CreditCard className="w-4 h-4" />, cheque: <FileText className="w-4 h-4" />, bank_transfer: <Landmark className="w-4 h-4" /> }
+                              return (
+                                <button
+                                  key={method}
+                                  type="button"
+                                  onClick={() => setBillPaymentMethod(method)}
+                                  className={`py-2.5 px-3 rounded-xl border-2 text-sm font-semibold transition-all flex items-center gap-2 ${
+                                    billPaymentMethod === method
+                                      ? 'border-indigo-600 bg-indigo-600 text-white'
+                                      : 'border-indigo-200 bg-white text-indigo-700 hover:border-indigo-400'
+                                  }`}
+                                >
+                                  <span>{icons[method]}</span>
+                                  <span>{labels[method]}</span>
+                                </button>
+                              )
+                            })}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Auto-submit feedback spinner */}
+                      {billPaymentIntent && billPaymentMethod && !(billPaymentIntent === 'partial' && (!billPaymentCustomAmount || parseFloat(billPaymentCustomAmount) <= 0)) && (
+                        <div className="w-full bg-blue-50 border border-blue-200 text-blue-700 py-3 rounded-xl text-sm font-medium flex items-center justify-center gap-2">
+                          <svg className="animate-spin h-4 w-4 text-blue-600" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                          </svg>
+                          {loading ? t.registering : t.registering}
+                        </div>
+                      )}
                     </div>
                   )}
 
@@ -1252,7 +1475,7 @@ export default function CustomerRegistration() {
 
 
 
-                  {(otpStep === 'sent' || otpStep === 'verified') && (
+                  {(otpStep === 'sent' || (otpStep === 'verified' && (!isSltRequiredService(selectedService) || loading))) && (
                     <button
                       type="submit"
                       disabled={!qrValid || loading || !selectedOutlet || !selectedService || (otpStep === 'sent' && otpCode.length !== 4)}
