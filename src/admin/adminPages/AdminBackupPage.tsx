@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import api from '../../config/api'
-import { Database, Download, AlertCircle, Loader2, HardDrive, FileJson, Clock, Trash2, ChevronDown, ChevronUp, Upload, CheckCircle2, RefreshCw } from 'lucide-react'
+import { Database, Download, AlertCircle, Loader2, HardDrive, FileJson, Clock, ChevronDown, ChevronUp, Upload, CheckCircle2, RefreshCw } from 'lucide-react'
 
 interface BackupCounts {
   regions: number
@@ -30,14 +30,14 @@ interface BackupCounts {
 
 interface BackupHistoryEntry {
   id: string
-  exportedAt: string
-  filename: string
+  action: 'backup' | 'restore'
+  status: 'success' | 'failed'
+  filename?: string | null
+  createdAt: string
   totalRecords: number
-  counts: BackupCounts
+  tableCounts?: Partial<BackupCounts> | null
+  errorMessage?: string | null
 }
-
-const HISTORY_KEY = 'dqmp_backup_history'
-const MAX_HISTORY = 50
 
 const TABLE_LABELS: Record<keyof BackupCounts, string> = {
   regions: 'Regions',
@@ -65,21 +65,6 @@ const TABLE_LABELS: Record<keyof BackupCounts, string> = {
   alerts: 'Alerts',
 }
 
-function loadHistory(): BackupHistoryEntry[] {
-  try {
-    const raw = localStorage.getItem(HISTORY_KEY)
-    return raw ? JSON.parse(raw) : []
-  } catch {
-    return []
-  }
-}
-
-function saveHistory(history: BackupHistoryEntry[]) {
-  try {
-    localStorage.setItem(HISTORY_KEY, JSON.stringify(history.slice(0, MAX_HISTORY)))
-  } catch { /* storage full — silently ignore */ }
-}
-
 interface RestoreResult {
   totalRestored: number
   restored: Record<string, number>
@@ -88,7 +73,10 @@ interface RestoreResult {
 const AdminBackupPage: React.FC = () => {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [history, setHistory] = useState<BackupHistoryEntry[]>(() => loadHistory())
+  const [history, setHistory] = useState<BackupHistoryEntry[]>([])
+  const [historyLoading, setHistoryLoading] = useState(false)
+  const [historyError, setHistoryError] = useState<string | null>(null)
+  const [historyWarning, setHistoryWarning] = useState<string | null>(null)
   const [expandedId, setExpandedId] = useState<string | null>(null)
 
   const [restoring, setRestoring] = useState(false)
@@ -96,8 +84,41 @@ const AdminBackupPage: React.FC = () => {
   const [restoreResult, setRestoreResult] = useState<RestoreResult | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  // Keep localStorage in sync whenever history changes
-  useEffect(() => { saveHistory(history) }, [history])
+  const fetchHistory = async (expandLatestBackup = false) => {
+    setHistoryLoading(true)
+    setHistoryError(null)
+    setHistoryWarning(null)
+    try {
+      const token = localStorage.getItem('adminToken')
+      const res = await api.get('/admin/backup-history?limit=100', {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      const fetched: BackupHistoryEntry[] = Array.isArray(res.data?.history) ? res.data.history : []
+      setHistory(fetched)
+      if (typeof res.data?.warning === 'string' && res.data.warning.trim()) {
+        setHistoryWarning(res.data.warning)
+      }
+
+      if (expandLatestBackup) {
+        const latestBackupEntry = fetched.find((entry) => entry.action === 'backup')
+        setExpandedId(latestBackupEntry?.id ?? null)
+      }
+    } catch (err: any) {
+      const status = err?.response?.status
+      if (status === 500) {
+        setHistory([])
+        setHistoryError('History is temporarily unavailable on server. Backup/restore still works.')
+      } else {
+        setHistoryError(err?.response?.data?.error || 'Failed to load backup history.')
+      }
+    } finally {
+      setHistoryLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchHistory()
+  }, [])
 
   const handleDownload = async () => {
     setLoading(true)
@@ -113,7 +134,6 @@ const AdminBackupPage: React.FC = () => {
       const parsed = JSON.parse(text) as { exportedAt: string; version: string; counts: BackupCounts }
 
       const filename = `dqmp-backup-${new Date(parsed.exportedAt).toISOString().replace(/[:.]/g, '-').slice(0, 19)}.json`
-      const totalRecords = Object.values(parsed.counts).reduce((a, b) => a + b, 0)
 
       // Trigger browser file download
       const blob = new Blob([text], { type: 'application/json' })
@@ -126,31 +146,12 @@ const AdminBackupPage: React.FC = () => {
       document.body.removeChild(a)
       URL.revokeObjectURL(url)
 
-      // Prepend to history
-      const entry: BackupHistoryEntry = {
-        id: crypto.randomUUID(),
-        exportedAt: parsed.exportedAt,
-        filename,
-        totalRecords,
-        counts: parsed.counts,
-      }
-      setHistory((prev) => [entry, ...prev].slice(0, MAX_HISTORY))
-      setExpandedId(entry.id)
+      await fetchHistory(true)
     } catch (err: any) {
       setError(err?.response?.data?.error || 'Failed to generate backup. Please try again.')
     } finally {
       setLoading(false)
     }
-  }
-
-  const deleteHistoryEntry = (id: string) => {
-    setHistory((prev) => prev.filter((e) => e.id !== id))
-    if (expandedId === id) setExpandedId(null)
-  }
-
-  const clearAllHistory = () => {
-    setHistory([])
-    setExpandedId(null)
   }
 
   const handleRestore = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -169,10 +170,12 @@ const AdminBackupPage: React.FC = () => {
       if (!parsed.tables) throw new Error('Invalid backup file: missing tables')
 
       const token = localStorage.getItem('adminToken')
-      const res = await api.post('/admin/restore', parsed, {
+      const payload = { ...parsed, _meta: { filename: file.name } }
+      const res = await api.post('/admin/restore', payload, {
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
       })
       setRestoreResult(res.data)
+      await fetchHistory()
     } catch (err: any) {
       setRestoreError(
         err?.response?.data?.error ||
@@ -184,7 +187,9 @@ const AdminBackupPage: React.FC = () => {
     }
   }
 
-  const latestBackup = history[0] ?? null
+  const backupHistory = history.filter((entry) => entry.action === 'backup')
+  const restoreHistory = history.filter((entry) => entry.action === 'restore')
+  const latestBackup = backupHistory[0] ?? null
 
   return (
     <div className="p-6 max-w-4xl mx-auto">
@@ -224,7 +229,7 @@ const AdminBackupPage: React.FC = () => {
               <p className="font-semibold text-gray-800">Full system export</p>
               <p className="text-sm text-gray-500">
                 {latestBackup
-                  ? `Last backup: ${new Date(latestBackup.exportedAt).toLocaleString()} · ${latestBackup.totalRecords.toLocaleString()} records`
+                  ? `Last backup: ${new Date(latestBackup.createdAt).toLocaleString()} · ${latestBackup.totalRecords.toLocaleString()} records`
                   : 'No backups downloaded yet'}
               </p>
             </div>
@@ -322,30 +327,36 @@ const AdminBackupPage: React.FC = () => {
           <div className="flex items-center gap-2">
             <Clock className="h-5 w-5 text-gray-400" />
             <h2 className="font-semibold text-gray-800">Backup history</h2>
-            {history.length > 0 && (
+            {backupHistory.length > 0 && (
               <span className="ml-1 px-2 py-0.5 bg-indigo-100 text-indigo-700 text-xs font-semibold rounded-full">
-                {history.length}
+                {backupHistory.length}
               </span>
             )}
           </div>
-          {history.length > 0 && (
-            <button
-              onClick={clearAllHistory}
-              className="flex items-center gap-1.5 text-xs text-red-500 hover:text-red-700 font-medium transition-colors cursor-pointer"
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-              Clear all
-            </button>
-          )}
+          <button
+            onClick={() => fetchHistory()}
+            className="flex items-center gap-1.5 text-xs text-indigo-600 hover:text-indigo-700 font-medium transition-colors cursor-pointer"
+          >
+            <RefreshCw className="h-3.5 w-3.5" />
+            Refresh
+          </button>
         </div>
 
-        {history.length === 0 ? (
+        {historyWarning && (
+          <div className="px-6 pt-4 text-xs text-amber-700">{historyWarning}</div>
+        )}
+
+        {historyLoading ? (
+          <div className="px-6 py-10 text-center text-sm text-gray-400">Loading history...</div>
+        ) : historyError ? (
+          <div className="px-6 py-10 text-center text-sm text-red-500">{historyError}</div>
+        ) : backupHistory.length === 0 ? (
           <div className="px-6 py-10 text-center text-sm text-gray-400">
             No backups yet. Click "Download Backup" to create one.
           </div>
         ) : (
           <ul className="divide-y divide-gray-100">
-            {history.map((entry, idx) => {
+            {backupHistory.map((entry, idx) => {
               const isExpanded = expandedId === entry.id
               return (
                 <li key={entry.id} className="px-6 py-4">
@@ -357,9 +368,9 @@ const AdminBackupPage: React.FC = () => {
                         </span>
                       )}
                       <div className="min-w-0">
-                        <p className="text-sm font-medium text-gray-800 truncate">{entry.filename}</p>
+                        <p className="text-sm font-medium text-gray-800 truncate">{entry.filename || 'dqmp-backup.json'}</p>
                         <p className="text-xs text-gray-500 mt-0.5">
-                          {new Date(entry.exportedAt).toLocaleString()} &middot; {entry.totalRecords.toLocaleString()} records
+                          {new Date(entry.createdAt).toLocaleString()} &middot; {entry.totalRecords.toLocaleString()} records
                         </p>
                       </div>
                     </div>
@@ -371,24 +382,17 @@ const AdminBackupPage: React.FC = () => {
                         {isExpanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
                         Details
                       </button>
-                      <button
-                        onClick={() => deleteHistoryEntry(entry.id)}
-                        className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
-                        title="Remove from history"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
                     </div>
                   </div>
 
                   {/* Expanded counts */}
                   {isExpanded && (
                     <div className="mt-4 flex flex-col divide-y divide-gray-100 border border-gray-200 rounded-xl overflow-hidden">
-                      {(Object.keys(entry.counts) as (keyof BackupCounts)[]).map((key) => (
+                      {entry.tableCounts && (Object.keys(entry.tableCounts) as (keyof BackupCounts)[]).map((key) => (
                         <div key={key} className="flex items-center justify-between bg-gray-50 px-4 py-2.5">
-                          <span className="text-sm text-gray-600">{TABLE_LABELS[key]}</span>
+                          <span className="text-sm text-gray-600">{TABLE_LABELS[key] ?? key}</span>
                           <span className="text-sm font-semibold text-gray-900">
-                            {entry.counts[key].toLocaleString()}
+                            {(entry.tableCounts?.[key] ?? 0).toLocaleString()}
                           </span>
                         </div>
                       ))}
@@ -401,6 +405,49 @@ const AdminBackupPage: React.FC = () => {
                 </li>
               )
             })}
+          </ul>
+        )}
+      </div>
+
+      {/* Restore history */}
+      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm mt-6">
+        <div className="flex items-center gap-2 px-6 py-4 border-b border-gray-100">
+          <Clock className="h-5 w-5 text-gray-400" />
+          <h2 className="font-semibold text-gray-800">Restore history</h2>
+          {restoreHistory.length > 0 && (
+            <span className="ml-1 px-2 py-0.5 bg-emerald-100 text-emerald-700 text-xs font-semibold rounded-full">
+              {restoreHistory.length}
+            </span>
+          )}
+        </div>
+
+        {historyLoading ? (
+          <div className="px-6 py-8 text-center text-sm text-gray-400">Loading history...</div>
+        ) : restoreHistory.length === 0 ? (
+          <div className="px-6 py-8 text-center text-sm text-gray-400">No restore activity yet.</div>
+        ) : (
+          <ul className="divide-y divide-gray-100">
+            {restoreHistory.map((entry) => (
+              <li key={entry.id} className="px-6 py-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-medium text-gray-800">
+                      {entry.status === 'success' ? 'Restore completed' : 'Restore failed'}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      {new Date(entry.createdAt).toLocaleString()}
+                      {entry.filename ? ` · ${entry.filename}` : ''}
+                    </p>
+                    {entry.errorMessage && (
+                      <p className="text-xs text-red-600 mt-1">{entry.errorMessage}</p>
+                    )}
+                  </div>
+                  <span className={`text-xs font-semibold px-2 py-1 rounded-full ${entry.status === 'success' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
+                    {entry.status === 'success' ? `+${entry.totalRecords.toLocaleString()} rows` : 'Failed'}
+                  </span>
+                </div>
+              </li>
+            ))}
           </ul>
         )}
       </div>
