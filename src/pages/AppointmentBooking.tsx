@@ -1,4 +1,4 @@
-﻿// Removed unused billData state
+// Removed unused billData state
 "use client"
 
 import { useEffect, useState, useRef } from "react"
@@ -484,7 +484,8 @@ export default function AppointmentBooking() {
         const bill = response.data.bill
 
         // Check if mobile number is registered with SLT account
-        if (!bill.mobileNumber) {
+        // If the API returned success, it means SLT system triggered an SMS, even if we couldn't parse the number
+        if (!bill.mobileNumber && !response.data.smsNotification?.maskedMobile) {
           const hotline = import.meta.env.VITE_SLT_HOTLINE || "1213"
           setError(`This SLT account does not have a registered mobile number. Please contact the SLT hotline at ${hotline} to register your mobile number before proceeding.`)
           setSltVerified(false)
