@@ -101,6 +101,7 @@ export default function OutletQueueDisplay() {
 
   const [announcementQueue, setAnnouncementQueue] = useState<any[]>([])
   const [isSpeaking, setIsSpeaking] = useState(false)
+  const [audioUnlocked, setAudioUnlocked] = useState(false)
 
   const [queue, setQueue] = useState<QueuePayload | null>(null)
   const [counters, setCounters] = useState<CounterRow[]>([])
@@ -239,14 +240,17 @@ export default function OutletQueueDisplay() {
   const playChime = () => {
     return new Promise((resolve) => {
       const audio = new Audio("/announcement.mp3")
-      audio.volume = 0.8 // Slightly higher volume for the custom announcement
+      audio.volume = 0.8
       audio.onended = resolve
       audio.onerror = (err) => {
         console.error("Failed to play custom announcement chime:", err)
         resolve(null)
       }
       audio.play().catch(err => {
-        console.error("Audio playback error:", err)
+        console.error("[Voice] Audio playback blocked:", err)
+        if (err.name === 'NotAllowedError') {
+          setAudioUnlocked(false)
+        }
         resolve(null)
       })
     })
@@ -684,6 +688,37 @@ export default function OutletQueueDisplay() {
           )}
         </button>
       </div>
+
+      {/* Audio Unlock Overlay */}
+      {voiceEnabled && !audioUnlocked && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/95 backdrop-blur-sm p-6 text-center">
+          <div className="max-w-md w-full bg-white rounded-3xl p-8 shadow-2xl border border-white/20">
+            <div className="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Volume2 className="w-10 h-10 animate-pulse" />
+            </div>
+            <h2 className="text-2xl font-black text-slate-900 mb-2">Enable Audio</h2>
+            <p className="text-slate-500 mb-8">
+              Browser security requires a manual click to enable sounds and voice announcements for this display.
+            </p>
+            <button
+              onClick={() => {
+                // Play a brief silent chime to unlock audio context
+                const audio = new Audio("/announcement.mp3")
+                audio.volume = 0.01 // Very quiet initial play
+                audio.play().then(() => {
+                  setAudioUnlocked(true)
+                  console.log("[Voice] Audio context unlocked successfully")
+                }).catch(err => {
+                  console.error("[Voice] Final unlock attempt failed:", err)
+                })
+              }}
+              className="w-full py-4 bg-emerald-600 text-white rounded-2xl font-bold text-lg shadow-xl shadow-emerald-200 hover:bg-emerald-700 active:scale-95 transition-all"
+            >
+              Start Audio Display
+            </button>
+          </div>
+        </div>
+      )}
 
       <style>{`
         .animate-marquee {
