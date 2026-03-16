@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { Volume2, VolumeX, Play, Square, Wifi, WifiOff, TestTube, Save, RefreshCw, Eye, EyeOff } from 'lucide-react'
 import api from '../config/api'
 import type { Token } from '../types'
@@ -13,24 +13,24 @@ const LANGUAGE_CODES = {
 // Announcement templates in different languages
 const ANNOUNCEMENT_TEMPLATES = {
   en: {
-    call: (tokenNumber: number, counterNumber?: number) => 
-      `Token number ${tokenNumber}, please proceed to counter ${counterNumber || 'assigned'}. Token ${tokenNumber}, counter ${counterNumber || 'assigned'}.`,
+    call: (tokenNumber: number, firstName: string, counterNumber?: number) => 
+      `${firstName}. Token number ${tokenNumber}, please proceed to counter ${counterNumber || 'assigned'}.`,
     welcome: 'Welcome to our service center.',
     next: 'Next customer, please.',
     wait: 'Please wait for your turn.',
     test: 'This is a test announcement. IP speaker is working correctly.'
   },
   si: {
-    call: (tokenNumber: number, counterNumber?: number) => 
-      `අංක ${tokenNumber} ගැණුම්කරු ${counterNumber || 'නියම කළ'} කවුන්ටරයට පැමිණෙන්න. අංක ${tokenNumber}, කවුන්ටරය ${counterNumber || 'නියම කළ'}.`,
+    call: (tokenNumber: number, firstName: string, counterNumber?: number) => 
+      `${firstName}. ටෝකන් අංක ${tokenNumber}, කරුණාකර කවුන්ටර අංක ${counterNumber || 'නියම කළ'} වෙත පැමිණෙන්න.`,
     welcome: 'අපගේ සේවා මධ්‍යස්ථානයට සාදරයෙන් පිළිගනිමු.',
     next: 'ඊළඟ පාරිභෝගිකයා කරුණාකර.',
     wait: 'කරුණාකර ඔබේ වාරය සඳහා රැඳී සිටින්න.',
     test: 'මෙය පරීක්ෂණ නිවේදනයකි. IP ස්පීකර් නිවැරදිව ක්‍රියා කරයි.'
   },
   ta: {
-    call: (tokenNumber: number, counterNumber?: number) => 
-      `எண் ${tokenNumber}, தயவுசெய்து கவுண்டர் ${counterNumber || 'ஒதுக்கப்பட்ட'} க்கு வாருங்கள். எண் ${tokenNumber}, கவுண்டர் ${counterNumber || 'ஒதுக்கப்பட்ட'}.`,
+    call: (tokenNumber: number, firstName: string, counterNumber?: number) => 
+      `${firstName}. அடையாள எண் ${tokenNumber}, தயவுசெய்து கவுண்டர் எண் ${counterNumber || 'ஒதுக்கப்பட்ட'} க்கு செல்லவும்.`,
     welcome: 'எங்கள் சேவை மையத்திற்கு வரவேற்கிறோம்.',
     next: 'அடுத்த வாடிக்கையாளர், தயவுசெய்து.',
     wait: 'தயவுசெய்து உங்கள் முறைக்கு காத்திருங்கள்.',
@@ -370,18 +370,31 @@ export default function IPSpeakerPage() {
     }
   }
 
-  const testAnnouncement = (type: 'test' | 'welcome' | 'next' | 'wait' | 'custom') => {
+  const testAnnouncement = async (type: 'test' | 'welcome' | 'next' | 'wait' | 'custom') => {
     setTesting(true)
     let text = ''
+    
+    // Play chime first
+    const audio = new Audio("/announcement.mp3")
+    audio.volume = volume
+    await new Promise((resolve) => {
+      audio.onended = resolve
+      audio.onerror = resolve
+      audio.play().catch(resolve)
+    })
+    
+    // Pause briefly
+    await new Promise(r => setTimeout(r, 600))
     
     if (type === 'custom') {
       text = customMessage || 'Custom test message'
     } else if (type === 'test' && currentToken) {
       const template = ANNOUNCEMENT_TEMPLATES[selectedLanguage]
-      text = template.call(currentToken.tokenNumber, currentToken.counterNumber || 1)
+      const firstName = currentToken.customer?.name?.split(' ')[0] || "Customer"
+      text = (template.call as any)(currentToken.tokenNumber, firstName, currentToken.counterNumber || 1)
     } else {
       const templateValue = ANNOUNCEMENT_TEMPLATES[selectedLanguage][type as keyof typeof ANNOUNCEMENT_TEMPLATES.en]
-      text = typeof templateValue === 'function' ? templateValue(1, 1) : templateValue
+      text = typeof templateValue === 'function' ? (templateValue as any)(1, "Customer", 1) : templateValue
     }
     
     console.log(`Testing announcement in ${selectedLanguage}: ${text}`)

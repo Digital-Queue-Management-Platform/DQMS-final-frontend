@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { Volume2, VolumeX, Play, Square, Settings } from 'lucide-react'
 import api from '../config/api'
 import type { Token } from '../types'
@@ -19,29 +19,25 @@ const LANGUAGE_CODES = {
 // Announcement templates in different languages
 const ANNOUNCEMENT_TEMPLATES = {
   en: {
-    call: (tokenNumber: number, customerName: string, counterNumber?: number) =>
-      `${customerName}, token number ${tokenNumber}, please proceed to counter ${counterNumber || 'assigned'}. ${customerName}, token ${tokenNumber}, counter ${counterNumber || 'assigned'}.`,
+    call: (tokenNumber: number, firstName: string, counterNumber?: number) =>
+      `${firstName}. Token number ${tokenNumber}, please proceed to counter ${counterNumber || 'assigned'}.`,
     welcome: 'Welcome to our service center.',
     next: 'Next customer, please.',
     wait: 'Please wait for your turn.'
   },
   si: {
-    call: (tokenNumber: number, customerName: string, counterNumber?: number) => {
-      // First announce name in English for CSO clarity (they click the button), then in Sinhala
-      return `${customerName}. ${customerName}. අංක ${tokenNumber}. කවුන්ටරය ${counterNumber || 'නියම කළ'}. ${customerName}, අංක ${tokenNumber}, කවුන්ටරය ${counterNumber || 'නියම කළ'}.`
-    },
+    call: (tokenNumber: number, firstName: string, counterNumber?: number) => 
+      `${firstName}. ටෝකන් අංක ${tokenNumber}, කරුණාකර කවුන්ටර අංක ${counterNumber || 'නියම කළ'} වෙත පැමිණෙන්න.`,
     welcome: 'අපගේ සේවා මධ්‍යස්ථානයට සාදරයෙන් පිළිගනිමු.',
     next: 'ඊළඟ පාරිභෝගිකයා කරුණාකර.',
     wait: 'කරුණාකර ඔබේ වාරය සඳහා රැඳී සිටින්න.'
   },
   ta: {
-    call: (tokenNumber: number, customerName: string, counterNumber?: number) => {
-      // First announce name in English for CSO clarity (they click the button), then in Tamil
-      return `${customerName}. ${customerName}. எண் ${tokenNumber}. கவுண்டர் ${counterNumber || 'ஒதுக்கப்பட்ட'}. ${customerName}, எண் ${tokenNumber}, கவுண்டர் ${counterNumber || 'ஒதுக்கப்பட்ட'}.`
-    },
+    call: (tokenNumber: number, firstName: string, counterNumber?: number) => 
+      `${firstName}. அடையாள எண் ${tokenNumber}, தயவுசெய்து கவுண்டர் எண் ${counterNumber || 'ஒதுக்கப்பட்ட'} க்கு செல்லவும்.`,
     welcome: 'எங்கள் சேவை மையத்திற்கு வரவேற்கிறோம்.',
     next: 'அடுத்த வாடிக்கையாளர், தயவுசெய்து.',
-    wait: 'தயவுசெய்து உங்கள் முறைக்கு காத்திருங்கள்.'
+    wait: 'தயவுசெய்து ඔබේ වාරය සඳහා රැඳී සිටින්න.'
   }
 }
 
@@ -185,10 +181,22 @@ export default function IPSpeaker({ token, counterNumber, onCall }: IPSpeakerPro
     }
   }
 
-  const callCustomer = () => {
+  const callCustomer = async () => {
     const template = ANNOUNCEMENT_TEMPLATES[selectedLanguage]
-    const customerName = token.customer.name
-    const announcement = template.call(token.tokenNumber, customerName, counterNumber || token.counterNumber || undefined)
+    const firstName = token.customer.name.split(' ')[0] || "Customer"
+    const announcement = (template.call as any)(token.tokenNumber, firstName, counterNumber || token.counterNumber || undefined)
+
+    // Play chime first
+    const audio = new Audio("/announcement.mp3")
+    audio.volume = volume
+    await new Promise((resolve) => {
+      audio.onended = resolve
+      audio.onerror = resolve
+      audio.play().catch(resolve)
+    })
+    
+    // Brief pause after chime
+    await new Promise(r => setTimeout(r, 600))
 
     speak(announcement, selectedLanguage)
 

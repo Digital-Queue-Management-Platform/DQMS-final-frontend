@@ -3,11 +3,10 @@
 import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { motion } from "framer-motion"
-import { User, Clock, Phone, FileText, Users, RefreshCwIcon, Calendar, AlertTriangle, CheckCircle2, CircleDashed, Banknote, CreditCard, Landmark } from "lucide-react"
+import { User, Clock, Phone, FileText, Users, RefreshCwIcon, Calendar, AlertTriangle, CheckCircle2, CircleDashed, Banknote, CreditCard, Landmark, Volume2, Play } from "lucide-react"
 // OfficerTopBar is provided globally from Layout for officer routes
 import api, { WS_URL } from "../config/api"
 import type { Officer, Token } from "../types"
-import IPSpeaker from "../components/IPSpeaker"
 import ServiceName from "../components/ServiceName"
 import { getServiceColor } from "../utils/serviceUtils"
 
@@ -229,71 +228,22 @@ export default function OfficerQueuePage() {
   }
 
   // --- Auto-speech helpers ---
-  const AUTO_SPEAK_TEMPLATES = {
-    call: {
-      en: (name: string, num: number, counter?: number) =>
-        `${name}. Token number ${num}. Please proceed to counter ${counter || 'assigned'}. ${name}, counter ${counter || 'assigned'}.`,
-      si: (name: string, num: number, counter?: number) =>
-        `${name}. ${name}. අංක ${num}. කවුන්ටරය ${counter || 'නියම කළ'} වෙත පැමිණෙන්න.`,
-      ta: (name: string, num: number, counter?: number) =>
-        `${name}. ${name}. எண் ${num}. கவுண்டர் ${counter || 'ஒதுக்கப்பட்ட'} க்கு வாருங்கள்.`,
-    },
-    skip: {
-      en: (name: string, num: number, _counter?: number) =>
-        `${name}, token ${num}, you have been skipped. Please return to the counter.`,
-      si: (name: string, num: number, _counter?: number) =>
-        `${name}. ටෝකන් ${num}. ඔබ මග හැරී ඇත. කරුණාකර කවුන්ටරය වෙත ආපසු එන්න.`,
-      ta: (name: string, num: number, _counter?: number) =>
-        `${name}. எண் ${num}. நீங்கள் தவிர்க்கப்பட்டீர்கள். தயவுசெய்து கவுண்டருக்கு திரும்பவும்.`,
-    },
-    recall: {
-      en: (name: string, num: number, counter?: number) =>
-        `${name}. Token ${num} is being recalled. Please return to counter ${counter || 'assigned'} immediately.`,
-      si: (name: string, num: number, counter?: number) =>
-        `${name}. ටෝකන් ${num} නැවත කැඳවනු ලැබේ. කරුණාකර වහාම කවුන්ටර් ${counter || 'නියම'} වෙත එන්න.`,
-      ta: (name: string, num: number, counter?: number) =>
-        `${name}. எண் ${num} மீண்டும் அழைக்கப்படுகிறது. தயவுசெய்து உடனடியாக கவுண்டர் ${counter || ''} க்கு வாருங்கள்.`,
-    },
+
+  const handleReannounce = async (tokenId: string) => {
+    if (!officer) return
+    setLoading(true)
+    try {
+      await api.post('/officer/reannounce-token', { officerId: officer.id, tokenId })
+    } catch (err) {
+      console.error('failed to re-announce', err)
+    } finally {
+      setLoading(false)
+    }
   }
 
-  const autoSpeak = async (token: any, eventType: 'call' | 'skip' | 'recall', counterNum?: number | null) => {
-    if (!token) return
-    const prefs = token?.preferredLanguages
-    let lang: 'en' | 'si' | 'ta' = 'en'
-    if (Array.isArray(prefs) && prefs.length > 0) {
-      const p = String(prefs[0]).toLowerCase()
-      if (p === 'si') lang = 'si'
-      else if (p === 'ta') lang = 'ta'
-    }
-    const name = token.customer?.name || ''
-    const counter = token.counterNumber || counterNum || undefined
-    const text = AUTO_SPEAK_TEMPLATES[eventType][lang](name, token.tokenNumber, counter)
-
-    if (window.speechSynthesis) window.speechSynthesis.cancel()
-
-    const ttsLang = lang
-    try {
-      const resp = await api.get('/tts/speak', { params: { text, lang: ttsLang }, responseType: 'blob' })
-      const url = URL.createObjectURL(resp.data)
-      const audio = new Audio(url)
-      audio.volume = 1.0
-      audio.onended = () => URL.revokeObjectURL(url)
-      await audio.play()
-    } catch (e) {
-      console.error('Auto-speak TTS error:', e)
-      // Fallback to browser speech synthesis if TTS API fails
-      const synth = window.speechSynthesis
-      if (!synth) return
-      const voices = synth.getVoices()
-      const utterance = new SpeechSynthesisUtterance(text)
-      const voice = voices.find(v => v.lang.startsWith('en') && v.name.includes('Microsoft')) ||
-                    voices.find(v => v.lang.startsWith('en')) ||
-                    voices[0]
-      if (voice) { utterance.voice = voice; utterance.lang = 'en-US' }
-      utterance.volume = 1.0
-      utterance.rate = 0.9
-      synth.speak(utterance)
-    }
+  const autoSpeak = async (_token: any, _eventType: 'call' | 'skip' | 'recall', _counterNum?: number | null) => {
+    // Local speech disabled. Audio is now handled by the central Outlet Queue Display.
+    return
   }
 
   const handleTransfer = async () => {
@@ -882,12 +832,28 @@ export default function OfficerQueuePage() {
                     </div>
                   )}
 
-                  {/* IP Speaker Component */}
-                  <div className="mb-4">
-                    <IPSpeaker
-                      token={currentToken}
-                      counterNumber={officer?.counterNumber}
-                    />
+                  {/* Central Voice Announcement Status & Control */}
+                  <div className="mb-4 p-4 bg-blue-50 border border-blue-100 rounded-2xl shadow-sm">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2 text-blue-700">
+                        <Volume2 className="w-4 h-4" />
+                        <span className="text-xs font-bold leading-none">Central Announcement</span>
+                      </div>
+                      <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-[10px] font-bold rounded-full border border-emerald-200 uppercase tracking-wider">Active</span>
+                    </div>
+                    
+                    <p className="text-[11px] text-blue-600 mb-4 leading-relaxed">
+                      Token call will be announced on the main outlet display speaker. Use the button below to repeat if needed.
+                    </p>
+
+                    <button
+                      onClick={() => handleReannounce(currentToken.id)}
+                      disabled={loading}
+                      className="w-full h-11 flex items-center justify-center gap-3 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 active:scale-[0.98] transition-all shadow-md shadow-blue-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <Play className="w-4 h-4 fill-current" />
+                      Announce Call
+                    </button>
                   </div>
 
                   {/* Notes Section */}

@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import logo from "../assets/logo.png"
 import { useParams, useSearchParams } from "react-router-dom"
-import { Clock3, Users, Ticket, Layers, AlertTriangle, Sparkles, CalendarDays, Coffee } from "lucide-react"
-import api, { WS_URL } from "../config/api"
+import { Clock3, Users, Ticket, Layers, AlertTriangle, Sparkles, CalendarDays, Coffee, Volume2, VolumeX } from "lucide-react"
+import api, { WS_URL, API_URL } from "../config/api"
 import type { Token } from "../types"
 import ServiceName from "../components/ServiceName"
 
@@ -84,6 +84,23 @@ export default function OutletQueueDisplay() {
   const [showCounters, setShowCounters] = useState(() => toBool(query.get("counters"), true))
   const [showRecent, setShowRecent] = useState(() => toBool(query.get("recent"), true))
   const [autoSlide, setAutoSlide] = useState(() => toBool(query.get("autoSlide"), true))
+  const [playTone, setPlayTone] = useState(() => toBool(query.get("playTone"), true))
+  
+  // Voice Announcement State
+  const [voiceEnabled, setVoiceEnabled] = useState(true)
+  const voiceEnabledRef = useRef(true)
+  
+  useEffect(() => {
+    voiceEnabledRef.current = voiceEnabled
+    console.log("[Voice] Voice mode changed:", voiceEnabled ? "ON" : "OFF")
+  }, [voiceEnabled])
+
+  useEffect(() => {
+    console.log("[Voice] Announcement Tone is now:", playTone ? "ENABLED" : "DISABLED")
+  }, [playTone])
+
+  const [announcementQueue, setAnnouncementQueue] = useState<any[]>([])
+  const [isSpeaking, setIsSpeaking] = useState(false)
 
   const [queue, setQueue] = useState<QueuePayload | null>(null)
   const [counters, setCounters] = useState<CounterRow[]>([])
@@ -117,6 +134,10 @@ export default function OutletQueueDisplay() {
         if (s.counters !== undefined) setShowCounters(!!s.counters)
         if (s.recent !== undefined) setShowRecent(!!s.recent)
         if (s.autoSlide !== undefined) setAutoSlide(!!s.autoSlide)
+        if (s.playTone !== undefined) {
+          const val = (s.playTone === "0" || s.playTone === 0 || s.playTone === false) ? false : true
+          setPlayTone(val)
+        }
       }
 
       if (queueData.outletMeta) {
@@ -176,11 +197,24 @@ export default function OutletQueueDisplay() {
         const data = msg?.data
         if (!data || !outletId) return
 
-        if (["NEW_TOKEN", "TOKEN_COMPLETED", "TOKEN_SKIPPED", "TOKEN_RECALLED", "TOKEN_UPDATED", "TOKEN_CANCELLED", "TOKEN_PRIORITY_UPDATED", "OFFICER_STATUS_CHANGE", "OFFICER_UPDATED", "TOKEN_CALLED"].includes(type)) {
+        if (["NEW_TOKEN", "TOKEN_COMPLETED", "TOKEN_UPDATED", "TOKEN_CANCELLED", "TOKEN_PRIORITY_UPDATED", "OFFICER_STATUS_CHANGE", "OFFICER_UPDATED"].includes(type)) {
           if (!data.outletId || data.outletId === outletId) fetchAll()
         }
-      } catch {
-        // ignore malformed ws message
+
+        if (type === "TOKEN_CALLED" || type === "TOKEN_SKIPPED" || type === "TOKEN_RECALLED") {
+          console.log(`[WebSocket] ${type} event received for token:`, data.tokenNumber)
+          if (!data.outletId || data.outletId === outletId) {
+            fetchAll()
+            if (voiceEnabledRef.current) {
+              console.log("[Voice] Adding to announcement queue:", type)
+              setAnnouncementQueue(prev => [...prev, { ...data, eventType: type }])
+            } else {
+              console.log("[Voice] Skipping announcement because sound is muted. Click the speaker icon to enable.")
+            }
+          }
+        }
+      } catch (err) {
+        console.error("WebSocket message processing error:", err)
       }
     }
 
@@ -200,6 +234,88 @@ export default function OutletQueueDisplay() {
   const { trackRef: upNextTrackRef, duration: upNextDuration } = useUniformMarqueeSpeed([upNext.length, showService])
   const { trackRef: recentTrackRef, duration: recentDuration } = useUniformMarqueeSpeed([recentCalled.length])
   const { trackRef: counterTrackRef, duration: counterDuration } = useUniformMarqueeSpeed([counters.length])
+
+  // Voice Announcement Logic
+  const playChime = () => {
+    return new Promise((resolve) => {
+      const audio = new Audio("/announcement.mp3")
+      audio.volume = 0.8 // Slightly higher volume for the custom announcement
+      audio.onended = resolve
+      audio.onerror = (err) => {
+        console.error("Failed to play custom announcement chime:", err)
+        resolve(null)
+      }
+      audio.play().catch(err => {
+        console.error("Audio playback error:", err)
+        resolve(null)
+      })
+    })
+  }
+
+  const speakSentence = async (tokenData: any) => {
+    const num = String(tokenData.tokenNumber) // No padding for natural speech
+    const counter = tokenData.counterNumber || 'Counter'
+    const eventType = tokenData.eventType || 'TOKEN_CALLED'
+    const lang = (Array.isArray(tokenData.preferredLanguages) && tokenData.preferredLanguages[0]) || 'en'
+    
+    // Get customer name, use first name for a more personal touch
+    const customerName = tokenData.customer?.name || ""
+    const firstName = customerName.split(' ')[0] || ""
+    
+    let text = ""
+    
+    if (eventType === 'TOKEN_CALLED') {
+      if (lang === 'si') text = `${firstName}. ටෝකන් අංක ${num}, කරුණාකර කවුන්ටර අංක ${counter} වෙත පැමිණෙන්න.`
+      else if (lang === 'ta') text = `${firstName}. அடையாள எண் ${num}, தயவுசெய்து கவுண்டர் எண் ${counter} க்கு செல்லவும்.`
+      else text = `${firstName}. Token number ${num}, please proceed to counter number ${counter}.`
+    } else if (eventType === 'TOKEN_RECALLED') {
+      if (lang === 'si') text = `${firstName}. ටෝකන් අංක ${num} නැවත කැඳවනු ලැබේ. කරුණාකර වහාම කවුන්ටරය ${counter} වෙත පැමිණෙන්න.`
+      else if (lang === 'ta') text = `${firstName}. அடையாள எண் ${num} மீண்டும் அழைக்கப்படுகிறது. உடனடியாக கவுண்டர் ${counter} க்கு வரவும்.`
+      else text = `${firstName}. Token number ${num} is being recalled. Please proceed to counter number ${counter} immediately.`
+    } else if (eventType === 'TOKEN_SKIPPED') {
+      if (lang === 'si') text = `${firstName}. ටෝකන් අංක ${num} මග හැරී ඇත.`
+      else if (lang === 'ta') text = `${firstName}. அடையாள எண் ${num} தவிர்க்கப்பட்டது.`
+      else text = `${firstName}. Token number ${num} has been skipped.`
+    }
+
+    try {
+      const ttsUrl = `${API_URL}/tts/speak?text=${encodeURIComponent(text)}&lang=${lang}`
+      const audio = new Audio(ttsUrl)
+      return new Promise((resolve) => {
+        audio.onended = resolve
+        audio.onerror = resolve
+        audio.play().catch(resolve)
+      })
+    } catch (err) {
+      console.error("TTS failed", err)
+    }
+  }
+
+  useEffect(() => {
+    if (voiceEnabled && announcementQueue.length > 0 && !isSpeaking) {
+      const processQueue = async () => {
+        setIsSpeaking(true)
+        const nextToken = announcementQueue[0]
+        console.log("[Voice] Processing announcement for token:", nextToken.tokenNumber)
+        
+        try {
+          if (playTone) {
+            await playChime()
+            await new Promise(r => setTimeout(r, 600)) // Pause after chime
+          }
+          await speakSentence(nextToken)
+        } catch (err) {
+          console.error("[Voice] Announcement failed:", err)
+        } finally {
+          setAnnouncementQueue(prev => prev.slice(1))
+          // Add a small pause between consecutive announcements so they are clear
+          await new Promise(r => setTimeout(r, 1000))
+          setIsSpeaking(false)
+        }
+      }
+      processQueue()
+    }
+  }, [voiceEnabled, announcementQueue, isSpeaking, playTone])
 
   if (loading) {
     return (
@@ -537,15 +653,47 @@ export default function OutletQueueDisplay() {
         </footer>
       </div>
 
+
+      {/* Voice Control Floating Button */}
+      <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3">
+        {announcementQueue.length > 0 && (
+          <div className="bg-emerald-500 text-white text-[10px] font-bold px-2 py-1 rounded-full animate-bounce shadow-lg shadow-emerald-200">
+            {announcementQueue.length} Announcement{announcementQueue.length > 1 ? 's' : ''} Pending
+          </div>
+        )}
+        <button
+          onClick={() => setVoiceEnabled(!voiceEnabled)}
+          className={`group relative flex items-center justify-center w-14 h-14 rounded-2xl shadow-xl transition-all duration-300 hover:scale-110 active:scale-95 ${
+            voiceEnabled 
+              ? 'bg-emerald-600 text-white ring-4 ring-emerald-100' 
+              : 'bg-white text-slate-400 border border-slate-200 hover:text-emerald-600'
+          }`}
+          title={voiceEnabled ? "Mute Voice Announcements" : "Enable Voice Announcements"}
+        >
+          {voiceEnabled ? (
+            <Volume2 className={`w-6 h-6 ${isSpeaking ? 'animate-pulse' : ''}`} />
+          ) : (
+            <VolumeX className="w-6 h-6" />
+          )}
+          
+          {!voiceEnabled && (
+            <div className="absolute bottom-full mb-3 right-0 bg-white border border-slate-200 shadow-xl p-3 rounded-xl whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+              <p className="text-xs font-bold text-slate-800">Browser blocks audio by default.</p>
+              <p className="text-[10px] text-slate-500">Click to enable voice announcements.</p>
+            </div>
+          )}
+        </button>
+      </div>
+
       <style>{`
+        .animate-marquee {
+          display: flex;
+          width: max-content;
+          animation: marquee linear infinite;
+        }
         @keyframes marquee {
           0% { transform: translateX(0); }
           100% { transform: translateX(-50%); }
-        }
-        .animate-marquee {
-          display: flex;
-          width: fit-content;
-          animation: marquee 40s linear infinite;
         }
         .animate-marquee:hover {
           animation-play-state: paused;
