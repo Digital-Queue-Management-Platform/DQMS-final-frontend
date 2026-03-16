@@ -153,6 +153,37 @@ export default function AppointmentBooking() {
     }
   }, [shouldAutoSubmit, otpStep, otpToken])
 
+  // Interactive validation for closure checks
+  useEffect(() => {
+    if (currentStep !== 3 || !datetime || !outletId || !isValidAppointmentTime(datetime)) {
+      setClosedOnDateError(null)
+      return
+    }
+
+    let isMounted = true
+    const validateDate = async () => {
+      setCheckingDate(true)
+      setClosedOnDateError(null)
+      try {
+        const dt = new Date(datetime)
+        const res = await api.get(`/branch-status/${outletId}`, { params: { at: dt.toISOString() } })
+        if (isMounted && res.data?.isClosed) {
+          setClosedOnDateError(res.data.reason || "The branch is closed on the selected date/time.")
+        }
+      } catch {
+        if (isMounted) console.warn('Branch status check failed; allowing step proceed')
+      } finally {
+        if (isMounted) setCheckingDate(false)
+      }
+    }
+
+    const timer = setTimeout(validateDate, 600)
+    return () => {
+      isMounted = false
+      clearTimeout(timer)
+    }
+  }, [datetime, outletId, currentStep])
+
   // Auto-submit for bill payment once intent + method (+ amount if partial) are all set
   useEffect(() => {
     if (selectedService !== 'SVC002' && selectedService !== 'BILL_PAYMENT') return
@@ -678,7 +709,7 @@ export default function AppointmentBooking() {
   const canProceedFromStep1 = preferredLanguage !== ''
   const canProceedFromStep2 = selectedService !== ''
   const canProceedFromStep3 = () => {
-    const hasBasicInfo = outletId && datetime && name.trim().length >= 2 && isValidMobile(mobileNumber) && isValidAppointmentTime(datetime)
+    const hasBasicInfo = outletId && datetime && name.trim().length >= 2 && isValidMobile(mobileNumber) && isValidAppointmentTime(datetime) && !closedOnDateError && !checkingDate
     if (isSltRequiredService(selectedService)) {
       return hasBasicInfo && isValidSlt(sltTelephoneNumber)
     }
