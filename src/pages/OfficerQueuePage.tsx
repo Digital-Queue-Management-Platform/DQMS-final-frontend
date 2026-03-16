@@ -498,7 +498,9 @@ export default function OfficerQueuePage() {
     const tokenServices = Array.isArray(t.serviceTypes) ? t.serviceTypes : []
     const officerServices = Array.isArray((officer as any)?.assignedServices) ? (officer as any).assignedServices : []
 
-    return (t as any).counterNumber === officer.counterNumber || tokenServices.some((s: any) => officerServices.includes(s))
+    return (t as any).counterNumber === officer.counterNumber || tokenServices.some((s: any) => 
+      officerServices.some((os: any) => String(os).toUpperCase() === String(s).toUpperCase())
+    )
   }
 
   const matchesMyQueueRules = (t: Token) => {
@@ -507,10 +509,14 @@ export default function OfficerQueuePage() {
 
     const tokenServices = Array.isArray(t.serviceTypes) ? t.serviceTypes : []
     const officerServices = Array.isArray((officer as any)?.assignedServices) ? (officer as any).assignedServices : []
-    const hasServiceMatch = tokenServices.length === 0 || officerServices.length === 0 || tokenServices.some((s: any) => officerServices.includes(s))
+    const hasServiceMatch = tokenServices.length === 0 || officerServices.length === 0 || tokenServices.some((s: any) => 
+      officerServices.some((os: any) => String(os).toUpperCase() === String(s).toUpperCase())
+    )
     const prefs = Array.isArray((t as any).preferredLanguages) ? (t as any).preferredLanguages : []
     const langs = Array.isArray((officer as any)?.languages) ? (officer as any).languages : []
-    const hasLanguageMatch = prefs.length === 0 || langs.length === 0 || prefs.some((p: any) => langs.includes(p))
+    const hasLanguageMatch = prefs.length === 0 || langs.length === 0 || prefs.some((p: any) => 
+      langs.some((l: any) => String(l).toUpperCase() === String(p).toUpperCase())
+    )
 
     return hasServiceMatch && hasLanguageMatch
   }
