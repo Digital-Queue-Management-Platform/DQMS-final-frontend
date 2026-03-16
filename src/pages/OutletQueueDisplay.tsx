@@ -239,19 +239,31 @@ export default function OutletQueueDisplay() {
   // Voice Announcement Logic
   const playChime = () => {
     return new Promise((resolve) => {
+      let resolved = false
+      const done = (val?: any) => {
+        if (!resolved) {
+          resolved = true
+          clearTimeout(timeoutId)
+          resolve(val)
+        }
+      }
+      const timeoutId = setTimeout(done, 10000) // 10 seconds max
+
       const audio = new Audio("/announcement.mp3")
+      // @ts-ignore - Prevent GC
+      window.__activeChime = audio
       audio.volume = 0.8
-      audio.onended = resolve
+      audio.onended = done
       audio.onerror = (err) => {
         console.error("Failed to play custom announcement chime:", err)
-        resolve(null)
+        done()
       }
       audio.play().catch(err => {
         console.error("[Voice] Audio playback blocked:", err)
         if (err.name === 'NotAllowedError') {
           setAudioUnlocked(false)
         }
-        resolve(null)
+        done()
       })
     })
   }
@@ -285,10 +297,22 @@ export default function OutletQueueDisplay() {
     try {
       const ttsUrl = `${API_URL}/tts/speak?text=${encodeURIComponent(text)}&lang=${lang}`
       const audio = new Audio(ttsUrl)
+      // @ts-ignore - Prevent GC
+      window.__activeSpeech = audio
       return new Promise((resolve) => {
-        audio.onended = resolve
-        audio.onerror = resolve
-        audio.play().catch(resolve)
+        let resolved = false
+        const done = () => {
+          if (!resolved) {
+            resolved = true
+            clearTimeout(timeoutId)
+            resolve(null)
+          }
+        }
+        const timeoutId = setTimeout(done, 15000) // 15 seconds max
+
+        audio.onended = done
+        audio.onerror = done
+        audio.play().catch(done)
       })
     } catch (err) {
       console.error("TTS failed", err)
