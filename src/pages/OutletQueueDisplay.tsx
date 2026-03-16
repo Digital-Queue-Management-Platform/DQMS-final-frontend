@@ -83,6 +83,7 @@ export default function OutletQueueDisplay() {
   const [showService, setShowService] = useState(() => toBool(query.get("services"), true))
   const [showCounters, setShowCounters] = useState(() => toBool(query.get("counters"), true))
   const [showRecent, setShowRecent] = useState(() => toBool(query.get("recent"), true))
+  const [autoSlide, setAutoSlide] = useState(() => toBool(query.get("autoSlide"), true))
 
   const [queue, setQueue] = useState<QueuePayload | null>(null)
   const [counters, setCounters] = useState<CounterRow[]>([])
@@ -115,6 +116,7 @@ export default function OutletQueueDisplay() {
         if (s.services !== undefined) setShowService(!!s.services)
         if (s.counters !== undefined) setShowCounters(!!s.counters)
         if (s.recent !== undefined) setShowRecent(!!s.recent)
+        if (s.autoSlide !== undefined) setAutoSlide(!!s.autoSlide)
       }
 
       if (queueData.outletMeta) {
@@ -194,6 +196,7 @@ export default function OutletQueueDisplay() {
     return (queue?.waiting || []).slice(0, nextLimit)
   }, [queue, nextLimit])
 
+  const { trackRef: servingTrackRef, duration: servingDuration } = useUniformMarqueeSpeed([servingByCounter.length, showService])
   const { trackRef: upNextTrackRef, duration: upNextDuration } = useUniformMarqueeSpeed([upNext.length, showService])
   const { trackRef: recentTrackRef, duration: recentDuration } = useUniformMarqueeSpeed([recentCalled.length])
   const { trackRef: counterTrackRef, duration: counterDuration } = useUniformMarqueeSpeed([counters.length])
@@ -276,32 +279,50 @@ export default function OutletQueueDisplay() {
               <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-900">Now Serving</h2>
             </div>
 
-            {servingByCounter.length === 0 && (
+            {servingByCounter.length === 0 ? (
               <div className="rounded-2xl bg-slate-50 border border-slate-200 p-6 text-slate-600">
                 No token is currently in service.
               </div>
-            )}
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
-              {servingByCounter.map((token) => (
-                <div key={token.id} className="rounded-2xl p-3 bg-emerald-50 border border-emerald-200">
-                  <div className="flex items-center justify-between mb-1.5">
-                    <p className="text-sm text-slate-600">Counter</p>
-                    <p className="text-lg font-bold text-slate-900">{token.counterNumber ? `#${token.counterNumber}` : "Assigned"}</p>
-                  </div>
-                  <p className="text-[clamp(1.9rem,7vw,2.25rem)] font-black tracking-wider text-slate-900 leading-none">{String(token.tokenNumber).padStart(3, "0")}</p>
-                  {showService && token.serviceTypes?.length ? (
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      {token.serviceTypes.slice(0, 2).map((serviceCode) => (
-                        <span key={`${token.id}-${serviceCode}`} className="text-xs rounded-full px-2 py-1 bg-white text-emerald-700 border border-emerald-200">
-                          <ServiceName serviceType={serviceCode} />
-                        </span>
-                      ))}
+            ) : (
+              <div className={`relative w-full ${!autoSlide ? 'overflow-x-auto custom-scrollbar' : 'overflow-hidden'}`}>
+                <div 
+                  ref={servingTrackRef}
+                  className={`flex gap-3 sm:gap-4 py-2 ${autoSlide ? 'animate-marquee' : 'w-max'}`}
+                  style={autoSlide ? { animationDuration: `${servingDuration}s` } : {}}
+                >
+                  {(autoSlide 
+                    ? (servingByCounter.length < 4 
+                        ? [...servingByCounter, { id: 'spacer', isSpacer: true }, ...servingByCounter, { id: 'spacer-2', isSpacer: true }] 
+                        : [...servingByCounter, ...servingByCounter])
+                    : servingByCounter
+                  ).map((token: any, idx) => token.isSpacer ? (
+                    <div key={`spacer-${idx}`} className="flex-shrink-0 w-[50vw]" />
+                  ) : (
+                    <div 
+                      key={`${token.id}-${idx}`} 
+                      className="flex-shrink-0 w-[min(82vw,320px)] sm:w-80 rounded-2xl p-4 bg-emerald-50 border border-emerald-200"
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <p className="text-sm font-bold text-emerald-700">Counter</p>
+                        <p className="text-xl font-black text-slate-900">{token.counterNumber ? `#${token.counterNumber}` : "Serving"}</p>
+                      </div>
+                      <p className="text-[clamp(2.5rem,8vw,3.5rem)] font-black tracking-wider text-slate-900 leading-none">
+                        {String(token.tokenNumber).padStart(3, "0")}
+                      </p>
+                      {showService && token.serviceTypes?.length ? (
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          {token.serviceTypes.slice(0, 2).map((serviceCode: any) => (
+                            <span key={`${token.id}-${idx}-${serviceCode}`} className="text-xs font-bold rounded-full px-2.5 py-1 bg-white text-emerald-700 border border-emerald-200 shadow-sm">
+                              <ServiceName serviceType={serviceCode} />
+                            </span>
+                          ))}
+                        </div>
+                      ) : null}
                     </div>
-                  ) : null}
+                  ))}
                 </div>
-              ))}
-            </div>
+              </div>
+            )}
           </section>
 
           <section className="rounded-3xl border border-slate-200 bg-white shadow-sm p-4 sm:p-5 min-w-0">
@@ -313,16 +334,17 @@ export default function OutletQueueDisplay() {
             {upNext.length === 0 && <p className="text-slate-600 font-medium">No waiting tokens right now.</p>}
 
             {upNext.length > 0 && (
-              <div className="relative w-full overflow-hidden">
+              <div className={`relative w-full ${!autoSlide ? 'overflow-x-auto custom-scrollbar' : 'overflow-hidden'}`}>
                 <div 
                   ref={upNextTrackRef} 
-                  className="flex gap-3 whitespace-nowrap py-2 animate-marquee" 
-                  style={{ animationDuration: `${upNextDuration}s` }}
+                  className={`flex gap-3 whitespace-nowrap py-2 ${autoSlide ? 'animate-marquee' : 'w-max'}`}
+                  style={autoSlide ? { animationDuration: `${upNextDuration}s` } : {}}
                 >
-                  {/* If items are few, add a large spacer to avoid seeing duplicates simultaneously */}
-                  {(upNext.length < 6 
-                    ? [...upNext, { id: 'spacer', isSpacer: true }, ...upNext, { id: 'spacer-2', isSpacer: true }] 
-                    : [...upNext, ...upNext]
+                  {(autoSlide 
+                    ? (upNext.length < 6 
+                        ? [...upNext, { id: 'spacer', isSpacer: true }, ...upNext, { id: 'spacer-2', isSpacer: true }] 
+                        : [...upNext, ...upNext])
+                    : upNext
                   ).map((token: any, idx) => token.isSpacer ? (
                     <div key={`spacer-${idx}`} className="flex-shrink-0 w-[50vw]" />
                   ) : (
@@ -331,7 +353,7 @@ export default function OutletQueueDisplay() {
                       className="flex-shrink-0 w-[min(72vw,240px)] sm:min-w-[220px] rounded-xl px-3 py-3 bg-slate-50 border border-slate-200 flex items-center justify-between"
                     >
                       <div>
-                        <p className="text-sm font-bold text-slate-600">Queue #{(idx % upNext.length) + 1}</p>
+                        <p className="text-sm font-bold text-slate-600">Queue #{upNext.findIndex(t => t.id === token.id) + 1}</p>
                         <p className="text-[clamp(1.5rem,6vw,1.8rem)] font-black tracking-wider text-slate-900 leading-none">{String(token.tokenNumber).padStart(3, "0")}</p>
                       </div>
                       {showService && token.serviceTypes?.[0] && (
@@ -366,15 +388,17 @@ export default function OutletQueueDisplay() {
                   <p className="text-slate-600 font-medium">No recent calls yet.</p>
                 </div>
               ) : (
-                <div className="relative w-full overflow-hidden">
+                <div className={`relative w-full ${!autoSlide ? 'overflow-x-auto custom-scrollbar' : 'overflow-hidden'}`}>
                   <div 
                     ref={recentTrackRef} 
-                    className="flex gap-4 whitespace-nowrap py-2 animate-marquee" 
-                    style={{ animationDuration: `${recentDuration}s` }}
+                    className={`flex gap-4 whitespace-nowrap py-2 ${autoSlide ? 'animate-marquee' : 'w-max'}`}
+                    style={autoSlide ? { animationDuration: `${recentDuration}s` } : {}}
                   >
-                    {(recentCalled.length < 6 
-                      ? [...recentCalled, { id: 'spacer', isSpacer: true }, ...recentCalled, { id: 'spacer-2', isSpacer: true }] 
-                      : [...recentCalled, ...recentCalled]
+                    {(autoSlide 
+                      ? (recentCalled.length < 6 
+                          ? [...recentCalled, { id: 'spacer', isSpacer: true }, ...recentCalled, { id: 'spacer-2', isSpacer: true }] 
+                          : [...recentCalled, ...recentCalled])
+                      : recentCalled
                     ).map((item: any, idx) => item.isSpacer ? (
                       <div key={`spacer-${idx}`} className="flex-shrink-0 w-[50vw]" />
                     ) : (
@@ -410,18 +434,20 @@ export default function OutletQueueDisplay() {
                 <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-900">Counter Status</h2>
               </div>
 
-              <div className="relative w-full overflow-hidden">
+              <div className={`relative w-full ${!autoSlide ? 'overflow-x-auto custom-scrollbar' : 'overflow-hidden'}`}>
                 <div 
                   ref={counterTrackRef} 
-                  className="flex gap-4 whitespace-nowrap py-2 animate-marquee" 
-                  style={{ animationDuration: `${counterDuration}s` }}
+                  className={`flex gap-4 whitespace-nowrap py-2 ${autoSlide ? 'animate-marquee' : 'w-max'}`}
+                  style={autoSlide ? { animationDuration: `${counterDuration}s` } : {}}
                 >
                   {/* Filter and double the counters for seamless looping, using spacers for short lists */}
                   {(() => {
                     const activeCounters = counters.filter((c) => c.number !== null);
-                    const itemsToDisplay = (activeCounters.length > 0 && activeCounters.length < 6)
-                      ? [...activeCounters, { id: 'spacer', isSpacer: true }, ...activeCounters, { id: 'spacer-2', isSpacer: true }]
-                      : [...activeCounters, ...activeCounters];
+                    const itemsToDisplay = autoSlide 
+                      ? (activeCounters.length > 0 && activeCounters.length < 6)
+                        ? [...activeCounters, { id: 'spacer', isSpacer: true }, ...activeCounters, { id: 'spacer-2', isSpacer: true }]
+                        : [...activeCounters, ...activeCounters]
+                      : activeCounters;
 
                     return itemsToDisplay.map((counter: any, idx) => {
                       if (counter.isSpacer) return <div key={`spacer-${idx}`} className="flex-shrink-0 w-[50vw]" />;
@@ -525,14 +551,19 @@ export default function OutletQueueDisplay() {
           animation-play-state: paused;
         }
         .custom-scrollbar::-webkit-scrollbar {
-          width: 4px;
+          height: 6px;
+          width: 6px;
         }
         .custom-scrollbar::-webkit-scrollbar-track {
-          background: transparent;
+          background: rgba(0,0,0,0.05);
+          border-radius: 10px;
         }
         .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: #e2e8f0;
+          background: rgba(0,0,0,0.2);
           border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: rgba(0,0,0,0.3);
         }
       `}</style>
     </div >

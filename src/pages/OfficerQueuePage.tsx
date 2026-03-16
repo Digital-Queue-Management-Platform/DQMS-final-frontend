@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
@@ -108,7 +108,12 @@ export default function OfficerQueuePage() {
 
           if (data.type === "OFFICER_UPDATED" && data.data.officerId === me.id) {
             console.log('Officer updated, updating local state:', data.data)
-            setOfficer(prev => prev ? { ...prev, counterNumber: data.data.counterNumber } : prev)
+            setOfficer(prev => prev ? { ...prev, ...data.data } : prev)
+          }
+
+          if (data.type === "OFFICER_STATUS_CHANGE" && data.data.officerId === me.id) {
+            console.log('Officer status changed via WS:', data.data.status)
+            setOfficer(prev => prev ? { ...prev, status: data.data.status } : prev)
           }
         } catch (error) {
           console.error('Error parsing WebSocket message:', error)
@@ -319,6 +324,7 @@ export default function OfficerQueuePage() {
         setTransferNotes("")
 
         setCurrentToken(null)
+        setOfficer(prev => prev ? { ...prev, status: 'available' } : prev)
         setAccountRef("")
         fetchQueue(officer.outletId, officer.id)
         alert(`Customer successfully transferred to ${targetOfficer.name}!`)
@@ -354,6 +360,7 @@ export default function OfficerQueuePage() {
     })
 
     if (response.data.token) {
+      setOfficer(prev => prev ? { ...prev, status: 'serving' } : prev)
       setCurrentToken(response.data.token)
       setBillInfo(null)
       setAccountRef("")
@@ -416,6 +423,7 @@ export default function OfficerQueuePage() {
     try {
       // First complete the service to get reference number
       await api.post('/officer/complete-service', { tokenId: currentToken.id, officerId: officer.id, accountRef })
+      setOfficer(prev => prev ? { ...prev, status: 'available' } : prev)
       setCurrentToken(null)
       setBillInfo(null)
       setAccountRef("")
@@ -435,6 +443,7 @@ export default function OfficerQueuePage() {
     setLoading(true)
     try {
       await api.post('/officer/skip-token', { officerId: officer.id, tokenId: targetTokenId })
+      setOfficer(prev => prev ? { ...prev, status: 'available' } : prev)
       if (!tokenId) {
         setCurrentToken(null)
         setBillInfo(null)

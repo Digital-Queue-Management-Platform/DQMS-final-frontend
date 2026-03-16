@@ -106,6 +106,8 @@ export default function OfficerDashboard() {
             fetchFeedback(officerData.id)
           } else if (data.type === 'BREAK_STATUS_CHANGE') {
             fetchBreaks(officerData.id)
+          } else if (data.type === 'OFFICER_STATUS_CHANGE' && data.data.officerId === officerData.id) {
+            setOfficer(prev => prev ? { ...prev, status: data.data.status } : prev)
           }
         } catch (error) {
           console.error('WebSocket message parsing error:', error)
