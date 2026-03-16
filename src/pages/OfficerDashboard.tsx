@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
@@ -51,97 +51,105 @@ export default function OfficerDashboard() {
   // confirm handled inside OfficerTopBar
 
   useEffect(() => {
-    // Fetch authoritative officer from server
     let mounted = true
-    api
-      .get("/officer/me")
-      .then((res) => {
+    let interval: any = null
+
+    const initDashboard = async () => {
+      try {
+        setDashboardLoading(true)
+        const res = await api.get("/officer/dashboard-combined")
         if (!mounted) return
-        const officerData = res.data.officer
+        
+        const data = res.data
+        const officerData = data.officer
+        
         setOfficer(officerData)
+        setStats(data.stats)
+        setQueue(data.queue)
+        setServedSummary(data.servedSummary)
+        setBreaksSummary(data.breaksSummary)
+        setFeedbackSummary(data.feedbackSummary)
 
-        // Update localStorage with complete officer data for sidebar
+        // Update localStorage for sidebar consistency
         localStorage.setItem('dq_user', JSON.stringify(officerData))
-
-        fetchStats(officerData.id)
-        fetchQueue(officerData.outletId)
-        fetchServed(officerData.id)
-        fetchBreaks(officerData.id)
-        fetchFeedback(officerData.id)
+        setLastUpdated(new Date())
 
         // Auto-refresh every 30 seconds for officer performance monitoring
-        const interval = setInterval(() => {
-          fetchStats(officerData.id)
-          fetchQueue(officerData.outletId)
-          fetchServed(officerData.id)
-          fetchBreaks(officerData.id)
-          fetchFeedback(officerData.id)
+        interval = setInterval(() => {
+          fetchCombinedDashboard()
         }, 30000)
 
-        // Handle window closing/refreshing - send logout when window closes
-        const handleBeforeUnload = () => {
-          // Send a synchronous logout request when window is closing
-          const token = localStorage.getItem("dqToken")
-          if (token) {
-            navigator.sendBeacon('/api/officer/logout', JSON.stringify({}))
-          }
-        }
-
-        window.addEventListener('beforeunload', handleBeforeUnload)
-
         // WebSocket for real-time updates
-        const ws = new WebSocket(WS_URL)
-        ws.onmessage = (event) => {
-          try {
-            const data = JSON.parse(event.data)
-            // Only re-fetch what actually changed — avoids firing 5 API calls for a simple queue update
-            if (data.type === "NEW_TOKEN" || data.type === 'TOKEN_CALLED' || data.type === 'TOKEN_RECALLED' || data.type === 'TOKEN_SKIPPED') {
-              fetchQueue(officerData.outletId)
-            } else if (data.type === "TOKEN_COMPLETED") {
-              fetchQueue(officerData.outletId)
-              fetchStats(officerData.id)
-              fetchServed(officerData.id)
-            } else if (data.type === 'FEEDBACK_SUBMITTED') {
-              fetchStats(officerData.id)
-              fetchFeedback(officerData.id)
-            } else if (data.type === 'BREAK_STATUS_CHANGE') {
-              fetchBreaks(officerData.id)
-            }
-          } catch (error) {
-            console.error('WebSocket message parsing error:', error)
-          }
-        }
-
-        ws.onopen = () => {
-          console.log('OfficerDashboard WebSocket connected')
-        }
-
-        ws.onerror = (error) => {
-          console.error('OfficerDashboard WebSocket error:', error)
-        }
-
-          ; (window as any).__dq_ws = ws
-
-        return () => {
-          clearInterval(interval)
-          window.removeEventListener('beforeunload', handleBeforeUnload)
-          try {
-            ws.close()
-          } catch (error) {
-            console.error('Error closing WebSocket:', error)
-          }
-        }
-      })
-      .catch(() => {
+        setupWebSocket(officerData)
+      } catch (err) {
+        console.error("Dashboard initialization failed:", err)
         navigate("/officer/login")
-      })
+      } finally {
+        if (mounted) setDashboardLoading(false)
+      }
+    }
+
+    const setupWebSocket = (officerData: any) => {
+      const ws = new WebSocket(WS_URL)
+      ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data)
+          // Targeted re-fetching based on event type
+          if (["NEW_TOKEN", "TOKEN_CALLED", "TOKEN_RECALLED", "TOKEN_SKIPPED"].includes(data.type)) {
+            fetchQueue(officerData.outletId)
+          } else if (data.type === "TOKEN_COMPLETED") {
+            fetchQueue(officerData.outletId)
+            fetchStats(officerData.id)
+            fetchServed(officerData.id)
+          } else if (data.type === 'FEEDBACK_SUBMITTED') {
+            fetchStats(officerData.id)
+            fetchFeedback(officerData.id)
+          } else if (data.type === 'BREAK_STATUS_CHANGE') {
+            fetchBreaks(officerData.id)
+          }
+        } catch (error) {
+          console.error('WebSocket message parsing error:', error)
+        }
+      }
+
+      ws.onopen = () => console.log('OfficerDashboard WebSocket connected')
+      ws.onerror = (error) => console.error('OfficerDashboard WebSocket error:', error)
+      ;(window as any).__dq_ws = ws
+    }
+
+    initDashboard()
+
+    // Handle window closing/refreshing
+    const handleBeforeUnload = () => {
+      if (localStorage.getItem("dqToken")) {
+        navigator.sendBeacon('/api/officer/logout', JSON.stringify({}))
+      }
+    }
+    window.addEventListener('beforeunload', handleBeforeUnload)
 
     return () => {
       mounted = false
+      if (interval) clearInterval(interval)
+      window.removeEventListener('beforeunload', handleBeforeUnload)
       const ws = (window as any).__dq_ws
       if (ws) ws.close()
     }
   }, [navigate])
+
+  const fetchCombinedDashboard = async () => {
+    try {
+      const res = await api.get("/officer/dashboard-combined")
+      const data = res.data
+      setStats(data.stats)
+      setQueue(data.queue)
+      setServedSummary(data.servedSummary)
+      setBreaksSummary(data.breaksSummary)
+      setFeedbackSummary(data.feedbackSummary)
+      setLastUpdated(new Date())
+    } catch (err) {
+      console.error("Failed to refresh combined dashboard:", err)
+    }
+  }
 
   // Update time every second
   useEffect(() => {
@@ -167,7 +175,6 @@ export default function OfficerDashboard() {
 
   const fetchStats = async (officerId: string) => {
     try {
-      setDashboardLoading(true)
       const response = await api.get(`/officer/stats/${officerId}`)
       setStats({
         tokensHandled: response.data.tokensHandled,
@@ -176,8 +183,6 @@ export default function OfficerDashboard() {
       setLastUpdated(new Date())
     } catch (err) {
       console.error("Failed to fetch stats:", err)
-    } finally {
-      setDashboardLoading(false)
     }
   }
 
