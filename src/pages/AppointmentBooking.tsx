@@ -34,10 +34,13 @@ export default function AppointmentBooking() {
   const [selectedService, setSelectedService] = useState<string>('')
   const [datetime, setDatetime] = useState("") // yyyy-MM-ddTHH:mm
 
-  // Get minimum date/time - at least 24 hours in advance
+  const [advanceApptRequired, setAdvanceApptRequired] = useState(true)
+
+  // Get minimum date/time
   const getMinDateTime = () => {
     const now = new Date()
-    const minTime = new Date(now.getTime() + 24 * 60 * 60 * 1000) // Add 24 hours
+    // Add 24 hours if advanced appointment is required, else just a small 5 min buffer
+    const minTime = new Date(now.getTime() + (advanceApptRequired ? 24 * 60 * 60 * 1000 : 5 * 60 * 1000))
     const year = minTime.getFullYear()
     const month = String(minTime.getMonth() + 1).padStart(2, '0')
     const day = String(minTime.getDate()).padStart(2, '0')
@@ -46,13 +49,13 @@ export default function AppointmentBooking() {
     return `${year}-${month}-${day}T${hours}:${minutes}`
   }
 
-  // Validate that appointment is at least 24 hours away
+  // Validate appointment time
   const isValidAppointmentTime = (datetimeStr: string) => {
     if (!datetimeStr) return true
     const selectedTime = new Date(datetimeStr)
     const now = new Date()
     const hoursUntil = (selectedTime.getTime() - now.getTime()) / (1000 * 60 * 60)
-    return hoursUntil >= 24
+    return advanceApptRequired ? hoursUntil >= 24 : hoursUntil >= 0
   }
 
   // UI language tabs (English/Sinhala/Tamil), independent from preferredLanguage used for announcements
@@ -105,7 +108,18 @@ export default function AppointmentBooking() {
   useEffect(() => {
     fetchOutlets()
     fetchServices()
+    fetchAdvanceApptSetting()
   }, [])
+
+  const fetchAdvanceApptSetting = async () => {
+    try {
+      const res = await api.get('/queue/settings/advance-appointment')
+      setAdvanceApptRequired(res.data?.enabled !== false)
+    } catch (e) {
+      console.error('Failed to load advance appointment setting:', e)
+      setAdvanceApptRequired(true)
+    }
+  }
 
   // Auto-advance from step 3 when mobile number is complete
   useEffect(() => {
@@ -583,9 +597,9 @@ export default function AppointmentBooking() {
         return
       }
 
-      // Final validation: verify 24-hour requirement (backend will also check)
+      // Final validation: verify time requirement (backend will also check)
       if (!isValidAppointmentTime(datetime)) {
-        setError(t.minBookingTime)
+        setError(advanceApptRequired ? t.minBookingTime : "Appointments cannot be booked in the past.")
         return
       }
 
