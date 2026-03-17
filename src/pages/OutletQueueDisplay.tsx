@@ -198,11 +198,11 @@ export default function OutletQueueDisplay() {
         const data = msg?.data
         if (!data || !outletId) return
 
-        if (["NEW_TOKEN", "TOKEN_COMPLETED", "TOKEN_UPDATED", "TOKEN_CANCELLED", "TOKEN_PRIORITY_UPDATED", "OFFICER_STATUS_CHANGE", "OFFICER_UPDATED"].includes(type)) {
+        if (["NEW_TOKEN", "TOKEN_COMPLETED", "TOKEN_UPDATED", "TOKEN_CANCELLED", "TOKEN_PRIORITY_UPDATED", "OFFICER_STATUS_CHANGE", "OFFICER_UPDATED", "TOKEN_SKIPPED"].includes(type)) {
           if (!data.outletId || data.outletId === outletId) fetchAll()
         }
 
-        if (type === "TOKEN_CALLED" || type === "TOKEN_SKIPPED" || type === "TOKEN_RECALLED") {
+        if (type === "TOKEN_CALLED" || type === "TOKEN_RECALLED") {
           console.log(`[WebSocket] ${type} event received for token:`, data.tokenNumber)
           if (!data.outletId || data.outletId === outletId) {
             fetchAll()
@@ -288,10 +288,6 @@ export default function OutletQueueDisplay() {
       if (lang === 'si') text = `${firstName}. ටෝකන් අංක ${num} නැවත කැඳවනු ලැබේ. කරුණාකර වහාම කවුන්ටරය ${counter} වෙත පැමිණෙන්න.`
       else if (lang === 'ta') text = `${firstName}. அடையாள எண் ${num} மீண்டும் அழைக்கப்படுகிறது. உடனடியாக கவுண்டர் ${counter} க்கு வரவும்.`
       else text = `${firstName}. Token number ${num} is being recalled. Please proceed to counter number ${counter} immediately.`
-    } else if (eventType === 'TOKEN_SKIPPED') {
-      if (lang === 'si') text = `${firstName}. ටෝකන් අංක ${num} මග හැරී ඇත.`
-      else if (lang === 'ta') text = `${firstName}. அடையாள எண் ${num} தவிர்க்கப்பட்டது.`
-      else text = `${firstName}. Token number ${num} has been skipped.`
     }
 
     try {
