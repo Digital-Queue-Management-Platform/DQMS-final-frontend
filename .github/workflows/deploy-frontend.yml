@@ -1,4 +1,4 @@
-name: Deploy Frontend to SLT VM
+name: Build Frontend on SLT VM
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  deploy:
+  build:
     runs-on: [self-hosted, Windows, X64, frontend]
 
     steps:
@@ -34,14 +34,3 @@ jobs:
         run: |
           cd /d C:\DQMS-final-frontend
           npm run build
-
-      - name: Clean deployed frontend
-        shell: cmd
-        run: |
-          if exist C:\nginx\html\dqms\assets rmdir /S /Q C:\nginx\html\dqms\assets
-          if exist C:\nginx\html\dqms\index.html del /Q C:\nginx\html\dqms\index.html
-
-      - name: Copy build to nginx
-        shell: cmd
-        run: |
-          xcopy /E /I /Y C:\DQMS-final-frontend\dist\* C:\nginx\html\dqms\
