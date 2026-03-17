@@ -45,10 +45,3 @@ jobs:
         shell: cmd
         run: |
           xcopy /E /I /Y C:\DQMS-final-frontend\dist\* C:\nginx\html\dqms\
-
-      - name: Reload nginx
-        shell: cmd
-        run: |
-          cd /d C:\nginx
-          nginx.exe -t
-          nginx.exe -s reload
