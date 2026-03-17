@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import api from '../../config/api'
 import { Plus, Edit2, Trash2, Save, X, Package, Search } from 'lucide-react'
 
@@ -16,6 +16,8 @@ const ServicesPage: React.FC = () => {
   const [services, setServices] = useState<Service[]>([])
   const [priorityFeatureEnabled, setPriorityFeatureEnabled] = useState(true)
   const [priorityFeatureLoading, setPriorityFeatureLoading] = useState(false)
+  const [advanceApptEnabled, setAdvanceApptEnabled] = useState(true)
+  const [advanceApptLoading, setAdvanceApptLoading] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [searchTerm, setSearchTerm] = useState('')
@@ -32,8 +34,19 @@ const ServicesPage: React.FC = () => {
 
   useEffect(() => {
     fetchPriorityFeatureSetting()
+    fetchAdvanceApptSetting()
     fetchServices()
   }, [])
+
+  const fetchAdvanceApptSetting = async () => {
+    try {
+      const res = await api.get('/queue/settings/advance-appointment')
+      setAdvanceApptEnabled(res.data?.enabled !== false)
+    } catch (err) {
+      console.error(err)
+      setAdvanceApptEnabled(true)
+    }
+  }
 
   const fetchPriorityFeatureSetting = async () => {
     try {
@@ -130,6 +143,20 @@ const ServicesPage: React.FC = () => {
     }
   }
 
+  const handleAdvanceApptToggle = async (enabled: boolean) => {
+    setAdvanceApptLoading(true)
+    setError('')
+    try {
+      const res = await api.patch('/queue/settings/advance-appointment', { enabled })
+      setAdvanceApptEnabled(res.data?.enabled === true)
+    } catch (err: any) {
+      console.error(err)
+      setError(err?.response?.data?.error || 'Failed to update advance appointment setting')
+    } finally {
+      setAdvanceApptLoading(false)
+    }
+  }
+
   const resetForm = () => {
     setCode('')
     setTitle('')
@@ -185,15 +212,15 @@ const ServicesPage: React.FC = () => {
           <p className="text-gray-600 text-sm sm:hidden">Manage your service offerings</p>
         </div>
 
-        <div className="mb-4 sm:mb-6 bg-white rounded-2xl shadow-sm border border-slate-100 p-4 sm:p-6">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 mb-4 sm:mb-6">
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 sm:p-6 flex flex-col justify-between">
             <div>
               <h2 className="text-lg font-semibold text-gray-900">New Service Priority Feature</h2>
-              <p className="text-sm text-gray-600 mt-1">
+              <p className="text-sm text-gray-600 mt-1 mb-4">
                 When enabled, customers who select a service marked as priority are moved ahead in the live queue. When disabled, all customers follow the standard queue order.
               </p>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center justify-between gap-3 mt-auto">
               <span className={`px-3 py-1 rounded-full text-xs font-semibold ${priorityFeatureEnabled ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-600'}`}>
                 {priorityFeatureEnabled ? 'Enabled' : 'Disabled'}
               </span>
@@ -204,6 +231,28 @@ const ServicesPage: React.FC = () => {
                 className={`px-4 py-2 rounded-xl text-sm font-semibold transition-colors disabled:opacity-60 ${priorityFeatureEnabled ? 'bg-gray-900 text-white hover:bg-gray-800' : 'bg-blue-600 text-white hover:bg-blue-700'}`}
               >
                 {priorityFeatureLoading ? 'Saving...' : priorityFeatureEnabled ? 'Disable Feature' : 'Enable Feature'}
+              </button>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 sm:p-6 flex flex-col justify-between">
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">24-Hour Advance Booking Rule</h2>
+              <p className="text-sm text-gray-600 mt-1 mb-4">
+                When enabled, customers must book their appointments at least 24 hours in advance. When disabled, customers can schedule for any future time.
+              </p>
+            </div>
+            <div className="flex items-center justify-between gap-3 mt-auto">
+              <span className={`px-3 py-1 rounded-full text-xs font-semibold ${advanceApptEnabled ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-600'}`}>
+                {advanceApptEnabled ? 'Enabled' : 'Disabled'}
+              </span>
+              <button
+                type="button"
+                onClick={() => handleAdvanceApptToggle(!advanceApptEnabled)}
+                disabled={advanceApptLoading}
+                className={`px-4 py-2 rounded-xl text-sm font-semibold transition-colors disabled:opacity-60 ${advanceApptEnabled ? 'bg-gray-900 text-white hover:bg-gray-800' : 'bg-blue-600 text-white hover:bg-blue-700'}`}
+              >
+                {advanceApptLoading ? 'Saving...' : advanceApptEnabled ? 'Disable Rule' : 'Enable Rule'}
               </button>
             </div>
           </div>

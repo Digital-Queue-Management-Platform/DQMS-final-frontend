@@ -1,4 +1,4 @@
-﻿// Removed unused billData state
+// Removed unused billData state
 "use client"
 
 import { useEffect, useState, useRef } from "react"
@@ -34,10 +34,13 @@ export default function AppointmentBooking() {
   const [selectedService, setSelectedService] = useState<string>('')
   const [datetime, setDatetime] = useState("") // yyyy-MM-ddTHH:mm
 
-  // Get minimum date/time - at least 24 hours in advance
+  const [advanceApptRequired, setAdvanceApptRequired] = useState(true)
+
+  // Get minimum date/time
   const getMinDateTime = () => {
     const now = new Date()
-    const minTime = new Date(now.getTime() + 24 * 60 * 60 * 1000) // Add 24 hours
+    // Add 24 hours if advanced appointment is required, else just a small 5 min buffer
+    const minTime = new Date(now.getTime() + (advanceApptRequired ? 24 * 60 * 60 * 1000 : 5 * 60 * 1000))
     const year = minTime.getFullYear()
     const month = String(minTime.getMonth() + 1).padStart(2, '0')
     const day = String(minTime.getDate()).padStart(2, '0')
@@ -46,13 +49,13 @@ export default function AppointmentBooking() {
     return `${year}-${month}-${day}T${hours}:${minutes}`
   }
 
-  // Validate that appointment is at least 24 hours away
+  // Validate appointment time
   const isValidAppointmentTime = (datetimeStr: string) => {
     if (!datetimeStr) return true
     const selectedTime = new Date(datetimeStr)
     const now = new Date()
     const hoursUntil = (selectedTime.getTime() - now.getTime()) / (1000 * 60 * 60)
-    return hoursUntil >= 24
+    return advanceApptRequired ? hoursUntil >= 24 : hoursUntil >= 0
   }
 
   // UI language tabs (English/Sinhala/Tamil), independent from preferredLanguage used for announcements
@@ -105,7 +108,18 @@ export default function AppointmentBooking() {
   useEffect(() => {
     fetchOutlets()
     fetchServices()
+    fetchAdvanceApptSetting()
   }, [])
+
+  const fetchAdvanceApptSetting = async () => {
+    try {
+      const res = await api.get('/queue/settings/advance-appointment')
+      setAdvanceApptRequired(res.data?.enabled !== false)
+    } catch (e) {
+      console.error('Failed to load advance appointment setting:', e)
+      setAdvanceApptRequired(true)
+    }
+  }
 
   // Auto-advance from step 3 when mobile number is complete
   useEffect(() => {
@@ -138,6 +152,37 @@ export default function AppointmentBooking() {
       }
     }
   }, [shouldAutoSubmit, otpStep, otpToken])
+
+  // Interactive validation for closure checks
+  useEffect(() => {
+    if (currentStep !== 3 || !datetime || !outletId || !isValidAppointmentTime(datetime)) {
+      setClosedOnDateError(null)
+      return
+    }
+
+    let isMounted = true
+    const validateDate = async () => {
+      setCheckingDate(true)
+      setClosedOnDateError(null)
+      try {
+        const dt = new Date(datetime)
+        const res = await api.get(`/branch-status/${outletId}`, { params: { at: dt.toISOString() } })
+        if (isMounted && res.data?.isClosed) {
+          setClosedOnDateError(res.data.reason || "The branch is closed on the selected date/time.")
+        }
+      } catch {
+        if (isMounted) console.warn('Branch status check failed; allowing step proceed')
+      } finally {
+        if (isMounted) setCheckingDate(false)
+      }
+    }
+
+    const timer = setTimeout(validateDate, 600)
+    return () => {
+      isMounted = false
+      clearTimeout(timer)
+    }
+  }, [datetime, outletId, currentStep])
 
   // Auto-submit for bill payment once intent + method (+ amount if partial) are all set
   useEffect(() => {
@@ -484,7 +529,8 @@ export default function AppointmentBooking() {
         const bill = response.data.bill
 
         // Check if mobile number is registered with SLT account
-        if (!bill.mobileNumber) {
+        // If the API returned success, it means SLT system triggered an SMS, even if we couldn't parse the number
+        if (!bill.mobileNumber && !response.data.smsNotification?.maskedMobile) {
           const hotline = import.meta.env.VITE_SLT_HOTLINE || "1213"
           setError(`This SLT account does not have a registered mobile number. Please contact the SLT hotline at ${hotline} to register your mobile number before proceeding.`)
           setSltVerified(false)
@@ -582,9 +628,9 @@ export default function AppointmentBooking() {
         return
       }
 
-      // Final validation: verify 24-hour requirement (backend will also check)
+      // Final validation: verify time requirement (backend will also check)
       if (!isValidAppointmentTime(datetime)) {
-        setError(t.minBookingTime)
+        setError(advanceApptRequired ? t.minBookingTime : "Appointments cannot be booked in the past.")
         return
       }
 
@@ -663,7 +709,7 @@ export default function AppointmentBooking() {
   const canProceedFromStep1 = preferredLanguage !== ''
   const canProceedFromStep2 = selectedService !== ''
   const canProceedFromStep3 = () => {
-    const hasBasicInfo = outletId && datetime && name.trim().length >= 2 && isValidMobile(mobileNumber) && isValidAppointmentTime(datetime)
+    const hasBasicInfo = outletId && datetime && name.trim().length >= 2 && isValidMobile(mobileNumber) && isValidAppointmentTime(datetime) && !closedOnDateError && !checkingDate
     if (isSltRequiredService(selectedService)) {
       return hasBasicInfo && isValidSlt(sltTelephoneNumber)
     }

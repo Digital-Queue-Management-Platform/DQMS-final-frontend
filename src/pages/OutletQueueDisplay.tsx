@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import logo from "../assets/logo.png"
 import { useParams, useSearchParams } from "react-router-dom"
-import { Clock3, Users, Ticket, Layers, AlertTriangle, Sparkles, CalendarDays, Coffee } from "lucide-react"
-import api, { WS_URL } from "../config/api"
+import { Clock3, Users, Ticket, Layers, AlertTriangle, Sparkles, CalendarDays, Coffee, Volume2, VolumeX } from "lucide-react"
+import api, { WS_URL, API_URL } from "../config/api"
 import type { Token } from "../types"
 import ServiceName from "../components/ServiceName"
 
@@ -83,6 +83,25 @@ export default function OutletQueueDisplay() {
   const [showService, setShowService] = useState(() => toBool(query.get("services"), true))
   const [showCounters, setShowCounters] = useState(() => toBool(query.get("counters"), true))
   const [showRecent, setShowRecent] = useState(() => toBool(query.get("recent"), true))
+  const [autoSlide, setAutoSlide] = useState(() => toBool(query.get("autoSlide"), true))
+  const [playTone, setPlayTone] = useState(() => toBool(query.get("playTone"), true))
+  
+  // Voice Announcement State
+  const [voiceEnabled, setVoiceEnabled] = useState(true)
+  const voiceEnabledRef = useRef(true)
+  
+  useEffect(() => {
+    voiceEnabledRef.current = voiceEnabled
+    console.log("[Voice] Voice mode changed:", voiceEnabled ? "ON" : "OFF")
+  }, [voiceEnabled])
+
+  useEffect(() => {
+    console.log("[Voice] Announcement Tone is now:", playTone ? "ENABLED" : "DISABLED")
+  }, [playTone])
+
+  const [announcementQueue, setAnnouncementQueue] = useState<any[]>([])
+  const [isSpeaking, setIsSpeaking] = useState(false)
+  const [audioUnlocked, setAudioUnlocked] = useState(false)
 
   const [queue, setQueue] = useState<QueuePayload | null>(null)
   const [counters, setCounters] = useState<CounterRow[]>([])
@@ -115,6 +134,11 @@ export default function OutletQueueDisplay() {
         if (s.services !== undefined) setShowService(!!s.services)
         if (s.counters !== undefined) setShowCounters(!!s.counters)
         if (s.recent !== undefined) setShowRecent(!!s.recent)
+        if (s.autoSlide !== undefined) setAutoSlide(!!s.autoSlide)
+        if (s.playTone !== undefined) {
+          const val = (s.playTone === "0" || s.playTone === 0 || s.playTone === false) ? false : true
+          setPlayTone(val)
+        }
       }
 
       if (queueData.outletMeta) {
@@ -174,11 +198,24 @@ export default function OutletQueueDisplay() {
         const data = msg?.data
         if (!data || !outletId) return
 
-        if (["NEW_TOKEN", "TOKEN_COMPLETED", "TOKEN_SKIPPED", "TOKEN_RECALLED", "TOKEN_UPDATED", "TOKEN_CANCELLED", "TOKEN_PRIORITY_UPDATED", "OFFICER_STATUS_CHANGE", "OFFICER_UPDATED", "TOKEN_CALLED"].includes(type)) {
+        if (["NEW_TOKEN", "TOKEN_COMPLETED", "TOKEN_UPDATED", "TOKEN_CANCELLED", "TOKEN_PRIORITY_UPDATED", "OFFICER_STATUS_CHANGE", "OFFICER_UPDATED"].includes(type)) {
           if (!data.outletId || data.outletId === outletId) fetchAll()
         }
-      } catch {
-        // ignore malformed ws message
+
+        if (type === "TOKEN_CALLED" || type === "TOKEN_SKIPPED" || type === "TOKEN_RECALLED") {
+          console.log(`[WebSocket] ${type} event received for token:`, data.tokenNumber)
+          if (!data.outletId || data.outletId === outletId) {
+            fetchAll()
+            if (voiceEnabledRef.current) {
+              console.log("[Voice] Adding to announcement queue:", type)
+              setAnnouncementQueue(prev => [...prev, { ...data, eventType: type }])
+            } else {
+              console.log("[Voice] Skipping announcement because sound is muted. Click the speaker icon to enable.")
+            }
+          }
+        }
+      } catch (err) {
+        console.error("WebSocket message processing error:", err)
       }
     }
 
@@ -194,9 +231,119 @@ export default function OutletQueueDisplay() {
     return (queue?.waiting || []).slice(0, nextLimit)
   }, [queue, nextLimit])
 
+  const { trackRef: servingTrackRef, duration: servingDuration } = useUniformMarqueeSpeed([servingByCounter.length, showService])
   const { trackRef: upNextTrackRef, duration: upNextDuration } = useUniformMarqueeSpeed([upNext.length, showService])
   const { trackRef: recentTrackRef, duration: recentDuration } = useUniformMarqueeSpeed([recentCalled.length])
   const { trackRef: counterTrackRef, duration: counterDuration } = useUniformMarqueeSpeed([counters.length])
+
+  // Voice Announcement Logic
+  const playChime = () => {
+    return new Promise((resolve) => {
+      let resolved = false
+      const done = (val?: any) => {
+        if (!resolved) {
+          resolved = true
+          clearTimeout(timeoutId)
+          resolve(val)
+        }
+      }
+      const timeoutId = setTimeout(done, 10000) // 10 seconds max
+
+      const audio = new Audio("/announcement.mp3")
+      // @ts-ignore - Prevent GC
+      window.__activeChime = audio
+      audio.volume = 0.8
+      audio.onended = done
+      audio.onerror = (err) => {
+        console.error("Failed to play custom announcement chime:", err)
+        done()
+      }
+      audio.play().catch(err => {
+        console.error("[Voice] Audio playback blocked:", err)
+        if (err.name === 'NotAllowedError') {
+          setAudioUnlocked(false)
+        }
+        done()
+      })
+    })
+  }
+
+  const speakSentence = async (tokenData: any) => {
+    const num = String(tokenData.tokenNumber) // No padding for natural speech
+    const counter = tokenData.counterNumber || 'Counter'
+    const eventType = tokenData.eventType || 'TOKEN_CALLED'
+    const lang = (Array.isArray(tokenData.preferredLanguages) && tokenData.preferredLanguages[0]) || 'en'
+    
+    // Get customer name, use first name for a more personal touch
+    const customerName = tokenData.customer?.name || ""
+    const firstName = customerName.split(' ')[0] || ""
+    
+    let text = ""
+    
+    if (eventType === 'TOKEN_CALLED') {
+      if (lang === 'si') text = `${firstName}. ටෝකන් අංක ${num}, කරුණාකර කවුන්ටර අංක ${counter} වෙත පැමිණෙන්න.`
+      else if (lang === 'ta') text = `${firstName}. அடையாள எண் ${num}, தயவுசெய்து கவுண்டர் எண் ${counter} க்கு செல்லவும்.`
+      else text = `${firstName}. Token number ${num}, please proceed to counter number ${counter}.`
+    } else if (eventType === 'TOKEN_RECALLED') {
+      if (lang === 'si') text = `${firstName}. ටෝකන් අංක ${num} නැවත කැඳවනු ලැබේ. කරුණාකර වහාම කවුන්ටරය ${counter} වෙත පැමිණෙන්න.`
+      else if (lang === 'ta') text = `${firstName}. அடையாள எண் ${num} மீண்டும் அழைக்கப்படுகிறது. உடனடியாக கவுண்டர் ${counter} க்கு வரவும்.`
+      else text = `${firstName}. Token number ${num} is being recalled. Please proceed to counter number ${counter} immediately.`
+    } else if (eventType === 'TOKEN_SKIPPED') {
+      if (lang === 'si') text = `${firstName}. ටෝකන් අංක ${num} මග හැරී ඇත.`
+      else if (lang === 'ta') text = `${firstName}. அடையாள எண் ${num} தவிர்க்கப்பட்டது.`
+      else text = `${firstName}. Token number ${num} has been skipped.`
+    }
+
+    try {
+      const ttsUrl = `${API_URL}/tts/speak?text=${encodeURIComponent(text)}&lang=${lang}`
+      const audio = new Audio(ttsUrl)
+      // @ts-ignore - Prevent GC
+      window.__activeSpeech = audio
+      return new Promise((resolve) => {
+        let resolved = false
+        const done = () => {
+          if (!resolved) {
+            resolved = true
+            clearTimeout(timeoutId)
+            resolve(null)
+          }
+        }
+        const timeoutId = setTimeout(done, 15000) // 15 seconds max
+
+        audio.onended = done
+        audio.onerror = done
+        audio.play().catch(done)
+      })
+    } catch (err) {
+      console.error("TTS failed", err)
+    }
+  }
+
+  useEffect(() => {
+    if (voiceEnabled && announcementQueue.length > 0 && !isSpeaking) {
+      const processQueue = async () => {
+        setIsSpeaking(true)
+        const nextToken = announcementQueue[0]
+        console.log("[Voice] Processing announcement for token:", nextToken.tokenNumber)
+        
+        try {
+          if (playTone) {
+            await playChime()
+            await new Promise(r => setTimeout(r, 600)) // Pause after chime
+          }
+          await speakSentence(nextToken)
+        } catch (err) {
+          console.error("[Voice] Announcement failed:", err)
+        } finally {
+          setAnnouncementQueue(prev => prev.slice(1))
+          // Add a small pause between consecutive announcements so they are clear
+          await new Promise(r => setTimeout(r, 1000))
+          setIsSpeaking(false)
+        }
+      }
+      processQueue()
+    }
+  }, [voiceEnabled, announcementQueue, isSpeaking, playTone])
 
   if (loading) {
     return (
@@ -276,32 +423,50 @@ export default function OutletQueueDisplay() {
               <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-900">Now Serving</h2>
             </div>
 
-            {servingByCounter.length === 0 && (
+            {servingByCounter.length === 0 ? (
               <div className="rounded-2xl bg-slate-50 border border-slate-200 p-6 text-slate-600">
                 No token is currently in service.
               </div>
-            )}
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
-              {servingByCounter.map((token) => (
-                <div key={token.id} className="rounded-2xl p-3 bg-emerald-50 border border-emerald-200">
-                  <div className="flex items-center justify-between mb-1.5">
-                    <p className="text-sm text-slate-600">Counter</p>
-                    <p className="text-lg font-bold text-slate-900">{token.counterNumber ? `#${token.counterNumber}` : "Assigned"}</p>
-                  </div>
-                  <p className="text-[clamp(1.9rem,7vw,2.25rem)] font-black tracking-wider text-slate-900 leading-none">{String(token.tokenNumber).padStart(3, "0")}</p>
-                  {showService && token.serviceTypes?.length ? (
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      {token.serviceTypes.slice(0, 2).map((serviceCode) => (
-                        <span key={`${token.id}-${serviceCode}`} className="text-xs rounded-full px-2 py-1 bg-white text-emerald-700 border border-emerald-200">
-                          <ServiceName serviceType={serviceCode} />
-                        </span>
-                      ))}
+            ) : (
+              <div className={`relative w-full ${!autoSlide ? 'overflow-x-auto custom-scrollbar' : 'overflow-hidden'}`}>
+                <div 
+                  ref={servingTrackRef}
+                  className={`flex gap-3 sm:gap-4 py-2 ${autoSlide ? 'animate-marquee' : 'w-max'}`}
+                  style={autoSlide ? { animationDuration: `${servingDuration}s` } : {}}
+                >
+                  {(autoSlide 
+                    ? (servingByCounter.length < 4 
+                        ? [...servingByCounter, { id: 'spacer', isSpacer: true }, ...servingByCounter, { id: 'spacer-2', isSpacer: true }] 
+                        : [...servingByCounter, ...servingByCounter])
+                    : servingByCounter
+                  ).map((token: any, idx) => token.isSpacer ? (
+                    <div key={`spacer-${idx}`} className="flex-shrink-0 w-[50vw]" />
+                  ) : (
+                    <div 
+                      key={`${token.id}-${idx}`} 
+                      className="flex-shrink-0 w-[min(82vw,320px)] sm:w-80 rounded-2xl p-4 bg-emerald-50 border border-emerald-200"
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <p className="text-sm font-bold text-emerald-700">Counter</p>
+                        <p className="text-xl font-black text-slate-900">{token.counterNumber ? `#${token.counterNumber}` : "Serving"}</p>
+                      </div>
+                      <p className="text-[clamp(2.5rem,8vw,3.5rem)] font-black tracking-wider text-slate-900 leading-none">
+                        {String(token.tokenNumber).padStart(3, "0")}
+                      </p>
+                      {showService && token.serviceTypes?.length ? (
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          {token.serviceTypes.slice(0, 2).map((serviceCode: any) => (
+                            <span key={`${token.id}-${idx}-${serviceCode}`} className="text-xs font-bold rounded-full px-2.5 py-1 bg-white text-emerald-700 border border-emerald-200 shadow-sm">
+                              <ServiceName serviceType={serviceCode} />
+                            </span>
+                          ))}
+                        </div>
+                      ) : null}
                     </div>
-                  ) : null}
+                  ))}
                 </div>
-              ))}
-            </div>
+              </div>
+            )}
           </section>
 
           <section className="rounded-3xl border border-slate-200 bg-white shadow-sm p-4 sm:p-5 min-w-0">
@@ -313,15 +478,26 @@ export default function OutletQueueDisplay() {
             {upNext.length === 0 && <p className="text-slate-600 font-medium">No waiting tokens right now.</p>}
 
             {upNext.length > 0 && (
-              <div className="relative w-full overflow-hidden">
-                <div ref={upNextTrackRef} className="flex gap-3 animate-marquee whitespace-nowrap py-2" style={{ animationDuration: `${upNextDuration}s` }}>
-                  {[...upNext, ...upNext].map((token, idx) => (
+              <div className={`relative w-full ${!autoSlide ? 'overflow-x-auto custom-scrollbar' : 'overflow-hidden'}`}>
+                <div 
+                  ref={upNextTrackRef} 
+                  className={`flex gap-3 whitespace-nowrap py-2 ${autoSlide ? 'animate-marquee' : 'w-max'}`}
+                  style={autoSlide ? { animationDuration: `${upNextDuration}s` } : {}}
+                >
+                  {(autoSlide 
+                    ? (upNext.length < 6 
+                        ? [...upNext, { id: 'spacer', isSpacer: true }, ...upNext, { id: 'spacer-2', isSpacer: true }] 
+                        : [...upNext, ...upNext])
+                    : upNext
+                  ).map((token: any, idx) => token.isSpacer ? (
+                    <div key={`spacer-${idx}`} className="flex-shrink-0 w-[50vw]" />
+                  ) : (
                     <div
                       key={`${token.id}-${idx}`}
                       className="flex-shrink-0 w-[min(72vw,240px)] sm:min-w-[220px] rounded-xl px-3 py-3 bg-slate-50 border border-slate-200 flex items-center justify-between"
                     >
                       <div>
-                        <p className="text-sm font-bold text-slate-600">Queue #{(idx % upNext.length) + 1}</p>
+                        <p className="text-sm font-bold text-slate-600">Queue #{upNext.findIndex(t => t.id === token.id) + 1}</p>
                         <p className="text-[clamp(1.5rem,6vw,1.8rem)] font-black tracking-wider text-slate-900 leading-none">{String(token.tokenNumber).padStart(3, "0")}</p>
                       </div>
                       {showService && token.serviceTypes?.[0] && (
@@ -356,10 +532,20 @@ export default function OutletQueueDisplay() {
                   <p className="text-slate-600 font-medium">No recent calls yet.</p>
                 </div>
               ) : (
-                <div className="relative w-full overflow-hidden">
-                  <div ref={recentTrackRef} className="flex gap-4 animate-marquee whitespace-nowrap py-2" style={{ animationDuration: `${recentDuration}s` }}>
-                    {/* Double the items for seamless looping */}
-                    {[...recentCalled, ...recentCalled].map((item, idx) => (
+                <div className={`relative w-full ${!autoSlide ? 'overflow-x-auto custom-scrollbar' : 'overflow-hidden'}`}>
+                  <div 
+                    ref={recentTrackRef} 
+                    className={`flex gap-4 whitespace-nowrap py-2 ${autoSlide ? 'animate-marquee' : 'w-max'}`}
+                    style={autoSlide ? { animationDuration: `${recentDuration}s` } : {}}
+                  >
+                    {(autoSlide 
+                      ? (recentCalled.length < 6 
+                          ? [...recentCalled, { id: 'spacer', isSpacer: true }, ...recentCalled, { id: 'spacer-2', isSpacer: true }] 
+                          : [...recentCalled, ...recentCalled])
+                      : recentCalled
+                    ).map((item: any, idx) => item.isSpacer ? (
+                      <div key={`spacer-${idx}`} className="flex-shrink-0 w-[50vw]" />
+                    ) : (
                       <div
                         key={`${item.id}-${idx}`}
                         className="flex-shrink-0 w-[min(56vw,10rem)] sm:w-40 rounded-2xl p-3 bg-indigo-50/50 border border-indigo-100 text-center transition-all duration-300 hover:bg-white hover:shadow-xl hover:shadow-indigo-100/50"
@@ -392,14 +578,24 @@ export default function OutletQueueDisplay() {
                 <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-900">Counter Status</h2>
               </div>
 
-              <div className="relative w-full overflow-hidden">
-                <div ref={counterTrackRef} className="flex gap-4 animate-marquee whitespace-nowrap py-2" style={{ animationDuration: `${counterDuration}s` }}>
-                  {/* Filter and double the counters for seamless looping */}
+              <div className={`relative w-full ${!autoSlide ? 'overflow-x-auto custom-scrollbar' : 'overflow-hidden'}`}>
+                <div 
+                  ref={counterTrackRef} 
+                  className={`flex gap-4 whitespace-nowrap py-2 ${autoSlide ? 'animate-marquee' : 'w-max'}`}
+                  style={autoSlide ? { animationDuration: `${counterDuration}s` } : {}}
+                >
+                  {/* Filter and double the counters for seamless looping, using spacers for short lists */}
                   {(() => {
                     const activeCounters = counters.filter((c) => c.number !== null);
-                    const itemsToDisplay = activeCounters.length > 0 ? [...activeCounters, ...activeCounters] : [];
+                    const itemsToDisplay = autoSlide 
+                      ? (activeCounters.length > 0 && activeCounters.length < 6)
+                        ? [...activeCounters, { id: 'spacer', isSpacer: true }, ...activeCounters, { id: 'spacer-2', isSpacer: true }]
+                        : [...activeCounters, ...activeCounters]
+                      : activeCounters;
 
-                    return itemsToDisplay.map((counter, idx) => {
+                    return itemsToDisplay.map((counter: any, idx) => {
+                      if (counter.isSpacer) return <div key={`spacer-${idx}`} className="flex-shrink-0 w-[50vw]" />;
+                      
                       const status = counter.officer?.status;
                       const isOffline = !counter.isStaffed || !status || status === 'offline';
                       const isOnBreak = status === 'on_break' || status === 'break';
@@ -485,28 +681,96 @@ export default function OutletQueueDisplay() {
         </footer>
       </div>
 
+
+      {/* Voice Control Floating Button */}
+      <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3">
+        {announcementQueue.length > 0 && (
+          <div className="bg-emerald-500 text-white text-[10px] font-bold px-2 py-1 rounded-full animate-bounce shadow-lg shadow-emerald-200">
+            {announcementQueue.length} Announcement{announcementQueue.length > 1 ? 's' : ''} Pending
+          </div>
+        )}
+        <button
+          onClick={() => setVoiceEnabled(!voiceEnabled)}
+          className={`group relative flex items-center justify-center w-14 h-14 rounded-2xl shadow-xl transition-all duration-300 hover:scale-110 active:scale-95 ${
+            voiceEnabled 
+              ? 'bg-emerald-600 text-white ring-4 ring-emerald-100' 
+              : 'bg-white text-slate-400 border border-slate-200 hover:text-emerald-600'
+          }`}
+          title={voiceEnabled ? "Mute Voice Announcements" : "Enable Voice Announcements"}
+        >
+          {voiceEnabled ? (
+            <Volume2 className={`w-6 h-6 ${isSpeaking ? 'animate-pulse' : ''}`} />
+          ) : (
+            <VolumeX className="w-6 h-6" />
+          )}
+          
+          {!voiceEnabled && (
+            <div className="absolute bottom-full mb-3 right-0 bg-white border border-slate-200 shadow-xl p-3 rounded-xl whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+              <p className="text-xs font-bold text-slate-800">Browser blocks audio by default.</p>
+              <p className="text-[10px] text-slate-500">Click to enable voice announcements.</p>
+            </div>
+          )}
+        </button>
+      </div>
+
+      {/* Audio Unlock Overlay */}
+      {voiceEnabled && !audioUnlocked && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/95 backdrop-blur-sm p-6 text-center">
+          <div className="max-w-md w-full bg-white rounded-3xl p-8 shadow-2xl border border-white/20">
+            <div className="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Volume2 className="w-10 h-10 animate-pulse" />
+            </div>
+            <h2 className="text-2xl font-black text-slate-900 mb-2">Enable Audio</h2>
+            <p className="text-slate-500 mb-8">
+              Browser security requires a manual click to enable sounds and voice announcements for this display.
+            </p>
+            <button
+              onClick={() => {
+                // Play a brief silent chime to unlock audio context
+                const audio = new Audio("/announcement.mp3")
+                audio.volume = 0.01 // Very quiet initial play
+                audio.play().then(() => {
+                  setAudioUnlocked(true)
+                  console.log("[Voice] Audio context unlocked successfully")
+                }).catch(err => {
+                  console.error("[Voice] Final unlock attempt failed:", err)
+                })
+              }}
+              className="w-full py-4 bg-emerald-600 text-white rounded-2xl font-bold text-lg shadow-xl shadow-emerald-200 hover:bg-emerald-700 active:scale-95 transition-all"
+            >
+              Start Audio Display
+            </button>
+          </div>
+        </div>
+      )}
+
       <style>{`
+        .animate-marquee {
+          display: flex;
+          width: max-content;
+          animation: marquee linear infinite;
+        }
         @keyframes marquee {
           0% { transform: translateX(0); }
           100% { transform: translateX(-50%); }
-        }
-        .animate-marquee {
-          display: flex;
-          width: fit-content;
-          animation: marquee 40s linear infinite;
         }
         .animate-marquee:hover {
           animation-play-state: paused;
         }
         .custom-scrollbar::-webkit-scrollbar {
-          width: 4px;
+          height: 6px;
+          width: 6px;
         }
         .custom-scrollbar::-webkit-scrollbar-track {
-          background: transparent;
+          background: rgba(0,0,0,0.05);
+          border-radius: 10px;
         }
         .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: #e2e8f0;
+          background: rgba(0,0,0,0.2);
           border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: rgba(0,0,0,0.3);
         }
       `}</style>
     </div >

@@ -1,10 +1,10 @@
 import axios from "axios"
 
-const isLocal = typeof window !== 'undefined' && (/localhost|127\.0\.0\.1/).test(window.location.hostname)
+const isLocal = typeof window !== 'undefined' && (/localhost|127\.0\.0\.1|^192\.168\.|^10\.|^172\.(1[6-9]|2[0-9]|3[0-1])\./).test(window.location.hostname)
 
 const API_BASE_URL = isLocal
-  ? "http://localhost:3001/api"
-  : (import.meta.env.VITE_API_URL || "https://dpdlab1.slt.lk:8447/dqms-api/api")
+  ? "http://127.0.0.1:3001/api"
+  : (import.meta.env.VITE_API_URL || "https://digital-queue-management-platform-fbdnbcddgzgka0dz.southeastasia-01.azurewebsites.net/api")
 
 export const api = axios.create({
   baseURL: API_BASE_URL,
@@ -152,8 +152,8 @@ api.interceptors.response.use(
 
 // WebSocket connection
 export const WS_URL = isLocal
-  ? "ws://localhost:3001"
-  : (import.meta.env.VITE_WS_URL || "wss://dpdlab1.slt.lk:8447/dqms-api")
+  ? "ws://127.0.0.1:3001"
+  : (import.meta.env.VITE_WS_URL || "wss://digital-queue-management-platform-fbdnbcddgzgka0dz.southeastasia-01.azurewebsites.net")
 
 // Export API_URL for use in fetch calls
 export const API_URL = API_BASE_URL

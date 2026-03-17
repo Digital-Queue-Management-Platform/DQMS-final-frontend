@@ -28,6 +28,8 @@ export default function TeleshopManagerOutletDisplay() {
   const [services, setServices] = useState(true)
   const [counters, setCounters] = useState(true)
   const [recent, setRecent] = useState(true)
+  const [autoSlide, setAutoSlide] = useState(true)
+  const [playTone, setPlayTone] = useState(true)
 
   useEffect(() => {
     const load = async () => {
@@ -62,6 +64,8 @@ export default function TeleshopManagerOutletDisplay() {
             if (s.services !== undefined) setServices(!!s.services)
             if (s.counters !== undefined) setCounters(!!s.counters)
             if (s.recent !== undefined) setRecent(!!s.recent)
+            if (s.autoSlide !== undefined) setAutoSlide(!!s.autoSlide)
+            if (s.playTone !== undefined) setPlayTone(!!s.playTone)
           }
         } catch (se) {
           console.warn("Could not load persisted display settings", se)
@@ -84,9 +88,11 @@ export default function TeleshopManagerOutletDisplay() {
       services: services ? "1" : "0",
       counters: counters ? "1" : "0",
       recent: recent ? "1" : "0",
+      autoSlide: autoSlide ? "1" : "0",
+      playTone: playTone ? "1" : "0",
     })
     return `${window.location.origin}/display/outlet/${manager.branchId}?${params.toString()}`
-  }, [manager?.branchId, refresh, next, services, counters, recent])
+  }, [manager?.branchId, refresh, next, services, counters, recent, autoSlide])
 
   const openDisplay = () => {
     if (!displayUrl) return
@@ -116,7 +122,9 @@ export default function TeleshopManagerOutletDisplay() {
             next,
             services,
             counters,
-            recent
+            recent,
+            autoSlide,
+            playTone
           }
         },
         { headers: { Authorization: `Bearer ${token}` } }
@@ -210,6 +218,32 @@ export default function TeleshopManagerOutletDisplay() {
               <label className="flex items-center justify-between rounded-xl border border-slate-200 px-4 py-3">
                 <span className="text-sm text-slate-800">Show recently called tokens</span>
                 <input type="checkbox" checked={recent} onChange={(e) => setRecent(e.target.checked)} />
+              </label>
+
+              <label className="flex items-center justify-between rounded-xl border border-slate-200 px-4 py-3 bg-indigo-50/50 border-indigo-100">
+                <div className="flex flex-col">
+                  <span className="text-sm font-bold text-slate-800">Enable Auto-Sliding</span>
+                  <span className="text-xs text-slate-500">Automatically scroll lists (Up Next, Recently Called, etc.)</span>
+                </div>
+                <input 
+                  type="checkbox" 
+                  checked={autoSlide} 
+                  onChange={(e) => setAutoSlide(e.target.checked)} 
+                  className="w-5 h-5 accent-indigo-600"
+                />
+              </label>
+
+              <label className="flex items-center justify-between rounded-xl border border-slate-200 px-4 py-3 bg-amber-50/50 border-amber-100">
+                <div className="flex flex-col">
+                  <span className="text-sm font-bold text-slate-800">Enable Announcement Tone</span>
+                  <span className="text-xs text-slate-500">Play the announcement goal tone before speaking customer names</span>
+                </div>
+                <input 
+                  type="checkbox" 
+                  checked={playTone} 
+                  onChange={(e) => setPlayTone(e.target.checked)} 
+                  className="w-5 h-5 accent-amber-600"
+                />
               </label>
             </div>
 

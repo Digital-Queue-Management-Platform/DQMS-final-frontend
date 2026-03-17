@@ -1,4 +1,4 @@
-﻿// Removed unused billData state
+// Removed unused billData state
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { User, Phone, Eye, EyeOff, Send, MessageSquare, CheckCircle, Banknote, CreditCard, FileText, Landmark } from 'lucide-react'
@@ -253,11 +253,14 @@ export default function KioskDashboard() {
         const bill = response.data.bill
 
         // Check if mobile number is registered with SLT account
-        if (!bill.mobileNumber) {
+        // If the API returned success, it means SLT system triggered an SMS, even if we couldn't parse the number
+        if (!bill.mobileNumber && !response.data.smsNotification?.maskedMobile) {
           const hotline = import.meta.env.VITE_SLT_HOTLINE || "1213"
           setError(`⚠️ This SLT account does not have a registered mobile number. Please contact the SLT hotline at ${hotline} to register your mobile number before proceeding.`)
           setSltVerified(false)
           setNotificationSent(false)
+          // Still allow proceeding if the user says it's correct? No, let's keep the block for absolute certainty of no number.
+          // However, if the user says it was sent, then extractMaskedMobile likely failed or message was different.
           return
         }
 
