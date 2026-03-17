@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import { useEffect, useState } from "react"
 import { useLocation, useNavigate } from "react-router-dom"
@@ -37,7 +37,7 @@ export default function AppointmentMy() {
   const [appts, setAppts] = useState<Appt[]>([])
   const [billDataMap, setBillDataMap] = useState<Record<string, BillData>>({})
   const [outletMap, setOutletMap] = useState<Record<string, { name: string; location?: string }>>({})
-  const [language, setLanguage] = useState<'en' | 'si' | 'ta'>(() => {
+  const [language] = useState<'en' | 'si' | 'ta'>(() => {
     try {
       const saved = localStorage.getItem('dq_lang') as 'en' | 'si' | 'ta' | null
       if (saved) return saved
@@ -226,27 +226,7 @@ export default function AppointmentMy() {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4 flex justify-center">
       <div className="w-full max-w-2xl">
         <div className="bg-white rounded-xl shadow-xl p-6 mb-4">
-          {/* Language Tabs */}
-          <div className="flex justify-end gap-2 mb-3">
-            <button
-              onClick={() => { setLanguage('en'); try { localStorage.setItem('dq_lang','en') } catch {} }}
-              className={`px-3 py-1 rounded-lg text-xs sm:text-sm font-medium transition-colors ${language === 'en' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600'}`}
-            >
-              {t.english}
-            </button>
-            <button
-              onClick={() => { setLanguage('si'); try { localStorage.setItem('dq_lang','si') } catch {} }}
-              className={`px-3 py-1 rounded-lg text-xs sm:text-sm font-medium transition-colors ${language === 'si' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600'}`}
-            >
-              {t.sinhala}
-            </button>
-            <button
-              onClick={() => { setLanguage('ta'); try { localStorage.setItem('dq_lang','ta') } catch {} }}
-              className={`px-3 py-1 rounded-lg text-xs sm:text-sm font-medium transition-colors ${language === 'ta' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600'}`}
-            >
-              {t.tamil}
-            </button>
-          </div>
+          {/* Top language selector removed as it's redundant */}
 
           <h1 className="text-2xl font-bold text-gray-900 mb-2">{t.title}</h1>
           <p className="text-sm text-gray-600 mb-4">{t.subtitle}</p>

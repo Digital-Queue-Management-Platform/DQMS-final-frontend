@@ -36,7 +36,7 @@ export default function CustomerRegistration() {
   const [qrToken, setQrToken] = useState<string>("")
   const [qrValid, setQrValid] = useState<boolean>(false)
   const [services, setServices] = useState<Array<{ id: string; code: string; title: string; isActive?: boolean; isPriorityService?: boolean }>>([])
-  const [preferredLanguage, setPreferredLanguage] = useState<string>('en')
+  const [preferredLanguage, setPreferredLanguage] = useState<string>("")
   // OTP verification states
   const [otpStep, setOtpStep] = useState<'idle' | 'sent' | 'verified'>("idle")
   const [otpCode, setOtpCode] = useState("")
@@ -59,7 +59,7 @@ export default function CustomerRegistration() {
   const [notificationSent, setNotificationSent] = useState(false)
   const [notificationMessage, setNotificationMessage] = useState("")
   const [isOwnerOfAccount, setIsOwnerOfAccount] = useState(false)
-
+  const [shouldAutoSubmit, setShouldAutoSubmit] = useState(false)
 
   // Multi-step form state
   const [currentStep, setCurrentStep] = useState(1)
@@ -80,7 +80,7 @@ export default function CustomerRegistration() {
     setSelectedService("")
     setNicNumber("")
     setEmail("")
-    setPreferredLanguage('en')
+    setPreferredLanguage("")
     setError("")
     setLanguage("en")
     setFormKey(Date.now()) // Force form re-render
@@ -102,6 +102,7 @@ export default function CustomerRegistration() {
     setNotificationSent(false)
     setNotificationMessage("")
     setIsOwnerOfAccount(false)
+    setShouldAutoSubmit(false)
 
     // Additional browser form clearing
     setTimeout(() => {
@@ -361,10 +362,56 @@ export default function CustomerRegistration() {
     }
   }, [mobileNumber, currentStep])
 
-  // Auto-submit form after OTP verification - REMOVED to fix build errors
+  // Auto-submit for non-bill payment services once OTP is verified
+  useEffect(() => {
+    if (!isSltRequiredService(selectedService) && currentStep === 4 && otpStep === 'verified' && otpToken) {
+      setShouldAutoSubmit(true)
+      const timer = setTimeout(() => {
+        if (formRef.current) {
+          formRef.current.dispatchEvent(new Event('submit', { bubbles: true }))
+        }
+      }, 800)
+      return () => {
+        clearTimeout(timer)
+        setShouldAutoSubmit(false)
+      }
+    } else {
+      setShouldAutoSubmit(false)
+    }
+  }, [selectedService, currentStep, otpStep, otpToken])
 
-
-  // Auto-submit for bill payment - REMOVED to fix build errors
+  // Auto-submit for bill payment once intent + method (+ amount if partial) are all set
+  useEffect(() => {
+    if (!isSltRequiredService(selectedService)) {
+      setShouldAutoSubmit(false)
+      return
+    }
+    if (!sltVerified || otpStep !== 'verified') {
+      setShouldAutoSubmit(false)
+      return
+    }
+    if (!billPaymentIntent || !billPaymentMethod) {
+      setShouldAutoSubmit(false)
+      return
+    }
+    if (billPaymentIntent === 'partial') {
+      const amount = parseFloat(billPaymentCustomAmount)
+      if (!billPaymentCustomAmount || isNaN(amount) || amount <= 0) {
+        setShouldAutoSubmit(false)
+        return
+      }
+    }
+    setShouldAutoSubmit(true)
+    const timer = setTimeout(() => {
+      if (formRef.current) {
+        formRef.current.dispatchEvent(new Event('submit', { bubbles: true }))
+      }
+    }, 800)
+    return () => {
+      clearTimeout(timer)
+      setShouldAutoSubmit(false)
+    }
+  }, [billPaymentIntent, billPaymentMethod, billPaymentCustomAmount, otpStep, selectedService, sltVerified])
 
 
   // Handle service selection
@@ -536,6 +583,7 @@ export default function CustomerRegistration() {
     e.preventDefault()
     setError("")
     setLoading(true)
+    setShouldAutoSubmit(false) // Reset auto-submit status on manual submit
 
     try {
       // On Register: verify OTP if not already verified and ensure we submit the fresh token
@@ -623,6 +671,9 @@ export default function CustomerRegistration() {
   }
 
   const goToPreviousStep = () => {
+    if (currentStep === 2) {
+      setPreferredLanguage("")
+    }
     setCurrentStep(prev => Math.max(prev - 1, 1))
   }
 
@@ -630,7 +681,7 @@ export default function CustomerRegistration() {
   const isValidSlt = (s: string) => /^\d{10}$/.test(s) && s.startsWith('0') && !s.startsWith('07')
   const isValidEmail = (e: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)
 
-  const canProceedFromStep1 = preferredLanguage !== ''
+  // const canProceedFromStep1 = preferredLanguage !== ''
   const canProceedFromStep2 = selectedService !== ""
   const canProceedFromStep3 = () => {
     const validDetails = name.trim().length >= 2 && isValidMobile(mobileNumber)
@@ -900,30 +951,7 @@ export default function CustomerRegistration() {
                 {error || "Please scan the QR code displayed at the branch to proceed."}
               </div>
             )}
-            {/* Language Selector */}
-            <div className="flex justify-end gap-1 sm:gap-2 mb-4 sm:mb-6">
-              <button
-                onClick={() => { setLanguage("en"); setPreferredLanguage("en"); }}
-                className={`px-2 sm:px-3 py-1 rounded-xl text-xs sm:text-sm font-medium transition-colors ${language === "en" ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-600"
-                  }`}
-              >
-                English
-              </button>
-              <button
-                onClick={() => { setLanguage("si"); setPreferredLanguage("si"); }}
-                className={`px-2 sm:px-3 py-1 rounded-xl text-xs sm:text-sm font-medium transition-colors ${language === "si" ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-600"
-                  }`}
-              >
-                සිංහල
-              </button>
-              <button
-                onClick={() => { setLanguage("ta"); setPreferredLanguage("ta"); }}
-                className={`px-2 sm:px-3 py-1 rounded-xl text-xs sm:text-sm font-medium transition-colors ${language === "ta" ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-600"
-                  }`}
-              >
-                தமிழ்
-              </button>
-            </div>
+            {/* Top language selector removed as it's redundant with Step 1 */}
 
             {/* Header */}
             <div className="text-center mb-4 sm:mb-6">
@@ -990,7 +1018,7 @@ export default function CustomerRegistration() {
                       {[{ code: 'en', label: t.english }, { code: 'si', label: t.sinhala }, { code: 'ta', label: t.tamil }].map(l => (
                         <label
                           key={l.code}
-                          className={`flex items-center gap-3 p-4 border-2 rounded-xl cursor-pointer transition-all hover:border-blue-400 hover:shadow-sm ${preferredLanguage === l.code ? 'border-blue-600 bg-blue-50' : 'border-slate-200'
+                          className={`flex items-center gap-3 p-4 border-2 rounded-xl cursor-pointer transition-all hover:border-blue-400 hover:shadow-sm ${preferredLanguage === l.code ? "border-blue-600 bg-blue-50" : "border-slate-200"
                             }`}
                         >
                           <input
@@ -998,13 +1026,13 @@ export default function CustomerRegistration() {
                             name="preferredLanguage"
                             value={l.code}
                             checked={preferredLanguage === l.code}
-                            onChange={(e) => { 
-                            const val = e.target.value as "en" | "si" | "ta";
-                            setPreferredLanguage(val); 
-                            setLanguage(val); 
-                            // Auto advance to next step after a tiny delay for visual feedback
-                            setTimeout(() => goToNextStep(), 300);
-                          }}
+                            onChange={(e) => {
+                              const val = e.target.value as "en" | "si" | "ta";
+                              setPreferredLanguage(val);
+                              setLanguage(val);
+                              // Auto advance to next step after a tiny delay for visual feedback
+                              setTimeout(() => goToNextStep(), 300);
+                            }}
                             className="w-5 h-5 text-blue-600"
                           />
                           <span className="text-base font-medium">{l.label}</span>
@@ -1014,16 +1042,7 @@ export default function CustomerRegistration() {
                     <p className="text-xs text-gray-500 mt-2">{t.preferredLanguageSubtitle}</p>
                   </div>
 
-                  <div className="flex gap-3">
-                    <button
-                      type="button"
-                      onClick={goToNextStep}
-                      disabled={!canProceedFromStep1}
-                      className="flex-1 bg-blue-600 text-white py-3 rounded-xl font-semibold hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
-                    >
-                      {t.next}
-                    </button>
-                  </div>
+                  {/* Next button removed as per user request for auto-advance */}
                 </div>
               )}
 
@@ -1065,6 +1084,17 @@ export default function CustomerRegistration() {
                     </div>
                     <p className="text-xs text-gray-500 mt-2">{t.selectServiceTypesSubtitle}</p>
                   </div>
+
+                  {/* Auto-submit feedback — spinner shown once all bill payment selections are made */}
+                  {shouldAutoSubmit && otpStep === 'verified' && (isSltRequiredService(selectedService) ? (sltVerified && billPaymentIntent && billPaymentMethod && !(billPaymentIntent === 'partial' && (!billPaymentCustomAmount || parseFloat(billPaymentCustomAmount) <= 0))) : true) && (
+                    <div className="w-full bg-blue-50 border border-blue-200 text-blue-700 py-3 rounded-xl text-sm font-medium flex items-center justify-center gap-2">
+                      <svg className="animate-spin h-4 w-4 text-blue-600" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                      </svg>
+                      {loading ? t.registering : t.registering}
+                    </div>
+                  )}
 
                   <div className="flex gap-3">
                     <button

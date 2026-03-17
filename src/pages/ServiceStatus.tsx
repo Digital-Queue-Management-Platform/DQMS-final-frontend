@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import { useEffect, useState } from "react"
 import {
@@ -107,11 +107,11 @@ export default function ServiceStatus() {
   const [data, setData] = useState<CaseData | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [language, setLanguage] = useState<'en' | 'si' | 'ta'>(() => {
+  const [language] = useState<'en' | 'si' | 'ta'>(() => {
     try {
       const saved = localStorage.getItem('dq_lang') as 'en' | 'si' | 'ta' | null
       if (saved) return saved
-    } catch {}
+    } catch { }
     const nav = (navigator?.language || 'en').toLowerCase()
     if (nav.startsWith('si')) return 'si'
     if (nav.startsWith('ta')) return 'ta'
@@ -160,14 +160,7 @@ export default function ServiceStatus() {
     <div className="p-4 sm:p-6 max-w-3xl mx-auto space-y-4">
       {/* Search Card */}
       <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5">
-        <div className="flex justify-end gap-2 mb-3">
-          {(['en', 'si', 'ta'] as const).map(l => (
-            <button key={l} onClick={() => { setLanguage(l); try { localStorage.setItem('dq_lang', l) } catch {} }}
-              className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${language === l ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600'}`}>
-              {translations[l][l === 'en' ? 'english' : l === 'si' ? 'sinhala' : 'tamil']}
-            </button>
-          ))}
-        </div>
+        {/* Top language selector removed as it's redundant */}
         <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-3">{t.title}</h1>
         <div className="flex gap-2">
           <div className="relative flex-1">

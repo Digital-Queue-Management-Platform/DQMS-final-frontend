@@ -34,7 +34,7 @@ export default function KioskDashboard() {
   const [nicNumber, setNicNumber] = useState('')
   const [email, setEmail] = useState('')
   const [selectedService, setSelectedService] = useState<string>('')
-  const [preferredLanguage, setPreferredLanguage] = useState<string>('en')
+  const [preferredLanguage, setPreferredLanguage] = useState<string>("")
   const [submitting, setSubmitting] = useState(false)
   const [successToken, setSuccessToken] = useState<any>(null)
 
@@ -101,19 +101,35 @@ export default function KioskDashboard() {
 
   // Auto-submit for bill payment once intent + method (+ amount if partial) are all set
   useEffect(() => {
-    if (selectedService !== 'SVC002' && selectedService !== 'BILL_PAYMENT') return
-    if (!sltVerified || otpStep !== 'verified') return
-    if (!billPaymentIntent || !billPaymentMethod) return
+    if (selectedService !== 'SVC002' && selectedService !== 'BILL_PAYMENT') {
+      setShouldAutoSubmit(false)
+      return
+    }
+    if (!sltVerified || otpStep !== 'verified') {
+      setShouldAutoSubmit(false)
+      return
+    }
+    if (!billPaymentIntent || !billPaymentMethod) {
+      setShouldAutoSubmit(false)
+      return
+    }
     if (billPaymentIntent === 'partial') {
       const amount = parseFloat(billPaymentCustomAmount)
-      if (!billPaymentCustomAmount || isNaN(amount) || amount <= 0) return
+      if (!billPaymentCustomAmount || isNaN(amount) || amount <= 0) {
+        setShouldAutoSubmit(false)
+        return
+      }
     }
+    setShouldAutoSubmit(true)
     const timer = setTimeout(() => {
       if (formRef.current) {
         formRef.current.dispatchEvent(new Event('submit', { bubbles: true }))
       }
-    }, 500)
-    return () => clearTimeout(timer)
+    }, 800)
+    return () => {
+      clearTimeout(timer)
+      setShouldAutoSubmit(false)
+    }
   }, [billPaymentIntent, billPaymentMethod, billPaymentCustomAmount, otpStep, selectedService, sltVerified])
 
   // Auto-send OTP when mobile number reaches 10 valid digits on step 3
@@ -351,6 +367,9 @@ export default function KioskDashboard() {
   }
 
   const goToPreviousStep = () => {
+    if (currentStep === 2) {
+      setPreferredLanguage("")
+    }
     setCurrentStep(prev => Math.max(prev - 1, 1))
   }
 
@@ -358,7 +377,7 @@ export default function KioskDashboard() {
   const isValidSlt = (s: string) => /^\d{10}$/.test(s) && s.startsWith('0') && !s.startsWith('07')
   const isValidEmail = (e: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)
 
-  const canProceedFromStep1 = preferredLanguage !== ''
+  // const canProceedFromStep1 = preferredLanguage !== ''
   const canProceedFromStep2 = selectedService !== ''
   const canProceedFromStep3 = () => {
     const validDetails = name.trim().length >= 2 && isValidMobile(mobileNumber)
@@ -453,7 +472,7 @@ export default function KioskDashboard() {
       setNicNumber('')
       setEmail('')
       setSelectedService('')
-      setPreferredLanguage('en')
+      setPreferredLanguage('')
       setOtpStep('idle')
       setOtpCode('')
       setOtpToken('')
@@ -478,7 +497,7 @@ export default function KioskDashboard() {
     setNicNumber('')
     setEmail('')
     setSelectedService('')
-    setPreferredLanguage('en')
+    setPreferredLanguage('')
     setOtpStep('idle')
     setOtpCode('')
     setOtpToken('')
@@ -749,40 +768,9 @@ export default function KioskDashboard() {
       {!branchStatus.isClosed && activeNotices.length > 0 && (
         <NoticeModal notices={activeNotices} onDismiss={dismissNotice} />
       )}
-      {/* Language Switcher */}
+      {/* Top language switcher removed as it's redundant with Step 1. Logout button preserved. */}
       <div className="bg-white border-b border-slate-200 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
-          {/* Language buttons */}
-          <div className="flex gap-2">
-            <button
-              onClick={() => { setLanguage("en"); setPreferredLanguage("en"); }}
-              className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${language === "en"
-                ? "bg-blue-600 text-white"
-                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                }`}
-            >
-              English
-            </button>
-            <button
-              onClick={() => { setLanguage("si"); setPreferredLanguage("si"); }}
-              className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${language === "si"
-                ? "bg-blue-600 text-white"
-                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                }`}
-            >
-              සිංහල
-            </button>
-            <button
-              onClick={() => { setLanguage("ta"); setPreferredLanguage("ta"); }}
-              className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${language === "ta"
-                ? "bg-blue-600 text-white"
-                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                }`}
-            >
-              தமிழ்
-            </button>
-          </div>
-
+        <div className="max-w-7xl mx-auto px-4 py-3 flex justify-end items-center">
           {/* Logout button */}
           <button
             onClick={handleLogout}
@@ -869,7 +857,13 @@ export default function KioskDashboard() {
                             name="preferredLanguage"
                             value={l.code}
                             checked={preferredLanguage === l.code}
-                            onChange={(e) => { setPreferredLanguage(e.target.value); setLanguage(e.target.value as "en" | "si" | "ta") }}
+                            onChange={(e) => {
+                              const val = e.target.value as "en" | "si" | "ta";
+                              setPreferredLanguage(val);
+                              setLanguage(val);
+                              // Auto advance to next step after a tiny delay for visual feedback
+                              setTimeout(() => goToNextStep(), 300);
+                            }}
                             className="w-5 h-5 text-blue-600"
                           />
                           <span className="text-base font-medium">{l.label}</span>
@@ -879,16 +873,7 @@ export default function KioskDashboard() {
                     <p className="text-xs text-gray-500 mt-2">{t.preferredLanguageSubtitle}</p>
                   </div>
 
-                  <div className="flex gap-3">
-                    <button
-                      type="button"
-                      onClick={goToNextStep}
-                      disabled={!canProceedFromStep1}
-                      className="flex-1 bg-blue-600 text-white py-3 rounded-xl font-semibold hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
-                    >
-                      {t.next}
-                    </button>
-                  </div>
+                  {/* Next button removed as per user request for auto-advance */}
                 </div>
               )}
 
@@ -1288,13 +1273,14 @@ export default function KioskDashboard() {
                   )}
 
                   {/* Auto-submit feedback — spinner shown once all bill payment selections are made */}
-                  {isSltRequiredService(selectedService) && otpStep === 'verified' && sltVerified && billPaymentIntent && billPaymentMethod && !(billPaymentIntent === 'partial' && (!billPaymentCustomAmount || parseFloat(billPaymentCustomAmount) <= 0)) && (
+                   {/* Auto-submit feedback — spinner shown once all bill payment selections are made */}
+                  {shouldAutoSubmit && otpStep === 'verified' && (isSltRequiredService(selectedService) ? (sltVerified && billPaymentIntent && billPaymentMethod && !(billPaymentIntent === 'partial' && (!billPaymentCustomAmount || parseFloat(billPaymentCustomAmount) <= 0))) : true) && (
                     <div className="w-full bg-blue-50 border border-blue-200 text-blue-700 py-3 rounded-xl text-sm font-medium flex items-center justify-center gap-2">
-                      <svg className="animate-spin h-4 w-4 text-blue-600" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
-                      </svg>
-                      {submitting ? t.generating : t.generating}
+                       <svg className="animate-spin h-4 w-4 text-blue-600" viewBox="0 0 24 24">
+                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                       </svg>
+                       {submitting ? t.generating : t.generating}
                     </div>
                   )}
 
@@ -1314,7 +1300,7 @@ export default function KioskDashboard() {
                         setNicNumber('')
                         setEmail('')
                         setSelectedService('')
-                        setPreferredLanguage('en')
+                        setPreferredLanguage('')
                         setOtpStep('idle')
                         setOtpCode('')
                         setOtpToken('')

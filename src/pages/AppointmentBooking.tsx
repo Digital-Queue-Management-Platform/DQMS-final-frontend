@@ -69,7 +69,7 @@ export default function AppointmentBooking() {
     if (nav.startsWith('ta')) return 'ta'
     return 'en'
   })
-  const [preferredLanguage, setPreferredLanguage] = useState('en')
+  const [preferredLanguage, setPreferredLanguage] = useState("")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
@@ -186,19 +186,35 @@ export default function AppointmentBooking() {
 
   // Auto-submit for bill payment once intent + method (+ amount if partial) are all set
   useEffect(() => {
-    if (selectedService !== 'SVC002' && selectedService !== 'BILL_PAYMENT') return
-    if (!sltVerified || otpStep !== 'verified') return
-    if (!billPaymentIntent || !billPaymentMethod) return
+    if (selectedService !== 'SVC002' && selectedService !== 'BILL_PAYMENT') {
+      setShouldAutoSubmit(false)
+      return
+    }
+    if (!sltVerified || otpStep !== 'verified') {
+      setShouldAutoSubmit(false)
+      return
+    }
+    if (!billPaymentIntent || !billPaymentMethod) {
+      setShouldAutoSubmit(false)
+      return
+    }
     if (billPaymentIntent === 'partial') {
       const amount = parseFloat(billPaymentCustomAmount)
-      if (!billPaymentCustomAmount || isNaN(amount) || amount <= 0) return
+      if (!billPaymentCustomAmount || isNaN(amount) || amount <= 0) {
+        setShouldAutoSubmit(false)
+        return
+      }
     }
+    setShouldAutoSubmit(true)
     const timer = setTimeout(() => {
       if (formRef.current) {
         formRef.current.dispatchEvent(new Event('submit', { bubbles: true }))
       }
-    }, 500)
-    return () => clearTimeout(timer)
+    }, 800)
+    return () => {
+      clearTimeout(timer)
+      setShouldAutoSubmit(false)
+    }
   }, [billPaymentIntent, billPaymentMethod, billPaymentCustomAmount, otpStep, selectedService, sltVerified])
 
   const fetchOutlets = async () => {
@@ -700,13 +716,16 @@ export default function AppointmentBooking() {
   }
 
   const goToPreviousStep = () => {
+    if (currentStep === 2) {
+      setPreferredLanguage("")
+    }
     setCurrentStep(prev => Math.max(prev - 1, 1))
   }
 
   const isValidMobile = (m: string) => m.length === 10 && (m.startsWith('07') || m.startsWith('01'))
   const isValidSlt = (s: string) => /^\d{10}$/.test(s) && s.startsWith('0') && !s.startsWith('07')
 
-  const canProceedFromStep1 = preferredLanguage !== ''
+  // const canProceedFromStep1 = preferredLanguage !== ''
   const canProceedFromStep2 = selectedService !== ''
   const canProceedFromStep3 = () => {
     const hasBasicInfo = outletId && datetime && name.trim().length >= 2 && isValidMobile(mobileNumber) && isValidAppointmentTime(datetime) && !closedOnDateError && !checkingDate
@@ -731,27 +750,7 @@ export default function AppointmentBooking() {
         <NoticeModal notices={activeNotices} onDismiss={dismissNotice} />
       )}
       <div className="bg-white rounded-xl shadow-xl w-full max-w-lg p-6">
-        {/* Language Tabs (same style as CustomerRegistration) */}
-        <div className="flex justify-end gap-2 mb-4">
-          <button
-            onClick={() => { setLanguage('en'); try { localStorage.setItem('dq_lang', 'en') } catch { } }}
-            className={`px-3 py-1 rounded-lg text-xs sm:text-sm font-medium transition-colors ${language === 'en' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600'}`}
-          >
-            {t.english}
-          </button>
-          <button
-            onClick={() => { setLanguage('si'); try { localStorage.setItem('dq_lang', 'si') } catch { } }}
-            className={`px-3 py-1 rounded-lg text-xs sm:text-sm font-medium transition-colors ${language === 'si' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600'}`}
-          >
-            {t.sinhala}
-          </button>
-          <button
-            onClick={() => { setLanguage('ta'); try { localStorage.setItem('dq_lang', 'ta') } catch { } }}
-            className={`px-3 py-1 rounded-lg text-xs sm:text-sm font-medium transition-colors ${language === 'ta' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600'}`}
-          >
-            {t.tamil}
-          </button>
-        </div>
+        {/* Top language selector removed as it's redundant with Step 1 */}
 
         <h1 className="text-2xl font-bold text-gray-900 mb-2">{t.title}</h1>
         <p className="text-sm text-gray-600 mb-6">{t.subtitle}</p>
@@ -822,7 +821,14 @@ export default function AppointmentBooking() {
                         name="preferredLanguage"
                         value={l.code}
                         checked={preferredLanguage === l.code}
-                        onChange={(e) => { setPreferredLanguage(e.target.value); setLanguage(e.target.value as 'en' | 'si' | 'ta'); try { localStorage.setItem('dq_lang', e.target.value) } catch {} }}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setPreferredLanguage(val);
+                          setLanguage(val as 'en' | 'si' | 'ta');
+                          try { localStorage.setItem('dq_lang', val) } catch { }
+                          // Auto advance to next step after a tiny delay for visual feedback
+                          setTimeout(() => goToNextStep(), 300);
+                        }}
                         className="w-5 h-5 text-blue-600"
                       />
                       <span className="text-base font-medium">{l.label}</span>
@@ -831,16 +837,7 @@ export default function AppointmentBooking() {
                 </div>
               </div>
 
-              <div className="flex gap-3">
-                <button
-                  type="button"
-                  onClick={goToNextStep}
-                  disabled={!canProceedFromStep1}
-                  className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
-                >
-                  {t.next}
-                </button>
-              </div>
+              {/* Next button removed as per user request for auto-advance */}
             </div>
           )}
 
@@ -1254,7 +1251,7 @@ export default function AppointmentBooking() {
               )}
 
               {/* Auto-submit feedback — spinner shown once all bill payment selections are made */}
-              {otpStep === 'verified' && isSltRequiredService(selectedService) && sltVerified && billPaymentIntent && billPaymentMethod && !(billPaymentIntent === 'partial' && (!billPaymentCustomAmount || parseFloat(billPaymentCustomAmount) <= 0)) && (
+              {shouldAutoSubmit && otpStep === 'verified' && (isSltRequiredService(selectedService) ? (sltVerified && billPaymentIntent && billPaymentMethod && !(billPaymentIntent === 'partial' && (!billPaymentCustomAmount || parseFloat(billPaymentCustomAmount) <= 0))) : true) && (
                 <div className="w-full bg-blue-50 border border-blue-200 text-blue-700 py-3 rounded-xl text-sm font-medium flex items-center justify-center gap-2">
                   <svg className="animate-spin h-4 w-4 text-blue-600" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
@@ -1278,7 +1275,7 @@ export default function AppointmentBooking() {
                     setName('')
                     setMobileNumber('')
                     setSelectedService('')
-                    setPreferredLanguage('en')
+                    setPreferredLanguage('')
                     setOutletId('')
                     setDatetime('')
                     setSltTelephoneNumber('')
