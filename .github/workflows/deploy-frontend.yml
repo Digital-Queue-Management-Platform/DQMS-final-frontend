@@ -49,5 +49,6 @@ jobs:
       - name: Reload nginx
         shell: cmd
         run: |
-          C:\nginx\nginx.exe -t
-          C:\nginx\nginx.exe -s reload
+          cd /d C:\nginx
+          nginx.exe -t
+          nginx.exe -s reload
