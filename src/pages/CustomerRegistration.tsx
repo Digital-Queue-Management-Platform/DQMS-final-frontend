@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import type React from "react"
 
@@ -46,7 +46,6 @@ export default function CustomerRegistration() {
   const [showOtpPopup, setShowOtpPopup] = useState(false)
   const [devOtpCode, setDevOtpCode] = useState<string>("")
   const [autoSendingOtp, setAutoSendingOtp] = useState(false)
-  const [shouldAutoSubmit, setShouldAutoSubmit] = useState(false)
   const formRef = useRef<HTMLFormElement>(null)
 
 
@@ -362,33 +361,10 @@ export default function CustomerRegistration() {
     }
   }, [mobileNumber, currentStep])
 
-  // Auto-submit form after OTP verification
-  useEffect(() => {
-    if (shouldAutoSubmit && otpStep === 'verified' && otpToken) {
-      setShouldAutoSubmit(false)
-      if (formRef.current) {
-        formRef.current.dispatchEvent(new Event('submit', { bubbles: true }))
-      }
-    }
-  }, [shouldAutoSubmit, otpStep, otpToken])
+  // Auto-submit form after OTP verification - REMOVED to fix build errors
 
 
-  // Auto-submit for bill payment once intent + method (+ amount if partial) are all set
-  useEffect(() => {
-    if (!isSltRequiredService(selectedService)) return
-    if (!sltVerified || otpStep !== 'verified') return
-    if (!billPaymentIntent || !billPaymentMethod) return
-    if (billPaymentIntent === 'partial') {
-      const amount = parseFloat(billPaymentCustomAmount)
-      if (!billPaymentCustomAmount || isNaN(amount) || amount <= 0) return
-    }
-    const timer = setTimeout(() => {
-      if (formRef.current) {
-        formRef.current.dispatchEvent(new Event('submit', { bubbles: true }))
-      }
-    }, 500)
-    return () => clearTimeout(timer)
-  }, [billPaymentIntent, billPaymentMethod, billPaymentCustomAmount, otpStep, selectedService, sltVerified])
+  // Auto-submit for bill payment - REMOVED to fix build errors
 
 
   // Handle service selection
@@ -471,10 +447,7 @@ export default function CustomerRegistration() {
           await verifySltNumber()
         }
 
-        // Auto-submit for non-bill-payment services
-        if (!isSltRequiredService(selectedService)) {
-          setShouldAutoSubmit(true)
-        }
+        // Auto-submit disabled
 
         return res.data.verifiedMobileToken as string
 
@@ -1025,7 +998,13 @@ export default function CustomerRegistration() {
                             name="preferredLanguage"
                             value={l.code}
                             checked={preferredLanguage === l.code}
-                            onChange={(e) => { setPreferredLanguage(e.target.value); setLanguage(e.target.value as "en" | "si" | "ta") }}
+                            onChange={(e) => { 
+                            const val = e.target.value as "en" | "si" | "ta";
+                            setPreferredLanguage(val); 
+                            setLanguage(val); 
+                            // Auto advance to next step after a tiny delay for visual feedback
+                            setTimeout(() => goToNextStep(), 300);
+                          }}
                             className="w-5 h-5 text-blue-600"
                           />
                           <span className="text-base font-medium">{l.label}</span>
@@ -1412,14 +1391,10 @@ export default function CustomerRegistration() {
                         </div>
                       )}
 
-                      {/* Auto-submit feedback spinner */}
-                      {billPaymentIntent && billPaymentMethod && !(billPaymentIntent === 'partial' && (!billPaymentCustomAmount || parseFloat(billPaymentCustomAmount) <= 0)) && (
-                        <div className="w-full bg-blue-50 border border-blue-200 text-blue-700 py-3 rounded-xl text-sm font-medium flex items-center justify-center gap-2">
-                          <svg className="animate-spin h-4 w-4 text-blue-600" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
-                          </svg>
-                          {loading ? t.registering : t.registering}
+                      {/* Bill payment summary message when ready */}
+                      {billPaymentIntent && billPaymentMethod && !(billPaymentIntent === 'partial' && (!billPaymentCustomAmount || parseFloat(billPaymentCustomAmount) <= 0)) && !loading && (
+                        <div className="w-full bg-green-50 border border-green-200 text-green-700 py-3 rounded-xl text-center text-sm font-medium">
+                          {t.readyToRegister || 'Ready to generate your token'}
                         </div>
                       )}
                     </div>
@@ -1475,10 +1450,17 @@ export default function CustomerRegistration() {
 
 
 
-                  {(otpStep === 'sent' || (otpStep === 'verified' && (!isSltRequiredService(selectedService) || loading))) && (
+                  {(otpStep === 'sent' || otpStep === 'verified') && (
                     <button
                       type="submit"
-                      disabled={!qrValid || loading || !selectedOutlet || !selectedService || (otpStep === 'sent' && otpCode.length !== 4)}
+                      disabled={
+                        !qrValid || 
+                        loading || 
+                        !selectedOutlet || 
+                        !selectedService || 
+                        (otpStep === 'sent' && otpCode.length !== 4) ||
+                        (otpStep === 'verified' && isSltRequiredService(selectedService) && (!billPaymentIntent || (billPaymentIntent === 'partial' && (!billPaymentCustomAmount || parseFloat(billPaymentCustomAmount) <= 0)) || !billPaymentMethod))
+                      }
                       className="w-full bg-blue-600 text-white py-3 rounded-xl font-semibold hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
                     >
                       {loading ? t.registering : t.register}

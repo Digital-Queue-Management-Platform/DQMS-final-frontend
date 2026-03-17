@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import React, { useState, useEffect } from "react"
 import { useParams, useNavigate } from "react-router-dom"
@@ -476,9 +476,6 @@ export default function QueueStatus() {
                 <XCircle className="w-16 h-16 text-slate-400 mx-auto mb-4" />
                 <p className="text-2xl font-black text-slate-800 mb-2">{t.cancelledTitle}</p>
                 <p className="text-slate-500 font-medium">{t.cancelledMessage}</p>
-                <button onClick={() => navigate("/")} className="mt-6 w-full py-4 bg-blue-600 text-white rounded-2xl font-black shadow-lg shadow-blue-200">
-                  {t.backHome}
-                </button>
               </div>
             )}
           </div>
