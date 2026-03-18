@@ -1,4 +1,4 @@
-﻿/**
+/**
  * FeedbackPage Component
  * 
  * Handles customer feedback submission after service completion.
@@ -21,7 +21,7 @@ import type React from "react"
 import { useState, useEffect } from "react"
 import { useParams } from "react-router-dom"
 import { motion } from "framer-motion"
-import { Star, MessageSquare, CheckCircle, Send } from "lucide-react"
+import { Star, MessageSquare, CheckCircle, Send, Clock } from "lucide-react"
 import api from "../config/api"
 import type { Token } from "../types"
 import ServiceName from "../components/ServiceName"
@@ -106,6 +106,33 @@ export default function FeedbackPage() {
           <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto mb-4"></div>
           <p className="text-gray-600">Loading...</p>
         </div>
+      </div>
+    )
+  }
+
+  // Prevent feedback before service is completed
+  if (token.status === "waiting" || token.status === "in_service") {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+        <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5, ease: "easeOut" }}
+          className="bg-white rounded-3xl shadow-xl w-full max-w-md p-8 text-center">
+          <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
+            className="w-20 h-20 bg-blue-100 rounded-2xl flex items-center justify-center mx-auto mb-6">
+            <Clock className="w-10 h-10 text-blue-600" />
+          </motion.div>
+          <h1 className="text-3xl font-bold text-slate-900 mb-4">Service in Progress</h1>
+          <p className="text-gray-600 mb-6">We'd love your feedback, but please wait until your service is completed!</p>
+          <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 mb-6">
+            <p className="text-blue-800 text-sm font-medium">Token #{token.tokenNumber}</p>
+            <p className="text-blue-700 text-xs mt-2">Redirect to your tracking page to see live updates.</p>
+          </div>
+          <button
+            onClick={() => window.location.href = `/queue/${tokenId}`}
+            className="w-full px-6 py-3 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition-colors"
+          >
+            View Queue Status
+          </button>
+        </motion.div>
       </div>
     )
   }
