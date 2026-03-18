@@ -85,6 +85,7 @@ export default function OutletQueueDisplay() {
   const [showRecent, setShowRecent] = useState(() => toBool(query.get("recent"), true))
   const [autoSlide, setAutoSlide] = useState(() => toBool(query.get("autoSlide"), true))
   const [playTone, setPlayTone] = useState(() => toBool(query.get("playTone"), true))
+  const [isLite, setIsLite] = useState(() => toBool(query.get("lite"), false))
   
   // Voice Announcement State
   const [voiceEnabled, setVoiceEnabled] = useState(true)
@@ -139,6 +140,7 @@ export default function OutletQueueDisplay() {
           const val = (s.playTone === "0" || s.playTone === 0 || s.playTone === false) ? false : true
           setPlayTone(val)
         }
+        if (s.isLite !== undefined && query.get("lite") === null) setIsLite(!!s.isLite)
       }
 
       if (queueData.outletMeta) {
@@ -353,9 +355,9 @@ export default function OutletQueueDisplay() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 p-3 sm:p-5 md:p-8 overflow-x-hidden"
+    <div className={`min-h-screen bg-slate-50 text-slate-900 p-3 sm:p-5 md:p-8 ${!isLite ? 'overflow-x-hidden' : ''}`}
       style={{
-        backgroundImage: "radial-gradient(circle at 20% 10%, rgba(16,185,129,0.08), transparent 35%), radial-gradient(circle at 80% 20%, rgba(59,130,246,0.08), transparent 40%)",
+        backgroundImage: isLite ? "none" : "radial-gradient(circle at 20% 10%, rgba(16,185,129,0.08), transparent 35%), radial-gradient(circle at 80% 20%, rgba(59,130,246,0.08), transparent 40%)",
       }}
     >
       <div className="max-w-screen-2xl mx-auto">
@@ -427,10 +429,10 @@ export default function OutletQueueDisplay() {
               <div className={`relative w-full ${!autoSlide ? 'overflow-x-auto custom-scrollbar' : 'overflow-hidden'}`}>
                 <div 
                   ref={servingTrackRef}
-                  className={`flex gap-3 sm:gap-4 py-2 ${autoSlide ? 'animate-marquee' : 'w-max'}`}
-                  style={autoSlide ? { animationDuration: `${servingDuration}s` } : {}}
+                  className={`flex gap-3 sm:gap-4 py-2 ${autoSlide && !isLite ? 'animate-marquee' : 'w-max flex-wrap'}`}
+                  style={(autoSlide && !isLite) ? { animationDuration: `${servingDuration}s` } : {}}
                 >
-                  {(autoSlide 
+                  {(autoSlide && !isLite
                     ? (servingByCounter.length < 4 
                         ? [...servingByCounter, { id: 'spacer', isSpacer: true }, ...servingByCounter, { id: 'spacer-2', isSpacer: true }] 
                         : [...servingByCounter, ...servingByCounter])
@@ -477,10 +479,10 @@ export default function OutletQueueDisplay() {
               <div className={`relative w-full ${!autoSlide ? 'overflow-x-auto custom-scrollbar' : 'overflow-hidden'}`}>
                 <div 
                   ref={upNextTrackRef} 
-                  className={`flex gap-3 whitespace-nowrap py-2 ${autoSlide ? 'animate-marquee' : 'w-max'}`}
-                  style={autoSlide ? { animationDuration: `${upNextDuration}s` } : {}}
+                  className={`flex gap-3 whitespace-nowrap py-2 ${autoSlide && !isLite ? 'animate-marquee' : 'w-max flex-wrap whitespace-normal'}`}
+                  style={(autoSlide && !isLite) ? { animationDuration: `${upNextDuration}s` } : {}}
                 >
-                  {(autoSlide 
+                  {(autoSlide && !isLite
                     ? (upNext.length < 6 
                         ? [...upNext, { id: 'spacer', isSpacer: true }, ...upNext, { id: 'spacer-2', isSpacer: true }] 
                         : [...upNext, ...upNext])
@@ -531,10 +533,10 @@ export default function OutletQueueDisplay() {
                 <div className={`relative w-full ${!autoSlide ? 'overflow-x-auto custom-scrollbar' : 'overflow-hidden'}`}>
                   <div 
                     ref={recentTrackRef} 
-                    className={`flex gap-4 whitespace-nowrap py-2 ${autoSlide ? 'animate-marquee' : 'w-max'}`}
-                    style={autoSlide ? { animationDuration: `${recentDuration}s` } : {}}
+                    className={`flex gap-4 whitespace-nowrap py-2 ${autoSlide && !isLite ? 'animate-marquee' : 'w-max flex-wrap whitespace-normal'}`}
+                    style={(autoSlide && !isLite) ? { animationDuration: `${recentDuration}s` } : {}}
                   >
-                    {(autoSlide 
+                    {(autoSlide && !isLite
                       ? (recentCalled.length < 6 
                           ? [...recentCalled, { id: 'spacer', isSpacer: true }, ...recentCalled, { id: 'spacer-2', isSpacer: true }] 
                           : [...recentCalled, ...recentCalled])
@@ -577,13 +579,13 @@ export default function OutletQueueDisplay() {
               <div className={`relative w-full ${!autoSlide ? 'overflow-x-auto custom-scrollbar' : 'overflow-hidden'}`}>
                 <div 
                   ref={counterTrackRef} 
-                  className={`flex gap-4 whitespace-nowrap py-2 ${autoSlide ? 'animate-marquee' : 'w-max'}`}
-                  style={autoSlide ? { animationDuration: `${counterDuration}s` } : {}}
+                  className={`flex gap-4 whitespace-nowrap py-2 ${autoSlide && !isLite ? 'animate-marquee' : 'w-max flex-wrap whitespace-normal'}`}
+                  style={(autoSlide && !isLite) ? { animationDuration: `${counterDuration}s` } : {}}
                 >
                   {/* Filter and double the counters for seamless looping, using spacers for short lists */}
                   {(() => {
                     const activeCounters = counters.filter((c) => c.number !== null);
-                    const itemsToDisplay = autoSlide 
+                    const itemsToDisplay = (autoSlide && !isLite)
                       ? (activeCounters.length > 0 && activeCounters.length < 6)
                         ? [...activeCounters, { id: 'spacer', isSpacer: true }, ...activeCounters, { id: 'spacer-2', isSpacer: true }]
                         : [...activeCounters, ...activeCounters]
@@ -711,7 +713,7 @@ export default function OutletQueueDisplay() {
 
       {/* Audio Unlock Overlay */}
       {voiceEnabled && !audioUnlocked && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/95 backdrop-blur-sm p-6 text-center">
+        <div className={`fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/95 p-6 text-center ${!isLite ? 'backdrop-blur-sm' : ''}`}>
           <div className="max-w-md w-full bg-white rounded-3xl p-8 shadow-2xl border border-white/20">
             <div className="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6">
               <Volume2 className="w-10 h-10 animate-pulse" />
@@ -768,6 +770,16 @@ export default function OutletQueueDisplay() {
         .custom-scrollbar::-webkit-scrollbar-thumb:hover {
           background: rgba(0,0,0,0.3);
         }
+
+        /* Fallbacks for older Smart TV browsers (Chromium < 70) */
+        h1 { font-size: 2.25rem; } /* Fallback for clamp() */
+        .flex { display: -webkit-box; display: -webkit-flex; display: flex; }
+        .grid { display: block; } /* Fallback for Grid: stacked blocks */
+        @supports (display: grid) { .grid { display: grid; } }
+        
+        /* Fallback for 'gap' in flexbox on legacy engines */
+        .flex-wrap > * { margin: 8px; }
+        @supports (gap: 1px) { .flex-wrap > * { margin: 0; } }
       `}</style>
     </div >
   )

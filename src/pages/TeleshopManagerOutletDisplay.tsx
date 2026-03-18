@@ -30,6 +30,7 @@ export default function TeleshopManagerOutletDisplay() {
   const [recent, setRecent] = useState(true)
   const [autoSlide, setAutoSlide] = useState(true)
   const [playTone, setPlayTone] = useState(true)
+  const [isLite, setIsLite] = useState(false)
 
   useEffect(() => {
     const load = async () => {
@@ -66,6 +67,7 @@ export default function TeleshopManagerOutletDisplay() {
             if (s.recent !== undefined) setRecent(!!s.recent)
             if (s.autoSlide !== undefined) setAutoSlide(!!s.autoSlide)
             if (s.playTone !== undefined) setPlayTone(!!s.playTone)
+            if (s.isLite !== undefined) setIsLite(!!s.isLite)
           }
         } catch (se) {
           console.warn("Could not load persisted display settings", se)
@@ -90,9 +92,10 @@ export default function TeleshopManagerOutletDisplay() {
       recent: recent ? "1" : "0",
       autoSlide: autoSlide ? "1" : "0",
       playTone: playTone ? "1" : "0",
+      lite: isLite ? "1" : "0",
     })
     return `${window.location.origin}/display/outlet/${manager.branchId}?${params.toString()}`
-  }, [manager?.branchId, refresh, next, services, counters, recent, autoSlide])
+  }, [manager?.branchId, refresh, next, services, counters, recent, autoSlide, playTone, isLite])
 
   const openDisplay = () => {
     if (!displayUrl) return
@@ -124,7 +127,8 @@ export default function TeleshopManagerOutletDisplay() {
             counters,
             recent,
             autoSlide,
-            playTone
+            playTone,
+            isLite
           }
         },
         { headers: { Authorization: `Bearer ${token}` } }
@@ -236,13 +240,26 @@ export default function TeleshopManagerOutletDisplay() {
               <label className="flex items-center justify-between rounded-xl border border-slate-200 px-4 py-3 bg-amber-50/50 border-amber-100">
                 <div className="flex flex-col">
                   <span className="text-sm font-bold text-slate-800">Enable Announcement Tone</span>
-                  <span className="text-xs text-slate-500">Play the announcement goal tone before speaking customer names</span>
+                  <span className="text-xs text-slate-500">Play the announcement chime before speaking names</span>
                 </div>
                 <input 
                   type="checkbox" 
                   checked={playTone} 
                   onChange={(e) => setPlayTone(e.target.checked)} 
                   className="w-5 h-5 accent-amber-600"
+                />
+              </label>
+
+              <label className="flex items-center justify-between rounded-xl border border-rose-200 px-4 py-3 bg-rose-50/50 border-rose-100">
+                <div className="flex flex-col">
+                  <span className="text-sm font-bold text-rose-900">Lite Mode (For Older Smart TVs)</span>
+                  <span className="text-xs text-rose-600">Disables animations and heavy effects to prevent TVs from crashing.</span>
+                </div>
+                <input 
+                  type="checkbox" 
+                  checked={isLite} 
+                  onChange={(e) => setIsLite(e.target.checked)} 
+                  className="w-5 h-5 accent-rose-600"
                 />
               </label>
             </div>
