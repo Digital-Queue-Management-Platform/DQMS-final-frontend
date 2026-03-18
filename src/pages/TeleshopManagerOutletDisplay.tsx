@@ -31,6 +31,7 @@ export default function TeleshopManagerOutletDisplay() {
   const [autoSlide, setAutoSlide] = useState(true)
   const [playTone, setPlayTone] = useState(true)
   const [isLite, setIsLite] = useState(false)
+  const [isDarkMode, setIsDarkMode] = useState(false)
 
   useEffect(() => {
     const load = async () => {
@@ -68,6 +69,7 @@ export default function TeleshopManagerOutletDisplay() {
             if (s.autoSlide !== undefined) setAutoSlide(!!s.autoSlide)
             if (s.playTone !== undefined) setPlayTone(!!s.playTone)
             if (s.isLite !== undefined) setIsLite(!!s.isLite)
+            if (s.isDarkMode !== undefined) setIsDarkMode(!!s.isDarkMode)
           }
         } catch (se) {
           console.warn("Could not load persisted display settings", se)
@@ -93,9 +95,10 @@ export default function TeleshopManagerOutletDisplay() {
       autoSlide: autoSlide ? "1" : "0",
       playTone: playTone ? "1" : "0",
       lite: isLite ? "1" : "0",
+      dark: isDarkMode ? "1" : "0",
     })
     return `${window.location.origin}/display/outlet/${manager.branchId}?${params.toString()}`
-  }, [manager?.branchId, refresh, next, services, counters, recent, autoSlide, playTone, isLite])
+  }, [manager?.branchId, refresh, next, services, counters, recent, autoSlide, playTone, isLite, isDarkMode])
 
   const openDisplay = () => {
     if (!displayUrl) return
@@ -128,7 +131,8 @@ export default function TeleshopManagerOutletDisplay() {
             recent,
             autoSlide,
             playTone,
-            isLite
+            isLite,
+            isDarkMode
           }
         },
         { headers: { Authorization: `Bearer ${token}` } }
@@ -260,6 +264,19 @@ export default function TeleshopManagerOutletDisplay() {
                   checked={isLite} 
                   onChange={(e) => setIsLite(e.target.checked)} 
                   className="w-5 h-5 accent-rose-600"
+                />
+              </label>
+
+              <label className="flex items-center justify-between rounded-xl border border-slate-700 px-4 py-3 bg-slate-900 text-white">
+                <div className="flex flex-col">
+                  <span className="text-sm font-bold">Dark Mode (Premium Look)</span>
+                  <span className="text-xs text-slate-400">Switch display to a dark background - recommended for most outlets.</span>
+                </div>
+                <input 
+                  type="checkbox" 
+                  checked={isDarkMode} 
+                  onChange={(e) => setIsDarkMode(e.target.checked)} 
+                  className="w-5 h-5 accent-indigo-500"
                 />
               </label>
             </div>
