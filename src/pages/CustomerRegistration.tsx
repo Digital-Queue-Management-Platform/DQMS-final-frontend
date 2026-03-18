@@ -418,6 +418,8 @@ export default function CustomerRegistration() {
   const handleServiceSelect = (serviceCode: string) => {
     console.log('Selecting service:', serviceCode)
     setSelectedService(serviceCode)
+    // Auto advance to next step after a tiny delay for visual feedback
+    setTimeout(() => goToNextStep(), 300)
   }
 
   // Check if service requires SLT number (Bill Payment or Billing Inquiry)
@@ -427,21 +429,26 @@ export default function CustomerRegistration() {
 
   // Get service title by code (localized for the two allowed services)
   const getServiceTitle = (code: string) => {
-    // Localize fixed options
-    if (code === 'BILL_PAYMENT') {
-      // Use translations object later in render cycle via `t`
-      // We can't reference `t` here directly before it's defined at call site, so
-      // we return a key that will be resolved in render by reading `t`.
-      // However since this runs during render (after `t` is defined), accessing `t` is safe.
-      // eslint-disable-next-line @typescript-eslint/no-use-before-define
-      return t.billPayment
-    }
-    if (code === 'OTHERS') {
-      // eslint-disable-next-line @typescript-eslint/no-use-before-define
-      return t.other
-    }
+    // Check by code first
+    const upperCode = code.toUpperCase()
+    if (upperCode === 'BILL_PAYMENT') return t.billPayment
+    if (upperCode === 'OTHERS' || upperCode === 'OTHER') return t.other
+    if (upperCode === 'NEW_SERVICE' || upperCode === 'SVC001') return t.newService
+    if (upperCode === 'SERVICE_COMPLAINT' || upperCode === 'SVC003') return t.serviceComplaint
+    if (upperCode === 'BILL_DISPUTE' || upperCode === 'SVC004') return t.billDispute
+
     const service = services.find(s => s.code === code)
-    return service?.title || code
+    if (!service) return code
+
+    // Try to match the title string to localized versions as fallback
+    const title = service.title.toLowerCase()
+    if (title.includes('new service')) return t.newService
+    if (title.includes('bill payment')) return t.billPayment
+    if (title.includes('service complaint')) return t.serviceComplaint
+    if (title.includes('bill dispute')) return t.billDispute
+    if (title.includes('other')) return t.other
+
+    return service.title
   }
 
   const sendOtp = async (): Promise<boolean> => {
@@ -674,6 +681,9 @@ export default function CustomerRegistration() {
     if (currentStep === 2) {
       setPreferredLanguage("")
     }
+    if (currentStep === 3) {
+      setSelectedService("")
+    }
     setCurrentStep(prev => Math.max(prev - 1, 1))
   }
 
@@ -682,7 +692,7 @@ export default function CustomerRegistration() {
   const isValidEmail = (e: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)
 
   // const canProceedFromStep1 = preferredLanguage !== ''
-  const canProceedFromStep2 = selectedService !== ""
+  // const canProceedFromStep2 = selectedService !== ""
   const canProceedFromStep3 = () => {
     const validDetails = name.trim().length >= 2 && isValidMobile(mobileNumber)
     if (selectedService === 'BILL_PAYMENT' || isSltRequiredService(selectedService)) {
@@ -701,6 +711,9 @@ export default function CustomerRegistration() {
       outlet: "Outlet",
       serviceType: "Service Type",
       billPayment: "Bill Payment",
+      newService: "New Service",
+      serviceComplaint: "Service Complaint",
+      billDispute: "Bill Dispute",
       other: "Other Services",
       register: "Generate Token",
       registering: "Generating...",
@@ -776,6 +789,9 @@ export default function CustomerRegistration() {
       outlet: "ශාඛාව",
       serviceType: "සේවා වර්ගය",
       billPayment: "බිල් ගෙවීම",
+      newService: "නව සේවාව",
+      serviceComplaint: "සේවා පැමිණිල්ල",
+      billDispute: "බිල්පත් ආරවුල",
       other: "වෙනත් සේවා",
       register: "ටෝකන් උත්පාදනය කරන්න",
       registering: "උත්පාදනය කරමින්...",
@@ -851,6 +867,9 @@ export default function CustomerRegistration() {
       outlet: "கிளை",
       serviceType: "சேவை வகை",
       billPayment: "பில் செலுத்துதல்",
+      newService: "புதிய சேவை",
+      serviceComplaint: "சேவை புகார்",
+      billDispute: "பில் சர்ச்சை",
       other: "பிற சேவைகள்",
       register: "டோக்கன் உருவாக்கவும்",
       registering: "உருவாக்குகிறது...",
@@ -1104,14 +1123,7 @@ export default function CustomerRegistration() {
                     >
                       {t.back}
                     </button>
-                    <button
-                      type="button"
-                      onClick={goToNextStep}
-                      disabled={!canProceedFromStep2}
-                      className="flex-1 bg-blue-600 text-white py-3 rounded-xl font-semibold hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
-                    >
-                      {t.next}
-                    </button>
+                    {/* Next button removed as per user request for auto-advance */}
                   </div>
                 </div>
               )}

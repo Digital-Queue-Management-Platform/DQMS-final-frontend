@@ -171,11 +171,31 @@ export default function KioskDashboard() {
 
   const handleServiceSelect = (serviceCode: string) => {
     setSelectedService(serviceCode)
+    // Auto advance to next step after a tiny delay for visual feedback
+    setTimeout(() => goToNextStep(), 300)
   }
 
   const getServiceTitle = (code: string) => {
+    // Check by code first
+    const upperCode = code.toUpperCase()
+    if (upperCode === 'BILL_PAYMENT') return t.billPayment
+    if (upperCode === 'OTHERS' || upperCode === 'OTHER') return t.other
+    if (upperCode === 'NEW_SERVICE' || upperCode === 'SVC001') return t.newService
+    if (upperCode === 'SERVICE_COMPLAINT' || upperCode === 'SVC003') return t.serviceComplaint
+    if (upperCode === 'BILL_DISPUTE' || upperCode === 'SVC004') return t.billDispute
+
     const service = services.find(s => s.code === code)
-    return service?.title || code
+    if (!service) return code
+
+    // Try to match the title string to localized versions as fallback
+    const title = service.title.toLowerCase()
+    if (title.includes('new service')) return t.newService
+    if (title.includes('bill payment')) return t.billPayment
+    if (title.includes('service complaint')) return t.serviceComplaint
+    if (title.includes('bill dispute')) return t.billDispute
+    if (title.includes('other')) return t.other
+
+    return service.title
   }
 
   const sendOtp = async (): Promise<boolean> => {
@@ -370,6 +390,9 @@ export default function KioskDashboard() {
     if (currentStep === 2) {
       setPreferredLanguage("")
     }
+    if (currentStep === 3) {
+      setSelectedService("")
+    }
     setCurrentStep(prev => Math.max(prev - 1, 1))
   }
 
@@ -378,7 +401,7 @@ export default function KioskDashboard() {
   const isValidEmail = (e: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)
 
   // const canProceedFromStep1 = preferredLanguage !== ''
-  const canProceedFromStep2 = selectedService !== ''
+  // const canProceedFromStep2 = selectedService !== ''
   const canProceedFromStep3 = () => {
     const validDetails = name.trim().length >= 2 && isValidMobile(mobileNumber)
     if (isSltRequiredService(selectedService)) {
@@ -523,6 +546,9 @@ export default function KioskDashboard() {
       optionalDetails: "Optional details",
       serviceType: "Service Type",
       billPayment: "Bill Payment",
+      newService: "New Service",
+      serviceComplaint: "Service Complaint",
+      billDispute: "Bill Dispute",
       other: "Other Services",
       register: "Register",
       registering: "Registering...",
@@ -598,6 +624,9 @@ export default function KioskDashboard() {
       optionalDetails: "විකල්ප විස්තර",
       serviceType: "සේවා වර්ගය",
       billPayment: "බිල් ගෙවීම",
+      newService: "නව සේවාව",
+      serviceComplaint: "සේවා පැමිණිල්ල",
+      billDispute: "බිල්පත් ආරවුල",
       other: "වෙනත් සේවා",
       register: "ලියාපදිංචි වන්න",
       registering: "ලියාපදිංචි වෙමින්...",
@@ -673,6 +702,9 @@ export default function KioskDashboard() {
       optionalDetails: "விருப்ப விவரங்கள்",
       serviceType: "சேவை வகை",
       billPayment: "பில் செலுத்தல்",
+      newService: "புதிய சேவை",
+      serviceComplaint: "சேவை புகார்",
+      billDispute: "பில் சர்ச்சை",
       other: "மற்ற சேவைகள்",
       register: "பதிவு செய்யவும்",
       registering: "பதிவு செய்யப்படுகிறது...",
@@ -921,14 +953,7 @@ export default function KioskDashboard() {
                     >
                       {t.back}
                     </button>
-                    <button
-                      type="button"
-                      onClick={goToNextStep}
-                      disabled={!canProceedFromStep2}
-                      className="flex-1 bg-blue-600 text-white py-3 rounded-xl font-semibold hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
-                    >
-                      {t.next}
-                    </button>
+                    {/* Next button removed as per user request for auto-advance */}
                   </div>
                 </div>
               )}

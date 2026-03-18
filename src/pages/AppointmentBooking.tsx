@@ -246,6 +246,31 @@ export default function AppointmentBooking() {
 
   const handleServiceSelect = (code: string) => {
     setSelectedService(code)
+    // Auto advance to next step after a tiny delay for visual feedback
+    setTimeout(() => goToNextStep(), 300)
+  }
+
+  const getServiceTitle = (code: string) => {
+    // Check by code first
+    const upperCode = code.toUpperCase()
+    if (upperCode === 'BILL_PAYMENT') return t.billPayment
+    if (upperCode === 'OTHERS' || upperCode === 'OTHER') return t.others
+    if (upperCode === 'NEW_SERVICE' || upperCode === 'SVC001') return t.newService
+    if (upperCode === 'SERVICE_COMPLAINT' || upperCode === 'SVC003') return t.serviceComplaint
+    if (upperCode === 'BILL_DISPUTE' || upperCode === 'SVC004') return t.billDispute
+
+    const service = services.find(s => s.code === code)
+    if (!service) return code
+
+    // Try to match the title string to localized versions as fallback
+    const title = service.title.toLowerCase()
+    if (title.includes('new service')) return t.newService
+    if (title.includes('bill payment')) return t.billPayment
+    if (title.includes('service complaint')) return t.serviceComplaint
+    if (title.includes('bill dispute')) return t.billDispute
+    if (title.includes('other')) return t.others
+
+    return service.title
   }
 
   // Translations for UI labels/buttons
@@ -264,6 +289,9 @@ export default function AppointmentBooking() {
       selected: 'selected',
       selectServices: 'Select services...',
       billPayment: 'Bill Payment',
+      newService: 'New Service',
+      serviceComplaint: 'Service Complaint',
+      billDispute: 'Bill Dispute',
       others: 'Others',
       preferredLang: 'Preferred Language',
       verifyMobile: 'Verify Mobile',
@@ -332,6 +360,9 @@ export default function AppointmentBooking() {
       selected: 'තෝරාගෙන ඇත',
       selectServices: 'සේවාවන් තෝරන්න...',
       billPayment: 'බිල් ගෙවීම',
+      newService: 'නව සේවාව',
+      serviceComplaint: 'සේවා පැමිණිල්ල',
+      billDispute: 'බිල්පත් ආරවුල',
       others: 'වෙනත්',
       preferredLang: 'කැමති භාෂාව',
       verifyMobile: 'ජංගම අංකය තහවුරු කරන්න',
@@ -400,6 +431,9 @@ export default function AppointmentBooking() {
       selected: 'தேர்வு செய்யப்பட்டது',
       selectServices: 'சேவைகளைத் தேர்ந்தெடுக்கவும்...',
       billPayment: 'பில் செலுத்துதல்',
+      newService: 'புதிய சேவை',
+      serviceComplaint: 'சேவை புகார்',
+      billDispute: 'பில் சர்ச்சை',
       others: 'பிறவை',
       preferredLang: 'விருப்ப மொழி',
       verifyMobile: 'மொபைல் சரிபார்க்கவும்',
@@ -719,6 +753,9 @@ export default function AppointmentBooking() {
     if (currentStep === 2) {
       setPreferredLanguage("")
     }
+    if (currentStep === 3) {
+      setSelectedService("")
+    }
     setCurrentStep(prev => Math.max(prev - 1, 1))
   }
 
@@ -726,7 +763,7 @@ export default function AppointmentBooking() {
   const isValidSlt = (s: string) => /^\d{10}$/.test(s) && s.startsWith('0') && !s.startsWith('07')
 
   // const canProceedFromStep1 = preferredLanguage !== ''
-  const canProceedFromStep2 = selectedService !== ''
+  // const canProceedFromStep2 = selectedService !== ''
   const canProceedFromStep3 = () => {
     const hasBasicInfo = outletId && datetime && name.trim().length >= 2 && isValidMobile(mobileNumber) && isValidAppointmentTime(datetime) && !closedOnDateError && !checkingDate
     if (isSltRequiredService(selectedService)) {
@@ -871,7 +908,7 @@ export default function AppointmentBooking() {
                       <div className="flex-1">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="text-base font-medium">
-                            {service.code === 'BILL_PAYMENT' ? t.billPayment : service.code === 'OTHERS' ? t.others : service.title}
+                            {getServiceTitle(service.code)}
                           </span>
                         </div>
                       </div>
@@ -889,14 +926,7 @@ export default function AppointmentBooking() {
                 >
                   {t.back}
                 </button>
-                <button
-                  type="button"
-                  onClick={goToNextStep}
-                  disabled={!canProceedFromStep2}
-                  className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
-                >
-                  {t.next}
-                </button>
+                {/* Next button removed as per user request for auto-advance */}
               </div>
             </div>
           )}
