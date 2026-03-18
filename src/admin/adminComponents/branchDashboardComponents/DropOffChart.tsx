@@ -49,22 +49,22 @@ interface DropOffChartProps {
   tokenData: TokenDataItem[]
 }
 
-const DropOffChart: React.FC<DropOffChartProps> = ({ 
-  serviceData, 
-  hourlyData, 
-  ratingData, 
-  tokenData 
+const DropOffChart: React.FC<DropOffChartProps> = ({
+  serviceData,
+  hourlyData,
+  ratingData,
+  tokenData,
 }) => {
-  // Calculate totals and percentages
   const totalRatings = ratingData.reduce((sum, item) => sum + item.count, 0)
   const COLORS = ['#4CAF50', '#8BC34A', '#FFC107', '#FF9800', '#F44336']
 
   const totalIssued = tokenData.reduce((sum, item) => sum + item.issued, 0)
   const totalCompleted = tokenData.reduce((sum, item) => sum + item.completed, 0)
   const totalDropOffs = totalIssued - totalCompleted
-  const dropOffPercentage = ((totalDropOffs / totalIssued) * 100).toFixed(1)
+  const dropOffPercentage =
+    totalIssued > 0 ? ((totalDropOffs / totalIssued) * 100).toFixed(1) : '0.0'
 
-  const enhancedTokenData: EnhancedTokenDataItem[] = tokenData.map(item => ({
+  const enhancedTokenData: EnhancedTokenDataItem[] = tokenData.map((item) => ({
     ...item,
     dropOffs: item.issued - item.completed,
   }))
@@ -92,14 +92,18 @@ const DropOffChart: React.FC<DropOffChartProps> = ({
             </div>
           </div>
         </div>
+
         <div className="h-72">
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={enhancedTokenData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+            <LineChart
+              data={enhancedTokenData}
+              margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+            >
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="hour" />
               <YAxis />
               <Tooltip
-                formatter={(value: number, name: string) => {
+                formatter={(value: any, name: any) => {
                   if (name === 'issued') return [`${value} Tokens`, 'Issued']
                   if (name === 'completed') return [`${value} Tokens`, 'Completed']
                   if (name === 'dropOffs') return [`${value} Customers`, 'No-shows']
@@ -107,18 +111,39 @@ const DropOffChart: React.FC<DropOffChartProps> = ({
                 }}
               />
               <Legend />
-              <Line type="monotone" dataKey="issued" stroke="#3B82F6" strokeWidth={2} activeDot={{ r: 8 }} />
-              <Line type="monotone" dataKey="completed" stroke="#10B981" strokeWidth={2} activeDot={{ r: 8 }} />
-              <Line type="monotone" dataKey="dropOffs" stroke="#F87171" strokeDasharray="5 5" strokeWidth={2} />
+              <Line
+                type="monotone"
+                dataKey="issued"
+                stroke="#3B82F6"
+                strokeWidth={2}
+                activeDot={{ r: 8 }}
+              />
+              <Line
+                type="monotone"
+                dataKey="completed"
+                stroke="#10B981"
+                strokeWidth={2}
+                activeDot={{ r: 8 }}
+              />
+              <Line
+                type="monotone"
+                dataKey="dropOffs"
+                stroke="#F87171"
+                strokeDasharray="5 5"
+                strokeWidth={2}
+              />
             </LineChart>
           </ResponsiveContainer>
         </div>
+
         <div className="mt-3 pt-3 border-t border-gray-100 flex flex-wrap items-center justify-between">
           <div className="text-sm text-gray-500">
-            <span className="font-semibold">Total no-shows:</span> {totalDropOffs} customers ({dropOffPercentage}% of issued tokens)
+            <span className="font-semibold">Total no-shows:</span> {totalDropOffs} customers (
+            {dropOffPercentage}% of issued tokens)
           </div>
           <div className="text-sm text-gray-500 mt-1 md:mt-0">
-            <span className="font-semibold">Completion rate:</span> {(100 - parseFloat(dropOffPercentage)).toFixed(1)}%
+            <span className="font-semibold">Completion rate:</span>{' '}
+            {(100 - parseFloat(dropOffPercentage)).toFixed(1)}%
           </div>
         </div>
       </div>
@@ -126,10 +151,15 @@ const DropOffChart: React.FC<DropOffChartProps> = ({
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         {/* Bar Chart: Customers by Service Type */}
         <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100">
-          <h3 className="text-base font-medium text-gray-700 mb-4">Customers by Service Type</h3>
+          <h3 className="text-base font-medium text-gray-700 mb-4">
+            Customers by Service Type
+          </h3>
           <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={serviceData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+              <BarChart
+                data={serviceData}
+                margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+              >
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="name" />
                 <YAxis />
@@ -143,16 +173,27 @@ const DropOffChart: React.FC<DropOffChartProps> = ({
 
         {/* Area Chart: Customer Flow */}
         <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100">
-          <h3 className="text-base font-medium text-gray-700 mb-4">Customer Flow Throughout the Day</h3>
+          <h3 className="text-base font-medium text-gray-700 mb-4">
+            Customer Flow Throughout the Day
+          </h3>
           <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={hourlyData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+              <AreaChart
+                data={hourlyData}
+                margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+              >
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="hour" />
                 <YAxis />
                 <Tooltip />
                 <Legend />
-                <Area type="monotone" dataKey="customers" stroke="#3B82F6" fill="#93C5FD" name="Customers" />
+                <Area
+                  type="monotone"
+                  dataKey="customers"
+                  stroke="#3B82F6"
+                  fill="#93C5FD"
+                  name="Customers"
+                />
               </AreaChart>
             </ResponsiveContainer>
           </div>
@@ -161,7 +202,9 @@ const DropOffChart: React.FC<DropOffChartProps> = ({
 
       {/* Pie Chart: Customer Ratings */}
       <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100">
-        <h3 className="text-base font-medium text-gray-700 mb-4">Customer Rating Distribution</h3>
+        <h3 className="text-base font-medium text-gray-700 mb-4">
+          Customer Rating Distribution
+        </h3>
         <div className="h-72 flex items-center justify-center">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
@@ -174,7 +217,7 @@ const DropOffChart: React.FC<DropOffChartProps> = ({
                 fill="#8884d8"
                 dataKey="count"
                 nameKey="rating"
-                label={(props: any) => 
+                label={(props: any) =>
                   `${props.name} Stars: ${(props.percent * 100).toFixed(0)}%`
                 }
               >
@@ -182,10 +225,11 @@ const DropOffChart: React.FC<DropOffChartProps> = ({
                   <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                 ))}
               </Pie>
-              <Tooltip 
-                formatter={(value: number) => 
-                  [`${value} customers (${((value / totalRatings) * 100).toFixed(1)}%)`, 'Count']
-                } 
+              <Tooltip
+                formatter={(value: any) => [
+                  `${value} customers (${((Number(value) / totalRatings) * 100).toFixed(1)}%)`,
+                  'Count',
+                ]}
               />
               <Legend formatter={(value: string) => `${value} Stars`} />
             </PieChart>

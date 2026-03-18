@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import React, { useState, useEffect } from "react"
 import { useParams, useNavigate } from "react-router-dom"
@@ -24,7 +24,7 @@ export default function QueueStatus() {
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card' | 'cheque' | 'bank_transfer' | null>(null)
   const [paymentSubmitting, setPaymentSubmitting] = useState(false)
   const [paymentConfirmed, setPaymentConfirmed] = useState(false)
-  const [language, setLanguage] = useState<'en' | 'si' | 'ta'>(() => {
+  const [language] = useState<'en' | 'si' | 'ta'>(() => {
     try {
       const saved = localStorage.getItem('dq_lang') as 'en' | 'si' | 'ta' | null
       if (saved) return saved
@@ -284,18 +284,7 @@ export default function QueueStatus() {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4 sm:p-6">
-      {/* Language Selector */}
-      <div className="absolute top-4 right-4 flex gap-1 bg-white p-1 rounded-xl shadow-sm border border-gray-100">
-        {(['en', 'si', 'ta'] as const).map((l) => (
-          <button
-            key={l}
-            onClick={() => { setLanguage(l); localStorage.setItem('dq_lang', l) }}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${language === l ? 'bg-blue-600 text-white shadow-md' : 'text-gray-500 hover:bg-gray-50'}`}
-          >
-            {l.toUpperCase()}
-          </button>
-        ))}
-      </div>
+      {/* Top language selector removed as it's redundant with selection during registration/booking */}
 
       <motion.div initial={{ opacity: 0, scale: 0.96, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} transition={{ duration: 0.5, ease: "easeOut" }}
         className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden border border-gray-100 flex flex-col">
@@ -476,9 +465,6 @@ export default function QueueStatus() {
                 <XCircle className="w-16 h-16 text-slate-400 mx-auto mb-4" />
                 <p className="text-2xl font-black text-slate-800 mb-2">{t.cancelledTitle}</p>
                 <p className="text-slate-500 font-medium">{t.cancelledMessage}</p>
-                <button onClick={() => navigate("/")} className="mt-6 w-full py-4 bg-blue-600 text-white rounded-2xl font-black shadow-lg shadow-blue-200">
-                  {t.backHome}
-                </button>
               </div>
             )}
           </div>

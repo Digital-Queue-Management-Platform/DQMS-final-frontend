@@ -1,0 +1,36 @@
+name: Build Frontend on SLT VM
+
+on:
+  push:
+    branches:
+      - feat/slt-vm-new
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: [self-hosted, Windows, X64, frontend]
+
+    steps:
+      - name: Mark repo as safe
+        shell: cmd
+        run: git config --global --add safe.directory C:/DQMS-final-frontend
+
+      - name: Update frontend working copy
+        shell: cmd
+        run: |
+          cd /d C:\DQMS-final-frontend
+          git fetch origin
+          git checkout feat/slt-vm-new
+          git reset --hard origin/feat/slt-vm-new
+
+      - name: Install dependencies
+        shell: cmd
+        run: |
+          cd /d C:\DQMS-final-frontend
+          npm install
+
+      - name: Build frontend
+        shell: cmd
+        run: |
+          cd /d C:\DQMS-final-frontend
+          npm run build

@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import { useEffect, useState } from "react"
 import { useLocation, useNavigate } from "react-router-dom"
@@ -37,7 +37,7 @@ export default function AppointmentMy() {
   const [appts, setAppts] = useState<Appt[]>([])
   const [billDataMap, setBillDataMap] = useState<Record<string, BillData>>({})
   const [outletMap, setOutletMap] = useState<Record<string, { name: string; location?: string }>>({})
-  const [language, setLanguage] = useState<'en' | 'si' | 'ta'>(() => {
+  const [language] = useState<'en' | 'si' | 'ta'>(() => {
     try {
       const saved = localStorage.getItem('dq_lang') as 'en' | 'si' | 'ta' | null
       if (saved) return saved
@@ -105,6 +105,21 @@ export default function AppointmentMy() {
     }
   }
 
+  const cancelAppt = async (apptId: string) => {
+    if (!window.confirm(t.cancelConfirm)) return
+    setLoading(true)
+    try {
+      await api.post(`/appointment/${apptId}/cancel`)
+      // Refresh list
+      await fetchMy(mobileNumber)
+      alert(t.cancelSuccess)
+    } catch (e: any) {
+      setError(e?.response?.data?.error || "Failed to cancel appointment")
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const formatDate = (s: string) => new Date(s).toLocaleDateString([], { year: 'numeric', month: 'short', day: 'numeric' })
   const formatTime = (s: string) => new Date(s).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 
@@ -139,6 +154,10 @@ export default function AppointmentMy() {
       unpaid: 'Unpaid',
       paid: 'Paid',
       overdue: 'Overdue',
+      cancelAppt: 'Cancel Appointment',
+      cancelling: 'Cancelling…',
+      cancelConfirm: 'Are you sure you want to cancel this appointment?',
+      cancelSuccess: 'Appointment cancelled successfully',
     },
     si: {
       title: 'මගේ ඇප්පොයින්ට්මන්ට්',
@@ -170,6 +189,10 @@ export default function AppointmentMy() {
       unpaid: 'නොගෙවූ',
       paid: 'ගෙවූ',
       overdue: 'කල් ඉකුත් වූ',
+      cancelAppt: 'හමුව අවලංගු කරන්න',
+      cancelling: 'අවලංගු කරමින්…',
+      cancelConfirm: 'මෙම හමුව අවලංගු කිරීමට ඔබට විශ්වාසද?',
+      cancelSuccess: 'හමුව සාර්ථකව අවලංගු කරන ලදී',
     },
     ta: {
       title: 'எனது நேரங்கள்',
@@ -201,6 +224,10 @@ export default function AppointmentMy() {
       unpaid: 'செலுத்தப்படாதது',
       paid: 'செலுத்தப்பட்டது',
       overdue: 'தாமதமானது',
+      cancelAppt: 'சந்திப்பை ரத்துசெய்',
+      cancelling: 'ரத்துசெய்கிறது…',
+      cancelConfirm: 'இந்த சந்திப்பை ரத்து செய்ய விரும்புகிறீர்களா?',
+      cancelSuccess: 'சந்திப்பு வெற்றிகரமாக ரத்து செய்யப்பட்டது',
     },
   } as const
 
@@ -226,27 +253,7 @@ export default function AppointmentMy() {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4 flex justify-center">
       <div className="w-full max-w-2xl">
         <div className="bg-white rounded-xl shadow-xl p-6 mb-4">
-          {/* Language Tabs */}
-          <div className="flex justify-end gap-2 mb-3">
-            <button
-              onClick={() => { setLanguage('en'); try { localStorage.setItem('dq_lang','en') } catch {} }}
-              className={`px-3 py-1 rounded-lg text-xs sm:text-sm font-medium transition-colors ${language === 'en' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600'}`}
-            >
-              {t.english}
-            </button>
-            <button
-              onClick={() => { setLanguage('si'); try { localStorage.setItem('dq_lang','si') } catch {} }}
-              className={`px-3 py-1 rounded-lg text-xs sm:text-sm font-medium transition-colors ${language === 'si' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600'}`}
-            >
-              {t.sinhala}
-            </button>
-            <button
-              onClick={() => { setLanguage('ta'); try { localStorage.setItem('dq_lang','ta') } catch {} }}
-              className={`px-3 py-1 rounded-lg text-xs sm:text-sm font-medium transition-colors ${language === 'ta' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600'}`}
-            >
-              {t.tamil}
-            </button>
-          </div>
+          {/* Top language selector removed as it's redundant */}
 
           <h1 className="text-2xl font-bold text-gray-900 mb-2">{t.title}</h1>
           <p className="text-sm text-gray-600 mb-4">{t.subtitle}</p>
@@ -305,6 +312,18 @@ export default function AppointmentMy() {
                   </div>
                   {a.preferredLanguage && (
                     <div className="text-xs text-gray-500">{t.languageLabel}: {a.preferredLanguage}</div>
+                  )}
+
+                  {a.status === 'booked' && (
+                    <div className="mt-3">
+                      <button
+                        onClick={() => cancelAppt(a.id)}
+                        disabled={loading}
+                        className="text-xs text-red-600 hover:text-red-800 font-semibold border border-red-200 hover:border-red-600 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1"
+                      >
+                        {loading ? t.cancelling : t.cancelAppt}
+                      </button>
+                    </div>
                   )}
                   
                   {/* Bill Details - Show if SVC002 (Bill Payment) service and bill data exists */}

@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import type React from "react"
 
@@ -36,7 +36,7 @@ export default function CustomerRegistration() {
   const [qrToken, setQrToken] = useState<string>("")
   const [qrValid, setQrValid] = useState<boolean>(false)
   const [services, setServices] = useState<Array<{ id: string; code: string; title: string; isActive?: boolean; isPriorityService?: boolean }>>([])
-  const [preferredLanguage, setPreferredLanguage] = useState<string>('en')
+  const [preferredLanguage, setPreferredLanguage] = useState<string>("")
   // OTP verification states
   const [otpStep, setOtpStep] = useState<'idle' | 'sent' | 'verified'>("idle")
   const [otpCode, setOtpCode] = useState("")
@@ -46,7 +46,6 @@ export default function CustomerRegistration() {
   const [showOtpPopup, setShowOtpPopup] = useState(false)
   const [devOtpCode, setDevOtpCode] = useState<string>("")
   const [autoSendingOtp, setAutoSendingOtp] = useState(false)
-  const [shouldAutoSubmit, setShouldAutoSubmit] = useState(false)
   const formRef = useRef<HTMLFormElement>(null)
 
 
@@ -60,7 +59,7 @@ export default function CustomerRegistration() {
   const [notificationSent, setNotificationSent] = useState(false)
   const [notificationMessage, setNotificationMessage] = useState("")
   const [isOwnerOfAccount, setIsOwnerOfAccount] = useState(false)
-
+  const [shouldAutoSubmit, setShouldAutoSubmit] = useState(false)
 
   // Multi-step form state
   const [currentStep, setCurrentStep] = useState(1)
@@ -81,7 +80,7 @@ export default function CustomerRegistration() {
     setSelectedService("")
     setNicNumber("")
     setEmail("")
-    setPreferredLanguage('en')
+    setPreferredLanguage("")
     setError("")
     setLanguage("en")
     setFormKey(Date.now()) // Force form re-render
@@ -103,6 +102,7 @@ export default function CustomerRegistration() {
     setNotificationSent(false)
     setNotificationMessage("")
     setIsOwnerOfAccount(false)
+    setShouldAutoSubmit(false)
 
     // Additional browser form clearing
     setTimeout(() => {
@@ -362,32 +362,55 @@ export default function CustomerRegistration() {
     }
   }, [mobileNumber, currentStep])
 
-  // Auto-submit form after OTP verification
+  // Auto-submit for non-bill payment services once OTP is verified
   useEffect(() => {
-    if (shouldAutoSubmit && otpStep === 'verified' && otpToken) {
-      setShouldAutoSubmit(false)
-      if (formRef.current) {
-        formRef.current.dispatchEvent(new Event('submit', { bubbles: true }))
+    if (!isSltRequiredService(selectedService) && currentStep === 4 && otpStep === 'verified' && otpToken) {
+      setShouldAutoSubmit(true)
+      const timer = setTimeout(() => {
+        if (formRef.current) {
+          formRef.current.dispatchEvent(new Event('submit', { bubbles: true }))
+        }
+      }, 800)
+      return () => {
+        clearTimeout(timer)
+        setShouldAutoSubmit(false)
       }
+    } else {
+      setShouldAutoSubmit(false)
     }
-  }, [shouldAutoSubmit, otpStep, otpToken])
-
+  }, [selectedService, currentStep, otpStep, otpToken])
 
   // Auto-submit for bill payment once intent + method (+ amount if partial) are all set
   useEffect(() => {
-    if (!isSltRequiredService(selectedService)) return
-    if (!sltVerified || otpStep !== 'verified') return
-    if (!billPaymentIntent || !billPaymentMethod) return
+    if (!isSltRequiredService(selectedService)) {
+      setShouldAutoSubmit(false)
+      return
+    }
+    if (!sltVerified || otpStep !== 'verified') {
+      setShouldAutoSubmit(false)
+      return
+    }
+    if (!billPaymentIntent || !billPaymentMethod) {
+      setShouldAutoSubmit(false)
+      return
+    }
     if (billPaymentIntent === 'partial') {
       const amount = parseFloat(billPaymentCustomAmount)
-      if (!billPaymentCustomAmount || isNaN(amount) || amount <= 0) return
+      if (!billPaymentCustomAmount || isNaN(amount) || amount <= 0) {
+        setShouldAutoSubmit(false)
+        return
+      }
     }
+    setShouldAutoSubmit(true)
     const timer = setTimeout(() => {
       if (formRef.current) {
         formRef.current.dispatchEvent(new Event('submit', { bubbles: true }))
       }
-    }, 500)
-    return () => clearTimeout(timer)
+    }, 800)
+    return () => {
+      clearTimeout(timer)
+      setShouldAutoSubmit(false)
+    }
   }, [billPaymentIntent, billPaymentMethod, billPaymentCustomAmount, otpStep, selectedService, sltVerified])
 
 
@@ -395,6 +418,8 @@ export default function CustomerRegistration() {
   const handleServiceSelect = (serviceCode: string) => {
     console.log('Selecting service:', serviceCode)
     setSelectedService(serviceCode)
+    // Auto advance to next step after a tiny delay for visual feedback
+    setTimeout(() => goToNextStep(), 300)
   }
 
   // Check if service requires SLT number (Bill Payment or Billing Inquiry)
@@ -404,21 +429,26 @@ export default function CustomerRegistration() {
 
   // Get service title by code (localized for the two allowed services)
   const getServiceTitle = (code: string) => {
-    // Localize fixed options
-    if (code === 'BILL_PAYMENT') {
-      // Use translations object later in render cycle via `t`
-      // We can't reference `t` here directly before it's defined at call site, so
-      // we return a key that will be resolved in render by reading `t`.
-      // However since this runs during render (after `t` is defined), accessing `t` is safe.
-      // eslint-disable-next-line @typescript-eslint/no-use-before-define
-      return t.billPayment
-    }
-    if (code === 'OTHERS') {
-      // eslint-disable-next-line @typescript-eslint/no-use-before-define
-      return t.other
-    }
+    // Check by code first
+    const upperCode = code.toUpperCase()
+    if (upperCode === 'BILL_PAYMENT') return t.billPayment
+    if (upperCode === 'OTHERS' || upperCode === 'OTHER') return t.other
+    if (upperCode === 'NEW_SERVICE' || upperCode === 'SVC001') return t.newService
+    if (upperCode === 'SERVICE_COMPLAINT' || upperCode === 'SVC003') return t.serviceComplaint
+    if (upperCode === 'BILL_DISPUTE' || upperCode === 'SVC004') return t.billDispute
+
     const service = services.find(s => s.code === code)
-    return service?.title || code
+    if (!service) return code
+
+    // Try to match the title string to localized versions as fallback
+    const title = service.title.toLowerCase()
+    if (title.includes('new service')) return t.newService
+    if (title.includes('bill payment')) return t.billPayment
+    if (title.includes('service complaint')) return t.serviceComplaint
+    if (title.includes('bill dispute')) return t.billDispute
+    if (title.includes('other')) return t.other
+
+    return service.title
   }
 
   const sendOtp = async (): Promise<boolean> => {
@@ -471,10 +501,7 @@ export default function CustomerRegistration() {
           await verifySltNumber()
         }
 
-        // Auto-submit for non-bill-payment services
-        if (!isSltRequiredService(selectedService)) {
-          setShouldAutoSubmit(true)
-        }
+        // Auto-submit disabled
 
         return res.data.verifiedMobileToken as string
 
@@ -563,6 +590,7 @@ export default function CustomerRegistration() {
     e.preventDefault()
     setError("")
     setLoading(true)
+    setShouldAutoSubmit(false) // Reset auto-submit status on manual submit
 
     try {
       // On Register: verify OTP if not already verified and ensure we submit the fresh token
@@ -650,6 +678,12 @@ export default function CustomerRegistration() {
   }
 
   const goToPreviousStep = () => {
+    if (currentStep === 2) {
+      setPreferredLanguage("")
+    }
+    if (currentStep === 3) {
+      setSelectedService("")
+    }
     setCurrentStep(prev => Math.max(prev - 1, 1))
   }
 
@@ -657,8 +691,8 @@ export default function CustomerRegistration() {
   const isValidSlt = (s: string) => /^\d{10}$/.test(s) && s.startsWith('0') && !s.startsWith('07')
   const isValidEmail = (e: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)
 
-  const canProceedFromStep1 = preferredLanguage !== ''
-  const canProceedFromStep2 = selectedService !== ""
+  // const canProceedFromStep1 = preferredLanguage !== ''
+  // const canProceedFromStep2 = selectedService !== ""
   const canProceedFromStep3 = () => {
     const validDetails = name.trim().length >= 2 && isValidMobile(mobileNumber)
     if (selectedService === 'BILL_PAYMENT' || isSltRequiredService(selectedService)) {
@@ -677,6 +711,9 @@ export default function CustomerRegistration() {
       outlet: "Outlet",
       serviceType: "Service Type",
       billPayment: "Bill Payment",
+      newService: "New Service",
+      serviceComplaint: "Service Complaint",
+      billDispute: "Bill Dispute",
       other: "Other Services",
       register: "Generate Token",
       registering: "Generating...",
@@ -752,6 +789,9 @@ export default function CustomerRegistration() {
       outlet: "ශාඛාව",
       serviceType: "සේවා වර්ගය",
       billPayment: "බිල් ගෙවීම",
+      newService: "නව සේවාව",
+      serviceComplaint: "සේවා පැමිණිල්ල",
+      billDispute: "බිල්පත් ආරවුල",
       other: "වෙනත් සේවා",
       register: "ටෝකන් උත්පාදනය කරන්න",
       registering: "උත්පාදනය කරමින්...",
@@ -827,6 +867,9 @@ export default function CustomerRegistration() {
       outlet: "கிளை",
       serviceType: "சேவை வகை",
       billPayment: "பில் செலுத்துதல்",
+      newService: "புதிய சேவை",
+      serviceComplaint: "சேவை புகார்",
+      billDispute: "பில் சர்ச்சை",
       other: "பிற சேவைகள்",
       register: "டோக்கன் உருவாக்கவும்",
       registering: "உருவாக்குகிறது...",
@@ -927,30 +970,7 @@ export default function CustomerRegistration() {
                 {error || "Please scan the QR code displayed at the branch to proceed."}
               </div>
             )}
-            {/* Language Selector */}
-            <div className="flex justify-end gap-1 sm:gap-2 mb-4 sm:mb-6">
-              <button
-                onClick={() => { setLanguage("en"); setPreferredLanguage("en"); }}
-                className={`px-2 sm:px-3 py-1 rounded-xl text-xs sm:text-sm font-medium transition-colors ${language === "en" ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-600"
-                  }`}
-              >
-                English
-              </button>
-              <button
-                onClick={() => { setLanguage("si"); setPreferredLanguage("si"); }}
-                className={`px-2 sm:px-3 py-1 rounded-xl text-xs sm:text-sm font-medium transition-colors ${language === "si" ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-600"
-                  }`}
-              >
-                සිංහල
-              </button>
-              <button
-                onClick={() => { setLanguage("ta"); setPreferredLanguage("ta"); }}
-                className={`px-2 sm:px-3 py-1 rounded-xl text-xs sm:text-sm font-medium transition-colors ${language === "ta" ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-600"
-                  }`}
-              >
-                தமிழ்
-              </button>
-            </div>
+            {/* Top language selector removed as it's redundant with Step 1 */}
 
             {/* Header */}
             <div className="text-center mb-4 sm:mb-6">
@@ -1017,7 +1037,7 @@ export default function CustomerRegistration() {
                       {[{ code: 'en', label: t.english }, { code: 'si', label: t.sinhala }, { code: 'ta', label: t.tamil }].map(l => (
                         <label
                           key={l.code}
-                          className={`flex items-center gap-3 p-4 border-2 rounded-xl cursor-pointer transition-all hover:border-blue-400 hover:shadow-sm ${preferredLanguage === l.code ? 'border-blue-600 bg-blue-50' : 'border-slate-200'
+                          className={`flex items-center gap-3 p-4 border-2 rounded-xl cursor-pointer transition-all hover:border-blue-400 hover:shadow-sm ${preferredLanguage === l.code ? "border-blue-600 bg-blue-50" : "border-slate-200"
                             }`}
                         >
                           <input
@@ -1025,7 +1045,13 @@ export default function CustomerRegistration() {
                             name="preferredLanguage"
                             value={l.code}
                             checked={preferredLanguage === l.code}
-                            onChange={(e) => { setPreferredLanguage(e.target.value); setLanguage(e.target.value as "en" | "si" | "ta") }}
+                            onChange={(e) => {
+                              const val = e.target.value as "en" | "si" | "ta";
+                              setPreferredLanguage(val);
+                              setLanguage(val);
+                              // Auto advance to next step after a tiny delay for visual feedback
+                              setTimeout(() => goToNextStep(), 300);
+                            }}
                             className="w-5 h-5 text-blue-600"
                           />
                           <span className="text-base font-medium">{l.label}</span>
@@ -1035,16 +1061,7 @@ export default function CustomerRegistration() {
                     <p className="text-xs text-gray-500 mt-2">{t.preferredLanguageSubtitle}</p>
                   </div>
 
-                  <div className="flex gap-3">
-                    <button
-                      type="button"
-                      onClick={goToNextStep}
-                      disabled={!canProceedFromStep1}
-                      className="flex-1 bg-blue-600 text-white py-3 rounded-xl font-semibold hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
-                    >
-                      {t.next}
-                    </button>
-                  </div>
+                  {/* Next button removed as per user request for auto-advance */}
                 </div>
               )}
 
@@ -1087,6 +1104,17 @@ export default function CustomerRegistration() {
                     <p className="text-xs text-gray-500 mt-2">{t.selectServiceTypesSubtitle}</p>
                   </div>
 
+                  {/* Auto-submit feedback — spinner shown once all bill payment selections are made */}
+                  {shouldAutoSubmit && otpStep === 'verified' && (isSltRequiredService(selectedService) ? (sltVerified && billPaymentIntent && billPaymentMethod && !(billPaymentIntent === 'partial' && (!billPaymentCustomAmount || parseFloat(billPaymentCustomAmount) <= 0))) : true) && (
+                    <div className="w-full bg-blue-50 border border-blue-200 text-blue-700 py-3 rounded-xl text-sm font-medium flex items-center justify-center gap-2">
+                      <svg className="animate-spin h-4 w-4 text-blue-600" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                      </svg>
+                      {loading ? t.registering : t.registering}
+                    </div>
+                  )}
+
                   <div className="flex gap-3">
                     <button
                       type="button"
@@ -1095,14 +1123,7 @@ export default function CustomerRegistration() {
                     >
                       {t.back}
                     </button>
-                    <button
-                      type="button"
-                      onClick={goToNextStep}
-                      disabled={!canProceedFromStep2}
-                      className="flex-1 bg-blue-600 text-white py-3 rounded-xl font-semibold hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
-                    >
-                      {t.next}
-                    </button>
+                    {/* Next button removed as per user request for auto-advance */}
                   </div>
                 </div>
               )}
@@ -1412,14 +1433,10 @@ export default function CustomerRegistration() {
                         </div>
                       )}
 
-                      {/* Auto-submit feedback spinner */}
-                      {billPaymentIntent && billPaymentMethod && !(billPaymentIntent === 'partial' && (!billPaymentCustomAmount || parseFloat(billPaymentCustomAmount) <= 0)) && (
-                        <div className="w-full bg-blue-50 border border-blue-200 text-blue-700 py-3 rounded-xl text-sm font-medium flex items-center justify-center gap-2">
-                          <svg className="animate-spin h-4 w-4 text-blue-600" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
-                          </svg>
-                          {loading ? t.registering : t.registering}
+                      {/* Bill payment summary message when ready */}
+                      {billPaymentIntent && billPaymentMethod && !(billPaymentIntent === 'partial' && (!billPaymentCustomAmount || parseFloat(billPaymentCustomAmount) <= 0)) && !loading && (
+                        <div className="w-full bg-green-50 border border-green-200 text-green-700 py-3 rounded-xl text-center text-sm font-medium">
+                          {t.readyToRegister || 'Ready to generate your token'}
                         </div>
                       )}
                     </div>
@@ -1475,10 +1492,17 @@ export default function CustomerRegistration() {
 
 
 
-                  {(otpStep === 'sent' || (otpStep === 'verified' && (!isSltRequiredService(selectedService) || loading))) && (
+                  {(otpStep === 'sent' || otpStep === 'verified') && (
                     <button
                       type="submit"
-                      disabled={!qrValid || loading || !selectedOutlet || !selectedService || (otpStep === 'sent' && otpCode.length !== 4)}
+                      disabled={
+                        !qrValid || 
+                        loading || 
+                        !selectedOutlet || 
+                        !selectedService || 
+                        (otpStep === 'sent' && otpCode.length !== 4) ||
+                        (otpStep === 'verified' && isSltRequiredService(selectedService) && (!billPaymentIntent || (billPaymentIntent === 'partial' && (!billPaymentCustomAmount || parseFloat(billPaymentCustomAmount) <= 0)) || !billPaymentMethod))
+                      }
                       className="w-full bg-blue-600 text-white py-3 rounded-xl font-semibold hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
                     >
                       {loading ? t.registering : t.register}
