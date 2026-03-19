@@ -98,14 +98,24 @@ export default function ProLoginLanding() {
         <div className="absolute -bottom-10 -left-10 w-48 h-48 rounded-full bg-white/5 pointer-events-none" />
 
         <div className="relative z-10">
-          <motion.img
+          <motion.div
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ delay: 0.2, duration: 0.5 }}
-            src="/logo_white.png"
-            alt="DQMP Logo"
-            className="w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24 rounded-2xl object-contain mb-4 sm:mb-6 mx-auto lg:mx-0"
-          />
+            className="flex items-center justify-center lg:justify-start gap-4 mb-6 sm:mb-8"
+          >
+            <img
+              src="/logo_white.png"
+              alt="SLT-MOBITEL"
+              className="h-10 sm:h-12 lg:h-14 w-auto object-contain"
+            />
+            <div className="h-8 w-[1px] bg-white/20" />
+            <img
+              src="/Transzent Logo.png"
+              alt="Transzent Logo"
+              className="h-12 sm:h-16 lg:h-20 object-contain brightness-0 invert opacity-90"
+            />
+          </motion.div>
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}

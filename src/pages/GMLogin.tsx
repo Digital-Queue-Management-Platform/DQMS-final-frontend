@@ -1,7 +1,7 @@
-﻿import type React from "react"
+import type React from "react"
 import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
-import { Phone, LogIn, KeyRound, Briefcase } from "lucide-react"
+import { Phone, LogIn, KeyRound } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import api from "../config/api"
 
@@ -94,10 +94,13 @@ export default function GMLogin() {
               initial={{ scale: 0.7, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ delay: 0.1, duration: 0.4 }}
-              className="inline-flex items-center justify-center w-16 h-16 bg-violet-100 rounded-2xl mb-4"
+              className="flex items-center justify-center gap-5 mb-8"
             >
-              <Briefcase className="w-8 h-8 text-violet-600" />
+              <img src="/logo.png" alt="SLT-MOBITEL" className="h-10 w-auto object-contain" />
+              <div className="h-8 w-[1px] bg-slate-200" />
+              <img src="/Transzent Logo.png" alt="Transzent Logo" className="h-14 w-auto object-contain drop-shadow-[0_0_15px_rgba(124,58,237,0.2)]" />
             </motion.div>
+            <p className="text-violet-600 font-semibold text-xs tracking-widest uppercase mb-1">Welcome to the DQMS System</p>
             <h1 className="text-2xl font-bold text-slate-900">General Manager Login</h1>
             <p className="mt-1.5 text-sm text-slate-500">
               {step === "mobile" ? "Enter your registered mobile number" : `OTP sent to ${mobileNumber}`}
@@ -169,6 +172,9 @@ export default function GMLogin() {
 
           <p className="mt-6 text-center text-xs text-slate-400">General Manager Portal</p>
         </div>
+        <p className="mt-8 text-center text-[10px] text-slate-500 font-medium tracking-tight">
+          © 2026 SLT-Mobitel Digital Platforms Section
+        </p>
       </motion.div>
     </div>
   )

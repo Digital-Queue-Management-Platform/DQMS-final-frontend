@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { Eye, EyeOff, ShieldCheck, Lock, Mail, AlertTriangle, Phone } from 'lucide-react'
+import { Eye, EyeOff, Lock, Mail, AlertTriangle, Phone, KeyRound } from 'lucide-react'
 import { motion } from 'framer-motion'
 import api from '../config/api'
 
@@ -75,10 +75,10 @@ const AdminLogin = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden"
-      style={{ background: 'linear-gradient(135deg, #1e1e2e 0%, #252545 50%, #1e1e2e 100%)' }}>
+      style={{ background: 'linear-gradient(135deg, #f5f7ff 0%, #ffffff 50%, #f5f7ff 100%)' }}>
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 left-1/4 w-64 h-64 rounded-full bg-indigo-600/10 blur-3xl" />
-        <div className="absolute bottom-1/4 right-1/4 w-64 h-64 rounded-full bg-purple-600/10 blur-3xl" />
+        <div className="absolute top-1/4 left-1/4 w-64 h-64 rounded-full bg-indigo-100/50 blur-3xl" />
+        <div className="absolute bottom-1/4 right-1/4 w-64 h-64 rounded-full bg-purple-100/50 blur-3xl" />
       </div>
       <motion.div
         initial={{ opacity: 0, y: 24, scale: 0.97 }}
@@ -86,18 +86,21 @@ const AdminLogin = () => {
         transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
         className="relative w-full max-w-md"
       >
-        <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-8 shadow-2xl">
+        <div className="bg-white border border-indigo-50 rounded-2xl p-8 shadow-2xl shadow-indigo-100/50">
           <div className="text-center mb-8">
             <motion.div
               initial={{ scale: 0.7, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ delay: 0.1, duration: 0.4 }}
-              className="inline-flex items-center justify-center w-16 h-16 bg-indigo-600 rounded-2xl mb-4 shadow-lg"
+              className="flex items-center justify-center gap-5 mb-8"
             >
-              <ShieldCheck className="w-8 h-8 text-white" />
+              <img src="/logo.png" alt="SLT-MOBITEL" className="h-10 w-auto object-contain" />
+              <div className="h-8 w-[1px] bg-slate-200" />
+              <img src="/Transzent Logo.png" alt="Transzent Logo" className="h-14 w-auto object-contain drop-shadow-[0_0_15px_rgba(79,70,229,0.2)]" />
             </motion.div>
-            <h1 className="text-2xl font-bold text-white">Super Admin Dashboard</h1>
-            <p className="mt-1.5 text-sm text-slate-400">
+            <p className="text-indigo-600 font-semibold text-xs tracking-widest uppercase mb-1">Welcome to the DQMS System</p>
+            <h1 className="text-2xl font-bold text-slate-900">Super Admin Dashboard</h1>
+            <p className="mt-1.5 text-sm text-slate-500">
               {step === 1 ? 'Authorized access only' : `Security code sent to ${mobileNumber}`}
             </p>
           </div>
@@ -106,7 +109,7 @@ const AdminLogin = () => {
             <motion.div
               initial={{ opacity: 0, y: -8 }}
               animate={{ opacity: 1, y: 0 }}
-              className="mb-5 flex items-center gap-2.5 p-3.5 bg-red-500/15 border border-red-400/30 rounded-xl text-red-300 text-sm"
+              className="mb-5 flex items-center gap-2.5 p-3.5 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm"
             >
               <AlertTriangle className="w-4 h-4 flex-shrink-0" />
               {error}
@@ -117,41 +120,41 @@ const AdminLogin = () => {
             {step === 1 ? (
               <>
                 <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-1.5">Email Address</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-1.5">Email Address</label>
                   <div className="relative">
                     <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                     <input
                       id="email" name="email" type="email" autoComplete="email" required
                       value={email} onChange={(e) => setEmail(e.target.value)}
-                      className="w-full pl-10 pr-4 py-2.5 bg-white/10 border border-white/20 rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all text-sm"
+                      className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all text-sm"
                       placeholder="admindqms@slt.lk"
                     />
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-1.5">Password</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-1.5">Password</label>
                   <div className="relative">
                     <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                     <input
                       id="password" name="password" type={showPassword ? 'text' : 'password'} autoComplete="current-password" required
                       value={password} onChange={(e) => setPassword(e.target.value)}
-                      className="w-full pl-10 pr-11 py-2.5 bg-white/10 border border-white/20 rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all text-sm"
+                      className="w-full pl-10 pr-11 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all text-sm"
                       placeholder="Enter your password"
                     />
                     <button type="button" onClick={() => setShowPassword(!showPassword)}
-                      className="absolute inset-y-0 right-0 px-3.5 flex items-center text-slate-400 hover:text-white transition-colors">
+                      className="absolute inset-y-0 right-0 px-3.5 flex items-center text-slate-400 hover:text-slate-600 transition-colors">
                       {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-1.5">Mobile for Verification</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-1.5">Mobile for Verification</label>
                   <div className="relative">
                     <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                     <input
                       id="mobile" name="mobile" type="tel" required
                       value={mobileNumber} onChange={(e) => setMobileNumber(e.target.value)}
-                      className="w-full pl-10 pr-4 py-2.5 bg-white/10 border border-white/20 rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all text-sm"
+                      className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all text-sm"
                       placeholder="e.g. 0771234567"
                     />
                   </div>
@@ -159,24 +162,21 @@ const AdminLogin = () => {
               </>
             ) : (
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1.5 text-center">Security Verification Code (OTP)</label>
-                <div className="relative">
-                  <ShieldCheck className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                  <input
-                    id="otp" name="otp" type="text" required
-                    value={otpCode} onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 4))}
-                    className="w-full pl-10 pr-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white text-center text-xl font-mono tracking-[1em] placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
-                    placeholder="0000"
-                    autoFocus
-                  />
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setStep(1)}
-                  className="mt-3 text-xs text-indigo-400 hover:text-indigo-300 transition-colors w-full text-center"
-                >
-                  Back to credentials
-                </button>
+                  <label className="block text-sm font-medium text-slate-700 mb-1.5 text-center">Security Verification Code (OTP)</label>
+                  <div className="relative">
+                    <KeyRound className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                    <input
+                      id="otp" name="otp" type="text" maxLength={4} required autoFocus
+                      value={otpCode} onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                      className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all text-center text-xl font-bold tracking-[0.5em]"
+                      placeholder="0000"
+                    />
+                  </div>
+                  <button type="button" onClick={() => setStep(1)}
+                    className="w-full mt-4 text-xs text-indigo-600 hover:text-indigo-700 font-medium transition-colors"
+                  >
+                    Back to credentials
+                  </button>
               </div>
             )}
 
@@ -196,6 +196,9 @@ const AdminLogin = () => {
           </form>
           <p className="mt-6 text-center text-xs text-slate-500">Super Admin access only · Multi-factor authentication enabled</p>
         </div>
+        <p className="mt-8 text-center text-[10px] text-slate-600 font-medium tracking-tight">
+          © 2026 SLT-Mobitel Digital Platforms Section
+        </p>
       </motion.div>
     </div>
   )

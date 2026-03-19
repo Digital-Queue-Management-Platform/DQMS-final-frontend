@@ -85,14 +85,14 @@ export default function OutletQueueDisplay() {
   const [showRecent, setShowRecent] = useState(() => toBool(query.get("recent"), false))
   const [autoSlide, setAutoSlide] = useState(() => toBool(query.get("autoSlide"), true))
   const [playTone, setPlayTone] = useState(() => toBool(query.get("playTone"), true))
-  
+
   // Zoom scale state (%)
   const [zoomScale, setZoomScale] = useState(() => toInt(query.get("scale"), 100))
-  
+
   // Voice Announcement State
   const [voiceEnabled, setVoiceEnabled] = useState(true)
   const voiceEnabledRef = useRef(true)
-  
+
   useEffect(() => {
     voiceEnabledRef.current = voiceEnabled
     console.log("[Voice] Voice mode changed:", voiceEnabled ? "ON" : "OFF")
@@ -225,20 +225,20 @@ export default function OutletQueueDisplay() {
             if (voiceEnabledRef.current) {
               const testType = data.testType || 'chime'
               const testLang = data.lang || 'en'
-              
+
               if (testType === 'chime') {
                 playChime()
               } else {
-                const sampleText = testLang === 'si' 
-                  ? "ටෝකන් අංක 123, කරුණාකර කවුන්ටර අංක 5 වෙත පැමිණෙන්න." 
+                const sampleText = testLang === 'si'
+                  ? "ටෝකන් අංක 123, කරුණාකර කවුන්ටර අංක 5 වෙත පැමිණෙන්න."
                   : testLang === 'ta'
-                  ? "அடையாள எண் 123, தயவுசெய்து கவுண்டர் 5 க்கு செல்லவும்."
-                  : "Token number 123, please proceed to counter number 5."
-                
-                speakSentence({ 
-                  eventType: 'TEST_SOUND', 
-                  text: sampleText, 
-                  lang: testLang 
+                    ? "அடையாள எண் 123, தயவுசெய்து கவுண்டர் 5 க்கு செல்லவும்."
+                    : "Token number 123, please proceed to counter number 5."
+
+                speakSentence({
+                  eventType: 'TEST_SOUND',
+                  text: sampleText,
+                  lang: testLang
                 })
               }
             }
@@ -303,13 +303,13 @@ export default function OutletQueueDisplay() {
     const counter = tokenData.counterNumber || 'Counter'
     const eventType = tokenData.eventType || 'TOKEN_CALLED'
     const lang = tokenData.lang || (Array.isArray(tokenData.preferredLanguages) && tokenData.preferredLanguages[0]) || 'en'
-    
+
     // Get customer name, use first name for a more personal touch
     const customerName = tokenData.customer?.name || ""
     const firstName = customerName.split(' ')[0] || ""
-    
+
     let text = ""
-    
+
     if (eventType === 'TOKEN_CALLED') {
       if (lang === 'si') text = `${firstName}. ටෝකන් අංක ${num}, කරුණාකර කවුන්ටර අංක ${counter} වෙත පැමිණෙන්න.`
       else if (lang === 'ta') text = `${firstName}. அடையாள எண் ${num}, தயவுசெய்து கவுண்டர் எண் ${counter} க்கு செல்லவும்.`
@@ -353,7 +353,7 @@ export default function OutletQueueDisplay() {
         setIsSpeaking(true)
         const nextToken = announcementQueue[0]
         console.log("[Voice] Processing announcement for token:", nextToken.tokenNumber)
-        
+
         try {
           if (playTone) {
             await playChime()
@@ -391,12 +391,12 @@ export default function OutletQueueDisplay() {
         fontSize: `${zoomScale}%`
       }}
     >
-      <div 
+      <div
         className={`flex-1 flex flex-col max-w-screen-2xl mx-auto w-full overflow-hidden ${zoomScale > 150 ? 'p-1 sm:p-2' : 'p-2 sm:p-4 md:p-6 lg:p-8'}`}
       >
         <header className="flex-shrink-0 grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-3 items-start 2xl:items-center mb-4 sm:mb-6">
           <div>
-            <h1 
+            <h1
               className="font-extrabold tracking-tight leading-tight text-slate-900"
               style={{ fontSize: `calc(clamp(1.6rem, 4vw, 2.25rem) * ${zoomScale / 100})` }}
             >
@@ -421,21 +421,21 @@ export default function OutletQueueDisplay() {
           <div className="grid grid-cols-3 gap-2 md:col-span-2 2xl:col-span-1">
             <div className="rounded-2xl border p-3 text-center bg-emerald-50 border-emerald-200">
               <p className="text-[10px] font-black uppercase tracking-widest opacity-70 text-emerald-700">Waiting</p>
-              <p 
+              <p
                 className="font-black text-slate-900"
                 style={{ fontSize: `calc(1.5rem * ${zoomScale / 100})` }}
               >{queue?.totalWaiting || 0}</p>
             </div>
             <div className="rounded-2xl border p-3 text-center bg-sky-50 border-sky-200">
               <p className="text-[10px] font-black uppercase tracking-widest opacity-70 text-sky-700">Serving</p>
-              <p 
+              <p
                 className="font-black text-slate-900"
                 style={{ fontSize: `calc(1.5rem * ${zoomScale / 100})` }}
               >{queue?.inService?.length || 0}</p>
             </div>
             <div className="rounded-2xl border p-3 text-center bg-indigo-50 border-indigo-200">
               <p className="text-[10px] font-black uppercase tracking-widest opacity-70 text-indigo-700">Counters</p>
-              <p 
+              <p
                 className="font-black text-slate-900"
                 style={{ fontSize: `calc(1.5rem * ${zoomScale / 100})` }}
               >{queue?.availableOfficers || 0}</p>
@@ -460,7 +460,7 @@ export default function OutletQueueDisplay() {
             </div>
           )}
 
-            <div className={`flex-1 min-h-0 overflow-hidden ${(!showRecent && !showCounters) ? "flex flex-col gap-2 sm:gap-4" : "grid grid-cols-1 2xl:grid-cols-3 gap-3 sm:gap-4"}`}>
+          <div className={`flex-1 min-h-0 overflow-hidden ${(!showRecent && !showCounters) ? "flex flex-col gap-2 sm:gap-4" : "grid grid-cols-1 2xl:grid-cols-3 gap-3 sm:gap-4"}`}>
             <section className={`${(!showRecent && !showCounters) ? "flex-1" : "2xl:col-span-2"} rounded-3xl border shadow-sm p-2 sm:p-4 flex flex-col min-h-0 bg-white border-slate-200 overflow-hidden`}>
               <div className="flex items-center gap-2 mb-2 flex-shrink-0">
                 <Sparkles className="w-5 h-5 text-emerald-400" />
@@ -473,21 +473,21 @@ export default function OutletQueueDisplay() {
                 </div>
               ) : (
                 <div className={`relative w-full ${!autoSlide ? 'overflow-x-auto custom-scrollbar' : 'overflow-hidden'}`}>
-                  <div 
+                  <div
                     ref={servingTrackRef}
                     className={`flex gap-4 py-2 ${autoSlide ? 'animate-marquee whitespace-nowrap' : 'w-max flex-wrap'}`}
                     style={autoSlide ? { animationDuration: `${servingDuration}s`, animationDelay: '0s' } : {}}
                   >
                     {(autoSlide
-                      ? (servingByCounter.length < 6 
-                          ? [...servingByCounter, { id: 'spacer', isSpacer: true }, ...servingByCounter, { id: 'spacer-2', isSpacer: true }] 
-                          : [...servingByCounter, ...servingByCounter])
+                      ? (servingByCounter.length < 6
+                        ? [...servingByCounter, { id: 'spacer', isSpacer: true }, ...servingByCounter, { id: 'spacer-2', isSpacer: true }]
+                        : [...servingByCounter, ...servingByCounter])
                       : servingByCounter
                     ).map((token: any, idx) => token.isSpacer ? (
                       <div key={`spacer-${idx}`} className="flex-shrink-0 w-[40vw]" />
                     ) : (
-                       <div 
-                        key={`${token.id}-${idx}`} 
+                      <div
+                        key={`${token.id}-${idx}`}
                         className={`flex-shrink-0 w-[min(72vw,230px)] sm:min-w-[210px] rounded-xl border transition-colors bg-emerald-50 border-emerald-200 flex items-center justify-between shadow-sm ${zoomScale > 150 ? 'py-1 px-2' : 'py-2 px-3'}`}
                       >
                         <div className="flex-1 flex flex-col justify-center min-w-0">
@@ -496,12 +496,12 @@ export default function OutletQueueDisplay() {
                               {token.counterNumber ? `Counter #${token.counterNumber}` : "Staff Station"}
                             </p>
                             {showService && token.serviceTypes?.length && (
-                               <div className="text-[11px] px-2 py-0.5 rounded-md border bg-white border-emerald-100 text-emerald-600 font-bold truncate max-w-[90px] sm:max-w-[110px]">
-                                  <ServiceName serviceType={token.serviceTypes[0]} />
-                               </div>
+                              <div className="text-[11px] px-2 py-0.5 rounded-md border bg-white border-emerald-100 text-emerald-600 font-bold truncate max-w-[90px] sm:max-w-[110px]">
+                                <ServiceName serviceType={token.serviceTypes[0]} />
+                              </div>
                             )}
                           </div>
-                          <p 
+                          <p
                             className={`font-black tracking-wider leading-tight text-slate-900`}
                             style={{ fontSize: `calc(clamp(1.2rem, 8vw, 2.5rem) * ${zoomScale / 100})` }}
                           >
@@ -525,20 +525,20 @@ export default function OutletQueueDisplay() {
 
               {upNext.length > 0 && (
                 <div className={`relative w-full ${!autoSlide ? 'overflow-x-auto custom-scrollbar' : 'overflow-hidden'}`}>
-                  <div 
-                    ref={upNextTrackRef} 
+                  <div
+                    ref={upNextTrackRef}
                     className={`flex gap-4 whitespace-nowrap py-2 ${autoSlide ? 'animate-marquee' : 'w-max flex-wrap whitespace-normal'}`}
                     style={autoSlide ? { animationDuration: `${upNextDuration}s`, animationDelay: '0s' } : {}}
                   >
                     {(autoSlide
-                      ? (upNext.length < 6 
-                          ? [...upNext, { id: 'spacer', isSpacer: true }, ...upNext, { id: 'spacer-2', isSpacer: true }] 
-                          : [...upNext, ...upNext])
+                      ? (upNext.length < 6
+                        ? [...upNext, { id: 'spacer', isSpacer: true }, ...upNext, { id: 'spacer-2', isSpacer: true }]
+                        : [...upNext, ...upNext])
                       : upNext
                     ).map((token: any, idx) => token.isSpacer ? (
                       <div key={`spacer-${idx}`} className="flex-shrink-0 w-[40vw]" />
                     ) : (
-                       <div
+                      <div
                         key={`${token.id}-${idx}`}
                         className={`flex-shrink-0 w-[min(72vw,230px)] sm:min-w-[210px] rounded-xl border flex items-center justify-between shadow-sm transition-colors bg-slate-50 border-slate-200 ${zoomScale > 150 ? 'py-1 px-2' : 'py-2 px-3'}`}
                       >
@@ -551,7 +551,7 @@ export default function OutletQueueDisplay() {
                               </span>
                             )}
                           </div>
-                          <p 
+                          <p
                             className={`font-black tracking-wider leading-tight text-slate-900`}
                             style={{ fontSize: `calc(clamp(1.2rem, 8vw, 2.5rem) * ${zoomScale / 100})` }}
                           >
@@ -570,164 +570,168 @@ export default function OutletQueueDisplay() {
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mt-6">
               {showRecent && (
                 <section className="rounded-3xl border shadow-sm p-4 sm:p-6 overflow-hidden relative min-w-0 bg-white border-slate-200 text-slate-900">
-                <div className="absolute top-0 right-0 p-8 opacity-[0.03] pointer-events-none">
-                  <Ticket className="w-32 h-32" />
-                </div>
-                <div className="flex items-center gap-2 mb-4">
-                  <div className="p-2 rounded-xl bg-indigo-50">
-                    <Layers className="w-5 h-5 text-indigo-600" />
+                  <div className="absolute top-0 right-0 p-8 opacity-[0.03] pointer-events-none">
+                    <Ticket className="w-32 h-32" />
                   </div>
-                  <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-900">Recently Called</h2>
-                </div>
-
-                {recentCalled.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-8 opacity-40">
-                    <Ticket className={`w-12 h-12 mb-2 text-slate-300`} />
-                    <p className={`text-slate-600 font-medium`}>No recent calls yet.</p>
-                  </div>
-                ) : (
-                  <div className={`relative w-full ${!autoSlide ? 'overflow-x-auto custom-scrollbar' : 'overflow-hidden'}`}>
-                    <div 
-                      ref={recentTrackRef} 
-                      className={`flex gap-4 whitespace-nowrap py-2 ${autoSlide ? 'animate-marquee' : 'w-max flex-wrap whitespace-normal'}`}
-                      style={autoSlide ? { animationDuration: `${recentDuration}s` } : {}}
-                    >
-                      {(autoSlide
-                        ? (recentCalled.length < 6 
-                            ? [...recentCalled, { id: 'spacer', isSpacer: true }, ...recentCalled, { id: 'spacer-2', isSpacer: true }] 
-                            : [...recentCalled, ...recentCalled])
-                        : recentCalled
-                      ).map((item: any, idx) => item.isSpacer ? (
-                        <div key={`spacer-${idx}`} className="flex-shrink-0 w-[50vw]" />
-                      ) : (
-                        <div
-                          key={`${item.id}-${idx}`}
-                          className="flex-shrink-0 w-[min(56vw,10rem)] sm:w-40 rounded-2xl p-3 border text-center transition-all duration-300 bg-indigo-50/50 border-indigo-100 hover:bg-white hover:shadow-xl hover:shadow-indigo-100/50"
-                        >
-                           <p 
-                            className={`font-black tracking-wider drop-shadow-sm leading-tight text-slate-900`}
-                            style={{ fontSize: `calc(clamp(1.2rem, 8vw, 2.5rem) * ${zoomScale / 100})` }}
-                          >
-                            {String(item.tokenNumber).padStart(3, "0")}
-                          </p>
-                          <div className="flex items-center justify-center gap-1.5 mt-1.5">
-                            <p className="text-sm font-bold text-slate-600">
-                              {item.counterNumber ? `Counter #${item.counterNumber}` : "Staff Station"}
-                            </p>
-                          </div>
-                        </div>
-                      ))}
+                  <div className="flex items-center gap-2 mb-4">
+                    <div className="p-2 rounded-xl bg-indigo-50">
+                      <Layers className="w-5 h-5 text-indigo-600" />
                     </div>
+                    <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-900">Recently Called</h2>
                   </div>
-                )}
-              </section>
-            )}
 
-            {showCounters && (
-              <section className="rounded-3xl border shadow-sm p-4 sm:p-6 overflow-hidden relative min-w-0 bg-white border-slate-200">
-                <div className="absolute top-0 right-0 p-8 opacity-[0.03] pointer-events-none">
-                  <Users className="w-32 h-32" />
-                </div>
-                <div className="flex items-center gap-2 mb-4">
-                  <div className="p-2 rounded-xl bg-emerald-50">
-                    <Users className="w-5 h-5 text-emerald-600" />
-                  </div>
-                  <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-900">Counter Status</h2>
-                </div>
-
-                <div className={`relative w-full ${!autoSlide ? 'overflow-x-auto custom-scrollbar' : 'overflow-hidden'}`}>
-                  <div 
-                    ref={counterTrackRef} 
-                    className={`flex gap-4 whitespace-nowrap py-2 ${autoSlide ? 'animate-marquee' : 'w-max flex-wrap whitespace-normal'}`}
-                    style={autoSlide ? { animationDuration: `${counterDuration}s` } : {}}
-                  >
-                    {/* Filter and double the counters for seamless looping, using spacers for short lists */}
-                    {(() => {
-                      const activeCounters = counters.filter((c) => c.number !== null);
-                      const itemsToDisplay = autoSlide
-                        ? (activeCounters.length > 0 && activeCounters.length < 6)
-                          ? [...activeCounters, { id: 'spacer', isSpacer: true }, ...activeCounters, { id: 'spacer-2', isSpacer: true }]
-                          : [...activeCounters, ...activeCounters]
-                        : activeCounters;
-
-                      return itemsToDisplay.map((counter: any, idx) => {
-                        if (counter.isSpacer) return <div key={`spacer-${idx}`} className="flex-shrink-0 w-[50vw]" />;
-                        
-                        const status = counter.officer?.status;
-                        const isOffline = !counter.isStaffed || !status || status === 'offline';
-                        const isOnBreak = status === 'on_break' || status === 'break';
-                        const isServing = status === 'serving';
-                        const isOnline = status === 'available' || (counter.isStaffed && !isOffline && !isOnBreak && !isServing);
-
-                        return (
+                  {recentCalled.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-8 opacity-40">
+                      <Ticket className={`w-12 h-12 mb-2 text-slate-300`} />
+                      <p className={`text-slate-600 font-medium`}>No recent calls yet.</p>
+                    </div>
+                  ) : (
+                    <div className={`relative w-full ${!autoSlide ? 'overflow-x-auto custom-scrollbar' : 'overflow-hidden'}`}>
+                      <div
+                        ref={recentTrackRef}
+                        className={`flex gap-4 whitespace-nowrap py-2 ${autoSlide ? 'animate-marquee' : 'w-max flex-wrap whitespace-normal'}`}
+                        style={autoSlide ? { animationDuration: `${recentDuration}s` } : {}}
+                      >
+                        {(autoSlide
+                          ? (recentCalled.length < 6
+                            ? [...recentCalled, { id: 'spacer', isSpacer: true }, ...recentCalled, { id: 'spacer-2', isSpacer: true }]
+                            : [...recentCalled, ...recentCalled])
+                          : recentCalled
+                        ).map((item: any, idx) => item.isSpacer ? (
+                          <div key={`spacer-${idx}`} className="flex-shrink-0 w-[50vw]" />
+                        ) : (
                           <div
-                            key={`${String(counter.number)}-${idx}`}
-                            className={`flex-shrink-0 w-[min(86vw,16rem)] sm:w-64 group rounded-2xl p-3 sm:p-4 border-2 transition-all duration-300 flex items-center justify-between ${isOffline
-                              ? 'border-slate-100 bg-slate-50/50 grayscale-[0.5]'
-                              : isServing
-                                ? 'border-sky-100 bg-sky-50 shadow-sm'
-                                : isOnBreak
-                                  ? 'border-amber-100 bg-amber-50 shadow-sm'
-                                  : 'border-emerald-100 bg-emerald-50 shadow-sm'
-                              }`}
+                            key={`${item.id}-${idx}`}
+                            className="flex-shrink-0 w-[min(56vw,10rem)] sm:w-40 rounded-2xl p-3 border text-center transition-all duration-300 bg-indigo-50/50 border-indigo-100 hover:bg-white hover:shadow-xl hover:shadow-indigo-100/50"
                           >
-                            <div className="flex items-center gap-3">
-                              <div className={`w-12 h-12 rounded-xl flex items-center justify-center font-black text-2xl shadow-sm ${isOffline ? 'bg-slate-200 text-slate-500' :
-                                isServing ? 'bg-sky-500 text-white' :
-                                  isOnBreak ? 'bg-amber-500 text-white' :
-                                    'bg-emerald-500 text-white'
-                                }`}>
-                                {counter.number}
-                              </div>
-                              <div className="text-left">
-                                <p className={`font-bold text-sm leading-none ${isOffline ? 'text-slate-500' : 'text-slate-600'}`}>Counter #{counter.number}</p>
-                                <div className="flex items-center gap-1.5 mt-1.5">
-                                  {isOffline ? (
-                                    <div className="flex items-center gap-1">
-                                      <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
-                                      <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">Offline</span>
-                                    </div>
-                                  ) : isServing ? (
-                                    <div className="flex items-center gap-1">
-                                      <span className="w-1.5 h-1.5 rounded-full bg-sky-500 animate-pulse" />
-                                      <span className="text-[10px] font-black uppercase tracking-wider text-sky-600">Now Serving</span>
-                                    </div>
-                                  ) : isOnBreak ? (
-                                    <div className="flex items-center gap-1">
-                                      <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-                                      <span className="text-[10px] font-black uppercase tracking-wider text-amber-600">On Break</span>
-                                    </div>
-                                  ) : isOnline ? (
-                                    <div className="flex items-center gap-1">
-                                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
-                                      <span className="text-[10px] font-black uppercase tracking-wider text-emerald-600">Online</span>
-                                    </div>
-                                  ) : null}
+                            <p
+                              className={`font-black tracking-wider drop-shadow-sm leading-tight text-slate-900`}
+                              style={{ fontSize: `calc(clamp(1.2rem, 8vw, 2.5rem) * ${zoomScale / 100})` }}
+                            >
+                              {String(item.tokenNumber).padStart(3, "0")}
+                            </p>
+                            <div className="flex items-center justify-center gap-1.5 mt-1.5">
+                              <p className="text-sm font-bold text-slate-600">
+                                {item.counterNumber ? `Counter #${item.counterNumber}` : "Staff Station"}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </section>
+              )}
+
+              {showCounters && (
+                <section className="rounded-3xl border shadow-sm p-4 sm:p-6 overflow-hidden relative min-w-0 bg-white border-slate-200">
+                  <div className="absolute top-0 right-0 p-8 opacity-[0.03] pointer-events-none">
+                    <Users className="w-32 h-32" />
+                  </div>
+                  <div className="flex items-center gap-2 mb-4">
+                    <div className="p-2 rounded-xl bg-emerald-50">
+                      <Users className="w-5 h-5 text-emerald-600" />
+                    </div>
+                    <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-900">Counter Status</h2>
+                  </div>
+
+                  <div className={`relative w-full ${!autoSlide ? 'overflow-x-auto custom-scrollbar' : 'overflow-hidden'}`}>
+                    <div
+                      ref={counterTrackRef}
+                      className={`flex gap-4 whitespace-nowrap py-2 ${autoSlide ? 'animate-marquee' : 'w-max flex-wrap whitespace-normal'}`}
+                      style={autoSlide ? { animationDuration: `${counterDuration}s` } : {}}
+                    >
+                      {/* Filter and double the counters for seamless looping, using spacers for short lists */}
+                      {(() => {
+                        const activeCounters = counters.filter((c) => c.number !== null);
+                        const itemsToDisplay = autoSlide
+                          ? (activeCounters.length > 0 && activeCounters.length < 6)
+                            ? [...activeCounters, { id: 'spacer', isSpacer: true }, ...activeCounters, { id: 'spacer-2', isSpacer: true }]
+                            : [...activeCounters, ...activeCounters]
+                          : activeCounters;
+
+                        return itemsToDisplay.map((counter: any, idx) => {
+                          if (counter.isSpacer) return <div key={`spacer-${idx}`} className="flex-shrink-0 w-[50vw]" />;
+
+                          const status = counter.officer?.status;
+                          const isOffline = !counter.isStaffed || !status || status === 'offline';
+                          const isOnBreak = status === 'on_break' || status === 'break';
+                          const isServing = status === 'serving';
+                          const isOnline = status === 'available' || (counter.isStaffed && !isOffline && !isOnBreak && !isServing);
+
+                          return (
+                            <div
+                              key={`${String(counter.number)}-${idx}`}
+                              className={`flex-shrink-0 w-[min(86vw,16rem)] sm:w-64 group rounded-2xl p-3 sm:p-4 border-2 transition-all duration-300 flex items-center justify-between ${isOffline
+                                ? 'border-slate-100 bg-slate-50/50 grayscale-[0.5]'
+                                : isServing
+                                  ? 'border-sky-100 bg-sky-50 shadow-sm'
+                                  : isOnBreak
+                                    ? 'border-amber-100 bg-amber-50 shadow-sm'
+                                    : 'border-emerald-100 bg-emerald-50 shadow-sm'
+                                }`}
+                            >
+                              <div className="flex items-center gap-3">
+                                <div className={`w-12 h-12 rounded-xl flex items-center justify-center font-black text-2xl shadow-sm ${isOffline ? 'bg-slate-200 text-slate-500' :
+                                  isServing ? 'bg-sky-500 text-white' :
+                                    isOnBreak ? 'bg-amber-500 text-white' :
+                                      'bg-emerald-500 text-white'
+                                  }`}>
+                                  {counter.number}
+                                </div>
+                                <div className="text-left">
+                                  <p className={`font-bold text-sm leading-none ${isOffline ? 'text-slate-500' : 'text-slate-600'}`}>Counter #{counter.number}</p>
+                                  <div className="flex items-center gap-1.5 mt-1.5">
+                                    {isOffline ? (
+                                      <div className="flex items-center gap-1">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+                                        <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">Offline</span>
+                                      </div>
+                                    ) : isServing ? (
+                                      <div className="flex items-center gap-1">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-sky-500 animate-pulse" />
+                                        <span className="text-[10px] font-black uppercase tracking-wider text-sky-600">Now Serving</span>
+                                      </div>
+                                    ) : isOnBreak ? (
+                                      <div className="flex items-center gap-1">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                                        <span className="text-[10px] font-black uppercase tracking-wider text-amber-600">On Break</span>
+                                      </div>
+                                    ) : isOnline ? (
+                                      <div className="flex items-center gap-1">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
+                                        <span className="text-[10px] font-black uppercase tracking-wider text-emerald-600">Online</span>
+                                      </div>
+                                    ) : null}
+                                  </div>
                                 </div>
                               </div>
-                            </div>
 
-                            {!isOffline && (
-                              <div className="w-8 h-8 rounded-full flex items-center justify-center bg-white shadow-sm">
-                                {isServing ? <Sparkles className="w-4 h-4 text-sky-400" /> :
-                                  isOnBreak ? <Coffee className="w-4 h-4 text-amber-400" /> :
-                                    <div className="w-2 h-2 rounded-full bg-emerald-400" />}
-                              </div>
-                            )}
-                          </div>
-                        );
-                      });
-                    })()}
+                              {!isOffline && (
+                                <div className="w-8 h-8 rounded-full flex items-center justify-center bg-white shadow-sm">
+                                  {isServing ? <Sparkles className="w-4 h-4 text-sky-400" /> :
+                                    isOnBreak ? <Coffee className="w-4 h-4 text-amber-400" /> :
+                                      <div className="w-2 h-2 rounded-full bg-emerald-400" />}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        });
+                      })()}
+                    </div>
                   </div>
-                </div>
-               </section>
-            )}
-          </div>
-        )}
+                </section>
+              )}
+            </div>
+          )}
         </div>
 
         <footer className="flex-shrink-0 mt-4 sm:mt-6 pt-4 sm:pt-6 border-t flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 text-center sm:text-left border-slate-200 bg-white/50">
-          <img src={logo} alt="SLT-Mobitel Logo" className="h-8 sm:h-10 lg:h-12 object-contain" />
+          <div className="flex items-center gap-4">
+            <img src={logo} alt="SLT-Mobitel Logo" className="h-8 sm:h-10 lg:h-12 object-contain" />
+            <div className="h-8 w-[1px] bg-slate-200" />
+            <img src="/Transzent Logo.png" alt="Transzent Logo" className="h-14 sm:h-18 lg:h-20 object-contain" />
+          </div>
           <div className="sm:border-l sm:pl-4 border-slate-300">
             <p className="text-sm sm:text-base font-bold leading-tight text-slate-800">
               Digital Queue<br />Management Platform
@@ -747,11 +751,10 @@ export default function OutletQueueDisplay() {
         )}
         <button
           onClick={() => setVoiceEnabled(!voiceEnabled)}
-          className={`group relative flex items-center justify-center w-14 h-14 rounded-2xl shadow-xl transition-all duration-300 hover:scale-110 active:scale-95 ${
-            voiceEnabled 
+          className={`group relative flex items-center justify-center w-14 h-14 rounded-2xl shadow-xl transition-all duration-300 hover:scale-110 active:scale-95 ${voiceEnabled
               ? 'bg-emerald-600 text-white ring-4 ring-emerald-100'
               : 'bg-white text-slate-400 border border-slate-200 hover:text-emerald-600'
-          }`}
+            }`}
           title={voiceEnabled ? "Mute Voice Announcements" : "Enable Voice Announcements"}
         >
           {voiceEnabled ? (
@@ -759,7 +762,7 @@ export default function OutletQueueDisplay() {
           ) : (
             <VolumeX className="w-6 h-6" />
           )}
-          
+
           {!voiceEnabled && (
             <div className="absolute bottom-full mb-3 right-0 border shadow-xl p-3 rounded-xl whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 bg-white border-slate-200 text-slate-800">
               <p className="text-xs font-bold">Browser blocks audio by default.</p>
