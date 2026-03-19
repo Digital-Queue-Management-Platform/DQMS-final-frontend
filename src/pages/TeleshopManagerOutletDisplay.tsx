@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { ExternalLink, Copy, Monitor, SlidersHorizontal, CheckCircle2, Save, Loader2 } from "lucide-react"
-import api from "../config/api"
+import { ExternalLink, Copy, Monitor, SlidersHorizontal, CheckCircle2, Save, Loader2, Volume2, Play, Music } from "lucide-react"
+import api, { API_URL } from "../config/api"
 
 type TeleshopManagerMe = {
   id: string
@@ -25,11 +25,16 @@ export default function TeleshopManagerOutletDisplay() {
 
   const [refresh, setRefresh] = useState(10)
   const [next, setNext] = useState(8)
-  const [services, setServices] = useState(true)
-  const [counters, setCounters] = useState(true)
-  const [recent, setRecent] = useState(true)
+  const [services, setServices] = useState(false)
+  const [counters, setCounters] = useState(false)
+  const [recent, setRecent] = useState(false)
   const [autoSlide, setAutoSlide] = useState(true)
   const [playTone, setPlayTone] = useState(true)
+  const [contentScale, setContentScale] = useState(100)
+  
+  // Speaker Test State
+  const [testLang, setTestLang] = useState<'en' | 'si' | 'ta'>('en')
+  const [testRunning, setTestRunning] = useState(false)
 
   useEffect(() => {
     const load = async () => {
@@ -66,6 +71,7 @@ export default function TeleshopManagerOutletDisplay() {
             if (s.recent !== undefined) setRecent(!!s.recent)
             if (s.autoSlide !== undefined) setAutoSlide(!!s.autoSlide)
             if (s.playTone !== undefined) setPlayTone(!!s.playTone)
+            if (s.contentScale) setContentScale(Number(s.contentScale))
           }
         } catch (se) {
           console.warn("Could not load persisted display settings", se)
@@ -90,13 +96,63 @@ export default function TeleshopManagerOutletDisplay() {
       recent: recent ? "1" : "0",
       autoSlide: autoSlide ? "1" : "0",
       playTone: playTone ? "1" : "0",
+      scale: String(contentScale),
     })
     return `${window.location.origin}/display/outlet/${manager.branchId}?${params.toString()}`
-  }, [manager?.branchId, refresh, next, services, counters, recent, autoSlide, playTone])
+  }, [manager?.branchId, refresh, next, services, counters, recent, autoSlide, playTone, contentScale])
 
   const openDisplay = () => {
-    if (!displayUrl) return
-    window.open(displayUrl, "_blank", "noopener,noreferrer")
+    if (displayUrl) window.open(displayUrl, "_blank")
+  }
+
+  const runSpeakerTest = async (type: 'chime' | 'voice') => {
+    if (testRunning) return
+    setTestRunning(true)
+
+    try {
+      // Trigger locally for manager's preview
+      if (type === 'chime' || playTone) {
+        const chime = new Audio("/announcement.mp3")
+        chime.volume = 0.8
+        await new Promise((resolve) => {
+          chime.onended = resolve
+          chime.onerror = resolve
+          chime.play().catch(resolve)
+        })
+        if (type === 'voice') await new Promise(r => setTimeout(r, 600))
+      }
+
+      if (type === 'voice') {
+        const sampleText = testLang === 'si' 
+          ? "ටෝකන් අංක 123, කරුණාකර කවුන්ටර අංක 5 වෙත පැමිණෙන්න." 
+          : testLang === 'ta'
+          ? "அடையாள எண் 123, தயவுசெய்து கவுண்டர் 5 க்கு செல்லவும்."
+          : "Token number 123, please proceed to counter number 5."
+        
+        const langCode = testLang
+        const ttsUrl = `${API_URL}/tts/speak?text=${encodeURIComponent(sampleText)}&lang=${langCode}`
+        const audio = new Audio(ttsUrl)
+        audio.volume = 0.8
+        await new Promise((resolve) => {
+          audio.onended = resolve
+          audio.onerror = resolve
+          audio.play().catch(resolve)
+        })
+      }
+
+      // ── BROADCAST TO REMOTE DISPLAY ─────────────────────────────────────
+      // Send command to backend to trigger sound on ALL connected displays for this branch
+      await api.post("/teleshop-manager/test-sound", {
+        type,
+        lang: testLang
+      }, {
+        headers: { Authorization: `Bearer ${localStorage.getItem("teleshopManagerToken")}` }
+      })
+    } catch (err) {
+      console.error("Speaker test failed:", err)
+    } finally {
+      setTestRunning(false)
+    }
   }
 
   const copyLink = async () => {
@@ -124,7 +180,8 @@ export default function TeleshopManagerOutletDisplay() {
             counters,
             recent,
             autoSlide,
-            playTone
+            playTone,
+            contentScale,
           }
         },
         { headers: { Authorization: `Bearer ${token}` } }
@@ -245,10 +302,101 @@ export default function TeleshopManagerOutletDisplay() {
                   className="w-5 h-5 accent-amber-600"
                 />
               </label>
-
             </div>
 
-            <div className="mt-6 pt-4 border-t border-slate-100 flex justify-end">
+             <div className="mt-8">
+              <div className="flex items-center gap-2 mb-4">
+                <SlidersHorizontal className="w-5 h-5 text-slate-700" />
+                <h2 className="text-lg font-bold text-slate-900">Overall Content Zoom (%)</h2>
+              </div>
+              <p className="text-xs text-slate-500 mb-6 font-medium">
+                Adjust this slider to increase or decrease the entire content size of the outlet display. 
+                Perfect for making the display readable from any distance.
+              </p>
+              
+              <div className="space-y-6">
+                <div className="flex items-center justify-between gap-4">
+                  <input
+                    type="range"
+                    min={50}
+                    max={200}
+                    step={5}
+                    value={contentScale}
+                    onChange={(e) => setContentScale(Number(e.target.value))}
+                    className="flex-1 h-3 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-sky-600"
+                  />
+                  <div className="w-16 h-10 rounded-xl bg-sky-50 border border-sky-100 flex items-center justify-center font-bold text-sky-700">
+                    {contentScale}%
+                  </div>
+                </div>
+                
+                <div className="flex justify-between text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">
+                  <span>Small (50%)</span>
+                  <span>Normal (100%)</span>
+                  <span>Huge (200%)</span>
+                </div>
+              </div>
+            </div>
+ 
+             {/* Speaker Testing Section */}
+             <div className="mt-8 pt-8 border-t border-slate-100">
+               <div className="flex items-center gap-2 mb-4">
+                 <Volume2 className="w-5 h-5 text-slate-700" />
+                 <h2 className="text-lg font-bold text-slate-900">Speaker & Voice Testing</h2>
+               </div>
+               <p className="text-xs text-slate-500 mb-6 font-medium">
+                 Test the outlet's audio hardware by playing a sample announcement.
+                 Adjust the language to hear how the voice synthesis sounds.
+               </p>
+ 
+               <div className="bg-slate-50 rounded-2xl p-4 sm:p-5 border border-slate-200">
+                 <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-4">
+                   {/* Language Switcher */}
+                   <div className="flex bg-white p-1 rounded-xl border border-slate-200 shadow-sm grow lg:grow-0">
+                     {(['en', 'si', 'ta'] as const).map((l) => (
+                       <button
+                         key={l}
+                         onClick={() => setTestLang(l)}
+                         className={`flex-1 min-w-0 px-3 sm:px-4 py-2 text-xs font-bold rounded-lg transition-all ${
+                           testLang === l ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-50'
+                         }`}
+                       >
+                         {l === 'en' ? 'English' : l === 'si' ? 'සිංහල' : 'தமிழ்'}
+                       </button>
+                     ))}
+                   </div>
+ 
+                   {/* Action Buttons */}
+                   <div className="flex flex-col sm:flex-row items-stretch gap-2 grow">
+                     <button
+                       onClick={() => runSpeakerTest('chime')}
+                       disabled={testRunning}
+                       className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-700 hover:bg-slate-50 transition-all disabled:opacity-50 shadow-sm"
+                     >
+                       <Music className="w-4 h-4 text-slate-500" strokeWidth={2.5} />
+                       Play Chime
+                     </button>
+                     <button
+                       onClick={() => runSpeakerTest('voice')}
+                       disabled={testRunning}
+                       className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-sky-600 rounded-xl text-sm font-bold text-white hover:bg-sky-700 transition-all shadow-md disabled:opacity-50"
+                     >
+                       <Play className="w-4 h-4 fill-current" />
+                       Play Voice
+                     </button>
+                   </div>
+                 </div>
+                 
+                 {testRunning && (
+                   <div className="mt-4 flex items-center justify-center gap-2 text-[10px] font-bold text-sky-600 animate-pulse uppercase tracking-widest">
+                     <div className="w-1.5 h-1.5 bg-sky-600 rounded-full" />
+                     Test In Progress...
+                   </div>
+                 )}
+               </div>
+             </div>
+ 
+             <div className="mt-6 pt-4 border-t border-slate-100 flex justify-end">
               <button
                 onClick={saveSettings}
                 disabled={saving}
