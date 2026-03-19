@@ -110,48 +110,18 @@ export default function TeleshopManagerOutletDisplay() {
     setTestRunning(true)
 
     try {
-      // ── BROADCAST TO REMOTE DISPLAY ─────────────────────────────────────
-      // Send command to backend immediately (don't wait for local preview to finish)
-      api.post("/teleshop-manager/test-sound", {
+      // ── BROADCAST TO REMOTE DISPLAY ONLY ────────────────────────────────
+      // Send command to backend to trigger sound on ALL connected displays for this branch
+      // Local preview is disabled to follow the officer "Remote Only" strategy.
+      await api.post("/teleshop-manager/test-sound", {
         type,
         lang: testLang
       }, {
         headers: { Authorization: `Bearer ${localStorage.getItem("teleshopManagerToken")}` }
-      }).then(() => {
-        console.log("[SpeakerTest] Remote broadcast triggered successfully")
-      }).catch(err => {
-        console.error("[SpeakerTest] Remote broadcast failed:", err)
       })
 
-      // Trigger locally for manager's preview
-      if (type === 'chime' || playTone) {
-        const chime = new Audio("/announcement.mp3")
-        chime.volume = 0.8
-        await new Promise((resolve) => {
-          chime.onended = resolve
-          chime.onerror = resolve
-          chime.play().catch(resolve)
-        })
-        if (type === 'voice') await new Promise(r => setTimeout(r, 600))
-      }
-
-      if (type === 'voice') {
-        const sampleText = testLang === 'si' 
-          ? "ටෝකන් අංක 123, කරුණාකර කවුන්ටර අංක 5 වෙත පැමිණෙන්න." 
-          : testLang === 'ta'
-          ? "அடையாள எண் 123, தயவுசெய்து கவுண்டர் 5 க்கு செல்லவும்."
-          : "Token number 123, please proceed to counter number 5."
-        
-        const langCode = testLang
-        const ttsUrl = `${API_URL}/tts/speak?text=${encodeURIComponent(sampleText)}&lang=${langCode}`
-        const audio = new Audio(ttsUrl)
-        audio.volume = 0.8
-        await new Promise((resolve) => {
-          audio.onended = resolve
-          audio.onerror = resolve
-          audio.play().catch(resolve)
-        })
-      }
+      console.log("[SpeakerTest] Remote broadcast triggered successfully")
+      // Optionally show a momentary success state if needed
     } catch (err) {
       console.error("Speaker test failed:", err)
     } finally {
