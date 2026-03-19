@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
@@ -309,15 +309,19 @@ export default function AdminDashboard() {
   const unreadAlertCount = alerts.filter((a) => !a.isRead).length
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-slate-50 relative overflow-hidden">
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute top-1/2 left-1/4 w-[500px] h-[500px] bg-indigo-100/30 rounded-full blur-[120px]" />
+        <div className="absolute bottom-0 right-1/4 w-[400px] h-[400px] bg-blue-100/30 rounded-full blur-[100px]" />
+      </div>
       {/* Header */}
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-10">
+      <header className="bg-white/80 backdrop-blur-md border-b border-slate-200 sticky top-0 z-10 shadow-sm shadow-slate-200/20">
         <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-3 sm:py-4">
           <div className="flex items-center justify-between">
             <div className="min-w-0 flex-1">
-              <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 truncate">Admin Dashboard</h1>
+              <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 truncate">Super Admin Dashboard</h1>
               <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
-                <p className="text-[10px] sm:text-sm text-gray-600">Digital Queue Management System</p>
+                <p className="text-[10px] sm:text-sm text-gray-600">Super Admin • DQMS Management</p>
                 <div className="flex items-center gap-2 text-xs text-slate-600">
                   {dashboardLoading && <span className="flex items-center gap-1">Refreshing...</span>}
                   <span>Last updated: {lastUpdated.toLocaleTimeString()}</span>
@@ -666,7 +670,7 @@ export default function AdminDashboard() {
               Real-time Overview
             </h2>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
-              <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 sm:p-6">
+              <div className="bg-white rounded-2xl shadow-md shadow-slate-200/50 border border-slate-100 p-4 sm:p-6">
                 <div className="flex items-center justify-between">
                   <div className="min-w-0 flex-1">
                     <p className="text-xs sm:text-sm text-gray-600 mb-1 truncate">Active Tokens</p>
@@ -678,7 +682,7 @@ export default function AdminDashboard() {
                 </div>
               </div>
 
-              <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 sm:p-6">
+              <div className="bg-white rounded-2xl shadow-md shadow-slate-200/50 border border-slate-100 p-4 sm:p-6">
                 <div className="flex items-center justify-between">
                   <div className="min-w-0 flex-1">
                     <p className="text-xs sm:text-sm text-gray-600 mb-1 truncate">Completed Today</p>
@@ -690,7 +694,7 @@ export default function AdminDashboard() {
                 </div>
               </div>
 
-              <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 sm:p-6">
+              <div className="bg-white rounded-2xl shadow-md shadow-slate-200/50 border border-slate-100 p-4 sm:p-6">
                 <div className="flex items-center justify-between">
                   <div className="min-w-0 flex-1">
                     <p className="text-xs sm:text-sm text-gray-600 mb-1 truncate">Active Officers</p>
@@ -702,7 +706,7 @@ export default function AdminDashboard() {
                 </div>
               </div>
 
-              <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 sm:p-6">
+              <div className="bg-white rounded-2xl shadow-md shadow-slate-200/50 border border-slate-100 p-4 sm:p-6">
                 <div className="flex items-center justify-between">
                   <div className="min-w-0 flex-1">
                     <p className="text-xs sm:text-sm text-gray-600 mb-1 truncate">Avg Rating Today</p>
@@ -743,7 +747,7 @@ export default function AdminDashboard() {
         </div>
 
         {/* Filters */}
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 sm:p-6 mb-6 sm:mb-8">
+        <div className="bg-white rounded-2xl shadow-md shadow-slate-200/50 border border-slate-100 p-4 sm:p-6 mb-6 sm:mb-8">
           <div className="flex items-center gap-2 mb-4">
             <Filter className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600" />
             <h2 className="text-base sm:text-lg font-bold text-gray-900">Analytics Filters</h2>
@@ -807,7 +811,7 @@ export default function AdminDashboard() {
           <>
             {/* Key Metrics */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
-              <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 sm:p-6">
+              <div className="bg-white rounded-2xl shadow-md shadow-slate-200/50 border border-slate-100 p-4 sm:p-6">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-sm font-medium text-gray-600">Total Tokens</h3>
                   <BarChart3 className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
@@ -815,7 +819,7 @@ export default function AdminDashboard() {
                 <p className="text-2xl sm:text-3xl font-bold text-gray-900">{analytics.totalTokens}</p>
               </div>
 
-              <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 sm:p-6">
+              <div className="bg-white rounded-2xl shadow-md shadow-slate-200/50 border border-slate-100 p-4 sm:p-6">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-sm font-medium text-gray-600">Avg Wait Time</h3>
                   <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
@@ -835,7 +839,7 @@ export default function AdminDashboard() {
             </div>
 
             {/* Rating Distribution */}
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 sm:p-6 mb-6 sm:mb-8">
+            <div className="bg-white rounded-2xl shadow-md shadow-slate-200/50 border border-slate-100 p-4 sm:p-6 mb-6 sm:mb-8">
               <h3 className="text-base sm:text-lg font-bold text-slate-900 mb-4 sm:mb-6">Customer Satisfaction</h3>
               <div className="space-y-3 sm:space-y-4">
                 {calculateRatingDistribution().map((item) => (

@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 //import SLTlogo from '../../../assets/logo.png';
@@ -8,7 +8,6 @@ import {
   //Users, 
   //UserCheck, 
   UserCog,
-  Headphones,
   UserPlus,
   LogOut,
   Menu,
@@ -25,7 +24,8 @@ import {
   MessageSquare,
   Calendar,
   UserCheck,
-  Monitor,
+  Tv,
+  Tablet,
   BellOff,
   Briefcase as BriefcaseIcon,
   UserCheck as UserCheckIcon,
@@ -76,7 +76,6 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed, activePa
   const officerItems: NavigationItem[] = [
     { name: 'Queue', icon: ListOrdered, to: '/officer/queue' },
     { name: 'Officer Dashboard', icon: LayoutDashboard, to: '/officer/dashboard' },
-    { name: 'IP Speaker', icon: Headphones, to: '/officer/ip-speaker' },
     { name: 'Serve Customers', icon: UserCheck, to: '/officer/served-customers' },
     { name: 'Service Tracking', icon: MessageSquare, to: '/officer/service-tracking' },
     { name: 'Branch Notices', icon: BellOff, to: '/officer/branch-notices' },
@@ -98,8 +97,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed, activePa
 
   const teleshopManagerItems: NavigationItem[] = [
     { name: 'Dashboard', icon: LayoutDashboard, to: '/teleshop-manager/dashboard' },
-    { name: 'Outlet Display', icon: Monitor, to: '/teleshop-manager/outlet-display' },
-    { name: 'Kiosk Settings', icon: Monitor, to: '/teleshop-manager/kiosk-settings' },
+    { name: 'Outlet Display', icon: Tv, to: '/teleshop-manager/outlet-display' },
+    { name: 'Kiosk Settings', icon: Tablet, to: '/teleshop-manager/kiosk-settings' },
     { name: 'Appointments', icon: Calendar, to: '/teleshop-manager/appointments' },
     { name: 'Completed Services', icon: ListOrdered, to: '/teleshop-manager/completed-services' },
     { name: 'Audit Logs', icon: ClipboardList, to: '/teleshop-manager/audit-logs' },
@@ -236,9 +235,9 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed, activePa
       // Admin path
       const admin = storedUser ? JSON.parse(storedUser) : null
       return {
-        name: admin?.name || 'Admin',
-        role: 'Administrator',
-        initials: admin?.name ? admin.name.split(' ').map((n: string) => n[0]).join('').toUpperCase() : 'AD'
+        name: admin?.name || 'Super Admin',
+        role: 'Super Administrator',
+        initials: 'SA'
       }
     }
   }
