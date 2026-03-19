@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { ExternalLink, Copy, Monitor, SlidersHorizontal, CheckCircle2, Save, Loader2, Volume2, Play, Music } from "lucide-react"
-import api, { API_URL } from "../config/api"
+import api from "../config/api"
 
 type TeleshopManagerMe = {
   id: string
