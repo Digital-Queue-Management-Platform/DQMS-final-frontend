@@ -110,6 +110,19 @@ export default function TeleshopManagerOutletDisplay() {
     setTestRunning(true)
 
     try {
+      // ── BROADCAST TO REMOTE DISPLAY ─────────────────────────────────────
+      // Send command to backend immediately (don't wait for local preview to finish)
+      api.post("/teleshop-manager/test-sound", {
+        type,
+        lang: testLang
+      }, {
+        headers: { Authorization: `Bearer ${localStorage.getItem("teleshopManagerToken")}` }
+      }).then(() => {
+        console.log("[SpeakerTest] Remote broadcast triggered successfully")
+      }).catch(err => {
+        console.error("[SpeakerTest] Remote broadcast failed:", err)
+      })
+
       // Trigger locally for manager's preview
       if (type === 'chime' || playTone) {
         const chime = new Audio("/announcement.mp3")
@@ -139,15 +152,6 @@ export default function TeleshopManagerOutletDisplay() {
           audio.play().catch(resolve)
         })
       }
-
-      // ── BROADCAST TO REMOTE DISPLAY ─────────────────────────────────────
-      // Send command to backend to trigger sound on ALL connected displays for this branch
-      await api.post("/teleshop-manager/test-sound", {
-        type,
-        lang: testLang
-      }, {
-        headers: { Authorization: `Bearer ${localStorage.getItem("teleshopManagerToken")}` }
-      })
     } catch (err) {
       console.error("Speaker test failed:", err)
     } finally {
