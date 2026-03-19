@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
@@ -315,9 +315,9 @@ export default function AdminDashboard() {
         <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-3 sm:py-4">
           <div className="flex items-center justify-between">
             <div className="min-w-0 flex-1">
-              <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 truncate">Admin Dashboard</h1>
+              <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 truncate">Super Admin Dashboard</h1>
               <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
-                <p className="text-[10px] sm:text-sm text-gray-600">Digital Queue Management System</p>
+                <p className="text-[10px] sm:text-sm text-gray-600">Super Admin • DQMS Management</p>
                 <div className="flex items-center gap-2 text-xs text-slate-600">
                   {dashboardLoading && <span className="flex items-center gap-1">Refreshing...</span>}
                   <span>Last updated: {lastUpdated.toLocaleTimeString()}</span>

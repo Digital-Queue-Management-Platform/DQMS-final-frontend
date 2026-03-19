@@ -1,12 +1,15 @@
-﻿import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { Eye, EyeOff, ShieldCheck, Lock, Mail, AlertTriangle } from 'lucide-react'
+import { Eye, EyeOff, ShieldCheck, Lock, Mail, AlertTriangle, Phone } from 'lucide-react'
 import { motion } from 'framer-motion'
 import api from '../config/api'
 
 const AdminLogin = () => {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [mobileNumber, setMobileNumber] = useState('')
+  const [otpCode, setOtpCode] = useState('')
+  const [step, setStep] = useState<1 | 2>(1) // 1: credentials, 2: OTP verification
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
@@ -21,16 +24,29 @@ const AdminLogin = () => {
     }
   }, [navigate, searchParams])
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault()
+    if (isLoading) return
     setIsLoading(true)
     setError('')
     try {
-      const response = await api.post('/admin/login', { email, password })
-      if (response.data.token) {
-        localStorage.setItem('adminToken', response.data.token)
-        const returnTo = searchParams.get('returnTo') || '/admin'
-        navigate(returnTo, { replace: true })
+      if (step === 1) {
+        // Phase 1: Check credentials + mobile, trigger OTP
+        const response = await api.post('/admin/login', { email: email.trim(), password, mobileNumber: mobileNumber.trim() })
+        if (response.data.needsOtp) {
+          setStep(2)
+        }
+      } else {
+        // Phase 2: Verify OTP and get token
+        const response = await api.post('/admin/verify-login-otp', { email: email.trim(), password, mobileNumber: mobileNumber.trim(), otpCode })
+        if (response.data.token) {
+          localStorage.setItem('adminToken', response.data.token)
+          if (response.data.user) {
+            localStorage.setItem('dq_user', JSON.stringify(response.data.user))
+          }
+          const returnTo = searchParams.get('returnTo') || '/admin'
+          navigate(returnTo, { replace: true })
+        }
       }
     } catch (error: any) {
       if (error.response?.data?.error) setError(error.response.data.error)
@@ -39,6 +55,23 @@ const AdminLogin = () => {
       setIsLoading(false)
     }
   }
+
+  // Auto-trigger Step 1 (Credentials -> OTP)
+  useEffect(() => {
+    const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())
+    const isMobileValid = mobileNumber.replace(/\D/g, '').length === 10
+    
+    if (step === 1 && isEmailValid && password.length >= 6 && isMobileValid && !isLoading) {
+      handleSubmit()
+    }
+  }, [email, password, mobileNumber, step])
+
+  // Auto-trigger Step 2 (OTP -> Dashboard)
+  useEffect(() => {
+    if (step === 2 && otpCode.length === 4 && !isLoading) {
+      handleSubmit()
+    }
+  }, [otpCode, step])
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden"
@@ -63,8 +96,10 @@ const AdminLogin = () => {
             >
               <ShieldCheck className="w-8 h-8 text-white" />
             </motion.div>
-            <h1 className="text-2xl font-bold text-white">System Administrator</h1>
-            <p className="mt-1.5 text-sm text-slate-400">Enter your credentials to access the admin panel</p>
+            <h1 className="text-2xl font-bold text-white">Super Admin Dashboard</h1>
+            <p className="mt-1.5 text-sm text-slate-400">
+              {step === 1 ? 'Authorized access only' : `Security code sent to ${mobileNumber}`}
+            </p>
           </div>
 
           {error && (
@@ -79,34 +114,72 @@ const AdminLogin = () => {
           )}
 
           <form className="space-y-5" onSubmit={handleSubmit}>
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1.5">Email Address</label>
-              <div className="relative">
-                <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                <input
-                  id="email" name="email" type="email" autoComplete="email" required
-                  value={email} onChange={(e) => setEmail(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 bg-white/10 border border-white/20 rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all text-sm"
-                  placeholder="admin@example.com"
-                />
-              </div>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1.5">Password</label>
-              <div className="relative">
-                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                <input
-                  id="password" name="password" type={showPassword ? 'text' : 'password'} autoComplete="current-password" required
-                  value={password} onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-10 pr-11 py-2.5 bg-white/10 border border-white/20 rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all text-sm"
-                  placeholder="Enter your password"
-                />
-                <button type="button" onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 px-3.5 flex items-center text-slate-400 hover:text-white transition-colors">
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            {step === 1 ? (
+              <>
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-1.5">Email Address</label>
+                  <div className="relative">
+                    <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                    <input
+                      id="email" name="email" type="email" autoComplete="email" required
+                      value={email} onChange={(e) => setEmail(e.target.value)}
+                      className="w-full pl-10 pr-4 py-2.5 bg-white/10 border border-white/20 rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all text-sm"
+                      placeholder="admindqms@slt.lk"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-1.5">Password</label>
+                  <div className="relative">
+                    <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                    <input
+                      id="password" name="password" type={showPassword ? 'text' : 'password'} autoComplete="current-password" required
+                      value={password} onChange={(e) => setPassword(e.target.value)}
+                      className="w-full pl-10 pr-11 py-2.5 bg-white/10 border border-white/20 rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all text-sm"
+                      placeholder="Enter your password"
+                    />
+                    <button type="button" onClick={() => setShowPassword(!showPassword)}
+                      className="absolute inset-y-0 right-0 px-3.5 flex items-center text-slate-400 hover:text-white transition-colors">
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-1.5">Mobile for Verification</label>
+                  <div className="relative">
+                    <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                    <input
+                      id="mobile" name="mobile" type="tel" required
+                      value={mobileNumber} onChange={(e) => setMobileNumber(e.target.value)}
+                      className="w-full pl-10 pr-4 py-2.5 bg-white/10 border border-white/20 rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all text-sm"
+                      placeholder="e.g. 0771234567"
+                    />
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-1.5 text-center">Security Verification Code (OTP)</label>
+                <div className="relative">
+                  <ShieldCheck className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <input
+                    id="otp" name="otp" type="text" required
+                    value={otpCode} onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                    className="w-full pl-10 pr-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white text-center text-xl font-mono tracking-[1em] placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                    placeholder="0000"
+                    autoFocus
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setStep(1)}
+                  className="mt-3 text-xs text-indigo-400 hover:text-indigo-300 transition-colors w-full text-center"
+                >
+                  Back to credentials
                 </button>
               </div>
-            </div>
+            )}
+
             <motion.button
               type="submit" disabled={isLoading}
               whileHover={{ scale: isLoading ? 1 : 1.01 }}
@@ -116,12 +189,12 @@ const AdminLogin = () => {
               {isLoading ? (
                 <span className="flex items-center justify-center gap-2">
                   <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  Signing in…
+                  {step === 1 ? 'Sending OTP...' : 'Verifying...'}
                 </span>
-              ) : 'Sign In'}
+              ) : (step === 1 ? 'Send Security Code' : 'Verify & Sign In')}
             </motion.button>
           </form>
-          <p className="mt-6 text-center text-xs text-slate-500">Admin access only · Unauthorized access is prohibited</p>
+          <p className="mt-6 text-center text-xs text-slate-500">Super Admin access only · Multi-factor authentication enabled</p>
         </div>
       </motion.div>
     </div>

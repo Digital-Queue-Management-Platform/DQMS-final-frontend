@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { RefreshCwIcon, DownloadIcon, Eye, ArrowLeft } from 'lucide-react';
 
 interface HeaderProps {
@@ -45,7 +45,7 @@ const Header: React.FC<HeaderProps> = ({ showBranchDashboard, setShowBranchDashb
       <div className="flex items-center justify-between px-6 py-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-800">
-            {showBranchDashboard ? 'Branch Dashboard' : 'Admin Dashboard'}
+            {showBranchDashboard ? 'Branch Dashboard' : 'Super Admin Dashboard'}
           </h1>
           <p className="text-sm text-gray-500">
             {formatDate(currentDateTime)} | {formatTime(currentDateTime)}
@@ -58,7 +58,7 @@ const Header: React.FC<HeaderProps> = ({ showBranchDashboard, setShowBranchDashb
               onClick={handleBranchDashboardToggle}
             >
               <ArrowLeft className="w-5 h-5 mr-2" />
-              Back to Admin Dashboard
+              Back to Super Admin Dashboard
             </button>
           ) : (
             <button 

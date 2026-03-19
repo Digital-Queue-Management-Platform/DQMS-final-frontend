@@ -235,9 +235,9 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed, activePa
       // Admin path
       const admin = storedUser ? JSON.parse(storedUser) : null
       return {
-        name: admin?.name || 'Admin',
-        role: 'Administrator',
-        initials: admin?.name ? admin.name.split(' ').map((n: string) => n[0]).join('').toUpperCase() : 'AD'
+        name: admin?.name || 'Super Admin',
+        role: 'Super Administrator',
+        initials: 'SA'
       }
     }
   }

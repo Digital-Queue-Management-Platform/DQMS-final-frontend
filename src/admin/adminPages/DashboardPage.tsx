@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import MetricCard from '../adminComponents/dashboardComponents/MetricCard';
 import {BranchComparisonChart} from '../adminComponents/dashboardComponents/BranchComparisonChart';
 import WaitingTimeChart from '../adminComponents/dashboardComponents/WaitingTimeChart';
@@ -524,7 +524,7 @@ const DashboardPage: React.FC = () => {
           <div className="flex items-center justify-between mb-2">
             <div>
               <h1 className="text-2xl font-bold text-gray-900">
-                {showBranchDashboard ? 'Branch Dashboard' : 'Admin Dashboard'}
+                {showBranchDashboard ? 'Branch Dashboard' : 'Super Admin Dashboard'}
               </h1>
               <div className="flex flex-col sm:flex-row sm:items-center gap-2">
                 <div className="flex text-sm items-center text-gray-500">
@@ -696,7 +696,7 @@ const DashboardPage: React.FC = () => {
                   onClick={handleBranchDashboardToggle}
                 >
                   <ArrowLeft className="w-5 h-5 mr-2" />
-                  Back to Admin Dashboard
+                  Back to Super Admin Dashboard
                 </button>
               ) : (
                 <button 
