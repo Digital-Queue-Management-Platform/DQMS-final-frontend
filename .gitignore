@@ -1,4 +1,6 @@
-# Logs
+# Electron build outputs
+dist-electron
+dist_electron
 logs
 *.log
 npm-debug.log*
