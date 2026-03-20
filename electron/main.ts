@@ -1,4 +1,4 @@
-import { app, BrowserWindow, Menu, shell } from 'electron'
+import { app, BrowserWindow, Menu, shell, session } from 'electron'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 
@@ -35,6 +35,17 @@ function createWindow() {
         { label: 'Home', click: () => { win?.loadURL(LIVE_URL) } },
         { type: 'separator' },
         { role: 'reload' },
+        { role: 'forceReload' },
+        { 
+          label: 'Clear App Cache', 
+          click: () => { 
+            session.defaultSession.clearStorageData().then(() => {
+              app.relaunch();
+              app.exit();
+            })
+          } 
+        },
+        { type: 'separator' },
         { role: 'toggleDevTools' },
         { type: 'separator' },
         { role: 'quit' }
@@ -54,7 +65,8 @@ function createWindow() {
     win.loadURL(process.env.VITE_DEV_SERVER_URL)
   } else {
     // Always load the live website in production!
-    win.loadURL(LIVE_URL)
+    // Always load the live website with cache revalidation
+    win.loadURL(LIVE_URL, { extraHeaders: 'pragma: no-cache\nCache-Control: no-cache\n' })
   }
 
   // Open external links (like Google or support sites) in the system browser
