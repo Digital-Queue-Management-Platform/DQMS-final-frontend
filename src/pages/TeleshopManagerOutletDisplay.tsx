@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { ExternalLink, Copy, Monitor, SlidersHorizontal, CheckCircle2, Save, Loader2, Volume2, Play, Music } from "lucide-react"
+import { ExternalLink, Copy, Monitor, SlidersHorizontal, CheckCircle2, Save, Loader2, Volume2, Play, Music, Wifi } from "lucide-react"
 import api from "../config/api"
 
 type TeleshopManagerMe = {
@@ -32,9 +32,22 @@ export default function TeleshopManagerOutletDisplay() {
   const [playTone, setPlayTone] = useState(true)
   const [contentScale, setContentScale] = useState(100)
   
+  // IP Speaker Settings
+  const [useIPSpeaker, setUseIPSpeaker] = useState(false)
+  const [ipSpeakerConfig, setIpSpeakerConfig] = useState<any>({
+    ip: '',
+    port: 80,
+    username: 'admin',
+    password: '',
+    model: 'hikvision'
+  })
+  
   // Speaker Test State
   const [testLang, setTestLang] = useState<'en' | 'si' | 'ta'>('en')
   const [testRunning, setTestRunning] = useState(false)
+  const [customEn, setCustomEn] = useState("")
+  const [customSi, setCustomSi] = useState("")
+  const [customTa, setCustomTa] = useState("")
 
   useEffect(() => {
     const load = async () => {
@@ -72,6 +85,10 @@ export default function TeleshopManagerOutletDisplay() {
             if (s.autoSlide !== undefined) setAutoSlide(!!s.autoSlide)
             if (s.playTone !== undefined) setPlayTone(!!s.playTone)
             if (s.contentScale) setContentScale(Number(s.contentScale))
+            
+            // Load IP Speaker config
+            if (s.useIPSpeaker !== undefined) setUseIPSpeaker(!!s.useIPSpeaker)
+            if (s.ipSpeakerConfig) setIpSpeakerConfig(s.ipSpeakerConfig)
           }
         } catch (se) {
           console.warn("Could not load persisted display settings", se)
@@ -105,27 +122,75 @@ export default function TeleshopManagerOutletDisplay() {
     if (displayUrl) window.open(displayUrl, "_blank")
   }
 
-  const runSpeakerTest = async (type: 'chime' | 'voice') => {
+  const runSpeakerTest = async (type: 'chime' | 'voice', message?: string, lang?: 'en' | 'si' | 'ta') => {
     if (testRunning) return
     setTestRunning(true)
 
     try {
-      // ── BROADCAST TO REMOTE DISPLAY ONLY ────────────────────────────────
-      // Send command to backend to trigger sound on ALL connected displays for this branch
-      // Local preview is disabled to follow the officer "Remote Only" strategy.
       await api.post("/teleshop-manager/test-sound", {
         type,
-        lang: testLang
+        lang: lang || testLang,
+        customText: type === 'voice' ? (message || undefined) : undefined
       }, {
         headers: { Authorization: `Bearer ${localStorage.getItem("teleshopManagerToken")}` }
       })
-
       console.log("[SpeakerTest] Remote broadcast triggered successfully")
-      // Optionally show a momentary success state if needed
     } catch (err) {
       console.error("Speaker test failed:", err)
     } finally {
       setTestRunning(false)
+    }
+  }
+
+  const announceAll = async () => {
+    if (testRunning) return
+    
+    const messages = []
+    if (customEn.trim()) messages.push({ text: customEn, lang: 'en' as const })
+    if (customSi.trim()) messages.push({ text: customSi, lang: 'si' as const })
+    if (customTa.trim()) messages.push({ text: customTa, lang: 'ta' as const })
+    
+    if (messages.length === 0) return
+    
+    setTestRunning(true)
+    try {
+      const token = localStorage.getItem("teleshopManagerToken")
+      // Send them sequentially
+      for (const m of messages) {
+        await api.post("/teleshop-manager/test-sound", {
+          type: 'voice',
+          lang: m.lang,
+          customText: m.text
+        }, {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+        // Wait 100ms before sending the next one to ensure the backend receives them correctly
+        await new Promise(r => setTimeout(r, 200))
+      }
+    } catch (err) {
+      console.error("Multi-language announcement failed:", err)
+    } finally {
+      setTestRunning(false)
+    }
+  }
+
+  const [isTranslating, setIsTranslating] = useState(false)
+
+  const handleAutoTranslate = async () => {
+    if (!customEn.trim()) return
+    setIsTranslating(true)
+    try {
+      const results = await Promise.all([
+        api.post("/utils/translate", { text: customEn, target: 'si' }),
+        api.post("/utils/translate", { text: customEn, target: 'ta' })
+      ])
+      
+      if (results[0].data?.translated) setCustomSi(results[0].data.translated)
+      if (results[1].data?.translated) setCustomTa(results[1].data.translated)
+    } catch (err) {
+      console.error("Translation failed:", err)
+    } finally {
+      setIsTranslating(false)
     }
   }
 
@@ -156,6 +221,8 @@ export default function TeleshopManagerOutletDisplay() {
             autoSlide,
             playTone,
             contentScale,
+            useIPSpeaker,
+            ipSpeakerConfig,
           }
         },
         { headers: { Authorization: `Bearer ${token}` } }
@@ -278,7 +345,94 @@ export default function TeleshopManagerOutletDisplay() {
               </label>
             </div>
 
-             <div className="mt-8">
+            <div className="mt-8 pt-8 border-t border-slate-100">
+               <div className="flex items-center gap-2 mb-4">
+                 <Wifi className="w-5 h-5 text-indigo-700" />
+                 <h2 className="text-lg font-bold text-slate-900">Physical IP Speaker Config</h2>
+               </div>
+               <p className="text-xs text-slate-500 mb-6 font-medium">
+                 Specify the IP address of your hardware speaker (e.g. Hikvision, Dahua) to cast voice announcements.
+               </p>
+
+               <div className="space-y-4">
+                 <label className="flex items-center justify-between rounded-xl border border-indigo-200 px-4 py-3 bg-indigo-50/30">
+                   <div className="flex flex-col">
+                     <span className="text-sm font-bold text-slate-800">Use Physical IP Speaker</span>
+                     <span className="text-[10px] text-slate-500 uppercase font-black">Enable hardware broadcast</span>
+                   </div>
+                   <input 
+                    type="checkbox" 
+                    checked={useIPSpeaker} 
+                    onChange={(e) => setUseIPSpeaker(e.target.checked)} 
+                    className="w-5 h-5 accent-indigo-600"
+                   />
+                 </label>
+
+                 {useIPSpeaker && (
+                   <div className="p-5 bg-slate-50 border border-slate-200 rounded-2xl space-y-4 animate-in fade-in slide-in-from-top-2">
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                       <div>
+                         <label className="block text-[10px] font-black text-slate-400 uppercase mb-1">Speaker IP Address</label>
+                         <input
+                           type="text"
+                           value={ipSpeakerConfig.ip}
+                           onChange={(e) => setIpSpeakerConfig({...ipSpeakerConfig, ip: e.target.value})}
+                           placeholder="192.168.1.100"
+                           className="w-full px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500"
+                         />
+                       </div>
+                       <div>
+                         <label className="block text-[10px] font-black text-slate-400 uppercase mb-1">Speaker Port</label>
+                         <input
+                           type="number"
+                           value={ipSpeakerConfig.port}
+                           onChange={(e) => setIpSpeakerConfig({...ipSpeakerConfig, port: Number(e.target.value)})}
+                           placeholder="80"
+                           className="w-full px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500"
+                         />
+                       </div>
+                     </div>
+
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-[10px] font-black text-slate-400 uppercase mb-1">Username</label>
+                          <input
+                            type="text"
+                            value={ipSpeakerConfig.username}
+                            onChange={(e) => setIpSpeakerConfig({...ipSpeakerConfig, username: e.target.value})}
+                            className="w-full px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-black text-slate-400 uppercase mb-1">Password</label>
+                          <input
+                            type="password"
+                            value={ipSpeakerConfig.password}
+                            onChange={(e) => setIpSpeakerConfig({...ipSpeakerConfig, password: e.target.value})}
+                            className="w-full px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500"
+                          />
+                        </div>
+                     </div>
+
+                     <div>
+                        <label className="block text-[10px] font-black text-slate-400 uppercase mb-1">Speaker Model</label>
+                        <select
+                          value={ipSpeakerConfig.model}
+                          onChange={(e) => setIpSpeakerConfig({...ipSpeakerConfig, model: e.target.value})}
+                          className="w-full px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500 appearance-none"
+                        >
+                          <option value="hikvision">Hikvision (ISAPI)</option>
+                          <option value="dahua">Dahua (CGI)</option>
+                          <option value="axis">Axis (VAPIX)</option>
+                          <option value="generic">Generic/Other</option>
+                        </select>
+                     </div>
+                   </div>
+                 )}
+               </div>
+            </div>
+
+            <div className="mt-8">
               <div className="flex items-center gap-2 mb-4">
                 <SlidersHorizontal className="w-5 h-5 text-slate-700" />
                 <h2 className="text-lg font-bold text-slate-900">Overall Content Zoom (%)</h2>
@@ -360,6 +514,97 @@ export default function TeleshopManagerOutletDisplay() {
                      </button>
                    </div>
                  </div>
+
+                  {/* Custom Announcement Input */}
+                  <div className="mt-5 pt-5 border-t border-slate-200/60">
+                    <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4">Manual Text Announcement (Multi-Language)</label>
+                    <div className="space-y-4">
+                      {/* English */}
+                      <div className="flex flex-col sm:flex-row gap-3">
+                        <div className="flex items-center gap-2 sm:w-24 shrink-0">
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded border border-slate-200 bg-white text-slate-500">ENGLISH</span>
+                        </div>
+                        <input
+                          type="text"
+                          value={customEn}
+                          onChange={(e) => setCustomEn(e.target.value)}
+                          placeholder="Type English message..."
+                          className="flex-1 px-4 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-sky-500 transition-all outline-none text-slate-900"
+                        />
+                        <div className="flex gap-1">
+                          <button
+                            onClick={handleAutoTranslate}
+                            disabled={isTranslating || !customEn.trim()}
+                            title="Auto-translate to SI and TA"
+                            className="inline-flex items-center justify-center gap-2 px-3 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl text-xs font-bold transition-all disabled:opacity-30 border border-indigo-100"
+                          >
+                            {isTranslating ? <Loader2 className="w-3 h-3 animate-spin" /> : <SlidersHorizontal className="w-3 h-3" />}
+                            <span className="hidden sm:inline">Translate</span>
+                          </button>
+                          <button
+                            onClick={() => runSpeakerTest('voice', customEn, 'en')}
+                            disabled={testRunning || !customEn.trim()}
+                            className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all disabled:opacity-30"
+                          >
+                            <Play className="w-3 h-3" />
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Sinhala */}
+                      <div className="flex flex-col sm:flex-row gap-3">
+                        <div className="flex items-center gap-2 sm:w-24 shrink-0">
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded border border-slate-200 bg-white text-slate-500">සිංහල</span>
+                        </div>
+                        <input
+                          type="text"
+                          value={customSi}
+                          onChange={(e) => setCustomSi(e.target.value)}
+                          placeholder="සිංහල නිවේදනය..."
+                          className="flex-1 px-4 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-sky-500 transition-all outline-none text-slate-900"
+                        />
+                        <button
+                          onClick={() => runSpeakerTest('voice', customSi, 'si')}
+                          disabled={testRunning || !customSi.trim()}
+                          className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all disabled:opacity-30"
+                        >
+                          <Play className="w-3 h-3" />
+                        </button>
+                      </div>
+
+                      {/* Tamil */}
+                      <div className="flex flex-col sm:flex-row gap-3">
+                        <div className="flex items-center gap-2 sm:w-24 shrink-0">
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded border border-slate-200 bg-white text-slate-500">தமிழ்</span>
+                        </div>
+                        <input
+                          type="text"
+                          value={customTa}
+                          onChange={(e) => setCustomTa(e.target.value)}
+                          placeholder="தமிழ் அறிவிப்பு..."
+                          className="flex-1 px-4 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-sky-500 transition-all outline-none text-slate-900"
+                        />
+                        <button
+                          onClick={() => runSpeakerTest('voice', customTa, 'ta')}
+                          disabled={testRunning || !customTa.trim()}
+                          className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all disabled:opacity-30"
+                        >
+                          <Play className="w-3 h-3" />
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="mt-6">
+                      <button
+                        onClick={announceAll}
+                        disabled={testRunning || (!customEn.trim() && !customSi.trim() && !customTa.trim())}
+                        className="w-full py-4 bg-slate-900 text-white rounded-2xl text-sm font-black hover:bg-slate-800 transition-all disabled:opacity-30 flex items-center justify-center gap-3 shadow-xl shadow-slate-200 border-2 border-slate-800 hover:border-slate-700 active:scale-[0.98]"
+                      >
+                        <Volume2 className="w-5 h-5" />
+                        PLAY ALL LANGUAGES SEQUENTIALLY
+                      </button>
+                    </div>
+                  </div>
                  
                  {testRunning && (
                    <div className="mt-4 flex items-center justify-center gap-2 text-[10px] font-bold text-sky-600 animate-pulse uppercase tracking-widest">
@@ -369,7 +614,7 @@ export default function TeleshopManagerOutletDisplay() {
                  )}
                </div>
              </div>
- 
+
              <div className="mt-6 pt-4 border-t border-slate-100 flex justify-end">
               <button
                 onClick={saveSettings}
