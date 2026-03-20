@@ -1,8 +1,22 @@
 import { defineConfig } from "vite"
 import react from "@vitejs/plugin-react"
+import electron from "vite-plugin-electron/simple"
+import path from "node:path"
 
 export default defineConfig({
-  plugins: [react()],
+  base: "/",
+  plugins: [
+    react(),
+    process.env.VITE_ELECTRON && electron({
+      main: {
+        entry: 'electron/main.ts',
+      },
+      preload: {
+        input: path.join(__dirname, 'electron/preload.ts'),
+      },
+      renderer: {},
+    }),
+  ].filter(Boolean),
   server: {
     port: 3000,
   },

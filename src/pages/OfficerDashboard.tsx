@@ -265,7 +265,7 @@ export default function OfficerDashboard() {
 
       if (status === 'offline') {
         try { await api.post('/officer/logout') } catch { }
-        navigate('/officer/login')
+        window.location.href = '/officer/login'
       }
     } catch (err: any) {
       console.error('Failed to update status:', err)
@@ -304,18 +304,18 @@ export default function OfficerDashboard() {
       <div className="mx-auto">
         {/* Header Section in Body */}
         <motion.div initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="mb-6">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <h1 className="text-xl sm:text-2xl font-bold text-slate-900">Officer Dashboard</h1>
               <div className="flex flex-wrap items-center gap-2 mt-1">
                 <p className="text-xs text-slate-500">{formatDate(currentDateTime)} &bull; {formatTime(currentDateTime)}</p>
-                {dashboardLoading && <span className="text-xs text-amber-600 font-medium">Refreshing...</span>}
+                {dashboardLoading && <span className="text-xs text-amber-600 font-medium whitespace-nowrap">Refreshing...</span>}
               </div>
             </div>
-            <div className="flex items-center space-x-4">
+            <div className="flex flex-wrap items-center gap-3">
               {/* Enhanced Break Controls */}
               {officer && (
-                <div className="flex items-center space-x-2">
+                <div className="flex flex-wrap items-center gap-2">
                   {/* Break Error Display */}
                   {breakError && (
                     <div className="px-3 py-1 bg-red-100 text-red-700 rounded-lg text-xs">
@@ -338,8 +338,8 @@ export default function OfficerDashboard() {
                     <div className="flex items-center gap-2">
                       {/* Active break timer */}
                       {breaksSummary?.activeBreak && (
-                        <div className="px-3 py-1 bg-yellow-50 text-yellow-800 rounded-lg text-sm font-mono">
-                          Break: {Math.floor((Date.now() - new Date(breaksSummary.activeBreak.startedAt).getTime()) / (1000 * 60))}min
+                        <div className="px-3 py-1 bg-yellow-50 text-yellow-800 rounded-lg text-sm font-mono whitespace-nowrap">
+                          {Math.floor((Date.now() - new Date(breaksSummary.activeBreak.startedAt).getTime()) / (1000 * 60))}min
                         </div>
                       )}
                       <button
@@ -357,7 +357,7 @@ export default function OfficerDashboard() {
 
               <button
                 onClick={() => window.location.reload()}
-                className="flex items-center px-4 py-2 bg-blue-600 rounded-md text-sm font-medium text-white hover:bg-blue-700"
+                className="flex items-center px-4 py-2 bg-blue-600 rounded-md text-sm font-medium text-white hover:bg-blue-700 transition-colors"
               >
                 <RefreshCwIcon className="w-4 h-4 mr-2" />
                 Refresh
@@ -372,17 +372,17 @@ export default function OfficerDashboard() {
 
           {/* Counter Status Section */}
           {officer && (
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 border border-slate-200">
-              <div className="flex items-center justify-between">
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="flex items-center space-x-4">
                   <div className="flex items-center space-x-2">
-                    <div className="w-8 h-8 bg-blue-100 rounded-xl flex items-center justify-center">
+                    <div className="w-8 h-8 bg-blue-100 rounded-xl flex items-center justify-center flex-shrink-0">
                       <span className="text-blue-600 font-semibold text-sm">
                         {officer.counterNumber || 'N/A'}
                       </span>
                     </div>
                     <div>
-                      <h3 className="text-lg font-semibold text-gray-900">
+                      <h3 className="text-lg font-semibold text-gray-900 leading-tight">
                         Counter {officer.counterNumber || 'N/A'} • {officer.outlet?.name || 'Unknown Branch'}
                       </h3>
                       <p className="text-sm text-gray-600">
@@ -391,8 +391,8 @@ export default function OfficerDashboard() {
                     </div>
                   </div>
                 </div>
-                <div className="flex items-center space-x-3">
-                  <div className="flex items-center space-x-2">
+                <div className="flex items-center sm:justify-end">
+                  <div className="flex items-center space-x-2 bg-slate-50 px-3 py-1.5 rounded-full border border-slate-100">
                     <div className={`w-3 h-3 rounded-full ${officer.status === 'available' ? 'bg-green-400' :
                       officer.status === 'on_break' ? 'bg-yellow-400' :
                         officer.status === 'serving' ? 'bg-blue-400' :
@@ -413,7 +413,7 @@ export default function OfficerDashboard() {
 
           {/* Stats Cards */}
           <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.1 }}
-            className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
             <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 sm:p-5">
               <div className="flex items-center justify-between">
                 <div className="min-w-0 flex-1">
@@ -430,7 +430,17 @@ export default function OfficerDashboard() {
               <div className="flex items-center justify-between">
                 <div className="min-w-0 flex-1">
                   <p className="text-xs text-slate-500 mb-1 truncate">Average Rating</p>
-                  <p className="text-2xl sm:text-3xl font-bold text-slate-900">{stats.avgRating.toFixed(1)}</p>
+                  <div className="flex items-center gap-1">
+                    <p className="text-xl sm:text-2xl font-bold text-slate-900 mr-2">{stats.avgRating.toFixed(1)}</p>
+                    <div className="flex">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <Star
+                          key={star}
+                          className={`w-4 h-4 ${star <= Math.round(stats.avgRating) ? "fill-yellow-400 text-yellow-400" : "text-slate-200"}`}
+                        />
+                      ))}
+                    </div>
+                  </div>
                 </div>
                 <div className="w-10 h-10 sm:w-11 sm:h-11 bg-yellow-100 rounded-xl flex items-center justify-center flex-shrink-0 ml-3">
                   <Star className="w-5 h-5 text-yellow-600" />
@@ -476,8 +486,8 @@ export default function OfficerDashboard() {
           </motion.div>
 
           {/* Tabs */}
-          <div className="mb-5">
-            <nav className="flex gap-2" aria-label="Tabs">
+          <div className="mb-5 overflow-x-auto pb-2 scrollbar-hide">
+            <nav className="flex gap-2 min-w-max" aria-label="Tabs">
               {[
                 { id: 'served', label: 'Served Today' },
                 { id: 'breaks', label: 'Breaks Today' },
@@ -485,7 +495,7 @@ export default function OfficerDashboard() {
               ].map((t: any) => (
                 <button key={t.id}
                   onClick={() => setActiveTab(t.id)}
-                  className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 ${
+                  className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 whitespace-nowrap ${
                     activeTab === t.id
                       ? 'bg-amber-600 text-white shadow-md shadow-amber-200'
                       : 'bg-white text-slate-600 hover:bg-amber-50 border border-slate-200'
@@ -497,14 +507,16 @@ export default function OfficerDashboard() {
           {/* Queue tab removed; use dedicated page at /officer/queue */}
 
           {activeTab === 'served' && (
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
-              <div className="flex items-center justify-between mb-6">
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 sm:p-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
                 <h2 className="text-lg font-bold text-gray-900">Served Today</h2>
-                <div className="flex items-center gap-4">
-                  <div className="text-sm text-gray-600">Avg handle: {servedSummary ? servedSummary.avgHandleMinutes : 0} min</div>
+                <div className="flex flex-wrap items-center gap-4">
+                  <div className="text-sm text-gray-600 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-100">
+                    Avg handle: <span className="font-semibold">{servedSummary ? servedSummary.avgHandleMinutes : 0} min</span>
+                  </div>
                   <button
                     onClick={() => navigate('/officer/served-customers')}
-                    className="px-4 py-2 text-sm font-medium text-indigo-600 hover:text-indigo-800 hover:bg-blue-50 rounded-lg transition-colors"
+                    className="px-4 py-2 text-sm font-semibold text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 border border-indigo-100 rounded-xl transition-all"
                   >
                     View All
                   </button>
@@ -513,24 +525,26 @@ export default function OfficerDashboard() {
               {!servedSummary ? (
                 <div className="text-center py-12 text-gray-500">Loading...</div>
               ) : servedSummary.tokens.length === 0 ? (
-                <div className="text-center py-12 text-gray-500">No customers served yet today.</div>
+                <div className="text-center py-12 text-gray-400 font-medium">No customers served yet today.</div>
               ) : (
                 <div className="space-y-3">
                   {servedSummary.tokens.map(t => (
                     <div
                       key={t.id}
                       onClick={() => navigate(`/officer/served-customers?tokenId=${t.id}`)}
-                      className="flex items-center justify-between p-4 border rounded-lg cursor-pointer hover:bg-blue-50 hover:border-blue-300 transition-all"
+                      className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 border border-slate-100 rounded-xl cursor-pointer hover:bg-indigo-50 hover:border-indigo-200 transition-all shadow-sm group"
                     >
                       <div className="flex items-center gap-4">
-                        <div className="text-xl font-bold text-blue-600 w-12 text-center">{t.tokenNumber}</div>
-                        <div>
-                          <div className="font-medium text-gray-900">{t.customer.name}</div>
-                          <div className="text-sm text-gray-600">{t.customer.mobileNumber}</div>
+                        <div className="text-xl font-bold text-indigo-600 w-12 h-12 flex items-center justify-center bg-indigo-50 rounded-xl group-hover:bg-white transition-colors">
+                          {t.tokenNumber}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="font-bold text-slate-900 truncate">{t.customer.name}</div>
+                          <div className="text-xs text-slate-500">{t.customer.mobileNumber}</div>
                         </div>
                       </div>
-                      <div className="text-sm text-gray-600">
-                        {new Date(t.completedAt!).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                      <div className="text-xs font-mono text-slate-500 bg-white px-2 py-1 rounded-md border border-slate-100 self-end sm:self-center">
+                        {new Date(t.completedAt!).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </div>
                     </div>
                   ))}
@@ -596,25 +610,36 @@ export default function OfficerDashboard() {
           )}
 
           {activeTab === 'feedback' && (
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
-              <div className="flex items-center justify-between mb-6">
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 sm:p-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
                 <h2 className="text-lg font-bold text-gray-900">Customer Feedback (Today)</h2>
-                <div className="flex items-center gap-3">
-                  <div className="text-sm text-gray-600">Avg: {feedbackSummary ? feedbackSummary.avgRating.toFixed(1) : '0.0'} â˜…</div>
-                  <div className="inline-flex gap-2" role="group">
+                <div className="flex flex-wrap items-center gap-3">
+                  <div className="text-sm font-semibold text-gray-900 bg-amber-50 px-3 py-1.5 rounded-lg border border-amber-100 flex items-center gap-2">
+                    <span className="text-gray-700">Avg:</span>
+                    <div className="flex">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <Star
+                          key={star}
+                          className={`w-3.5 h-3.5 ${star <= Math.round(feedbackSummary?.avgRating || 0) ? "fill-amber-500 text-amber-500" : "text-amber-200"}`}
+                        />
+                      ))}
+                    </div>
+                    <span className="text-amber-700 font-bold ml-1">{feedbackSummary ? feedbackSummary.avgRating.toFixed(1) : '0.0'}</span>
+                  </div>
+                  <div className="inline-flex p-1 bg-slate-100 rounded-xl" role="group">
                     <button
                       type="button"
                       onClick={() => setFeedbackView('list')}
-                      className={`px-3 py-1.5 text-sm rounded-xl font-medium border ${feedbackView === 'list' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}
+                      className={`px-4 py-1.5 text-xs rounded-lg font-bold transition-all ${feedbackView === 'list' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
                     >
-                      List View
+                      List
                     </button>
                     <button
                       type="button"
                       onClick={() => setFeedbackView('chart')}
-                      className={`px-3 py-1.5 text-sm rounded-xl font-medium border -ml-px ${feedbackView === 'chart' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}
+                      className={`px-4 py-1.5 text-xs rounded-lg font-bold transition-all ${feedbackView === 'chart' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
                     >
-                      Pie Chart
+                      Chart
                     </button>
                   </div>
                 </div>
@@ -623,26 +648,43 @@ export default function OfficerDashboard() {
               {!feedbackSummary ? (
                 <div className="text-center py-12 text-gray-500">Loading...</div>
               ) : feedbackSummary.feedback.length === 0 ? (
-                <div className="text-center py-12 text-gray-500">No feedback yet today.</div>
+                <div className="text-center py-12 text-gray-400 font-medium">No feedback yet today.</div>
               ) : feedbackView === 'list' ? (
-                <div className="space-y-3">
+                <div className="space-y-4">
                   {feedbackSummary.feedback.map((f) => (
-                    <div key={f.tokenId} className="p-4 border rounded-lg">
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <div className="font-medium text-gray-900">Token #{f.tokenNumber} • {f.customerName}</div>
-                          <div className="text-sm text-yellow-600 flex items-center gap-2">Rating: {f.rating} <Star className="w-4 h-4" /></div>
-                          {f.comment && <div className="text-sm text-gray-700 mt-1">“{f.comment}”</div>}
+                    <div key={f.tokenId} className="p-4 border border-slate-100 rounded-xl bg-slate-50/50">
+                      <div className="flex flex-col sm:flex-row items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <div className="font-bold text-gray-900 flex flex-wrap items-center gap-x-2">
+                            <span>Token #{f.tokenNumber}</span>
+                            <span className="text-slate-400 font-normal hidden sm:inline">•</span>
+                            <span className="truncate">{f.customerName}</span>
+                          </div>
+                          <div className="text-sm text-amber-500 flex items-center gap-0.5 mt-1">
+                            {[...Array(5)].map((_, i) => (
+                              <Star 
+                                key={i} 
+                                className={`w-3.5 h-3.5 ${i < f.rating ? 'fill-amber-500' : 'text-slate-200'}`} 
+                              />
+                            ))}
+                          </div>
+                          {f.comment && (
+                            <div className="mt-2 text-sm text-gray-700 italic border-l-2 border-slate-200 pl-3 py-1 bg-white rounded-r-lg">
+                              “{f.comment}”
+                            </div>
+                          )}
                         </div>
-                        <div className="text-xs text-gray-500">{new Date(f.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</div>
+                        <div className="text-[10px] font-mono text-gray-400 whitespace-nowrap self-end sm:self-start">
+                          {new Date(f.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </div>
                       </div>
                     </div>
                   ))}
                 </div>
               ) : (
-                <div className="w-full h-[340px]">
+                <div className="w-full h-[300px] sm:h-[340px]">
                   {(() => {
-                    const counts = [1, 2, 3, 4, 5].map(r => ({ name: `${r} â˜…`, value: feedbackSummary.feedback.filter(f => f.rating === r).length }))
+                    const counts = [1, 2, 3, 4, 5].map(r => ({ name: '★'.repeat(r), value: feedbackSummary.feedback.filter(f => f.rating === r).length }))
                     const data = counts.filter(c => c.value > 0)
                     const COLORS = ['#ef4444', '#f59e0b', '#eab308', '#22c55e', '#3b82f6']
                     if (data.length === 0) {

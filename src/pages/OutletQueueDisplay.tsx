@@ -229,17 +229,22 @@ export default function OutletQueueDisplay() {
               if (testType === 'chime') {
                 playChime()
               } else {
-                const sampleText = testLang === 'si'
-                  ? "ටෝකන් අංක 123, කරුණාකර කවුන්ටර අංක 5 වෙත පැමිණෙන්න."
-                  : testLang === 'ta'
-                    ? "அடையாள எண் 123, தயவுசெய்து கவுண்டர் 5 க்கு செல்லவும்."
-                    : "Token number 123, please proceed to counter number 5."
+                const sampleText = data.customText
+                  ? data.customText
+                  : testLang === 'si'
+                    ? "ශබ්ද විකාශන යන්ත්‍ර පරීක්ෂා කිරීම. එය සාර්ථකව ක්‍රියා කරයි."
+                    : testLang === 'ta'
+                      ? "ஒலிபெருக்கி சோதனை. இது சரியாக வேலை செய்கிறது."
+                      : "Testing the speakers. It is working fine."
 
-                speakSentence({
+                console.log("[Voice] Enqueueing manual test announcement:", sampleText)
+                setAnnouncementQueue(prev => [...prev, {
+                  tokenNumber: "Test", // Placeholder for speech logic
+                  counterNumber: "",
                   eventType: 'TEST_SOUND',
                   text: sampleText,
                   lang: testLang
-                })
+                }])
               }
             }
           }

@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from "react"
+import { useState, useEffect } from "react"
 import { AlertTriangle, Calendar, Clock, RefreshCw, Bell } from "lucide-react"
 import api from "../config/api"
 
@@ -61,13 +61,21 @@ export default function OfficerBranchNotices() {
 
     return (
         <div className="p-6 max-w-3xl mx-auto">
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-2">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900">Branch Notices</h1>
-                    <p className="text-sm text-gray-500 mt-1">
+                    <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Branch Notices</h1>
+                    <p className="text-xs sm:text-sm text-gray-500 mt-1">
                         View closure and standard notices for your branch.
                     </p>
                 </div>
+                <button 
+                    onClick={fetchNotices}
+                    disabled={loading}
+                    className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-full transition-colors hidden sm:block"
+                    title="Refresh notices"
+                >
+                    <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
+                </button>
             </div>
 
             {error && (

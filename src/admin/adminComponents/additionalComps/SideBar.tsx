@@ -188,7 +188,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed, activePa
         role: 'Customer Service Officer',
         initials: officer?.name ? officer.name.split(' ').map((n: string) => n[0]).join('').toUpperCase() : 'CSO',
         counterNumber: officer?.counterNumber,
-        outletName: officer?.outlet?.name || 'Unknown Branch'
+        outletName: officer?.outlet?.name || 'Unknown Branch',
+        languages: officer?.languages || []
       }
     } else if (onManagerPath) {
       const manager = storedManager ? JSON.parse(storedManager) : null
@@ -313,7 +314,21 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed, activePa
     } catch { }
 
     try {
-      window.location.replace('/')
+      if (onOfficerPath) {
+        window.location.replace('/officer/login')
+      } else if (onManagerPath) {
+        window.location.replace('/manager/login')
+      } else if (onTeleshopManagerPath) {
+        window.location.replace('/teleshop-manager/login')
+      } else if (onAdminPath) {
+        window.location.replace('/admin/login')
+      } else if (onGMPath) {
+        window.location.replace('/gm/login')
+      } else if (onDGMPath) {
+        window.location.replace('/dgm/login')
+      } else {
+        window.location.replace('/')
+      }
     } catch {
       // Fallback to SPA navigation if window.location is unavailable
       if (onOfficerPath) navigate('/officer/login', { replace: true })
@@ -474,6 +489,16 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed, activePa
                   <div className="ml-3 min-w-0 flex-1">
                     <p className="text-sm font-semibold text-gray-800 truncate">{userInfo.name}</p>
                     <p className="text-xs text-gray-600 truncate">{userInfo.role}</p>
+                    {(userInfo as any).languages && (userInfo as any).languages.length > 0 && (
+                      <div className="mt-1 flex flex-wrap gap-1">
+                        <span className="text-[10px] text-slate-400 font-bold uppercase mr-1">Languages:</span>
+                        {(userInfo as any).languages.map((lang: string) => (
+                          <span key={lang} className="text-[9px] px-1 bg-gray-100 text-gray-600 border border-gray-200 rounded font-bold uppercase">
+                            {lang}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                     {onOfficerPath && userInfo.counterNumber && (
                       <p className="text-xs text-blue-600 font-medium truncate">
                         Counter {userInfo.counterNumber} • {userInfo.outletName}
