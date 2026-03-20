@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import { useState } from "react"
 import { Search, Send, CheckCircle, User, MapPin, Clock, Star, ArrowLeftRight, FileText } from "lucide-react"
@@ -152,7 +152,7 @@ export default function OfficerServiceTracking() {
       {/* Search */}
       <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5">
         <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-3">Service Tracking</h1>
-        <div className="flex gap-2">
+        <div className="flex flex-col sm:flex-row gap-2">
           <div className="relative flex-1">
             <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
@@ -160,15 +160,15 @@ export default function OfficerServiceTracking() {
               onChange={(e) => setRef(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && ref.trim() && !loading && load()}
               placeholder="Enter reference number"
-              className="w-full border border-gray-300 rounded-lg pl-9 pr-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              className="w-full border border-gray-300 rounded-lg pl-9 pr-3 py-2.5 focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
             />
           </div>
           <button
             onClick={load}
             disabled={!ref.trim() || loading}
-            className="px-4 py-2 bg-indigo-600 text-white rounded-lg disabled:bg-gray-400 hover:bg-indigo-700 transition-colors font-semibold"
+            className="w-full sm:w-auto px-6 py-2.5 bg-indigo-600 text-white rounded-lg disabled:bg-gray-400 hover:bg-indigo-700 transition-colors font-semibold shadow-sm"
           >
-            {loading ? 'Loading...' : 'Load'}
+            {loading ? 'Loading...' : 'Load Case'}
           </button>
         </div>
         {error && <div className="mt-3 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">{error}</div>}

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { motion } from "framer-motion"
-import { User, Clock, Phone, FileText, Users, RefreshCwIcon, Calendar, AlertTriangle, CheckCircle2, CircleDashed, Banknote, CreditCard, Landmark, Volume2, Play } from "lucide-react"
+import { User, Clock, Phone, FileText, Users, RefreshCwIcon, Calendar, AlertTriangle, CheckCircle2, CircleDashed, Banknote, CreditCard, Landmark, Volume2, Play, Star } from "lucide-react"
 // OfficerTopBar is provided globally from Layout for officer routes
 import api, { WS_URL } from "../config/api"
 import type { Officer, Token } from "../types"
@@ -556,20 +556,20 @@ export default function OfficerQueuePage() {
       <div className="mx-auto">
         {/* Header Section in Body */}
         <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-                <p className="text-sm text-slate-500">{formatDate(currentDateTime)} &bull; {formatTime(currentDateTime)}</p>
-                {queueLoading && <span className="text-xs text-amber-600 font-medium">Refreshing...</span>}
-              </div>
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="text-sm font-medium text-slate-500 bg-white px-3 py-1.5 rounded-lg border border-slate-200">
+                {formatDate(currentDateTime)} &bull; {formatTime(currentDateTime)}
+              </p>
+              {queueLoading && <span className="text-xs text-amber-600 font-bold animate-pulse">Refreshing...</span>}
             </div>
-            <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+            <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
               onClick={handleRefresh}
               disabled={refreshing}
-              className={`px-3 py-1.5 rounded-xl bg-amber-600 text-white hover:bg-amber-700 flex items-center gap-2 text-sm font-medium transition-colors ${refreshing ? 'opacity-75 cursor-not-allowed' : ''}`}
+              className={`px-4 py-2 rounded-xl bg-amber-600 text-white hover:bg-amber-700 flex items-center justify-center gap-2 text-sm font-bold shadow-md shadow-amber-200 transition-all ${refreshing ? 'opacity-75 cursor-not-allowed' : ''}`}
             >
               <RefreshCwIcon className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
-              Refresh
+              Refresh Queue
             </motion.button>
           </div>
         </motion.div>
@@ -577,95 +577,60 @@ export default function OfficerQueuePage() {
         {/* Main Content */}
         <div className="space-y-6">
           {/* Tab Navigation */}
-          <div className="max-w-3xl mx-auto">
-            <div className="flex gap-4 justify-center">
-              <button
-                onClick={() => setActiveTab('my-queue')}
-                className={`px-5 py-2 font-medium text-sm rounded-xl transition-all ${activeTab === 'my-queue'
-                  ? 'bg-amber-600 text-white shadow-sm'
-                  : 'bg-white text-slate-500 hover:text-slate-700 hover:bg-slate-50 border border-slate-200'
-                  }`}
-              >
-                <div className="flex items-center justify-center gap-2">
-                  <span>My Queue</span>
-                  {queue && (
-                    <span className="px-1.5 py-0.5 bg-amber-600 text-white rounded-full text-xs font-semibold">
-                      {myQueueTokens.length}
-                    </span>
-                  )}
-                </div>
-              </button>
-
-              <button
-                onClick={() => setActiveTab('transferred')}
-                className={`px-5 py-2 font-medium text-sm rounded-xl transition-all ${activeTab === 'transferred'
-                  ? 'bg-indigo-600 text-white shadow-sm'
-                  : 'bg-white text-slate-500 hover:text-slate-700 hover:bg-slate-50 border border-slate-200'
-                  }`}
-              >
-                <div className="flex items-center justify-center gap-2">
-                  <span>Transferred Tokens</span>
-                  {queue && (
-                    <span className="px-1.5 py-0.5 bg-indigo-600 text-white rounded-full text-xs font-semibold">
-                      {incomingTransferredTokens.length}
-                    </span>
-                  )}
-                </div>
-              </button>
-
-              <button
-                onClick={() => setActiveTab('unmatched')}
-                className={`px-5 py-2 font-medium text-sm rounded-xl transition-all ${activeTab === 'unmatched'
-                  ? 'bg-slate-700 text-white shadow-sm'
-                  : 'bg-white text-slate-500 hover:text-slate-700 hover:bg-slate-50 border border-slate-200'
-                  }`}
-              >
-                <div className="flex items-center justify-center gap-2">
-                  <span>Unmatched Tokens</span>
-                  <span className={`px-1.5 py-0.5 rounded-full text-xs font-semibold ${unmatchedTokens.length > 0
-                    ? 'bg-red-600 text-white'
-                    : 'bg-slate-500 text-white'
-                    }`}>
-                    {unmatchedTokens.length}
+          <div className="w-full overflow-x-auto pb-2 scrollbar-hide">
+            <div className="flex gap-2 min-w-max justify-start lg:justify-center">
+              {[
+                { id: 'my-queue', label: 'My Queue', color: 'amber', count: myQueueTokens.length },
+                { id: 'transferred', label: 'Transferred', color: 'indigo', count: incomingTransferredTokens.length },
+                { id: 'unmatched', label: 'Unmatched', color: 'slate', count: unmatchedTokens.length, warning: unmatchedTokens.length > 0 }
+              ].map(tab => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id as any)}
+                  className={`px-4 py-2.5 font-bold text-xs sm:text-sm rounded-xl transition-all border flex items-center gap-2 ${activeTab === tab.id
+                    ? `bg-${tab.color === 'amber' ? 'amber-600' : tab.color === 'indigo' ? 'indigo-600' : 'slate-700'} text-white border-transparent shadow-md`
+                    : 'bg-white text-slate-500 hover:bg-slate-50 border-slate-200'
+                    }`}
+                >
+                  <span className="whitespace-nowrap">{tab.label}</span>
+                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${activeTab === tab.id ? 'bg-white/20' : 'bg-slate-100'}`}>
+                    {tab.count}
                   </span>
-                  {unmatchedTokens.length > 0 && (
-                    <span className="px-2 py-0.5 text-red-600 rounded-full text-xs font-semibold animate-pulse flex">
-                      <AlertTriangle className="w-4 h-4 mr-2" />
-                      Needs Attention
-                    </span>
+                  {tab.warning && activeTab !== tab.id && (
+                    <AlertTriangle className="w-3.5 h-3.5 text-red-500 animate-pulse" />
                   )}
-                </div>
-              </button>
+                </button>
+              ))}
             </div>
           </div>
 
-          {/* Flex Container for Current Customer (Left) and Queue List (Right) */}
-          <div className="flex gap-4 items-start">
-            {/* Current Customer Section - Left Side (1/3 width) */}
-            <div className="w-1/3 bg-white rounded-2xl shadow-sm border border-slate-100 p-4 self-start sticky top-4">
+          {/* Flex Container for Current Customer and Queue List */}
+          <div className="flex flex-col lg:flex-row gap-6 items-start">
+            {/* Current Customer Section - Top on mobile, Left on desktop (1/3 width) */}
+            <div className="w-full lg:w-1/3 bg-white rounded-2xl shadow-sm border border-slate-100 p-4 sm:p-6 lg:sticky lg:top-4 self-start">
               {!currentToken ? (
                 <>
                   <h2 className="text-lg font-bold text-slate-900 mb-4">Current Customer</h2>
-                  <div className="text-center py-6">
-                    <div className="w-10 h-10 flex items-center justify-center mx-auto mb-4">
-                      <Users className="w-10 h-10" />
-                    </div>
-                    <h3 className="text-2xl font-bold text-gray-900 mb-3">Ready to Serve</h3>
-                    <p className="text-gray-600 mb-8 text-sm">Click the button below to call the next customer</p>
-                    <button
-                      onClick={handleNextToken}
-                      disabled={
-                        loading ||
-                        officer.status !== "available" ||
-                        !queue ||
-                        !hasCallableTokenForActiveTab
-                      }
-                      className="px-6 py-2 bg-amber-600 text-white hover:bg-amber-700 border-2 border-amber-600 rounded-xl font-semibold transition-colors disabled:bg-gray-200 disabled:border-gray-200 disabled:text-gray-500 disabled:cursor-not-allowed text-sm"
-                    >
-                      {loading ? "Loading..." : "Call Next Token"}
-                    </button>
+                    <div className="text-center py-6 sm:py-8">
+                      <div className="w-12 h-12 flex items-center justify-center mx-auto mb-4 bg-indigo-50 rounded-2xl">
+                        <Users className="w-6 h-6 text-indigo-600" />
+                      </div>
+                      <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">Ready to Serve</h3>
+                      <p className="text-gray-600 mb-6 text-sm px-4">Click the button below to call the next customer</p>
+                      <button
+                        onClick={handleNextToken}
+                        disabled={
+                          loading ||
+                          officer.status !== "available" ||
+                          !queue ||
+                          !hasCallableTokenForActiveTab
+                        }
+                        className="w-full sm:w-auto px-8 py-3 bg-indigo-600 text-white hover:bg-indigo-700 border-2 border-indigo-600 rounded-xl font-bold transition-all disabled:bg-gray-200 disabled:border-gray-200 disabled:text-gray-500 disabled:cursor-not-allowed text-sm shadow-md shadow-indigo-200 active:scale-95"
+                      >
+                        {loading ? "Loading..." : "Call Next Token"}
+                      </button>
                     {queue && !hasCallableTokenForActiveTab && (
-                      <p className="mt-2 text-sm text-gray-500">
+                      <p className="mt-4 text-xs sm:text-sm text-slate-500 bg-slate-50 inline-block px-3 py-1.5 rounded-lg border border-slate-100">
                         {activeTab === 'my-queue'
                           ? 'No customers are waiting in My Queue.'
                           : activeTab === 'transferred'
@@ -674,7 +639,11 @@ export default function OfficerQueuePage() {
                       </p>
                     )}
                     {officer.status !== "available" && (
-                      <p className="mt-4 text-sm text-yellow-600">You must be available to call next token</p>
+                      <div className="mt-4 p-2 bg-red-50 rounded-lg border border-red-100">
+                        <p className="text-xs font-bold text-red-600 flex items-center gap-1 justify-center">
+                          <AlertTriangle className="w-3 h-3" /> Status must be "Available"
+                        </p>
+                      </div>
                     )}
                   </div>
                 </>
@@ -874,33 +843,30 @@ export default function OfficerQueuePage() {
                     />
                   </div>
 
-                  {/* Action Buttons */}
-                  <div className="flex gap-3 justify-center flex-wrap">
+                  {/* Action Buttons */}                  <div className="flex flex-col sm:flex-row gap-2.5 sm:gap-3 justify-stretch sm:justify-center">
                     <button
                       onClick={() => handleSkip()}
                       disabled={loading}
-                      className="px-4 py-2.5 bg-orange-500 text-white font-semibold rounded-xl text-sm hover:bg-orange-600 transition-colors disabled:bg-gray-200 disabled:text-gray-500 disabled:cursor-not-allowed"
+                      className="flex-1 px-4 py-3 bg-orange-500 text-white font-bold rounded-xl text-xs sm:text-sm hover:bg-orange-600 transition-all disabled:bg-gray-200 disabled:text-gray-500 disabled:cursor-not-allowed active:scale-95 shadow-sm shadow-orange-100"
                     >
                       Skip Customer
                     </button>
-
                     <button
                       onClick={() => {
                         setIsTransferModalOpen(true)
                         if (officer) fetchCounters(officer.outletId)
                       }}
                       disabled={loading}
-                      className="px-4 py-2.5 bg-indigo-600 text-white font-semibold rounded-xl text-sm hover:bg-indigo-700 transition-colors disabled:bg-gray-200 disabled:text-gray-500 disabled:cursor-not-allowed"
+                      className="flex-1 px-4 py-3 bg-indigo-600 text-white font-bold rounded-xl text-xs sm:text-sm hover:bg-indigo-700 transition-all disabled:bg-gray-200 disabled:text-gray-500 disabled:cursor-not-allowed active:scale-95 shadow-sm shadow-indigo-100"
                     >
                       Transfer
                     </button>
-
                     <button
                       onClick={handleCompleteService}
                       disabled={loading}
-                      className="px-6 py-2.5 bg-emerald-600 text-white font-semibold rounded-xl text-sm hover:bg-emerald-700 transition-colors disabled:bg-gray-200 disabled:text-gray-500 disabled:cursor-not-allowed"
+                      className="flex-1 px-4 py-3 bg-emerald-600 text-white font-bold rounded-xl text-xs sm:text-sm hover:bg-emerald-700 transition-all disabled:bg-gray-200 disabled:text-gray-500 disabled:cursor-not-allowed active:scale-95 shadow-sm shadow-emerald-100"
                     >
-                      Complete Service
+                      Complete
                     </button>
                   </div>
                 </>
@@ -908,15 +874,14 @@ export default function OfficerQueuePage() {
             </div>
 
             {/* Queue List Section - Right Side (2/3 width) */}
-            <div className="w-2/3 bg-white rounded-2xl shadow-sm border border-slate-100 p-4">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-lg font-bold text-gray-900">
+            <div className="w-full lg:w-2/3 bg-white rounded-2xl shadow-sm border border-slate-100 p-3 sm:p-5">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-5 px-1">
+                <h2 className="text-lg font-bold text-slate-900 border-l-4 border-amber-500 pl-3">
                   {activeTab === 'my-queue' ? 'My Queue' : activeTab === 'transferred' ? 'Transferred Tokens' : 'Unmatched Tokens'}
                 </h2>
-                {queue && (
-                  <div className="text-sm text-gray-500">
-                    Total waiting: {queue.waiting.length} |
-                    Officer Languages: {Array.isArray((officer as any)?.languages) ? ((officer as any).languages as string[]).join(', ') : 'None'}
+                {officer && (
+                  <div className="text-[11px] font-bold text-slate-500 bg-slate-50 px-2.5 py-1.5 rounded-lg border border-slate-200">
+                    <span className="text-amber-600">{queue?.waiting.length || 0}</span> Waiting &bull; <span className="text-indigo-600">Counter {officer.counterNumber}</span>
                   </div>
                 )}
               </div>
@@ -924,7 +889,6 @@ export default function OfficerQueuePage() {
               {/* Alert banner for incoming transferred tokens */}
               {activeTab === 'my-queue' && hasTransferredAttention && (
                 <div className="mb-4 bg-orange-50 border border-orange-300 rounded-xl p-3 flex items-center gap-3">
-                  <AlertTriangle className="w-5 h-5 text-orange-600 flex-shrink-0 animate-pulse" />
                   <div>
                     <p className="text-sm font-bold text-orange-800">Transferred customers waiting — serve them first!</p>
                     <p className="text-xs text-orange-700">Open the Transferred Tokens tab. These customers already waited in another queue and are prioritised.</p>
@@ -964,98 +928,104 @@ export default function OfficerQueuePage() {
                   </div>
                 ) : (
                   <>
-                    {/* Table Header */}
-                    <div className="grid grid-cols-12 gap-4 px-4 py-2.5 bg-slate-800 border-b text-xs font-semibold text-slate-200 rounded-xl tracking-wide mb-3">
-                      <div className={showServiceTypeInQueue ? "col-span-2" : "col-span-3"}>TOKEN</div>
-                      <div className={showServiceTypeInQueue ? "col-span-2" : "col-span-3"}>CUSTOMER</div>
-                      {showServiceTypeInQueue && <div className="col-span-2">SERVICE TYPE</div>}
-                      <div className="col-span-2">WAITED TIME</div>
-                      <div className="col-span-2">STATUS</div>
-                      <div className="col-span-2">ACTION</div>
+                    {/* Table Head */}
+                    <div className="hidden lg:grid grid-cols-12 gap-4 px-4 py-2.5 bg-slate-800 border-b text-xs font-semibold text-slate-200 rounded-xl tracking-wide mb-3 uppercase">
+                      <div className="col-span-1">No</div>
+                      <div className={showServiceTypeInQueue ? "col-span-2" : "col-span-3"}>Customer</div>
+                      {showServiceTypeInQueue && <div className="col-span-2">Service</div>}
+                      <div className="col-span-2">Wait Time</div>
+                      <div className="col-span-2">Status</div>
+                      <div className="col-span-2">Action</div>
                     </div>
 
-                    {/* Queue Items */}
-                    <div className="divide-y divide-gray-100">
+                    <div className="space-y-3">
                       {sortedMyQueueTokens.map((t) => {
                         const waitTime = Math.floor((Date.now() - new Date(t.createdAt).getTime()) / 60000)
                         const isPriority = t.isPriority === true
                         const isSkipped = t.status === 'skipped'
-
                         return (
-                          <div key={t.id} className={`grid grid-cols-12 gap-4 px-4 py-4 hover:bg-gray-50 transition-colors ${isSkipped ? 'bg-orange-50 rounded-lg' : isPriority ? 'bg-yellow-50 rounded-lg border-l-4 border-yellow-400' : ''}`}>
-                            <div className={`${showServiceTypeInQueue ? 'col-span-2' : 'col-span-3'} flex items-center gap-1 flex-wrap`}>
-                              {isPriority ? (
-                                <span className="inline-flex items-center px-2 py-1 rounded-md bg-yellow-100 text-yellow-800 text-sm font-semibold">
-                                  {t.tokenNumber} ★
-                                </span>
-                              ) : (
-                                <span className="text-gray-900 font-semibold">{t.tokenNumber}</span>
-                              )}
-                              {(t as any)?.fromAppointment && (
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-indigo-100 text-indigo-700 text-xs font-semibold" title="Booked appointment">
-                                  <Calendar className="w-3 h-3" /> Appt
-                                </span>
-                              )}
+                          <div key={t.id} className={`lg:grid lg:grid-cols-12 flex flex-col gap-4 px-4 py-4 hover:bg-slate-50 transition-colors border rounded-xl ${isSkipped ? 'bg-orange-50/50 border-orange-100' : isPriority ? 'bg-yellow-50/50 border-yellow-200' : 'bg-white border-slate-100 shadow-sm'}`}>
+                            {/* Mobile Layout Headers are shown through labels or flex items */}
+                            <div className="lg:col-span-1 flex items-center justify-between lg:justify-start gap-2">
+                              <span className="lg:hidden text-[10px] font-bold text-slate-400 uppercase">Token</span>
+                              <span className={`inline-flex items-center px-2 py-1 rounded-lg text-sm font-bold ${isPriority ? 'bg-yellow-100 text-yellow-800 ring-1 ring-yellow-200' : 'bg-slate-100 text-slate-700 border border-slate-200'}`}>
+                                {t.tokenNumber} {isPriority && '★'}
+                              </span>
                             </div>
-                            <div className={showServiceTypeInQueue ? "col-span-2" : "col-span-3"}>
-                              <span className={`${isSkipped ? 'text-gray-500' : 'text-gray-900'}`}>{t.customer.name}</span>
+                            
+                            <div className={`${showServiceTypeInQueue ? "lg:col-span-2" : "lg:col-span-3"} flex items-center justify-between lg:justify-start gap-2`}>
+                              <span className="lg:hidden text-[10px] font-bold text-slate-400 uppercase">Customer</span>
+                              <div className="flex flex-col min-w-0">
+                                <span className={`font-bold truncate ${isSkipped ? 'text-slate-400' : 'text-slate-900'}`}>{t.customer.name}</span>
+                                {(t as any)?.fromAppointment && (
+                                  <span className="text-[10px] font-bold text-indigo-600 flex items-center gap-1 mt-0.5">
+                                    <Calendar className="w-3 h-3" /> Appointment
+                                  </span>
+                                )}
+                              </div>
                             </div>
+
                             {showServiceTypeInQueue && (
-                              <div className="col-span-2">
+                              <div className="lg:col-span-2 flex items-center justify-between lg:justify-start gap-2">
+                                <span className="lg:hidden text-[10px] font-bold text-slate-400 uppercase">Service</span>
                                 {Array.isArray(t.serviceTypes) && t.serviceTypes.length > 0 ? (
-                                  <div className="flex flex-col gap-1">
+                                  <div className="flex flex-wrap gap-1">
                                     {t.serviceTypes.map((stype: string) => (
-                                      <span key={stype} className={`px-2 py-1 rounded-full text-xs font-medium ${getServiceColor(stype)}`}>
+                                      <span key={stype} className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${getServiceColor(stype)} ring-1 ring-white/20`}>
                                         <ServiceName serviceType={stype} />
                                       </span>
                                     ))}
                                   </div>
                                 ) : (
-                                  <span className="px-2 py-1 rounded-full text-xs font-medium bg-gray-200 text-gray-600">No service types</span>
+                                  <span className="text-[10px] italic text-slate-400">Default</span>
                                 )}
                               </div>
                             )}
-                            <div className="col-span-2">
-                              <span className="text-gray-900">{waitTime} min</span>
+
+                            <div className="lg:col-span-2 flex items-center justify-between lg:justify-start gap-2">
+                              <span className="lg:hidden text-[10px] font-bold text-slate-400 uppercase">Wait Time</span>
+                              <div className="flex items-center gap-1.5 text-xs font-bold text-slate-600 bg-slate-100/50 px-2 py-1 rounded-lg">
+                                <Clock className="w-3 h-3 text-slate-400" />
+                                {waitTime} min
+                              </div>
                             </div>
-                            <div className="col-span-2">
-                              <span className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-semibold ${isSkipped
+
+                            <div className="lg:col-span-2 flex items-center justify-between lg:justify-start gap-2">
+                              <span className="lg:hidden text-[10px] font-bold text-slate-400 uppercase">Status</span>
+                              <span className={`inline-flex items-center px-2 py-1 rounded-lg text-[10px] font-bold uppercase ${isSkipped
                                 ? 'bg-orange-100 text-orange-800'
-                                : 'bg-yellow-100 text-yellow-800'
+                                : 'bg-emerald-100 text-emerald-800'
                                 }`}>
                                 {isSkipped ? 'Skipped' : 'Waiting'}
                               </span>
                             </div>
-                            <div className="col-span-2">
-                              <div className="flex flex-col gap-2">
+
+                            <div className="lg:col-span-2 flex items-center justify-between lg:justify-end gap-2 mt-2 lg:mt-0 pt-3 lg:pt-0 border-t lg:border-t-0 border-slate-100">
+                              <span className="lg:hidden text-[10px] font-bold text-slate-400 uppercase">Actions</span>
+                              <div className="flex gap-2">
                                 {isSkipped ? (
                                   <button
                                     onClick={() => handleRecall(t.id)}
                                     disabled={loading || currentToken !== null}
-                                    className="px-2 py-1 bg-indigo-600 text-white text-xs rounded-lg hover:bg-indigo-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed whitespace-nowrap"
+                                    className="px-3 py-1.5 bg-indigo-600 text-white text-[10px] font-bold rounded-lg hover:bg-indigo-700 transition-all disabled:opacity-50 shadow-sm shadow-indigo-100"
                                   >
                                     Recall
                                   </button>
                                 ) : (
-                                  <>
-                                    <button
-                                      onClick={() => handleSkip(t.id)}
-                                      disabled={loading || currentToken !== null}
-                                      className="px-2 py-1 bg-orange-500 text-white text-xs rounded hover:bg-orange-600 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed whitespace-nowrap"
-                                    >
-                                      Skip
-                                    </button>
-                                  </>
+                                  <button
+                                    onClick={() => handleSkip(t.id)}
+                                    disabled={loading || currentToken !== null}
+                                    className="px-3 py-1.5 bg-orange-500 text-white text-[10px] font-bold rounded-lg hover:bg-orange-600 transition-all disabled:opacity-50 shadow-sm shadow-orange-100"
+                                  >
+                                    Skip
+                                  </button>
                                 )}
                                 <button
                                   onClick={() => handleSetPriority(t.id)}
                                   disabled={loading || currentToken !== null}
-                                  className={`px-2 py-1 text-white text-xs rounded transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed whitespace-nowrap ${isPriority
-                                    ? 'bg-yellow-600 hover:bg-yellow-700'
-                                    : 'bg-purple-600 hover:bg-purple-700'
-                                    }`}
+                                  className={`px-3 py-1.5 text-white text-[10px] font-bold rounded-lg transition-all disabled:opacity-50 shadow-sm ${t.isPriority ? 'bg-yellow-600 hover:bg-yellow-700 shadow-yellow-100' : 'bg-violet-600 hover:bg-violet-700 shadow-violet-100'}`}
                                 >
-                                  {isPriority ? '★ Priority' : 'Set Priority'}
+                                  {isPriority ? '★ VIP' : 'Prioritize'}
                                 </button>
                               </div>
                             </div>
@@ -1069,78 +1039,94 @@ export default function OfficerQueuePage() {
                 // TRANSFERRED TOKENS TAB — tokens transferred to this officer
                 !queue ? (
                   <div className="text-center py-12">
-                    <p className="text-gray-500">Loading transferred tokens...</p>
+                    <p className="text-slate-500 font-medium animate-pulse">Loading transferred tokens...</p>
                   </div>
                 ) : incomingTransferredTokens.length === 0 ? (
-                  <div className="text-center py-12">
-                    <div className="w-16 h-16 bg-indigo-50 rounded-xl flex items-center justify-center mx-auto mb-4">
-                      <RefreshCwIcon className="w-8 h-8 text-indigo-400" />
+                  <div className="text-center py-16 bg-slate-50/50 rounded-2xl border-2 border-dashed border-slate-200">
+                    <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-sm">
+                      <RefreshCwIcon className="w-8 h-8 text-slate-300" />
                     </div>
-                    <p className="text-gray-500">No transferred tokens for your counter</p>
-                    <p className="text-xs text-gray-400 mt-2">Customers transferred from other counters to you will appear here</p>
+                    <p className="text-slate-600 font-bold">No transferred tokens</p>
+                    <p className="text-xs text-slate-400 mt-1 max-w-xs mx-auto">Tokens transferred specifically to your counter or service will appear here.</p>
                   </div>
                 ) : (
                   <>
-                    <div className="mb-3 bg-indigo-50 border border-indigo-200 rounded-xl p-3 text-xs text-indigo-700">
-                      These customers were transferred from another counter to your counter. Call and serve them from here.
+                    <div className="mb-4 bg-indigo-50 border border-indigo-100 rounded-xl p-3 text-xs font-medium text-indigo-700 flex items-center gap-3">
+                      <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center flex-shrink-0 text-white">
+                        <Users className="w-4 h-4" />
+                      </div>
+                      <p>These customers were transferred from another counter. Prioritize serving them as they have already waited.</p>
                     </div>
-                    <div className="grid grid-cols-12 gap-4 px-4 py-2.5 bg-indigo-900 border-b text-sm text-white rounded-xl mb-3">
-                      <div className="col-span-2">TOKEN</div>
-                      <div className="col-span-2">CUSTOMER</div>
-                      <div className="col-span-2">SERVICE TYPE</div>
-                      <div className="col-span-2">TOTAL WAIT</div>
-                      <div className="col-span-2">TRANSFERRED TO</div>
-                      <div className="col-span-2">ACTION</div>
+                    
+                    <div className="hidden lg:grid grid-cols-12 gap-4 px-4 py-2.5 bg-indigo-900 border-b text-xs font-semibold text-white rounded-xl mb-3 tracking-wide uppercase">
+                      <div className="col-span-2">Token</div>
+                      <div className="col-span-2">Customer</div>
+                      <div className="col-span-3">Service</div>
+                      <div className="col-span-2">Total Wait</div>
+                      <div className="col-span-2">Origin</div>
+                      <div className="col-span-1">Action</div>
                     </div>
-                    <div className="divide-y divide-gray-100">
+
+                    <div className="space-y-3">
                       {sortedIncomingTransferredTokens.map((t) => {
                         const waitTime = Math.floor((Date.now() - new Date(t.createdAt).getTime()) / 60000)
                         const isPriority = t.isPriority === true
                         return (
-                          <div key={t.id} className={`grid grid-cols-12 gap-4 px-4 py-4 hover:bg-indigo-50 transition-colors bg-indigo-50/30 rounded-lg border-l-4 mb-2 ${isPriority ? 'border-yellow-400 bg-yellow-50/60' : 'border-indigo-400'}`}>
-                            <div className="col-span-2 flex items-center gap-2">
-                              {isPriority ? (
-                                <span className="inline-flex items-center px-2 py-1 rounded-md bg-yellow-100 text-yellow-800 text-sm font-semibold">
-                                  ↗ {t.tokenNumber} ★
-                                </span>
-                              ) : (
-                                <span className="inline-flex items-center px-2 py-1 rounded-md bg-indigo-100 text-indigo-800 text-sm font-semibold">
-                                  ↗ {t.tokenNumber}
-                                </span>
-                              )}
+                          <div key={t.id} className={`lg:grid lg:grid-cols-12 flex flex-col gap-4 px-4 py-4 hover:bg-slate-50 transition-colors border rounded-xl bg-white border-indigo-100 shadow-sm relative overflow-hidden ${isPriority ? 'ring-1 ring-yellow-400' : ''}`}>
+                            {isPriority && <div className="absolute top-0 right-0 w-8 h-8 bg-yellow-400 rounded-bl-xl flex items-center justify-center text-white"><Star className="w-4 h-4" /></div>}
+                            
+                            <div className="lg:col-span-2 flex items-center justify-between lg:justify-start gap-2">
+                              <span className="lg:hidden text-[10px] font-bold text-slate-400 uppercase">Token</span>
+                              <span className={`inline-flex items-center px-2 py-1 rounded-lg text-sm font-bold ${isPriority ? 'bg-yellow-100 text-yellow-800' : 'bg-indigo-100 text-indigo-800'}`}>
+                                ↗ {t.tokenNumber}
+                              </span>
                             </div>
-                            <div className="col-span-2">
-                              <span className="text-gray-900 font-medium">{t.customer.name}</span>
+
+                            <div className="lg:col-span-2 flex items-center justify-between lg:justify-start gap-2">
+                              <span className="lg:hidden text-[10px] font-bold text-slate-400 uppercase">Customer</span>
+                              <span className="font-bold text-slate-900 truncate">{t.customer.name}</span>
                             </div>
-                            <div className="col-span-2">
-                              <div className="flex flex-col gap-1">
+
+                            <div className="lg:col-span-3 flex items-center justify-between lg:justify-start gap-2">
+                              <span className="lg:hidden text-[10px] font-bold text-slate-400 uppercase">Services</span>
+                              <div className="flex flex-wrap gap-1">
                                 {t.serviceTypes.map((stype: string) => (
-                                  <span key={stype} className={`px-2 py-1 rounded-full text-xs font-medium ${getServiceColor(stype)}`}>
+                                  <span key={stype} className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${getServiceColor(stype)}`}>
                                     <ServiceName serviceType={stype} />
                                   </span>
                                 ))}
                               </div>
                             </div>
-                            <div className="col-span-2 text-gray-900">{waitTime} min total</div>
-                            <div className="col-span-2">
+
+                            <div className="lg:col-span-2 flex items-center justify-between lg:justify-start gap-2">
+                              <span className="lg:hidden text-[10px] font-bold text-slate-400 uppercase">Total Wait</span>
+                              <div className="text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-1 rounded-lg border border-indigo-100">
+                                {waitTime} min
+                              </div>
+                            </div>
+
+                            <div className="lg:col-span-2 flex items-center justify-between lg:justify-start gap-2">
+                              <span className="lg:hidden text-[10px] font-bold text-slate-400 uppercase">Origin</span>
                               {(t as any).counterNumber ? (
-                                <span className="inline-flex items-center px-2 py-1 rounded-md bg-indigo-100 text-indigo-800 text-xs font-semibold">
+                                <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded-lg">
                                   Counter {(t as any).counterNumber}
                                 </span>
                               ) : (
-                                <span className="text-xs text-gray-400">General queue</span>
+                                <span className="text-[10px] font-medium text-slate-400">General Queue</span>
                               )}
                             </div>
-                            <div className="col-span-2">
+
+                            <div className="lg:col-span-1 flex items-center justify-between lg:justify-end gap-2 mt-2 lg:mt-0 pt-3 lg:pt-0 border-t lg:border-t-0 border-slate-100">
+                              <span className="lg:hidden text-[10px] font-bold text-slate-400 uppercase">Action</span>
                               <button
                                 onClick={() => handleSetPriority(t.id)}
                                 disabled={loading || currentToken !== null}
-                                className={`px-2 py-1 text-white text-xs rounded transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed whitespace-nowrap ${isPriority
-                                  ? 'bg-yellow-600 hover:bg-yellow-700'
-                                  : 'bg-purple-600 hover:bg-purple-700'
+                                className={`px-3 py-1.5 text-white text-[10px] font-bold rounded-lg transition-all disabled:opacity-50 shadow-sm ${isPriority
+                                  ? 'bg-yellow-600 hover:bg-yellow-700 shadow-yellow-100'
+                                  : 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-100'
                                   }`}
                               >
-                                {isPriority ? '★ Priority' : 'Set Priority'}
+                                {isPriority ? 'VIP' : 'Prioritize'}
                               </button>
                             </div>
                           </div>
@@ -1152,105 +1138,109 @@ export default function OfficerQueuePage() {
               ) : (
                 // UNMATCHED TOKENS TAB - Show unmatched tokens
                 unmatchedTokens.length === 0 ? (
-                  <div className="text-center py-12">
-                    <div className="w-16 h-16 bg-green-100 rounded-xl flex items-center justify-center mx-auto mb-4">
-                      <Users className="w-8 h-8 text-green-600" />
+                  <div className="text-center py-16 bg-slate-50/50 rounded-2xl border-2 border-dashed border-slate-200">
+                    <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-sm">
+                      <CheckCircle2 className="w-8 h-8 text-emerald-400" />
                     </div>
-                    <p className="text-gray-700 font-medium">All tokens are matched!</p>
-                    <p className="text-xs text-gray-500 mt-2">No unmatched tokens at the moment</p>
+                    <p className="text-slate-600 font-bold">No unmatched tokens</p>
+                    <p className="text-xs text-slate-400 mt-1">Excellent! All customers are assigned to appropriate service officers.</p>
                   </div>
                 ) : (
                   <>
                     {/* Table Header */}
-                    <div className="grid grid-cols-12 gap-4 px-4 py-2.5 bg-slate-800 border-b text-xs font-semibold text-slate-200 rounded-xl tracking-wide mb-3">
-                      <div className="col-span-2">TOKEN</div>
-                      <div className="col-span-2">CUSTOMER</div>
-                      <div className="col-span-2">SERVICE TYPE</div>
-                      <div className="col-span-2">WAITED TIME</div>
-                      <div className="col-span-2">STATUS</div>
-                      <div className="col-span-2">ACTION</div>
+                    <div className="hidden lg:grid grid-cols-12 gap-4 px-4 py-2.5 bg-slate-800 border-b text-xs font-semibold text-slate-200 rounded-xl tracking-wide mb-3 uppercase">
+                      <div className="col-span-2">Token</div>
+                      <div className="col-span-2">Customer</div>
+                      <div className="col-span-2">Service</div>
+                      <div className="col-span-2">Wait Time</div>
+                      <div className="col-span-2">Status</div>
+                      <div className="col-span-2">Action</div>
                     </div>
 
-                    {/* Unmatched Tokens */}
-                    <div className="divide-y divide-gray-100">
+                    <div className="space-y-3">
                       {sortedUnmatchedTokens.map((t) => {
                         const waitTime = Math.floor((Date.now() - new Date(t.createdAt).getTime()) / 60000)
                         const isPriority = t.isPriority === true
                         const isSkipped = t.status === 'skipped'
 
                         return (
-                          <div key={t.id} className={`grid grid-cols-12 gap-4 px-4 py-4 hover:bg-gray-50 transition-colors ${isSkipped ? 'bg-orange-50 rounded-lg' : isPriority ? 'bg-yellow-50 rounded-lg border-l-4 border-yellow-400' : ''}`}>
-                            <div className="col-span-2 flex items-center gap-2">
-                              {isPriority ? (
-                                <span className="inline-flex items-center px-2 py-1 rounded-md bg-yellow-100 text-yellow-800 text-sm font-semibold">
-                                  {t.tokenNumber} ★ Priority
+                          <div key={t.id} className={`lg:grid lg:grid-cols-12 flex flex-col gap-4 px-4 py-4 hover:bg-slate-50 transition-colors border rounded-xl ${isSkipped ? 'bg-orange-50/50 border-orange-100' : isPriority ? 'bg-yellow-50/50 border-yellow-200 ring-1 ring-yellow-400' : 'bg-white border-slate-100 shadow-sm'}`}>
+                            <div className="lg:col-span-2 flex items-center justify-between lg:justify-start gap-2">
+                              <span className="lg:hidden text-[10px] font-bold text-slate-400 uppercase">Token</span>
+                              <div className="flex items-center gap-2">
+                                <span className={`inline-flex items-center px-2 py-1 rounded-lg text-sm font-bold ${isPriority ? 'bg-yellow-100 text-yellow-800' : 'bg-slate-100 text-slate-700'}`}>
+                                  {t.tokenNumber} {isPriority && '★'}
                                 </span>
-                              ) : (
-                                <span className="text-gray-900 font-semibold">{t.tokenNumber}</span>
-                              )}
-                              {(t as any)?.fromAppointment && (
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-indigo-100 text-indigo-700 text-xs font-semibold" title="Booked appointment">
-                                  <Calendar className="w-3 h-3" /> Appointment
-                                </span>
-                              )}
+                                {(t as any)?.fromAppointment && (
+                                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-lg bg-indigo-50 text-indigo-600 text-[9px] font-bold border border-indigo-100">
+                                    <Calendar className="w-2.5 h-2.5" /> Booked
+                                  </span>
+                                )}
+                              </div>
                             </div>
-                            <div className="col-span-2">
-                              <span className={`${isSkipped ? 'text-gray-500' : 'text-gray-900'}`}>{t.customer.name}</span>
+                            
+                            <div className="lg:col-span-2 flex items-center justify-between lg:justify-start gap-2">
+                              <span className="lg:hidden text-[10px] font-bold text-slate-400 uppercase">Customer</span>
+                              <span className={`font-bold truncate ${isSkipped ? 'text-slate-400' : 'text-slate-900'}`}>{t.customer.name}</span>
                             </div>
-                            <div className="col-span-2">
-                              {Array.isArray(t.serviceTypes) && t.serviceTypes.length > 0 ? (
-                                <div className="flex flex-col gap-1">
-                                  {t.serviceTypes.map((stype: string) => (
-                                    <span key={stype} className={`px-2 py-1 rounded-full text-xs font-medium ${getServiceColor(stype)}`}>
-                                      <ServiceName serviceType={stype} />
-                                    </span>
-                                  ))}
-                                </div>
-                              ) : (
-                                <span className="px-2 py-1 rounded-full text-xs font-medium bg-gray-200 text-gray-600">No service types</span>
-                              )}
+
+                            <div className="lg:col-span-2 flex items-center justify-between lg:justify-start gap-2">
+                              <span className="lg:hidden text-[10px] font-bold text-slate-400 uppercase">Service</span>
+                              <div className="flex flex-wrap gap-1">
+                                {t.serviceTypes.map((stype: string) => (
+                                  <span key={stype} className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${getServiceColor(stype)}`}>
+                                    <ServiceName serviceType={stype} />
+                                  </span>
+                                ))}
+                              </div>
                             </div>
-                            <div className="col-span-2">
-                              <span className="text-gray-900">{waitTime} min</span>
+
+                            <div className="lg:col-span-2 flex items-center justify-between lg:justify-start gap-2">
+                              <span className="lg:hidden text-[10px] font-bold text-slate-400 uppercase">Wait Time</span>
+                              <div className="text-xs font-bold text-slate-600 bg-slate-100/50 px-2 py-1 rounded-lg">
+                                {waitTime} min
+                              </div>
                             </div>
-                            <div className="col-span-2">
-                              <span className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-semibold ${isSkipped
+
+                            <div className="lg:col-span-2 flex items-center justify-between lg:justify-start gap-2">
+                              <span className="lg:hidden text-[10px] font-bold text-slate-400 uppercase">Status</span>
+                              <span className={`inline-flex items-center px-2 py-1 rounded-lg text-[10px] font-bold uppercase ${isSkipped
                                 ? 'bg-orange-100 text-orange-800'
-                                : 'bg-yellow-100 text-yellow-800'
+                                : 'bg-amber-100 text-amber-800'
                                 }`}>
                                 {isSkipped ? 'Skipped' : 'Waiting'}
                               </span>
                             </div>
-                            <div className="col-span-2">
-                              <div className="flex flex-col gap-2">
+
+                            <div className="lg:col-span-2 flex items-center justify-between lg:justify-end gap-2 mt-2 lg:mt-0 pt-3 lg:pt-0 border-t lg:border-t-0 border-slate-100">
+                              <span className="lg:hidden text-[10px] font-bold text-slate-400 uppercase">Action</span>
+                              <div className="flex gap-2">
                                 {isSkipped ? (
                                   <button
                                     onClick={() => handleRecall(t.id)}
                                     disabled={loading || currentToken !== null}
-                                    className="px-2 py-1 bg-indigo-600 text-white text-xs rounded-lg hover:bg-indigo-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed whitespace-nowrap"
+                                    className="px-3 py-1.5 bg-indigo-600 text-white text-[10px] font-bold rounded-lg hover:bg-indigo-700 transition-all disabled:opacity-50 shadow-sm shadow-indigo-100"
                                   >
                                     Recall
                                   </button>
                                 ) : (
-                                  <>
-                                    <button
-                                      onClick={() => handleSkip(t.id)}
-                                      disabled={loading || currentToken !== null}
-                                      className="px-2 py-1 bg-orange-500 text-white text-xs rounded hover:bg-orange-600 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed whitespace-nowrap"
-                                    >
-                                      Skip
-                                    </button>
-                                  </>
+                                  <button
+                                    onClick={() => handleSkip(t.id)}
+                                    disabled={loading || currentToken !== null}
+                                    className="px-3 py-1.5 bg-orange-500 text-white text-[10px] font-bold rounded-lg hover:bg-orange-600 transition-all disabled:opacity-50 shadow-sm shadow-orange-100"
+                                  >
+                                    Skip
+                                  </button>
                                 )}
                                 <button
                                   onClick={() => handleSetPriority(t.id)}
                                   disabled={loading || currentToken !== null}
-                                  className={`px-2 py-1 text-white text-xs rounded transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed whitespace-nowrap ${isPriority
-                                    ? 'bg-yellow-600 hover:bg-yellow-700'
-                                    : 'bg-purple-600 hover:bg-purple-700'
+                                  className={`px-3 py-1.5 text-white text-[10px] font-bold rounded-lg transition-all disabled:opacity-50 shadow-sm ${isPriority
+                                    ? 'bg-yellow-600 hover:bg-yellow-700 shadow-yellow-100'
+                                    : 'bg-slate-700 hover:bg-slate-900 shadow-slate-100'
                                     }`}
                                 >
-                                  {isPriority ? '★ Priority' : 'Set Priority'}
+                                  {isPriority ? 'VIP' : 'Prioritize'}
                                 </button>
                               </div>
                             </div>
@@ -1345,7 +1335,7 @@ export default function OfficerQueuePage() {
               />
             </div>
 
-            <div className="flex gap-3">
+            <div className="flex flex-col sm:flex-row gap-3">
               <button
                 onClick={() => {
                   setIsTransferModalOpen(false)
@@ -1353,7 +1343,7 @@ export default function OfficerQueuePage() {
                   setTransferServices([])
                   setTransferNotes("")
                 }}
-                className="flex-1 px-4 py-3 bg-gray-100 text-gray-700 font-bold border-b-2 border-gray-300 rounded-2xl text-sm hover:bg-gray-200 transition-colors"
+                className="w-full sm:flex-1 px-4 py-3 bg-gray-100 text-gray-700 font-bold border-b-2 border-gray-300 rounded-2xl text-sm hover:bg-gray-200 transition-colors"
                 disabled={loading}
               >
                 Cancel
@@ -1361,7 +1351,7 @@ export default function OfficerQueuePage() {
               <button
                 onClick={handleTransfer}
                 disabled={loading || transferServices.length === 0 || !targetOfficer}
-                className="flex-[2] px-4 py-3 bg-blue-600 text-white font-bold border-b-2 border-black rounded-2xl text-sm hover:bg-blue-700 shadow-lg shadow-blue-200 transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:translate-y-[-1px] active:translate-y-[1px]"
+                className="w-full sm:flex-[2] px-4 py-3 bg-blue-600 text-white font-bold border-b-2 border-slate-900 rounded-2xl text-sm hover:bg-blue-700 shadow-lg shadow-blue-200 transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:translate-y-[-1px] active:translate-y-[1px]"
               >
                 {loading ? (
                   <div className="flex items-center justify-center gap-2">

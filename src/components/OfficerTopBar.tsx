@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import React from "react"
 import { useNavigate } from "react-router-dom"
@@ -71,15 +71,15 @@ export default function OfficerTopBar({ officer, onOfficerUpdate, onAfterStatusC
         </div>
 
         {/* Header Actions */}
-        <div className="flex items-center space-x-1 sm:space-x-10 flex-shrink-0">
-          <div className="flex sm:flex-row sm:items-center sm:space-x-3">
+        <div className="flex items-center space-x-2 sm:space-x-10 flex-shrink-0">
+          <div className="flex items-center space-x-2">
             {/* Status Badge */}
             <motion.div
               key={officer.status}
               initial={{ scale: 0.85, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ duration: 0.2 }}
-              className={`px-3 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1.5 ${
+              className={`px-2.5 py-1.5 rounded-full text-[10px] sm:text-xs font-semibold flex items-center gap-1.5 ${
                 officer.status === 'available'
                   ? 'bg-emerald-100 text-emerald-700 ring-1 ring-emerald-200'
                   : officer.status === 'serving'
@@ -94,29 +94,31 @@ export default function OfficerTopBar({ officer, onOfficerUpdate, onAfterStatusC
                 officer.status === 'serving' ? 'bg-blue-500' :
                 officer.status === 'on_break' ? 'bg-amber-500' : 'bg-slate-400'
               }`} />
-              {officer.status === 'available' ? 'Available' :
-               officer.status === 'serving' ? 'Serving' :
-               officer.status === 'on_break' ? 'On Break' : 'Offline'}
+              <span className="hidden xs:inline">
+                {officer.status === 'available' ? 'Available' :
+                 officer.status === 'serving' ? 'Serving' :
+                 officer.status === 'on_break' ? 'On Break' : 'Offline'}
+              </span>
             </motion.div>
 
             {/* Status Controls */}
             {officer.status === 'available' && (
               <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
                 onClick={() => setConfirmOpen(true)}
-                className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 text-amber-700 rounded-lg hover:bg-amber-100 transition-colors text-xs font-medium border border-amber-200"
+                className="flex items-center gap-1.5 px-2.5 py-1.5 bg-amber-50 text-amber-700 rounded-lg hover:bg-amber-100 transition-colors text-xs font-medium border border-amber-200 shadow-sm"
               >
                 <Coffee className="w-3.5 h-3.5" />
-                Break
+                <span className="hidden sm:inline">Break</span>
               </motion.button>
             )}
 
             {officer.status === 'on_break' && (
               <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
                 onClick={() => handleStatusChange('available')}
-                className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-700 rounded-lg hover:bg-emerald-100 transition-colors text-xs font-medium border border-emerald-200"
+                className="flex items-center gap-1.5 px-2.5 py-1.5 bg-emerald-50 text-emerald-700 rounded-lg hover:bg-emerald-100 transition-colors text-xs font-medium border border-emerald-200 shadow-sm"
               >
                 <Play className="w-3.5 h-3.5" />
-                Resume
+                <span className="hidden sm:inline">Resume</span>
               </motion.button>
             )}
           </div>
@@ -141,24 +143,25 @@ export default function OfficerTopBar({ officer, onOfficerUpdate, onAfterStatusC
 
           {/* User Profile */}
           <div className="flex items-center space-x-2 sm:space-x-3">
-            <div className="w-8 h-8 sm:w-9 sm:h-9 bg-amber-600 rounded-xl flex items-center justify-center flex-shrink-0 ring-2 ring-amber-200">
+            <div className="w-8 h-8 sm:w-9 sm:h-9 bg-amber-600 rounded-xl flex items-center justify-center flex-shrink-0 ring-2 ring-amber-200 shadow-sm">
               <span className="text-sm sm:text-base font-semibold text-white">
                 {officer.name?.charAt(0)?.toUpperCase()}
               </span>
             </div>
             <div className="hidden md:flex flex-col justify-center min-w-0">
-              <p className="text-sm font-medium text-gray-900 truncate leading-tight">{officer.name}</p>
+              <p className="text-sm font-bold text-gray-900 truncate leading-tight">{officer.name}</p>
               <p className="text-xs text-gray-500 truncate leading-tight">Counter {officer.counterNumber ?? '-'}</p>
             </div>
           </div>
 
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center">
             {/* Logout Button */}
             <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
               onClick={() => handleStatusChange('offline')}
-              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 text-slate-500 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all text-xs font-medium"
+              className="flex items-center gap-1.5 px-2 py-2 sm:px-3 sm:py-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all text-xs font-medium"
+              title="Logout"
             >
-              <LogOut className="w-4 h-4" />
+              <LogOut className="w-4 h-4 sm:w-4 sm:h-4" />
               <span className="hidden md:inline">Logout</span>
             </motion.button>
           </div>
