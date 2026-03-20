@@ -314,7 +314,21 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed, activePa
     } catch { }
 
     try {
-      window.location.replace('/')
+      if (onOfficerPath) {
+        window.location.replace('/officer/login')
+      } else if (onManagerPath) {
+        window.location.replace('/manager/login')
+      } else if (onTeleshopManagerPath) {
+        window.location.replace('/teleshop-manager/login')
+      } else if (onAdminPath) {
+        window.location.replace('/admin/login')
+      } else if (onGMPath) {
+        window.location.replace('/gm/login')
+      } else if (onDGMPath) {
+        window.location.replace('/dgm/login')
+      } else {
+        window.location.replace('/')
+      }
     } catch {
       // Fallback to SPA navigation if window.location is unavailable
       if (onOfficerPath) navigate('/officer/login', { replace: true })

@@ -1,7 +1,6 @@
 "use client"
 
 import React from "react"
-import { useNavigate } from "react-router-dom"
 import { Coffee, Play, LogOut } from "lucide-react"
 import { motion } from "framer-motion"
 import ConfirmDialog from "./ConfirmDialog"
@@ -15,7 +14,7 @@ type Props = {
 }
 
 export default function OfficerTopBar({ officer, onOfficerUpdate, onAfterStatusChange }: Props) {
-  const navigate = useNavigate()
+
   const [currentTime, setCurrentTime] = React.useState(new Date())
   const [confirmOpen, setConfirmOpen] = React.useState(false)
   const [confirmLoading, setConfirmLoading] = React.useState(false)
@@ -43,7 +42,7 @@ export default function OfficerTopBar({ officer, onOfficerUpdate, onAfterStatusC
       onAfterStatusChange?.(status)
       if (status === 'offline') {
         try { await api.post('/officer/logout') } catch {}
-        navigate('/officer/login')
+        window.location.href = '/officer/login'
       }
     } catch (err: any) {
       console.error('Failed to update status:', err)

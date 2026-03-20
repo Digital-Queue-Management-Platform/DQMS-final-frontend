@@ -265,7 +265,7 @@ export default function OfficerDashboard() {
 
       if (status === 'offline') {
         try { await api.post('/officer/logout') } catch { }
-        navigate('/officer/login')
+        window.location.href = '/officer/login'
       }
     } catch (err: any) {
       console.error('Failed to update status:', err)

@@ -7,7 +7,7 @@ export default defineConfig({
   base: "/",
   plugins: [
     react(),
-    electron({
+    process.env.VITE_ELECTRON && electron({
       main: {
         entry: 'electron/main.ts',
       },
@@ -16,7 +16,7 @@ export default defineConfig({
       },
       renderer: {},
     }),
-  ],
+  ].filter(Boolean),
   server: {
     port: 3000,
   },
