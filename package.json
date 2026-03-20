@@ -11,7 +11,7 @@
     "preview": "vite preview",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "electron:dev": "set VITE_ELECTRON=true && vite",
-    "electron:build": "vite build && npx electron-builder --win"
+    "electron:build": "set VITE_ELECTRON=true && vite build && npx electron-builder --win"
   },
   "build": {
     "appId": "com.dqmp.officer.dashboard",
