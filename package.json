@@ -1,6 +1,8 @@
 {
   "name": "digital-queue-frontend",
   "version": "1.0.0",
+  "description": "Customer Service Officer Dashboard for Digital Queue Management Platform",
+  "author": "SLT-MOBITEL",
   "private": true,
   "main": "dist-electron/main.js",
   "scripts": {
@@ -13,9 +15,9 @@
   },
   "build": {
     "appId": "com.dqmp.officer.dashboard",
-    "productName": "Officer Dashboard",
+    "productName": "DQMP",
     "directories": {
-      "output": "dist_electron"
+      "output": "dist_dqmp"
     },
     "files": [
       "dist/**/*",
