@@ -1,6 +1,7 @@
 # Electron build outputs
 dist-electron
 dist_electron
+dist_dqmp
 logs
 *.log
 npm-debug.log*
