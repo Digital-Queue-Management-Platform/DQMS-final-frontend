@@ -23,6 +23,7 @@ export default defineConfig({
   build: {
     target: "es2018",
     sourcemap: false,
+    emptyOutDir: true,
     chunkSizeWarningLimit: 600,
     rollupOptions: {
       output: {
