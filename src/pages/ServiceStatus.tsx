@@ -107,7 +107,7 @@ export default function ServiceStatus() {
   const [data, setData] = useState<CaseData | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [language] = useState<'en' | 'si' | 'ta'>(() => {
+  const [language, setLanguage] = useState<'en' | 'si' | 'ta'>(() => {
     try {
       const saved = localStorage.getItem('dq_lang') as 'en' | 'si' | 'ta' | null
       if (saved) return saved
@@ -117,6 +117,18 @@ export default function ServiceStatus() {
     if (nav.startsWith('ta')) return 'ta'
     return 'en'
   })
+
+  // Sync language with token's preferred language when data is loaded
+  useEffect(() => {
+    if (data?.token?.preferredLanguages && data.token.preferredLanguages.length > 0) {
+      const pref = data.token.preferredLanguages[0] as 'en' | 'si' | 'ta'
+      if (['en', 'si', 'ta'].includes(pref)) {
+        setLanguage(pref)
+        try { localStorage.setItem('dq_lang', pref) } catch { }
+      }
+    }
+  }, [data?.token?.preferredLanguages])
+
 
   const translations = {
     en: { title: 'Service Status', refPlaceholder: 'Enter reference e.g., 2025-10-30/Colombo/104', check: 'Check', referenceNotFound: 'Reference not found', loading: 'Loading…', english: 'English', sinhala: 'Sinhala', tamil: 'Tamil' },

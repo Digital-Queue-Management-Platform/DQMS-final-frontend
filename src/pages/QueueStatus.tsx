@@ -24,7 +24,7 @@ export default function QueueStatus() {
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card' | 'cheque' | 'bank_transfer' | null>(null)
   const [paymentSubmitting, setPaymentSubmitting] = useState(false)
   const [paymentConfirmed, setPaymentConfirmed] = useState(false)
-  const [language] = useState<'en' | 'si' | 'ta'>(() => {
+  const [language, setLanguage] = useState<'en' | 'si' | 'ta'>(() => {
     try {
       const saved = localStorage.getItem('dq_lang') as 'en' | 'si' | 'ta' | null
       if (saved) return saved
@@ -34,6 +34,19 @@ export default function QueueStatus() {
     if (nav.startsWith('ta')) return 'ta'
     return 'en'
   })
+
+  // Sync language with token's preferred language when loaded
+  useEffect(() => {
+    if (token?.preferredLanguages && token.preferredLanguages.length > 0) {
+      const pref = token.preferredLanguages[0] as 'en' | 'si' | 'ta'
+      if (['en', 'si', 'ta'].includes(pref)) {
+        setLanguage(pref)
+        // Also save to localStorage for subsequent pages
+        try { localStorage.setItem('dq_lang', pref) } catch { }
+      }
+    }
+  }, [token?.preferredLanguages])
+
 
   const translations = {
     en: {
