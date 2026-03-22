@@ -1,9 +1,10 @@
-﻿"use client"
+"use client"
 
 import { useEffect, useMemo, useState } from "react"
 import { Calendar, Filter, RefreshCwIcon, Search } from "lucide-react"
 import api, { WS_URL } from "../config/api"
 import ServiceName from "../components/ServiceName"
+import { AnimatedDropdown } from "../components/AnimatedDropdown"
 
 type Outlet = { id: string; name: string; location: string; regionId?: string }
 type Appointment = {
@@ -19,23 +20,23 @@ type Appointment = {
   queuedAt?: string | null
 }
 
-const SERVICE_OPTIONS = [
-  { code: 'BILL_PAYMENT', label: 'Bill Payment' },
-  { code: 'OTHERS', label: 'Others' },
-]
+type Service = { code: string; title: string }
 
 export default function ManagerAppointments() {
   const [outlets, setOutlets] = useState<Outlet[]>([])
   const [selectedOutlet, setSelectedOutlet] = useState<string>('all')
   const [date, setDate] = useState<string>(() => new Date().toISOString().slice(0, 10))
-  const [services, setServices] = useState<string[]>([])
+  const [selectedService, setSelectedService] = useState<string>('all')
+  const [statusFilter, setStatusFilter] = useState<string>('all')
   const [q, setQ] = useState<string>('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [rows, setRows] = useState<(Appointment & { outletName?: string; outletLocation?: string })[]>([])
+  const [availableServices, setAvailableServices] = useState<Service[]>([])
 
   useEffect(() => {
     fetchOutlets()
+    fetchServices()
 
     // Auto-refresh every 30 seconds
     // Auto-refresh every 30 seconds
@@ -114,6 +115,15 @@ export default function ManagerAppointments() {
     }
   }
 
+  const fetchServices = async () => {
+    try {
+      const res = await api.get('/queue/services')
+      setAvailableServices(res.data || [])
+    } catch (e) {
+      console.error('Failed to fetch services:', e)
+    }
+  }
+
   const loadData = async () => {
     setError('')
     setLoading(true)
@@ -147,20 +157,24 @@ export default function ManagerAppointments() {
 
   const filtered = useMemo(() => {
     let data = rows.slice()
-    // Show only booked (queued disappear from pool)
-    data = data.filter(r => r.status === 'booked')
-    if (services.length) data = data.filter(r => Array.isArray(r.serviceTypes) && services.every(s => r.serviceTypes.includes(s)))
+    // Show both booked and queued by default in the pool
+    if (statusFilter === 'all') {
+      data = data.filter(r => ['booked', 'queued'].includes(r.status))
+    } else {
+      data = data.filter(r => r.status === statusFilter)
+    }
+
+    if (selectedService !== 'all') {
+      data = data.filter(r => Array.isArray(r.serviceTypes) && r.serviceTypes.includes(selectedService))
+    }
     if (q.trim()) {
       const qq = q.trim().toLowerCase()
       data = data.filter(r => r.name?.toLowerCase().includes(qq) || r.mobileNumber?.includes(qq))
     }
     data.sort((a, b) => new Date(a.appointmentAt).getTime() - new Date(b.appointmentAt).getTime())
     return data
-  }, [rows, services, q])
+  }, [rows, selectedService, statusFilter, q])
 
-  const toggleService = (code: string) => {
-    setServices(prev => prev.includes(code) ? prev.filter(c => c !== code) : [...prev, code])
-  }
 
   const formatDate = (s: string) => new Date(s).toLocaleDateString([], { year: 'numeric', month: 'short', day: 'numeric' })
   const formatTime = (s: string) => new Date(s).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
@@ -205,24 +219,41 @@ export default function ManagerAppointments() {
             </div>
           </div>
           {/* Search */}
-          <div>
+          <div className="sm:col-span-1 lg:col-span-1">
             <label className="block text-sm font-medium text-gray-700 mb-1">Search</label>
             <div className="relative">
               <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
               <input type="text" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Name or Mobile" className="w-full border rounded-lg pl-9 pr-3 py-2" />
             </div>
           </div>
-        </div>
-        {/* Services */}
-        <div className="mt-3">
-          <label className="block text-sm font-medium text-gray-700 mb-2">Services</label>
-          <div className="flex flex-wrap gap-2">
-            {SERVICE_OPTIONS.map(s => (
-              <label key={s.code} className={`inline-flex items-center gap-2 px-3 py-1.5 border rounded-full text-sm cursor-pointer ${services.includes(s.code) ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-gray-700 border-gray-300'}`}>
-                <input type="checkbox" checked={services.includes(s.code)} onChange={() => toggleService(s.code)} className="hidden" />
-                <Filter className="w-3 h-3" /> {s.label}
-              </label>
-            ))}
+          {/* Status */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+            <AnimatedDropdown
+              value={statusFilter}
+              onChange={setStatusFilter}
+              options={[
+                { value: "all", label: "All Statuses" },
+                { value: "booked", label: "Booked" },
+                { value: "queued", label: "Queued" },
+                { value: "completed", label: "Completed" },
+                { value: "cancelled", label: "Cancelled" }
+              ]}
+              icon={<Filter className="w-4 h-4" />}
+            />
+          </div>
+          {/* Services */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Services</label>
+            <AnimatedDropdown
+              value={selectedService}
+              onChange={setSelectedService}
+              options={[
+                { value: "all", label: "All Services" },
+                ...availableServices.map(s => ({ value: s.code, label: s.title }))
+              ]}
+              icon={<Filter className="w-4 h-4" />}
+            />
           </div>
         </div>
       </div>
