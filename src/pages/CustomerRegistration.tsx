@@ -513,11 +513,7 @@ export default function CustomerRegistration() {
           await verifySltNumber()
         }
 
-        // Apply defaults for Bill Payment if not already set, to allow auto-submission
-        if (isSltRequiredService(selectedService)) {
-           if (!billPaymentIntent) setBillPaymentIntent('full');
-           if (!billPaymentMethod) setBillPaymentMethod('cash');
-        } else {
+        if (!isSltRequiredService(selectedService)) {
            setShouldAutoSubmit(true)
         }
 
