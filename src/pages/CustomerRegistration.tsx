@@ -529,7 +529,10 @@ export default function CustomerRegistration() {
     setLoading(true)
     setError("")
     try {
-      const response = await api.get(`/bills/verify/${sltTelephoneNumber}`)
+      const response = await api.get(`/bills/verify/${sltTelephoneNumber}`, {
+        params: { mobileNumber }
+      })
+
       if (response.data.success && response.data.bill) {
         const bill = response.data.bill
         setBillData(bill)
