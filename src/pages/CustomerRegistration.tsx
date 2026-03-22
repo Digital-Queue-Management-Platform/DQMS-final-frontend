@@ -538,16 +538,31 @@ export default function CustomerRegistration() {
 
         // Determine if the person verifying is the registered owner
         const normalizeForComparison = (num: string) => {
+          if (!num) return '';
           let n = num.replace(/\D/g, '')
           if (n.startsWith('0')) n = '94' + n.substring(1)
           else if (!n.startsWith('94')) n = '94' + n
           return n
         }
+
+        const normalizedCurrent = normalizeForComparison(mobileNumber)
+        const billMobile = bill.mobileNumber || ''
+        
         let isOwner = false
-        if (bill.mobileNumber && mobileNumber) {
-          isOwner = normalizeForComparison(mobileNumber) === normalizeForComparison(bill.mobileNumber)
+        if (billMobile && normalizedCurrent) {
+          if (billMobile.includes('*')) {
+            // Masked match: check if our normalized number ends with the visible part
+            const visiblePart = billMobile.replace(/\*+/g, '')
+            if (visiblePart && normalizedCurrent.endsWith(visiblePart)) {
+              isOwner = true
+            }
+          } else {
+            // Full match
+            isOwner = normalizedCurrent === normalizeForComparison(billMobile)
+          }
         }
         setIsOwnerOfAccount(isOwner)
+
 
         const getMaskedPhone = (phone: string) => {
           if (!phone || phone.length < 3) return phone
