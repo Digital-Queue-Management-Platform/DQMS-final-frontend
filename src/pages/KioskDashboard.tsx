@@ -363,29 +363,22 @@ export default function KioskDashboard() {
         }
         setNotificationSent(true)
 
-        // Send SMS notification with bill information (including due amount)
-        // Use the user's unmasked mobile number IF they are the owner
-        const targetNumber = isOwner ? mobileNumber : bill.mobileNumber
-        
-        if (targetNumber && !targetNumber.includes('*')) {
-          try {
-            await api.post('/bills/send-notification', {
-              mobileNumber: targetNumber,
-              accountName: bill.accountName,
-              billAmount: bill.currentBill,
-              dueDate: bill.dueDate,
-              sltNumber: sltTelephoneNumber
-            })
-          } catch (notifErr) {
-            console.log('Notification sent (or notification service not configured)')
-          }
-        } else {
-          console.log('[KIOSK] Skipping custom notification as target number is masked/missing')
+        // Send SMS notification with bill information (including due amount) directly to the person at the kiosk
+        try {
+          await api.post('/bills/send-notification', {
+            mobileNumber: mobileNumber, 
+            accountName: bill.accountName,
+            billAmount: bill.currentBill,
+            dueDate: bill.dueDate,
+            sltNumber: sltTelephoneNumber
+          })
+        } catch (notifErr) {
+          console.log('Notification sent (or notification service not configured)')
         }
-
       } else {
         setError("No account found for this telephone number")
       }
+
     } catch (err: any) {
       console.error('Bill verification error:', err)
       setError(err.response?.data?.error || "Failed to verify telephone number")

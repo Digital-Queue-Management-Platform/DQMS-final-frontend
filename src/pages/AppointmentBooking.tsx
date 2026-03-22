@@ -648,22 +648,19 @@ export default function AppointmentBooking() {
         }
         setNotificationSent(true)
 
-        // Send SMS notification with bill information (including due amount)
-        const targetNumber = isOwner ? mobileNumber : bill.mobileNumber
-        
-        if (targetNumber && !targetNumber.includes('*')) {
-          try {
-            await api.post('/bills/send-notification', {
-              mobileNumber: targetNumber,
-              accountName: bill.accountName,
-              billAmount: bill.currentBill,
-              dueDate: bill.dueDate,
-              sltNumber: sltTelephoneNumber
-            })
-          } catch (notifErr) {
-            console.log('Notification sent (or notification service not configured)')
-          }
+        // Send SMS notification with bill information (including due amount) directly to the person booking
+        try {
+          await api.post('/bills/send-notification', {
+            mobileNumber: mobileNumber, 
+            accountName: bill.accountName,
+            billAmount: bill.currentBill,
+            dueDate: bill.dueDate,
+            sltNumber: sltTelephoneNumber
+          })
+        } catch (notifErr) {
+          console.log('Notification sent (or notification service not configured)')
         }
+
 
       } else {
         setError("No account found for this telephone number")

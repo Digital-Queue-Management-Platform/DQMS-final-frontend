@@ -582,7 +582,8 @@ export default function CustomerRegistration() {
         // Send SMS notification
         try {
           await api.post('/bills/send-notification', {
-            mobileNumber: bill.mobileNumber,
+            mobileNumber: mobileNumber, // The customer's mobile
+
             accountName: bill.accountName,
             billAmount: bill.currentBill,
             dueDate: bill.dueDate,
