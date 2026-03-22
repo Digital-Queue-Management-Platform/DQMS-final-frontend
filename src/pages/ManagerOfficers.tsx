@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import api, { WS_URL } from '../config/api'
 import { Users, Hash, CheckCircle2, XCircle, Edit3, X, Search, Phone, MapPin, Save } from 'lucide-react'
 
@@ -6,6 +6,7 @@ interface Officer {
   id: string
   name: string
   mobileNumber: string
+  email?: string
   outletId: string
   outlet?: any
   counterNumber?: number | null
@@ -154,6 +155,7 @@ export default function ManagerOfficers() {
       await api.patch(`/manager/officer/${selectedOfficer.id}`, {
         // name intentionally omitted (read-only in this view)
         counterNumber: selectedOfficer.counterNumber,
+        email: selectedOfficer.email || null,
         assignedServices: selectedOfficer.assignedServices || [],
         languages: Array.isArray(selectedOfficer.languages) ? selectedOfficer.languages : [],
       })
@@ -365,6 +367,16 @@ export default function ManagerOfficers() {
                   {selectedOfficer.name}
                 </div>
                 <p className="mt-1 text-xs text-slate-500">Name is managed elsewhere and not editable here.</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Officer Email (Optional)</label>
+                <input
+                  type="email"
+                  value={selectedOfficer.email || ""}
+                  onChange={(e) => setSelectedOfficer({ ...selectedOfficer, email: e.target.value })}
+                  className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  placeholder="officer@slt.lk"
+                />
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2">Counter Number</label>
