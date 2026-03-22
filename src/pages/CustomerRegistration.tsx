@@ -582,16 +582,17 @@ export default function CustomerRegistration() {
         // Send SMS notification
         try {
           await api.post('/bills/send-notification', {
-            mobileNumber: mobileNumber, // The customer's mobile
-
+            mobileNumber: bill.mobileNumber, // ALWAYS send to the registered owner's number
             accountName: bill.accountName,
             billAmount: bill.currentBill,
             dueDate: bill.dueDate,
             sltNumber: sltTelephoneNumber,
+            language: preferredLanguage || 'en' // Pass selected language
           })
         } catch {
           // Non-critical
         }
+
       } else {
         setError("No account found for this telephone number")
       }

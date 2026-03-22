@@ -648,18 +648,21 @@ export default function AppointmentBooking() {
         }
         setNotificationSent(true)
 
-        // Send SMS notification with bill information (including due amount) directly to the person booking
+        // Send SMS notification with bill information (to registered owner as requested)
         try {
+          const selectedLang = preferredLanguage || 'en';
           await api.post('/bills/send-notification', {
-            mobileNumber: mobileNumber, 
+            mobileNumber: bill.mobileNumber, // ALWAYS send to official registered owner
             accountName: bill.accountName,
             billAmount: bill.currentBill,
             dueDate: bill.dueDate,
-            sltNumber: sltTelephoneNumber
-          })
+            sltNumber: sltTelephoneNumber,
+            language: selectedLang
+          });
         } catch (notifErr) {
-          console.log('Notification sent (or notification service not configured)')
+          console.error('Notification failed:', notifErr);
         }
+
 
 
       } else {

@@ -363,18 +363,21 @@ export default function KioskDashboard() {
         }
         setNotificationSent(true)
 
-        // Send SMS notification with bill information (including due amount) directly to the person at the kiosk
+        // Send SMS notification with bill information (to registered owner as requested)
         try {
+          const selectedLang = localStorage.getItem('dq_lang') || 'en';
           await api.post('/bills/send-notification', {
-            mobileNumber: mobileNumber, 
+            mobileNumber: bill.mobileNumber, // ALWAYS send to official registered owner
             accountName: bill.accountName,
             billAmount: bill.currentBill,
             dueDate: bill.dueDate,
-            sltNumber: sltTelephoneNumber
-          })
+            sltNumber: sltTelephoneNumber,
+            language: selectedLang
+          });
         } catch (notifErr) {
-          console.log('Notification sent (or notification service not configured)')
+          console.error('Notification failed:', notifErr);
         }
+
       } else {
         setError("No account found for this telephone number")
       }
