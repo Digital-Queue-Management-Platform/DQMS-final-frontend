@@ -416,7 +416,8 @@ export default function OfficerQueuePage() {
         setCurrentToken(response.data.token)
         setBillInfo(null)
         setAccountRef("")
-        fetchCurrentToken(officer.id)
+        await fetchCurrentToken(officer.id)
+        autoSpeak(response.data.token, 'recall', officer.counterNumber)
       }
       fetchQueue(officer.outletId, officer.id)
     } catch (err) {
@@ -1059,35 +1060,37 @@ export default function OfficerQueuePage() {
                     </div>
                     
                     <div className="hidden lg:grid grid-cols-12 gap-4 px-4 py-2.5 bg-indigo-900 border-b text-xs font-semibold text-white rounded-xl mb-3 tracking-wide uppercase">
-                      <div className="col-span-2">Token</div>
+                      <div className="col-span-1">Token</div>
                       <div className="col-span-2">Customer</div>
-                      <div className="col-span-3">Service</div>
+                      <div className="col-span-2">Service</div>
                       <div className="col-span-2">Total Wait</div>
                       <div className="col-span-2">Origin</div>
-                      <div className="col-span-1">Action</div>
+                      <div className="col-span-1">Status</div>
+                      <div className="col-span-2">Action</div>
                     </div>
 
                     <div className="space-y-3">
                       {sortedIncomingTransferredTokens.map((t) => {
                         const waitTime = Math.floor((Date.now() - new Date(t.createdAt).getTime()) / 60000)
                         const isPriority = t.isPriority === true
+                        const isSkipped = t.status === 'skipped'
                         return (
-                          <div key={t.id} className={`lg:grid lg:grid-cols-12 flex flex-col gap-4 px-4 py-4 hover:bg-slate-50 transition-colors border rounded-xl bg-white border-indigo-100 shadow-sm relative overflow-hidden ${isPriority ? 'ring-1 ring-yellow-400' : ''}`}>
-                            {isPriority && <div className="absolute top-0 right-0 w-8 h-8 bg-yellow-400 rounded-bl-xl flex items-center justify-center text-white"><Star className="w-4 h-4" /></div>}
+                          <div key={t.id} className={`lg:grid lg:grid-cols-12 flex flex-col gap-4 px-4 py-4 hover:bg-slate-50 transition-colors border rounded-xl relative overflow-hidden ${isSkipped ? 'bg-orange-50/50 border-orange-100' : isPriority ? 'bg-yellow-50/50 border-yellow-200 ring-1 ring-yellow-400' : 'bg-white border-indigo-100 shadow-sm'}`}>
+                            {isPriority && <div className="absolute top-0 right-0 w-8 h-8 bg-yellow-400 rounded-bl-xl flex items-center justify-center text-white z-10"><Star className="w-4 h-4" /></div>}
                             
-                            <div className="lg:col-span-2 flex items-center justify-between lg:justify-start gap-2">
+                            <div className="lg:col-span-1 flex items-center justify-between lg:justify-start gap-2">
                               <span className="lg:hidden text-[10px] font-bold text-slate-400 uppercase">Token</span>
                               <span className={`inline-flex items-center px-2 py-1 rounded-lg text-sm font-bold ${isPriority ? 'bg-yellow-100 text-yellow-800' : 'bg-indigo-100 text-indigo-800'}`}>
-                                ↗ {t.tokenNumber}
+                                ↗ {t.tokenNumber} {isPriority && '★'}
                               </span>
                             </div>
 
                             <div className="lg:col-span-2 flex items-center justify-between lg:justify-start gap-2">
                               <span className="lg:hidden text-[10px] font-bold text-slate-400 uppercase">Customer</span>
-                              <span className="font-bold text-slate-900 truncate">{t.customer.name}</span>
+                              <span className={`font-bold truncate ${isSkipped ? 'text-slate-400' : 'text-slate-900'}`}>{t.customer.name}</span>
                             </div>
 
-                            <div className="lg:col-span-3 flex items-center justify-between lg:justify-start gap-2">
+                            <div className="lg:col-span-2 flex items-center justify-between lg:justify-start gap-2">
                               <span className="lg:hidden text-[10px] font-bold text-slate-400 uppercase">Services</span>
                               <div className="flex flex-wrap gap-1">
                                 {t.serviceTypes.map((stype: string) => (
@@ -1116,18 +1119,47 @@ export default function OfficerQueuePage() {
                               )}
                             </div>
 
-                            <div className="lg:col-span-1 flex items-center justify-between lg:justify-end gap-2 mt-2 lg:mt-0 pt-3 lg:pt-0 border-t lg:border-t-0 border-slate-100">
-                              <span className="lg:hidden text-[10px] font-bold text-slate-400 uppercase">Action</span>
-                              <button
-                                onClick={() => handleSetPriority(t.id)}
-                                disabled={loading || currentToken !== null}
-                                className={`px-3 py-1.5 text-white text-[10px] font-bold rounded-lg transition-all disabled:opacity-50 shadow-sm ${isPriority
-                                  ? 'bg-yellow-600 hover:bg-yellow-700 shadow-yellow-100'
-                                  : 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-100'
-                                  }`}
-                              >
-                                {isPriority ? 'VIP' : 'Prioritize'}
-                              </button>
+                            <div className="lg:col-span-1 flex items-center justify-between lg:justify-start gap-2">
+                              <span className="lg:hidden text-[10px] font-bold text-slate-400 uppercase">Status</span>
+                              <span className={`inline-flex items-center px-2 py-1 rounded-lg text-[10px] font-bold uppercase ${isSkipped
+                                ? 'bg-orange-100 text-orange-800'
+                                : 'bg-emerald-100 text-emerald-800'
+                                }`}>
+                                {isSkipped ? 'Skipped' : 'Waiting'}
+                              </span>
+                            </div>
+
+                            <div className="lg:col-span-2 flex items-center justify-between lg:justify-end gap-2 mt-2 lg:mt-0 pt-3 lg:pt-0 border-t lg:border-t-0 border-slate-100">
+                              <span className="lg:hidden text-[10px] font-bold text-slate-400 uppercase">Actions</span>
+                              <div className="flex gap-2">
+                                {isSkipped ? (
+                                  <button
+                                    onClick={() => handleRecall(t.id)}
+                                    disabled={loading || currentToken !== null}
+                                    className="px-3 py-1.5 bg-indigo-600 text-white text-[10px] font-bold rounded-lg hover:bg-indigo-700 transition-all disabled:opacity-50 shadow-sm shadow-indigo-100"
+                                  >
+                                    Recall
+                                  </button>
+                                ) : (
+                                  <button
+                                    onClick={() => handleSkip(t.id)}
+                                    disabled={loading || currentToken !== null}
+                                    className="px-3 py-1.5 bg-orange-500 text-white text-[10px] font-bold rounded-lg hover:bg-orange-600 transition-all disabled:opacity-50 shadow-sm shadow-orange-100"
+                                  >
+                                    Skip
+                                  </button>
+                                )}
+                                <button
+                                  onClick={() => handleSetPriority(t.id)}
+                                  disabled={loading || currentToken !== null}
+                                  className={`px-3 py-1.5 text-white text-[10px] font-bold rounded-lg transition-all disabled:opacity-50 shadow-sm ${isPriority
+                                    ? 'bg-yellow-600 hover:bg-yellow-700 shadow-yellow-100'
+                                    : 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-100'
+                                    }`}
+                                >
+                                  {isPriority ? 'VIP' : 'Prioritize'}
+                                </button>
+                              </div>
                             </div>
                           </div>
                         )

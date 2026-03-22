@@ -6,7 +6,7 @@ import { BranchTable } from '../adminComponents/dashboardComponents/BranchTable'
 import SriLankaMap from '../adminComponents/dashboardComponents/SriLankaMap';
 import SystemHealthStatus from '../adminComponents/dashboardComponents/SystemHealthStatus';
 import BranchDashboardPage from './BranchDashboardPage';
-import { UsersIcon, ClockIcon, StarIcon, Ticket, BellIcon, Eye, ArrowLeft, Trash2, Loader2, X, BellOff, CheckCircle2, Send, Phone } from 'lucide-react';
+import { UsersIcon, ClockIcon, StarIcon, Ticket, BellIcon, Eye, ArrowLeft, Trash2, Loader2, X, BellOff, CheckCircle2, Send, Phone, AlertCircle, AlertTriangle, Info } from 'lucide-react';
 import { motion } from 'framer-motion';
 import api, { WS_URL } from '../../config/api'
 import type { Alert } from '../../types'
@@ -547,6 +547,59 @@ const DashboardPage: React.FC = () => {
     }
   }
 
+  // Helper to get consistent styling by alert type/severity
+  const getAlertStyles = (type: string, severity: string) => {
+    // Priority 1: Specific Types
+    if (type === 'critical_feedback') {
+      return { 
+        icon: <AlertCircle className="w-4 h-4 text-red-600" />, 
+        bg: 'bg-red-50', 
+        dot: 'bg-red-600 animate-pulse',
+        border: 'border-red-100',
+        text: 'text-red-900'
+      }
+    }
+    if (type === 'high_priority_feedback') {
+      return { 
+        icon: <AlertCircle className="w-4 h-4 text-orange-600" />, 
+        bg: 'bg-orange-50', 
+        dot: 'bg-orange-600',
+        border: 'border-orange-100',
+        text: 'text-orange-900'
+      }
+    }
+    if (type === 'long_wait') {
+      return { 
+        icon: <ClockIcon className="w-4 h-4 text-sky-600" />, 
+        bg: 'bg-sky-50', 
+        dot: 'bg-sky-500',
+        border: 'border-sky-100',
+        text: 'text-sky-900'
+      }
+    }
+    if (type === 'moderate_feedback') {
+      return { 
+        icon: <AlertTriangle className="w-4 h-4 text-amber-600" />, 
+        bg: 'bg-amber-50', 
+        dot: 'bg-amber-500',
+        border: 'border-amber-100',
+        text: 'text-amber-900'
+      }
+    }
+
+    // Priority 2: Severity fallback
+    switch (severity) {
+      case 'critical':
+        return { icon: <AlertCircle className="w-4 h-4 text-red-600" />, bg: 'bg-red-50', dot: 'bg-red-600 animate-pulse', border: 'border-red-100', text: 'text-gray-900' }
+      case 'high':
+        return { icon: <AlertCircle className="w-4 h-4 text-orange-600" />, bg: 'bg-orange-50', dot: 'bg-orange-600', border: 'border-orange-100', text: 'text-gray-900' }
+      case 'medium':
+        return { icon: <AlertTriangle className="w-4 h-4 text-yellow-500" />, bg: 'bg-yellow-50/50', dot: 'bg-yellow-500', border: 'border-yellow-100/50', text: 'text-gray-900' }
+      default:
+        return { icon: <Info className="w-4 h-4 text-blue-500" />, bg: 'bg-blue-50/50', dot: 'bg-blue-500', border: 'border-blue-100/50', text: 'text-gray-900' }
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-8">
       <div className="mx-auto">
@@ -685,40 +738,51 @@ const DashboardPage: React.FC = () => {
                             <p>No new notifications</p>
                           </div>
                         ) : (
-                          alerts.slice(0, 10).map((alert) => (
-                            <div key={alert.id} className="p-3 border-b border-gray-100 hover:bg-gray-50">
-                              <div className="flex items-start space-x-3">
-                                <div className={`w-2 h-2 rounded-full mt-2 flex-shrink-0 ${alert.severity === 'critical' ? 'bg-red-600 animate-pulse' :
-                                    alert.severity === 'high' ? 'bg-red-500' :
-                                      alert.severity === 'medium' ? 'bg-yellow-500' : 'bg-blue-500'
-                                  }`}></div>
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-sm font-medium text-gray-900 break-words">{alert.message}</p>
-                                  <p className="text-xs text-gray-400 mt-1">
-                                    {new Date(alert.createdAt).toLocaleString()}
-                                  </p>
-                                  <div className="flex items-center space-x-2 mt-2">
-                                    {!alert.isRead && (
+                          alerts.slice(0, 10).map((alert) => {
+                            const styles = getAlertStyles(alert.type, alert.severity);
+                            return (
+                              <div key={alert.id} className={`p-3 border-b ${styles.border} ${styles.bg} hover:brightness-95 transition-all`}>
+                                <div className="flex items-start space-x-3">
+                                  <div className="mt-1 flex-shrink-0">
+                                    <div className={`p-1.5 rounded-lg bg-white shadow-sm border ${styles.border}`}>
+                                      {styles.icon}
+                                    </div>
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-2 mb-0.5">
+                                      <div className={`w-1.5 h-1.5 rounded-full ${styles.dot}`}></div>
+                                      <p className={`text-[10px] font-bold uppercase tracking-wider ${styles.text.replace('text-', 'text-opacity-70 text-')}`}>
+                                        {alert.type.replace(/_/g, ' ')}
+                                      </p>
+                                    </div>
+                                    <p className={`text-sm font-medium ${styles.text} break-words leading-tight`}>{alert.message}</p>
+                                    <p className="text-[10px] text-gray-400 mt-1 flex items-center gap-1">
+                                      <ClockIcon className="w-3 h-3" />
+                                      {new Date(alert.createdAt).toLocaleString()}
+                                    </p>
+                                    <div className="flex items-center space-x-2 mt-2">
+                                      {!alert.isRead && (
+                                        <button
+                                          onClick={() => markAlertAsRead(alert.id)}
+                                          className="text-[10px] font-bold text-indigo-600 hover:text-indigo-700 px-2 py-1 bg-white border border-indigo-100 rounded-md shadow-sm transition-all active:scale-95"
+                                        >
+                                          Mark as read
+                                        </button>
+                                      )}
                                       <button
-                                        onClick={() => markAlertAsRead(alert.id)}
-                                        className="text-xs text-blue-600 hover:text-blue-700 px-2 py-1 bg-blue-50 rounded"
+                                        onClick={() => deleteAlert(alert.id)}
+                                        className="flex items-center text-[10px] font-bold text-red-600 hover:text-red-700 px-2 py-1 bg-white border border-red-100 rounded-md shadow-sm transition-all active:scale-95"
+                                        title="Delete notification"
                                       >
-                                        Mark as read
+                                        <Trash2 className="w-2.5 h-2.5 mr-1" />
+                                        Delete
                                       </button>
-                                    )}
-                                    <button
-                                      onClick={() => deleteAlert(alert.id)}
-                                      className="flex items-center text-xs text-red-600 hover:text-red-700 px-2 py-1 bg-red-50 rounded"
-                                      title="Delete notification"
-                                    >
-                                      <Trash2 className="w-3 h-3 mr-1" />
-                                      Delete
-                                    </button>
+                                    </div>
                                   </div>
                                 </div>
                               </div>
-                            </div>
-                          ))
+                            );
+                          })
                         )}
                       </div>
                       <div className="p-3 border-t border-slate-200">

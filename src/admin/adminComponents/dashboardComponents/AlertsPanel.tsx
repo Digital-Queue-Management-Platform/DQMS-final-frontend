@@ -1,4 +1,4 @@
-﻿//import React from 'react';
+//import React from 'react';
 import { BellIcon, CheckCircleIcon, AlertCircleIcon, InfoIcon, AlertTriangleIcon } from 'lucide-react';
 interface Alert {
   id: string | number;
@@ -19,9 +19,15 @@ export function AlertsPanel({
       case 'success':
         return <CheckCircleIcon className="h-5 w-5 text-green-500" />;
       case 'error':
+      case 'critical_feedback':
         return <AlertCircleIcon className="h-5 w-5 text-red-500" />;
+      case 'high_priority_feedback':
+        return <AlertCircleIcon className="h-5 w-5 text-orange-500" />;
       case 'warning':
-        return <AlertTriangleIcon className="h-5 w-5 text-yellow-500" />;
+      case 'moderate_feedback':
+        return <AlertTriangleIcon className="h-5 w-5 text-amber-500" />;
+      case 'long_wait':
+        return <AlertTriangleIcon className="h-5 w-5 text-sky-500" />;
       case 'info':
         return <InfoIcon className="h-5 w-5 text-blue-500" />;
       default:
