@@ -27,7 +27,8 @@ const SERVICE_OPTIONS = [
 export default function AdminAppointments() {
   const [outlets, setOutlets] = useState<Outlet[]>([])
   const [selectedOutlet, setSelectedOutlet] = useState<string>('all')
-  const [date, setDate] = useState<string>(() => new Date().toISOString().slice(0, 10))
+  const [startDate, setStartDate] = useState<string>(() => new Date().toISOString().slice(0, 10))
+  const [endDate, setEndDate] = useState<string>(() => new Date().toISOString().slice(0, 10))
   // We only show booked appointments (queued ones will disappear from this pool)
   const [services, setServices] = useState<string[]>([])
   const [q, setQ] = useState<string>('')
@@ -121,7 +122,9 @@ export default function AdminAppointments() {
       const results: any[] = []
       for (const oid of outletIds) {
         if (!oid) continue
-        const res = await api.get(`/appointment/outlet/${oid}`, { params: { date } })
+        const res = await api.get(`/appointment/outlet/${oid}`, { 
+          params: { startDate, endDate } 
+        })
         const outlet = outlets.find(o => o.id === oid)
         const mapped = (res.data || []).map((a: Appointment) => ({
           ...a,
@@ -142,7 +145,7 @@ export default function AdminAppointments() {
   useEffect(() => {
     if (outlets.length) loadData()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [outlets, selectedOutlet, date])
+  }, [outlets, selectedOutlet, startDate, endDate])
 
   const filtered = useMemo(() => {
     let data = rows.slice()
@@ -156,7 +159,7 @@ export default function AdminAppointments() {
     // sort by appointmentAt ASC
     data.sort((a, b) => new Date(a.appointmentAt).getTime() - new Date(b.appointmentAt).getTime())
     return data
-  }, [rows, status, services, q])
+  }, [rows, services, q])
 
   const toggleService = (code: string) => {
     setServices(prev => prev.includes(code) ? prev.filter(c => c !== code) : [...prev, code])
@@ -198,12 +201,20 @@ export default function AdminAppointments() {
               ))}
             </select>
           </div>
-          {/* Date */}
+          {/* Date Range Start */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
             <div className="relative">
               <Calendar className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
-              <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-full border rounded-lg pl-9 pr-3 py-2 text-sm" />
+              <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="w-full border rounded-lg pl-9 pr-3 py-2 text-sm" />
+            </div>
+          </div>
+          {/* Date Range End */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">End Date</label>
+            <div className="relative">
+              <Calendar className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="w-full border rounded-lg pl-9 pr-3 py-2 text-sm" />
             </div>
           </div>
           {/* Search */}
