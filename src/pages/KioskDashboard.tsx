@@ -64,6 +64,7 @@ export default function KioskDashboard() {
   const [billPaymentCustomAmount, setBillPaymentCustomAmount] = useState("")
   const [billPaymentMethod, setBillPaymentMethod] = useState<'cash' | 'card' | 'cheque' | 'bank_transfer' | null>(null)
   const formRef = useRef<HTMLFormElement>(null)
+  const otpRequestInFlight = useRef(false)
 
   // Multi-step form state
   const [currentStep, setCurrentStep] = useState(1)
@@ -126,28 +127,38 @@ export default function KioskDashboard() {
       if (formRef.current) {
         formRef.current.dispatchEvent(new Event('submit', { bubbles: true }))
       }
-    }, 800)
+    }, 500) // Slightly faster transition
     return () => {
       clearTimeout(timer)
       setShouldAutoSubmit(false)
     }
   }, [billPaymentIntent, billPaymentMethod, billPaymentCustomAmount, otpStep, selectedService, sltVerified])
 
-  // Auto-send OTP when mobile number reaches 10 valid digits on step 3
+  // Auto-send OTP logic handles both Step 3 (seamless transition) and Step 4 (fallback/safety)
   useEffect(() => {
-    if (currentStep === 3 && mobileNumber.length === 10 && (mobileNumber.startsWith('07') || mobileNumber.startsWith('01'))) {
+    const isStep3Or4 = currentStep === 3 || currentStep === 4;
+    if (isStep3Or4 && mobileNumber.length === 10 && (mobileNumber.startsWith('07') || mobileNumber.startsWith('01'))) {
       const canProceed = canProceedFromStep3();
-      if (canProceed && otpStep === 'idle' && !otpSending && !autoSendingOtp) {
+      if (canProceed && otpStep === 'idle' && !otpSending && !autoSendingOtp && !otpRequestInFlight.current) {
+        otpRequestInFlight.current = true;
         setAutoSendingOtp(true);
+        // Snappy delay for auto-trigger
+        const delay = currentStep === 3 ? 300 : 100;
         const timer = setTimeout(() => {
-          goToNextStep();
+          if (currentStep === 3) {
+            goToNextStep();
+          }
           sendOtp();
           setAutoSendingOtp(false);
-        }, 800);
-        return () => clearTimeout(timer);
+          otpRequestInFlight.current = false;
+        }, delay);
+        return () => {
+          clearTimeout(timer);
+          otpRequestInFlight.current = false;
+        };
       }
     }
-  }, [mobileNumber, name, currentStep, sltTelephoneNumber, selectedService])
+  }, [mobileNumber, name, currentStep, sltTelephoneNumber, selectedService, preferredLanguage, otpStep])
 
   const loadInitialData = async () => {
     try {
@@ -165,9 +176,11 @@ export default function KioskDashboard() {
     }
   }
 
-  const isSltRequiredService = (code: string) => {
-    // SVC002 and BILL_PAYMENT require SLT telephone number
-    return code === 'SVC002' || code === 'BILL_PAYMENT'
+  const isSltRequiredService = (code: string | undefined | null) => {
+    if (!code) return false
+    // Handle both SVC002 and BILL_PAYMENT codes (case-insensitive)
+    const upperCode = code.toUpperCase().trim()
+    return upperCode === 'SVC002' || upperCode === 'BILL_PAYMENT'
   }
 
   const handleServiceSelect = (serviceCode: string) => {
@@ -200,6 +213,9 @@ export default function KioskDashboard() {
   }
 
   const sendOtp = async (): Promise<boolean> => {
+    // Prevent duplicate sending if already in progress
+    if (otpSending) return false;
+
     setOtpError("")
     setOtpSending(true)
     try {
@@ -242,8 +258,11 @@ export default function KioskDashboard() {
           await verifySltNumber()
         }
 
-        // For bill payment: do NOT auto-submit — customer must select payment intent first
-        if (!isSltRequiredService(selectedService)) {
+        // Apply defaults for Bill Payment if not already set, to allow auto-submission
+        if (isSltRequiredService(selectedService)) {
+          if (!billPaymentIntent) setBillPaymentIntent('full');
+          if (!billPaymentMethod) setBillPaymentMethod('cash');
+        } else {
           setShouldAutoSubmit(true)
         }
         return res.data.verifiedMobileToken as string

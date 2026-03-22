@@ -181,19 +181,41 @@ export default function QueueStatus() {
 
   useEffect(() => {
     fetchTokenStatus()
-    const interval = setInterval(fetchTokenStatus, 15000)
+    const interval = setInterval(fetchTokenStatus, 12000)
 
     const ws = new WebSocket(WS_URL)
     ws.onmessage = (event) => {
-      const data = JSON.parse(event.data)
-      if (data.type === "TOKEN_CALLED" && data.data.id === tokenId) {
-        fetchTokenStatus()
-      } else if (data.type === "TOKEN_COMPLETED" && data.data.id === tokenId) {
-        navigate(`/feedback/${tokenId}`)
-      } else if (data.type === "TOKEN_SKIPPED" && data.data.id === tokenId) {
-        fetchTokenStatus()
-      } else if (data.type === "TOKEN_CANCELLED" && data.data.id === tokenId) {
-        fetchTokenStatus()
+      try {
+        const data = JSON.parse(event.data)
+        const eventId = data.data?.id
+        const eventOutletId = data.data?.outletId
+
+        // 1. If it's MY token, handle navigation or specific status refresh
+        if (eventId === tokenId) {
+          if (data.type === "TOKEN_COMPLETED") {
+            navigate(`/feedback/${tokenId}`)
+            return
+          }
+
+          // Optimistic update for immediate response before HTTP fetch completes
+          if (data.type === "TOKEN_CALLED" || data.type === "TOKEN_RECALLED" || data.type === "TOKEN_UPDATED") {
+            if (data.data) {
+              setToken(data.data)
+            }
+          }
+          
+          fetchTokenStatus()
+          return
+        }
+
+        // 2. If it's ANY token in MY outlet, refresh status to update "Position in Queue"
+        // This ensures the customer sees their position move in real-time
+        const isCounterAction = ["TOKEN_CALLED", "TOKEN_RECALLED", "TOKEN_SKIPPED", "TOKEN_COMPLETED", "TOKEN_CANCELLED", "TOKEN_UPDATED", "NEW_TOKEN"].includes(data.type)
+        if (isCounterAction && eventOutletId === token?.outletId) {
+          fetchTokenStatus()
+        }
+      } catch (e) {
+        console.error("WS Message Error:", e)
       }
     }
 
@@ -201,7 +223,7 @@ export default function QueueStatus() {
       clearInterval(interval)
       ws.close()
     }
-  }, [tokenId])
+  }, [tokenId, token?.outletId])
 
   const fetchTokenStatus = async () => {
     try {
@@ -336,7 +358,15 @@ export default function QueueStatus() {
                   <div className="bg-slate-50 rounded-2xl p-6 text-center w-full max-w-[280px] border border-gray-100">
                     <Users className="w-10 h-10 text-blue-600 mx-auto mb-3" />
                     <p className="text-xs text-gray-400 uppercase font-black tracking-widest mb-1">{t.positionInQueue}</p>
-                    <p className="text-5xl font-black text-slate-900">{position}</p>
+                    <motion.p 
+                      key={position}
+                      initial={{ scale: 1.2, color: "#2563eb" }}
+                      animate={{ scale: 1, color: "#0f172a" }}
+                      transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                      className="text-5xl font-black text-slate-900"
+                    >
+                      {position}
+                    </motion.p>
                   </div>
                 </div>
 

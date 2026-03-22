@@ -47,6 +47,7 @@ export default function CustomerRegistration() {
   const [devOtpCode, setDevOtpCode] = useState<string>("")
   const [autoSendingOtp, setAutoSendingOtp] = useState(false)
   const formRef = useRef<HTMLFormElement>(null)
+  const otpRequestInFlight = useRef(false)
 
 
   // Bill payment specific states
@@ -344,23 +345,32 @@ export default function CustomerRegistration() {
     }
   }
 
-  // Auto-send OTP when mobile number is 10 digits
+  // Auto-send OTP logic handles both Step 3 (seamless transition) and Step 4 (fallback/safety)
   useEffect(() => {
-    if (currentStep === 3 && mobileNumber.length === 10 && (mobileNumber.startsWith('07') || mobileNumber.startsWith('01'))) {
+    const isStep3Or4 = currentStep === 3 || currentStep === 4;
+    if (isStep3Or4 && mobileNumber.length === 10 && (mobileNumber.startsWith('07') || mobileNumber.startsWith('01'))) {
       const canProceed = canProceedFromStep3();
-      if (canProceed && otpStep === 'idle' && !otpSending && !autoSendingOtp) {
+      if (canProceed && otpStep === 'idle' && !otpSending && !autoSendingOtp && !otpRequestInFlight.current) {
         console.log('Mobile number reached 10 digits, auto-sending OTP...');
+        otpRequestInFlight.current = true;
         setAutoSendingOtp(true);
-        // Small delay to ensure the user sees their number entered
+        // Snappy delay for auto-trigger
+        const delay = currentStep === 3 ? 300 : 100;
         const timer = setTimeout(() => {
-          goToNextStep();
+          if (currentStep === 3) {
+            goToNextStep();
+          }
           sendOtp();
           setAutoSendingOtp(false);
-        }, 800);
-        return () => clearTimeout(timer);
+          otpRequestInFlight.current = false;
+        }, delay);
+        return () => {
+          clearTimeout(timer);
+          otpRequestInFlight.current = false;
+        };
       }
     }
-  }, [mobileNumber, name, currentStep, sltTelephoneNumber, selectedService])
+  }, [mobileNumber, name, currentStep, sltTelephoneNumber, selectedService, preferredLanguage, otpStep])
 
   // Auto-submit for non-bill payment services once OTP is verified
   useEffect(() => {
@@ -370,7 +380,7 @@ export default function CustomerRegistration() {
         if (formRef.current) {
           formRef.current.dispatchEvent(new Event('submit', { bubbles: true }))
         }
-      }, 800)
+      }, 500)
       return () => {
         clearTimeout(timer)
         setShouldAutoSubmit(false)
@@ -406,7 +416,7 @@ export default function CustomerRegistration() {
       if (formRef.current) {
         formRef.current.dispatchEvent(new Event('submit', { bubbles: true }))
       }
-    }, 800)
+    }, 500)
     return () => {
       clearTimeout(timer)
       setShouldAutoSubmit(false)
@@ -423,8 +433,10 @@ export default function CustomerRegistration() {
   }
 
   // Check if service requires SLT number (Bill Payment or Billing Inquiry)
-  const isSltRequiredService = (code: string) => {
-    return code === 'BILL_PAYMENT' || code === 'SVC002'
+  const isSltRequiredService = (code: string | undefined | null) => {
+    if (!code) return false
+    const upperCode = code.toUpperCase().trim()
+    return upperCode === 'BILL_PAYMENT' || upperCode === 'SVC002'
   }
 
   // Get service title by code (localized for the two allowed services)
@@ -501,10 +513,15 @@ export default function CustomerRegistration() {
           await verifySltNumber()
         }
 
-        // Auto-submit disabled
+        // Apply defaults for Bill Payment if not already set, to allow auto-submission
+        if (isSltRequiredService(selectedService)) {
+           if (!billPaymentIntent) setBillPaymentIntent('full');
+           if (!billPaymentMethod) setBillPaymentMethod('cash');
+        } else {
+           setShouldAutoSubmit(true)
+        }
 
         return res.data.verifiedMobileToken as string
-
       }
       setOtpError('OTP verification failed')
       return null
@@ -1166,11 +1183,7 @@ export default function CustomerRegistration() {
                   </div>
 
                   {/* Bill Payment Path - Collect SLT Number (will verify after OTP) */}
-                  {(() => {
-                    const requiresSlt = isSltRequiredService(selectedService);
-                    console.log('Step 3 Service Check:', { selectedService, requiresSlt, isSltRequired: isSltRequiredService });
-                    return requiresSlt;
-                  })() && (
+                  {isSltRequiredService(selectedService) && (
                       <div className="space-y-4">
                         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                           <h3 className="text-sm font-semibold text-blue-900 mb-3">{t.enterSltNumber}</h3>
