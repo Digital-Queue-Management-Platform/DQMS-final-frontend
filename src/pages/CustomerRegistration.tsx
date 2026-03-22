@@ -1067,9 +1067,12 @@ export default function CustomerRegistration() {
                               const val = e.target.value as "en" | "si" | "ta";
                               setPreferredLanguage(val);
                               setLanguage(val);
+                              // Persist to localStorage for other pages (like dashboard)
+                              try { localStorage.setItem('dq_lang', val); } catch (e) {}
                               // Auto advance to next step after a tiny delay for visual feedback
                               setTimeout(() => goToNextStep(), 300);
                             }}
+
                             className="w-5 h-5 text-blue-600"
                           />
                           <span className="text-base font-medium">{l.label}</span>
