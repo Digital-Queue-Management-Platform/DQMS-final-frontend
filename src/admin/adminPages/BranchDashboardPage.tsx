@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import Header2 from '../adminComponents/branchDashboardComponents/Header2'
 import OverviewCards from '../adminComponents/branchDashboardComponents/OverviewCards'
 import AnalyticsCharts from '../adminComponents/branchDashboardComponents/AnalyticsCharts'
@@ -8,13 +8,23 @@ import { AlertsPanel } from '../adminComponents/dashboardComponents/AlertsPanel'
 
 interface BranchDashboardPageProps {
   outlets?: any[]
+  initialBranchId?: string | null
+  initialBranchName?: string | null
+  timeframe: string
+  setTimeframe: (tf: string) => void
 }
 
-const BranchDashboardPage: React.FC<BranchDashboardPageProps> = ({ outlets = [] }) => {
+const BranchDashboardPage: React.FC<BranchDashboardPageProps> = ({ 
+  outlets = [], 
+  initialBranchId = null, 
+  initialBranchName = 'Not selected',
+  timeframe,
+  setTimeframe
+}) => {
   const NOT_SELECTED_LABEL = 'Not selected'
-  const [selectedBranchId, setSelectedBranchId] = useState<string | null>(null)
-  const [branchName, setBranchName] = useState<string>(NOT_SELECTED_LABEL)
-  const [hasUserSelectedBranch, setHasUserSelectedBranch] = useState(false)
+  const [selectedBranchId, setSelectedBranchId] = useState<string | null>(initialBranchId)
+  const [branchName, setBranchName] = useState<string>(initialBranchName || NOT_SELECTED_LABEL)
+  const [hasUserSelectedBranch, setHasUserSelectedBranch] = useState(!!initialBranchId)
 
   const [overview, setOverview] = useState<any>({
     totalCustomers: 0,
@@ -39,11 +49,11 @@ const BranchDashboardPage: React.FC<BranchDashboardPageProps> = ({ outlets = [] 
   useEffect(() => {
     if (!selectedBranchId) return
     if (hasUserSelectedBranch) {
-      fetchBranchData(selectedBranchId)
+      fetchBranchData(selectedBranchId, timeframe)
       
       // Auto-refresh every 60 seconds for branch analytics
       const interval = setInterval(() => {
-        fetchBranchData(selectedBranchId)
+        fetchBranchData(selectedBranchId, timeframe)
       }, 60000)
 
       // WebSocket for real-time updates
@@ -70,21 +80,48 @@ const BranchDashboardPage: React.FC<BranchDashboardPageProps> = ({ outlets = [] 
       return () => {
         clearInterval(interval)
         try {
-          ws.close()
+          if (ws) {
+            ws.onopen = null
+            ws.onmessage = null
+            ws.onerror = null
+            ws.onclose = null
+            if (ws.readyState === WebSocket.OPEN) {
+              ws.close()
+            }
+          }
         } catch (error) {
           console.error('Error closing WebSocket:', error)
         }
       }
     }
-  }, [selectedBranchId, hasUserSelectedBranch])
+  }, [selectedBranchId, hasUserSelectedBranch, timeframe])
 
-  const fetchBranchData = async (outletId: string) => {
+  const fetchBranchData = async (outletId: string, currentTf: string = 'Today') => {
     try {
-      // analytics for today
+      // Calculate date range based on timeframe
       const start = new Date()
-      start.setHours(0,0,0,0)
       const end = new Date()
-      end.setHours(23,59,59,999)
+      end.setHours(23, 59, 59, 999)
+
+      switch (currentTf) {
+        case 'Today':
+          start.setHours(0, 0, 0, 0)
+          break
+        case 'Weekly':
+          start.setDate(start.getDate() - 7)
+          start.setHours(0, 0, 0, 0)
+          break
+        case 'Monthly':
+          start.setDate(start.getDate() - 30)
+          start.setHours(0, 0, 0, 0)
+          break
+        case 'Annual':
+          start.setDate(start.getDate() - 365)
+          start.setHours(0, 0, 0, 0)
+          break
+        default:
+          start.setHours(0, 0, 0, 0)
+      }
 
       const res = await api.get('/admin/analytics', { params: { outletId, startDate: start.toISOString(), endDate: end.toISOString() } })
       const a = res.data || {}
@@ -101,31 +138,29 @@ const BranchDashboardPage: React.FC<BranchDashboardPageProps> = ({ outlets = [] 
         })(),
       })
 
-      // rating distribution
-      const ratingDistribution = (a.feedbackStats || []).map((f: any) => ({ rating: f.rating, count: f._count }))
+      // rating distribution mapping - backend sends { rating, count }
+      const ratingDistribution = (a.feedbackStats || []).map((f: any) => ({ 
+        rating: f.rating, 
+        count: f.count || f._count || 0 
+      }))
 
-      // service types and hourly waiting times - now available from backend
+      // service types and hourly waiting times - backend sends { hour, value } for waiting times
       const serviceTypes = a.serviceTypes || []
-      const hourlyWaitingTimes = a.hourlyWaitingTimes || []
+      const hourlyWaitingTimes = (a.hourlyWaitingTimes || []).map((h: any) => ({
+        hour: h.hour,
+        waitTime: h.value !== undefined ? h.value : (h.waitTime || 0)
+      }))
+      const staffUtilizationTrend = a.staffUtilizationTrend || []
 
-      setAnalyticsData({ hourlyWaitingTimes, serviceTypes, ratingDistribution })
+      setAnalyticsData({ hourlyWaitingTimes, serviceTypes, ratingDistribution, staffUtilizationTrend })
 
-      // Build token flow for the day by querying analytics per hour (best-effort)
-      const hours: any[] = []
-      for (let h = 8; h <= 17; h++) {
-        const s = new Date(start)
-        s.setHours(h,0,0,0)
-        const e = new Date(start)
-        e.setHours(h,59,59,999)
-        try {
-          // Reuse admin analytics - it will return completed tokens for that hour
-          const r = await api.get('/admin/analytics', { params: { outletId, startDate: s.toISOString(), endDate: e.toISOString() } })
-          hours.push({ hour: `${h.toString().padStart(2,'0')}:00`, issued: r.data.totalTokens || 0, completed: r.data.totalTokens || 0 })
-        } catch (e) {
-          hours.push({ hour: `${h.toString().padStart(2,'0')}:00`, issued: 0, completed: 0 })
-        }
-      }
-      setTokenFlow(hours)
+      // Token flow mapping - backend sends { time, issued, completed }
+      const tokenFlow = (a.tokenFlow || []).map((t: any) => ({
+        hour: t.time || t.hour,
+        issued: t.issued || 0,
+        completed: t.completed || 0
+      }))
+      setTokenFlow(tokenFlow)
 
       // Agents: use officerPerformance from analytics if present
       const agentsData = (a.officerPerformance || []).map((op: any) => ({
@@ -207,6 +242,8 @@ const BranchDashboardPage: React.FC<BranchDashboardPageProps> = ({ outlets = [] 
           setBranchName(name)
         }}
         branchOptions={[NOT_SELECTED_LABEL, ...outlets.map((branch) => branch.name)]}
+        timeframe={timeframe}
+        setTimeframe={setTimeframe}
       />
 
       {selectedBranchId ? (
@@ -217,7 +254,6 @@ const BranchDashboardPage: React.FC<BranchDashboardPageProps> = ({ outlets = [] 
               <AnalyticsCharts
                 data={analyticsData}
                 tokenData={tokenFlow}
-                outletId={selectedBranchId}
               />
               <AgentPerformance
                 agents={agents}

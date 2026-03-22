@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
@@ -210,8 +210,14 @@ export default function AdminFeedback() {
       clearInterval(interval)
       clearTimeout(initialConnectionTimer)
       if (reconnectTimer) clearTimeout(reconnectTimer)
-      if (ws && ws.readyState === WebSocket.OPEN) {
-        ws.close()
+      if (ws) {
+        ws.onopen = null
+        ws.onmessage = null
+        ws.onerror = null
+        ws.onclose = null
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.close()
+        }
       }
     }
   }, [currentPage, appliedFilters])

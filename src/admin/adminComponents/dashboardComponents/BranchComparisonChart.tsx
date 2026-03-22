@@ -23,7 +23,7 @@ export function BranchComparisonChart({
     customers: branch.customersServed
   }));
 
-  return <ResponsiveContainer width="100%" height={300}>
+  return <ResponsiveContainer width="100%" height={300} minWidth={0} minHeight={150} debounce={1}>
     <BarChart data={chartData} margin={{
       top: 25,
       right: 30,

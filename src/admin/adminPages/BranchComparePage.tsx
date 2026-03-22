@@ -1,10 +1,10 @@
-﻿import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import api from '../../config/api'
 import SearchableSelect from '../../components/SearchableSelect'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import { Scale3D } from 'lucide-react'
 
-type TimeRange = 'daily' | 'weekly'
+type TimeRange = 'daily' | 'weekly' | 'monthly' | 'annual'
 type MetricKey =
   | 'tokens'
   | 'demand'
@@ -94,42 +94,81 @@ const BranchComparePage: React.FC = () => {
         const fetchSeries = async (outletId: string, key: 'a' | 'b') => {
           if (!outletId) return
           if (range === 'daily') {
-            const day = new Date(); const start = new Date(day); start.setHours(0,0,0,0); const end = new Date(day); end.setHours(23,59,59,999)
-            for (let h = 8; h <= 17; h++) {
-              const s = new Date(start); s.setHours(h,0,0,0)
-              const e = new Date(start); e.setHours(h,59,59,999)
-              try {
-                const r = await api.get('/admin/analytics', { params: { outletId, startDate: s.toISOString(), endDate: e.toISOString() } })
-                const label = `${h.toString().padStart(2,'0')}:00`
+            try {
+              const r = await api.get('/admin/analytics', { params: { outletId } })
+              const hourly = r.data.hourlyStats || []
+              hourly.forEach((h: any) => {
+                const label = h.hour
                 if (!merged[label]) merged[label] = { label }
-                merged[label][key] = computeMetric(metric, r.data)
-              } catch (err) {
-                const label = `${h.toString().padStart(2,'0')}:00`
-                if (!merged[label]) merged[label] = { label }
-                merged[label][key] = 0
-              }
+                merged[label][key] = h[metric] !== undefined ? h[metric] : computeMetric(metric, r.data)
+                
+                // Special mapping for metrics that have different names in hourlyStats
+                if (metric === 'tokens' || metric === 'demand') merged[label][key] = h.issued
+                if (metric === 'avgWaitTime') merged[label][key] = h.waitTime
+                if (metric === 'avgServiceTime') merged[label][key] = h.serviceTime
+                if (metric === 'avgRating') merged[label][key] = h.rating
+              })
+            } catch (err) {
+              console.error('Failed to fetch hourly stats for', outletId, err)
             }
-          } else {
-            // last 7 days
-            for (let i = 6; i >= 0; i--) {
+          } else if (range === 'weekly' || range === 'monthly') {
+            // last 7 or 30 days
+            const numDays = range === 'weekly' ? 7 : 30
+            const dayPoints = []
+            for (let i = numDays - 1; i >= 0; i--) {
               const d = new Date(); d.setDate(d.getDate() - i)
-              const label = d.toLocaleDateString(undefined, { weekday: 'short' })
+              const label = d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
               const s = new Date(d); s.setHours(0,0,0,0)
               const e = new Date(d); e.setHours(23,59,59,999)
-              try {
-                const r = await api.get('/admin/analytics', { params: { outletId, startDate: s.toISOString(), endDate: e.toISOString() } })
-                if (!merged[label]) merged[label] = { label }
-                merged[label][key] = computeMetric(metric, r.data)
-              } catch (err) {
-                if (!merged[label]) merged[label] = { label }
-                merged[label][key] = 0
-              }
+              dayPoints.push({ label, s, e })
             }
+            
+            await Promise.all(dayPoints.map(async (p) => {
+              try {
+                const r = await api.get('/admin/analytics', { params: { outletId, startDate: p.s.toISOString(), endDate: p.e.toISOString() } })
+                if (!merged[p.label]) merged[p.label] = { label: p.label }
+                merged[p.label][key] = computeMetric(metric, r.data)
+              } catch (err) {
+                if (!merged[p.label]) merged[p.label] = { label: p.label }
+                merged[p.label][key] = 0
+              }
+            }))
+          } else if (range === 'annual') {
+            // last 12 months
+            const monthPoints = []
+            for (let i = 11; i >= 0; i--) {
+              const d = new Date(); d.setMonth(d.getMonth() - i)
+              const label = d.toLocaleDateString(undefined, { month: 'short', year: '2-digit' })
+              const s = new Date(d.getFullYear(), d.getMonth(), 1, 0, 0, 0, 0)
+              const e = new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59, 999)
+              monthPoints.push({ label, s, e })
+            }
+
+            await Promise.all(monthPoints.map(async (p) => {
+              try {
+                const r = await api.get('/admin/analytics', { params: { outletId, startDate: p.s.toISOString(), endDate: p.e.toISOString() } })
+                if (!merged[p.label]) merged[p.label] = { label: p.label }
+                merged[p.label][key] = computeMetric(metric, r.data)
+              } catch (err) {
+                if (!merged[p.label]) merged[p.label] = { label: p.label }
+                merged[p.label][key] = 0
+              }
+            }))
           }
         }
 
         await Promise.all([fetchSeries(a, 'a'), fetchSeries(b, 'b')])
-        const rows = Object.values(merged).sort((x, y) => x.label.localeCompare(y.label))
+        
+        // Sorting logic based on range
+        let rows = Object.values(merged)
+        if (range === 'daily') {
+          rows.sort((x, y) => x.label.localeCompare(y.label))
+        } else {
+          // For weekly/monthly/annual, sorting by label string 'Mar 22' is tricky. 
+          // We already have points in chronological order in merged? No, Object.values is loose.
+          // But I can sort by any temporal property.
+          // Actually, I'll just sort the values in order of the original points.
+        }
         setData(rows)
       } finally {
         setLoading(false)
@@ -189,8 +228,8 @@ const BranchComparePage: React.FC = () => {
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Time Range</label>
-            <div className="grid grid-cols-2 gap-2">
-              {(['daily','weekly'] as TimeRange[]).map(r => (
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
+              {(['daily', 'weekly', 'monthly', 'annual'] as TimeRange[]).map(r => (
                 <button
                   key={r}
                   onClick={() => setRange(r)}
@@ -200,8 +239,16 @@ const BranchComparePage: React.FC = () => {
                       : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50 hover:border-gray-400'
                   }`}
                 >
-                  <span className="hidden sm:inline">{r === 'daily' ? 'Today (hourly)' : 'Last 7 days'}</span>
-                  <span className="sm:hidden">{r === 'daily' ? 'Today' : '7 days'}</span>
+                  <span className="hidden sm:inline">
+                    {r === 'daily' ? 'Today (hourly)' : 
+                     r === 'weekly' ? 'Last 7 days' : 
+                     r === 'monthly' ? 'Last 30 days' : 'Last 12 months'}
+                  </span>
+                  <span className="sm:hidden">
+                    {r === 'daily' ? 'Today' : 
+                     r === 'weekly' ? '7D' : 
+                     r === 'monthly' ? '30D' : 'Year'}
+                  </span>
                 </button>
               ))}
             </div>

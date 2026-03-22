@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import MetricCard from '../adminComponents/dashboardComponents/MetricCard';
-import {BranchComparisonChart} from '../adminComponents/dashboardComponents/BranchComparisonChart';
+import { BranchComparisonChart } from '../adminComponents/dashboardComponents/BranchComparisonChart';
 import WaitingTimeChart from '../adminComponents/dashboardComponents/WaitingTimeChart';
 import { BranchTable } from '../adminComponents/dashboardComponents/BranchTable';
 import SriLankaMap from '../adminComponents/dashboardComponents/SriLankaMap';
@@ -31,16 +31,19 @@ const DashboardPage: React.FC = () => {
   // Real data states (populated from API)
   const [branchData, setBranchData] = useState<BranchData[]>([])
   const [waitingTimeData, setWaitingTimeData] = useState<WaitingTimeData[]>([])
-  
+  const [timeframe, setTimeframe] = useState('Today')
+
   // derived metrics (safely computed from branchData)
   const totalCustomers: number = branchData.reduce((sum, branch) => sum + (branch.customersServed || 0), 0);
   const avgWaitingTime: string = branchData.length > 0 ? (branchData.reduce((sum, branch) => sum + (branch.avgWaitingTime || 0), 0) / branchData.length).toFixed(1) : '0.0';
   const avgRating: string = branchData.length > 0 ? (branchData.reduce((sum, branch) => sum + (branch.rating || 0), 0) / branchData.length).toFixed(1) : '0.0';
-  
+
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [sortColumn, setSortColumn] = useState<string>('name');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [showBranchDashboard, setShowBranchDashboard] = useState<boolean>(false);
+  const [selectedBranchIdForDetails, setSelectedBranchIdForDetails] = useState<string | null>(null);
+  const [selectedBranchNameForDetails, setSelectedBranchNameForDetails] = useState<string | null>(null);
   const [currentDateTime, setCurrentDateTime] = useState<Date>(new Date());
   const [showNotifications, setShowNotifications] = useState<boolean>(false);
   const [alerts, setAlerts] = useState<Alert[]>([]);
@@ -96,17 +99,17 @@ const DashboardPage: React.FC = () => {
       const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
       const oscillator = audioContext.createOscillator()
       const gainNode = audioContext.createGain()
-      
+
       oscillator.connect(gainNode)
       gainNode.connect(audioContext.destination)
-      
+
       // Create a pleasant notification sound that mimics device notification tone
       oscillator.frequency.setValueAtTime(800, audioContext.currentTime)
       oscillator.frequency.exponentialRampToValueAtTime(400, audioContext.currentTime + 0.2)
-      
+
       gainNode.gain.setValueAtTime(0.3, audioContext.currentTime)
       gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2)
-      
+
       oscillator.start(audioContext.currentTime)
       oscillator.stop(audioContext.currentTime + 0.2)
     } catch (error) {
@@ -148,16 +151,16 @@ const DashboardPage: React.FC = () => {
   const handleNewAlerts = (newAlerts: Alert[]) => {
     // Check if there are new unread alerts
     const newUnreadCount = newAlerts.filter(a => !a.isRead).length
-    
+
     if (newUnreadCount > lastAlertCount && lastAlertCount > 0) {
       // There are new alerts
       const newestAlerts = newAlerts
         .filter(a => !a.isRead)
         .slice(0, newUnreadCount - lastAlertCount)
-      
+
       // Play sound for any new alert
       playNotificationSound()
-      
+
       // Show browser notification for critical/high priority alerts
       newestAlerts.forEach(alert => {
         if (alert.severity === 'critical' || alert.severity === 'high') {
@@ -165,7 +168,7 @@ const DashboardPage: React.FC = () => {
         }
       })
     }
-    
+
     setLastAlertCount(newUnreadCount)
   }
 
@@ -173,6 +176,7 @@ const DashboardPage: React.FC = () => {
     fetchOutlets()
     fetchRealtimeStats()
     fetchAlerts()
+    buildBranchMetrics() // Add this to ensure metrics update on timeframe change
 
     // Enhanced auto-refresh every 30 seconds for comprehensive dashboard monitoring
     const interval = setInterval(() => {
@@ -184,17 +188,17 @@ const DashboardPage: React.FC = () => {
     let ws: WebSocket | null = null
     let reconnectTimer: number | null = null
     let isComponentMounted = true
-    
+
     const connectWebSocket = () => {
       if (!isComponentMounted) return
-      
+
       try {
         ws = new WebSocket(WS_URL)
-        
+
         ws.onopen = () => {
           console.log('AdminDashboard WebSocket connected')
         }
-        
+
         ws.onmessage = (event) => {
           try {
             const data = JSON.parse(event.data)
@@ -202,14 +206,14 @@ const DashboardPage: React.FC = () => {
             if (data.type === "NEGATIVE_FEEDBACK" || data.type === "LONG_WAIT" || data.type === "NEW_TOKEN" || data.type === "TOKEN_COMPLETED" || data.type === "OFFICER_STATUS_CHANGE" || data.type === "CRITICAL_FEEDBACK_ALERT") {
               fetchAlerts()
               fetchRealtimeStats()
-              
+
               // Immediate notification for critical alerts
               if (data.type === "CRITICAL_FEEDBACK_ALERT") {
                 console.log('CRITICAL FEEDBACK ALERT:', data.data)
-                
+
                 // Play sound immediately for critical alerts
                 playNotificationSound()
-                
+
                 // Show browser notification immediately
                 if (notificationPermission === 'granted') {
                   const criticalAlert: Alert = {
@@ -237,7 +241,7 @@ const DashboardPage: React.FC = () => {
         ws.onerror = (error) => {
           console.error('AdminDashboard WebSocket error:', error)
         }
-        
+
         ws.onclose = (event) => {
           console.log('AdminDashboard WebSocket disconnected:', event.reason)
           // Don't attempt to reconnect if component is unmounted or connection was closed intentionally
@@ -258,11 +262,19 @@ const DashboardPage: React.FC = () => {
       if (reconnectTimer) {
         clearTimeout(reconnectTimer)
       }
-      if (ws && ws.readyState === WebSocket.OPEN) {
-        ws.close()
+      if (ws) {
+        ws.onopen = null
+        ws.onmessage = null
+        ws.onerror = null
+        ws.onclose = null
+        // Avoid closing if in 'CONNECTING' state to silence browser 'failed: closed before established' warning.
+        // The socket will eventually time out or connect and be naturallyGC'd without handlers.
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.close()
+        }
       }
     }
-  }, [])
+  }, [timeframe])
 
   // Date/time update effect
   useEffect(() => {
@@ -294,7 +306,17 @@ const DashboardPage: React.FC = () => {
   };
 
   const handleBranchDashboardToggle = (): void => {
+    if (showBranchDashboard) {
+      setSelectedBranchIdForDetails(null);
+      setSelectedBranchNameForDetails(null);
+    }
     setShowBranchDashboard(!showBranchDashboard);
+  };
+
+  const handleViewBranchDetails = (branch: any) => {
+    setSelectedBranchIdForDetails(String(branch.id));
+    setSelectedBranchNameForDetails(branch.name);
+    setShowBranchDashboard(true);
   };
 
   const fetchOutlets = async () => {
@@ -313,11 +335,20 @@ const DashboardPage: React.FC = () => {
     const outs = availableOutlets || outlets
     if (!outs || outs.length === 0) return
 
-    // use today's full day range by default
+    // use timeframe-based range
     const start = new Date()
-    start.setHours(0,0,0,0)
     const end = new Date()
-    end.setHours(23,59,59,999)
+
+    if (timeframe === 'Today') {
+      start.setHours(0, 0, 0, 0)
+      end.setHours(23, 59, 59, 999)
+    } else if (timeframe === 'Weekly') {
+      start.setDate(start.getDate() - 7); start.setHours(0, 0, 0, 0)
+    } else if (timeframe === 'Monthly') {
+      start.setMonth(start.getMonth() - 1); start.setHours(0, 0, 0, 0)
+    } else if (timeframe === 'Annual') {
+      start.setFullYear(start.getFullYear() - 1); start.setHours(0, 0, 0, 0)
+    }
 
     try {
       const metrics = await Promise.all(
@@ -355,7 +386,7 @@ const DashboardPage: React.FC = () => {
         })
       )
 
-  setBranchData(metrics as BranchData[])
+      setBranchData(metrics as BranchData[])
 
       // build waiting time series for top 4 outlets (or first 4)
       buildWaitingTimeSeries(metrics)
@@ -378,9 +409,9 @@ const DashboardPage: React.FC = () => {
       d.setDate(d.getDate() - i)
       const label = d.toLocaleDateString(undefined, { weekday: 'short' })
       const dayStart = new Date(d)
-      dayStart.setHours(0,0,0,0)
+      dayStart.setHours(0, 0, 0, 0)
       const dayEnd = new Date(d)
-      dayEnd.setHours(23,59,59,999)
+      dayEnd.setHours(23, 59, 59, 999)
 
       const point: any = { day: label }
 
@@ -430,10 +461,10 @@ const DashboardPage: React.FC = () => {
         params: { isRead: false }
       })
       const newAlerts = response.data
-      
+
       // Handle notifications for new alerts
       handleNewAlerts(newAlerts)
-      
+
       setAlerts(newAlerts)
     } catch (err) {
       console.error('Failed to fetch alerts:', err)
@@ -526,7 +557,21 @@ const DashboardPage: React.FC = () => {
               <h1 className="text-2xl font-bold text-gray-900">
                 {showBranchDashboard ? 'Branch Dashboard' : 'Super Admin Dashboard'}
               </h1>
-              <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+              <div className="mt-2 flex items-center bg-white p-1 rounded-lg border border-slate-200 w-fit">
+                {['Today', 'Weekly', 'Monthly', 'Annual'].map((tf) => (
+                  <button
+                    key={tf}
+                    onClick={() => setTimeframe(tf)}
+                    className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${timeframe === tf
+                        ? 'bg-blue-600 text-white shadow-sm'
+                        : 'text-slate-600 hover:bg-slate-50'
+                      }`}
+                  >
+                    {tf}
+                  </button>
+                ))}
+              </div>
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 mt-4">
                 <div className="flex text-sm items-center text-gray-500">
                   {/*<Clock size={16} className="mr-1" />*/}
                   <span>
@@ -616,18 +661,18 @@ const DashboardPage: React.FC = () => {
                     </span>
                   )}
                 </button>
-                
+
                 {/* Notification Dropdown */}
                 {showNotifications && (
                   <>
                     {/* Mobile Overlay */}
                     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 md:hidden" onClick={() => setShowNotifications(false)}></div>
-                    
+
                     {/* Notification Panel */}
                     <div className="fixed inset-x-4 top-20 md:absolute md:right-0 md:inset-x-auto md:top-auto md:mt-2 w-auto md:w-80 bg-white rounded-2xl shadow-sm-lg border border-slate-200 z-50 max-h-[70vh] md:max-h-96 flex flex-col">
                       <div className="p-4 border-b border-slate-200 flex items-center justify-between">
                         <h3 className="text-lg font-semibold text-gray-900">Notifications</h3>
-                        <button 
+                        <button
                           onClick={() => setShowNotifications(false)}
                           className="md:hidden p-1 hover:bg-slate-100 rounded-xl"
                         >
@@ -635,47 +680,46 @@ const DashboardPage: React.FC = () => {
                         </button>
                       </div>
                       <div className="flex-1 overflow-y-auto">
-                      {alerts.length === 0 ? (
-                        <div className="p-6 text-center text-gray-500">
-                          <p>No new notifications</p>
-                        </div>
-                      ) : (
-                        alerts.slice(0, 10).map((alert) => (
-                          <div key={alert.id} className="p-3 border-b border-gray-100 hover:bg-gray-50">
-                            <div className="flex items-start space-x-3">
-                              <div className={`w-2 h-2 rounded-full mt-2 flex-shrink-0 ${
-                                alert.severity === 'critical' ? 'bg-red-600 animate-pulse' :
-                                alert.severity === 'high' ? 'bg-red-500' :
-                                alert.severity === 'medium' ? 'bg-yellow-500' : 'bg-blue-500'
-                              }`}></div>
-                              <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium text-gray-900 break-words">{alert.message}</p>
-                                <p className="text-xs text-gray-400 mt-1">
-                                  {new Date(alert.createdAt).toLocaleString()}
-                                </p>
-                                <div className="flex items-center space-x-2 mt-2">
-                                  {!alert.isRead && (
+                        {alerts.length === 0 ? (
+                          <div className="p-6 text-center text-gray-500">
+                            <p>No new notifications</p>
+                          </div>
+                        ) : (
+                          alerts.slice(0, 10).map((alert) => (
+                            <div key={alert.id} className="p-3 border-b border-gray-100 hover:bg-gray-50">
+                              <div className="flex items-start space-x-3">
+                                <div className={`w-2 h-2 rounded-full mt-2 flex-shrink-0 ${alert.severity === 'critical' ? 'bg-red-600 animate-pulse' :
+                                    alert.severity === 'high' ? 'bg-red-500' :
+                                      alert.severity === 'medium' ? 'bg-yellow-500' : 'bg-blue-500'
+                                  }`}></div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium text-gray-900 break-words">{alert.message}</p>
+                                  <p className="text-xs text-gray-400 mt-1">
+                                    {new Date(alert.createdAt).toLocaleString()}
+                                  </p>
+                                  <div className="flex items-center space-x-2 mt-2">
+                                    {!alert.isRead && (
+                                      <button
+                                        onClick={() => markAlertAsRead(alert.id)}
+                                        className="text-xs text-blue-600 hover:text-blue-700 px-2 py-1 bg-blue-50 rounded"
+                                      >
+                                        Mark as read
+                                      </button>
+                                    )}
                                     <button
-                                      onClick={() => markAlertAsRead(alert.id)}
-                                      className="text-xs text-blue-600 hover:text-blue-700 px-2 py-1 bg-blue-50 rounded"
+                                      onClick={() => deleteAlert(alert.id)}
+                                      className="flex items-center text-xs text-red-600 hover:text-red-700 px-2 py-1 bg-red-50 rounded"
+                                      title="Delete notification"
                                     >
-                                      Mark as read
+                                      <Trash2 className="w-3 h-3 mr-1" />
+                                      Delete
                                     </button>
-                                  )}
-                                  <button
-                                    onClick={() => deleteAlert(alert.id)}
-                                    className="flex items-center text-xs text-red-600 hover:text-red-700 px-2 py-1 bg-red-50 rounded"
-                                    title="Delete notification"
-                                  >
-                                    <Trash2 className="w-3 h-3 mr-1" />
-                                    Delete
-                                  </button>
+                                  </div>
                                 </div>
                               </div>
                             </div>
-                          </div>
-                        ))
-                      )}
+                          ))
+                        )}
                       </div>
                       <div className="p-3 border-t border-slate-200">
                         <button
@@ -691,7 +735,7 @@ const DashboardPage: React.FC = () => {
               </div>
 
               {showBranchDashboard ? (
-                <button 
+                <button
                   className="flex items-center px-4 py-2 bg-gray-900 border border-gray-300 rounded-md text-md font-medium text-white hover:text-black hover:bg-gray-50"
                   onClick={handleBranchDashboardToggle}
                 >
@@ -699,7 +743,7 @@ const DashboardPage: React.FC = () => {
                   Back to Super Admin Dashboard
                 </button>
               ) : (
-                <button 
+                <button
                   className="flex items-center px-4 py-2 bg-black border border-gray-300 rounded-md text-md font-medium text-white hover:text-black hover:bg-gray-50"
                   onClick={handleBranchDashboardToggle}
                 >
@@ -714,23 +758,30 @@ const DashboardPage: React.FC = () => {
         <div className="flex flex-1 overflow-hidden">
           {/* Branch dashboard panel (shown when toggled) */}
           <div className={`${showBranchDashboard ? 'block' : 'hidden'} flex-1 overflow-y-auto transition-all duration-300`}>
-            <BranchDashboardPage outlets={outlets} />
+            <BranchDashboardPage
+              outlets={outlets}
+              initialBranchId={selectedBranchIdForDetails}
+              initialBranchName={selectedBranchNameForDetails}
+              timeframe={timeframe}
+              setTimeframe={setTimeframe}
+              key={selectedBranchIdForDetails || 'empty'}
+            />
           </div>
 
           {/* Main admin content (hidden when branch dashboard is shown) */}
           <div className={`${showBranchDashboard ? 'hidden' : 'block'} flex-1 overflow-y-auto transition-all duration-300`}>
-                          {/* filters removed per request */}
+            {/* filters removed per request */}
 
             {/* Main content area */}
-          
-              {/* Metrics row */}
+
+            {/* Metrics row */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-              <MetricCard title="Total Customers Served Today" value={totalCustomers.toString()} icon={<UsersIcon className="h-7 w-7 text-blue-500" />} detail={branchData.length >= 3 ? `${branchData[0].name}: ${branchData[0].customersServed}, ${branchData[1].name}: ${branchData[1].customersServed}, ${branchData[2].name}: ${branchData[2].customersServed}` : undefined} />
-              <MetricCard title="Average Waiting Time" value={`${avgWaitingTime} min`} icon={<ClockIcon className="h-7 w-7 text-blue-500" />} trend={Number(avgWaitingTime) < 15 ? 'down' : 'up'} trendLabel={Number(avgWaitingTime) < 15 ? 'Better than target' : 'Above target'} />
-              <MetricCard title="Customer Satisfaction Rating" value={avgRating} icon={<StarIcon className="h-7 w-7 text-blue-500" />} trend={Number(avgRating) > 4.0 ? 'up' : 'down'} trendLabel={Number(avgRating) > 4.0 ? 'Above average' : 'Below average'} />
-              <MetricCard title="Currently Active Queues" value={realtimeStats ? String(realtimeStats.activeTokens) : '0'} icon={<Ticket className="h-7 w-7 text-green-500"/>} trend={Number(avgRating) > 4.0 ? 'up' : 'down'} trendLabel={Number(avgRating) > 4.0 ? 'Above average' : 'Below average'}/>
+              <MetricCard title={`Total Customers (${timeframe})`} value={totalCustomers.toString()} icon={<UsersIcon className="h-7 w-7 text-blue-500" />} detail={branchData.length >= 3 ? `${branchData[0].name}: ${branchData[0].customersServed}, ${branchData[1].name}: ${branchData[1].customersServed}, ${branchData[2].name}: ${branchData[2].customersServed}` : undefined} />
+              <MetricCard title={`Avg Wait Time (${timeframe})`} value={`${avgWaitingTime} min`} icon={<ClockIcon className="h-7 w-7 text-blue-500" />} trend={Number(avgWaitingTime) < 15 ? 'down' : 'up'} trendLabel={Number(avgWaitingTime) < 15 ? 'Better than target' : 'Above target'} />
+              <MetricCard title={`Satisfaction (${timeframe})`} value={avgRating} icon={<StarIcon className="h-7 w-7 text-blue-500" />} trend={Number(avgRating) > 4.0 ? 'up' : 'down'} trendLabel={Number(avgRating) > 4.0 ? 'Above average' : 'Below average'} />
+              <MetricCard title="Currently Active Queues" value={realtimeStats ? String(realtimeStats.activeTokens) : '0'} icon={<Ticket className="h-7 w-7 text-green-500" />} trend={Number(avgRating) > 4.0 ? 'up' : 'down'} trendLabel={Number(avgRating) > 4.0 ? 'Above average' : 'Below average'} />
             </div>
-            
+
             {/* Charts section */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
               <div className="bg-white p-4 rounded-lg shadow">
@@ -750,19 +801,19 @@ const DashboardPage: React.FC = () => {
             <div className="grid grid-cols-1 lg:grid-cols-1 gap-6 mb-4">
               <div className="mb-2">
                 <div className="max-w-5xl mx-auto">
-                  <SystemHealthStatus/>
+                  <SystemHealthStatus />
                 </div>
               </div>
             </div>
-            
+
             {/* Map section */}
             <div className="bg-white p-4 rounded-lg shadow mb-6">
               <h3 className="text-lg font-medium mb-4">
                 Branch Locations & Performance
               </h3>
               <div className="h-135">
-                <SriLankaMap branchData={branchData} />
-              </div> 
+                <SriLankaMap branchData={branchData} onViewDetails={handleViewBranchDetails} />
+              </div>
             </div>
 
             {/* Table section */}
@@ -770,16 +821,16 @@ const DashboardPage: React.FC = () => {
               <h3 className="text-lg font-medium mb-4">
                 Branch Performance Details
               </h3>
-                <BranchTable 
-                  data={branchData} 
-                  currentPage={currentPage} 
-                  setCurrentPage={setCurrentPage} 
-                  sortColumn={sortColumn} 
-                  setSortColumn={setSortColumn} 
-                  sortDirection={sortDirection} 
-                  setSortDirection={setSortDirection} 
-                />
-            </div>           
+              <BranchTable
+                data={branchData}
+                currentPage={currentPage}
+                setCurrentPage={setCurrentPage}
+                sortColumn={sortColumn}
+                setSortColumn={setSortColumn}
+                sortDirection={sortDirection}
+                setSortDirection={setSortDirection}
+              />
+            </div>
           </div>
         </div>
       </div>
@@ -813,11 +864,10 @@ const DashboardPage: React.FC = () => {
             <div className="p-4 sm:p-6 space-y-4">
               {testMessage && (
                 <div
-                  className={`p-4 rounded-lg ${
-                    testMessage.type === 'success'
+                  className={`p-4 rounded-lg ${testMessage.type === 'success'
                       ? 'bg-green-50 border border-green-200 text-green-700'
                       : 'bg-red-50 border border-red-200 text-red-700'
-                  }`}
+                    }`}
                 >
                   {testMessage.message}
                 </div>
@@ -893,11 +943,10 @@ const DashboardPage: React.FC = () => {
             <div className="p-4 sm:p-6 space-y-4">
               {testMessage && (
                 <div
-                  className={`p-4 rounded-lg ${
-                    testMessage.type === 'success'
+                  className={`p-4 rounded-lg ${testMessage.type === 'success'
                       ? 'bg-green-50 border border-green-200 text-green-700'
                       : 'bg-red-50 border border-red-200 text-red-700'
-                  }`}
+                    }`}
                 >
                   {testMessage.message}
                 </div>

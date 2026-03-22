@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import {
   LineChart,
   Line,
@@ -16,11 +16,14 @@ interface DataPoint {
   customerDemand: number
 }
 
-import api from '../../../config/api'
 
-const StaffUtilizationChart: React.FC<{ outletId?: string | null; apiEndpoint?: string }> = ({ outletId = null, apiEndpoint = '/admin/analytics' }) => {
+
+interface StaffUtilizationChartProps {
+  data: DataPoint[]
+}
+
+const StaffUtilizationChart: React.FC<StaffUtilizationChartProps> = ({ data }) => {
   const [showCustomerDemand, setShowCustomerDemand] = useState<boolean>(false)
-  const [data, setData] = useState<DataPoint[]>([])
   const [isMobile, setIsMobile] = useState<boolean>(false)
 
   // Handle responsive sizing
@@ -34,42 +37,6 @@ const StaffUtilizationChart: React.FC<{ outletId?: string | null; apiEndpoint?: 
     
     return () => window.removeEventListener('resize', checkMobile)
   }, [])
-
-  useEffect(() => {
-    // Build hourly data for the workday using /admin/analytics (best-effort)
-    const build = async () => {
-      const todayStart = new Date()
-      todayStart.setHours(0,0,0,0)
-      const points: DataPoint[] = []
-      for (let hour = 8; hour <= 18; hour++) {
-        const s = new Date(todayStart)
-        s.setHours(hour,0,0,0)
-        const e = new Date(todayStart)
-        e.setHours(hour,59,59,999)
-        try {
-          const res = await api.get(apiEndpoint, { params: { outletId, startDate: s.toISOString(), endDate: e.toISOString() } })
-          const a = res.data || {}
-          // a.officerPerformance may contain tokensHandled per officer; active counters = number of distinct officers active in that hour (best-effort)
-          let activeCounters = 0
-          if (Array.isArray(a.officerPerformance) && a.officerPerformance.length > 0) {
-            activeCounters = a.officerPerformance.length
-          } else if (a.officersCount) {
-            activeCounters = a.officersCount
-          }
-          // customerDemand approximate via totalTokens (completed) + waiting tokens for that hour
-          const customerDemand = a.totalTokens || 0
-          const timeOfDay = hour < 10 ? `0${hour}:00` : `${hour}:00`
-          points.push({ time: timeOfDay, activeCounters, customerDemand })
-        } catch (err) {
-          const timeOfDay = hour < 10 ? `0${hour}:00` : `${hour}:00`
-          points.push({ time: timeOfDay, activeCounters: 0, customerDemand: 0 })
-        }
-      }
-      setData(points)
-    }
-
-    build()
-  }, [outletId, apiEndpoint])
 
   const handleToggle = (): void => {
     setShowCustomerDemand(!showCustomerDemand)
