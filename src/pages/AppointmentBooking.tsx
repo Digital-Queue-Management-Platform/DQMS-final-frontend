@@ -1,5 +1,6 @@
 // Removed unused billData state
 "use client"
+import sltLogo from '../assets/logo.png'
 
 import { useEffect, useState, useRef } from "react"
 import { useNavigate } from "react-router-dom"
@@ -773,7 +774,7 @@ export default function AppointmentBooking() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+    <div className="min-h-screen flex flex-col" style={{ background: 'linear-gradient(135deg, #f0f4ff 0%, #e8eeff 50%, #f3f0ff 100%)' }}>
       {/* Branch Closed Modal */}
       {outletId && branchStatus.isClosed && !closedDismissed && (
         <BranchClosedModal
@@ -786,11 +787,27 @@ export default function AppointmentBooking() {
       {outletId && !branchStatus.isClosed && activeNotices.length > 0 && (
         <NoticeModal notices={activeNotices} onDismiss={dismissNotice} />
       )}
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-lg p-6">
-        {/* Top language selector removed as it's redundant with Step 1 */}
 
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">{t.title}</h1>
-        <p className="text-sm text-gray-600 mb-6">{t.subtitle}</p>
+      {/* ─── Top Header Bar ─── */}
+      <header className="bg-white border-b border-slate-200 shadow-sm flex-shrink-0">
+        <div className="w-full max-w-5xl mx-auto px-4 sm:px-6 py-2.5 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 sm:gap-5 min-w-0">
+            <img src={sltLogo} alt="SLT-Mobitel" className="h-8 sm:h-10 w-auto object-contain flex-shrink-0" />
+            <div className="h-7 w-px bg-slate-200 flex-shrink-0" />
+            <img src="/Transzent Logo.png" alt="Transzent" className="h-14 sm:h-16 w-auto object-contain flex-shrink-0" />
+          </div>
+        </div>
+      </header>
+
+      {/* ─── Main Content ─── */}
+      <main className="flex-1 flex items-start justify-center px-3 sm:px-6 py-4 sm:py-6 overflow-auto">
+        <div className="bg-white rounded-xl shadow-xl w-full max-w-lg p-6">
+        {/* Branded Banner */}
+        <div className="bg-gradient-to-r from-blue-600 to-indigo-700 -mx-6 -mt-6 mb-6 px-6 py-4 sm:py-5 text-center rounded-t-xl">
+          <h1 className="text-lg sm:text-xl font-bold text-white mb-0.5">Digital Queue Management Platform</h1>
+          <p className="text-blue-100 text-xs sm:text-sm">{t.title}</p>
+        </div>
+        <p className="text-xs sm:text-sm text-gray-600 mb-4 -mt-2">{t.subtitle}</p>
 
         {/* Progress Indicator */}
         {!success && (
@@ -1328,7 +1345,15 @@ export default function AppointmentBooking() {
             </div>
           )}
         </form>
-      </div>
+        </div>
+      </main>
+
+      {/* ─── Footer ─── */}
+      <footer className="flex-shrink-0 py-3 text-center">
+        <p className="text-xs text-slate-500 font-medium tracking-tight">
+          © 2026 SLT-Mobitel Digital Platforms Section
+        </p>
+      </footer>
 
       {/* OTP Popup for Demo Mode */}
       {showOtpPopup && devOtpCode && (

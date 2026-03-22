@@ -1,4 +1,5 @@
 // Removed unused billData state
+import sltLogo from '../assets/logo.png'
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { User, Phone, Eye, EyeOff, Send, MessageSquare, CheckCircle, Banknote, CreditCard, FileText, Landmark } from 'lucide-react'
@@ -539,7 +540,7 @@ export default function KioskDashboard() {
 
   const translations = {
     en: {
-      title: "Digital Queue Platform",
+      title: "Digital Queue Management Platform",
       subtitle: "Register to join the queue",
       name: "Full Name",
       mobile: "Mobile Number",
@@ -617,7 +618,7 @@ export default function KioskDashboard() {
       dueAmountNote: "Please ask the account holder to confirm the due amount with the officer at the counter."
     },
     si: {
-      title: "ඩිජිටල් පෝලිම වේදිකාව",
+      title: "ඩිජිටල් පෝලිම කළමනාකරණ වේදිකාව",
       subtitle: "පෝලිමට එක්වීමට ලියාපදිංචි වන්න",
       name: "සම්පූර්ණ නම",
       mobile: "ජංගම දුරකථන අංකය",
@@ -695,7 +696,7 @@ export default function KioskDashboard() {
       dueAmountNote: "ගිණුම් හිමිකරුගෙන් ගෙවිය යුතු නිවැරදි මුදල ශාලාවේ නිලධාරීට ලබා දෙන ලෙස කරුණාකර ඉල්ලා සිටින්න."
     },
     ta: {
-      title: "டிஜிட்டல் வரிசை தளம்",
+      title: "டிஜிட்டல் வரிசை மேலாண்மை தளம்",
       subtitle: "வரிசையில் சேர பதிவு செய்யவும்",
       name: "முழு பெயர்",
       mobile: "மொபைல் எண்",
@@ -778,69 +779,76 @@ export default function KioskDashboard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #f0f4ff 0%, #e8eeff 50%, #f3f0ff 100%)' }}>
         <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading...</p>
+          <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600 font-medium">Loading...</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
-      {/* Branch Closed Modal – non-dismissable */}
+    <div className="min-h-screen flex flex-col" style={{ background: 'linear-gradient(135deg, #f0f4ff 0%, #e8eeff 50%, #f3f0ff 100%)' }}>
+      {/* Branch Closed Modal */}
       {branchStatus.isClosed && (
         <BranchClosedModal
           reason={branchStatus.reason}
           activeNotice={branchStatus.activeNotice}
         />
       )}
-      {/* Standard notices – dismissable, only shown when branch is open */}
       {!branchStatus.isClosed && activeNotices.length > 0 && (
         <NoticeModal notices={activeNotices} onDismiss={dismissNotice} />
       )}
-      {/* Top language switcher removed as it's redundant with Step 1. Logout button preserved. */}
-      <div className="bg-white border-b border-slate-200 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 py-3 flex justify-end items-center">
-          {/* Logout button */}
+
+      {/* ─── Top Header Bar ─── */}
+      <header className="bg-white border-b border-slate-200 shadow-sm flex-shrink-0">
+        <div className="w-full max-w-5xl mx-auto px-4 sm:px-6 py-2.5 flex items-center justify-between gap-3">
+          {/* Logos */}
+          <div className="flex items-center gap-3 sm:gap-5 min-w-0">
+            <img src={sltLogo} alt="SLT-Mobitel" className="h-8 sm:h-10 w-auto object-contain flex-shrink-0" />
+            <div className="h-7 w-px bg-slate-200 flex-shrink-0" />
+            <img src="/Transzent Logo.png" alt="Transzent" className="h-14 sm:h-16 w-auto object-contain flex-shrink-0" />
+          </div>
+          {/* Logout */}
           <button
             onClick={handleLogout}
-            className="px-4 py-2 text-sm bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors font-medium"
+            className="flex-shrink-0 px-3 sm:px-4 py-2 text-xs sm:text-sm bg-red-50 border border-red-200 text-red-700 rounded-xl hover:bg-red-100 transition-colors font-semibold"
           >
             {t.logout}
           </button>
         </div>
-      </div>
+      </header>
 
-      {/* Main Content */}
-      <div className="max-w-3xl mx-auto px-4 py-6 sm:py-8">
+      {/* ─── Main Content ─── */}
+      <main className="flex-1 flex items-start justify-center px-3 sm:px-6 py-4 sm:py-6 overflow-auto">
+        <div className="w-full" style={{ maxWidth: '680px' }}>
         <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
           {/* Header */}
-          <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-4 sm:px-8 py-6 sm:py-8 text-center">
-            <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">{t.title}</h1>
-            <p className="text-blue-100 text-sm sm:text-base">{t.subtitle}</p>
+          <div className="bg-gradient-to-r from-blue-600 to-indigo-700 px-4 sm:px-8 py-4 sm:py-6 text-center">
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-white mb-1">{t.title}</h1>
+            <p className="text-blue-100 text-xs sm:text-sm">{t.subtitle}</p>
           </div>
 
           {/* Outlet Info Banner */}
-          <div className="bg-blue-50 border-b border-blue-100 px-4 sm:px-8 py-3">
+          <div className="bg-blue-50 border-b border-blue-100 px-4 sm:px-8 py-2.5">
             <div className="text-center">
-              <div className="text-xs sm:text-sm text-gray-600">{t.kiosk}</div>
-              <div className="text-base sm:text-lg font-semibold text-gray-800">
+              <div className="text-xs text-gray-500">{t.kiosk}</div>
+              <div className="text-sm sm:text-base font-semibold text-gray-800">
                 {outlet?.name} - {outlet?.location}
               </div>
             </div>
           </div>
 
           {/* Form Content */}
-          <div className="px-4 sm:px-8 py-6">
+          <div className="px-4 sm:px-8 py-4 sm:py-6">
             {/* Progress Indicator */}
-            <div className="mb-6">
-              <div className="flex items-center justify-center gap-2 mb-2">
+            <div className="mb-4 sm:mb-6">
+              <div className="flex items-center justify-center gap-1 sm:gap-2 mb-2">
                 {[1, 2, 3, 4].map((step) => (
                   <div key={step} className="flex items-center">
                     <div
-                      className={`w-8 h-8 rounded-xl flex items-center justify-center text-sm font-semibold transition-colors ${currentStep >= step
+                      className={`w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center text-sm font-semibold transition-colors ${currentStep >= step
                         ? 'bg-blue-600 text-white'
                         : 'bg-gray-200 text-gray-500'
                         }`}
@@ -849,7 +857,7 @@ export default function KioskDashboard() {
                     </div>
                     {step < 4 && (
                       <div
-                        className={`w-8 sm:w-12 h-1 mx-1 transition-colors ${currentStep > step ? 'bg-blue-600' : 'bg-gray-200'
+                        className={`w-6 sm:w-12 h-1 mx-0.5 sm:mx-1 transition-colors ${currentStep > step ? 'bg-blue-600' : 'bg-gray-200'
                           }`}
                       />
                     )}
@@ -1342,7 +1350,15 @@ export default function KioskDashboard() {
             </form>
           </div>
         </div>
-      </div>
+        </div>
+      </main>
+
+      {/* ─── Footer ─── */}
+      <footer className="flex-shrink-0 py-3 text-center">
+        <p className="text-xs text-slate-500 font-medium tracking-tight">
+          © 2026 SLT-Mobitel Digital Platforms Section
+        </p>
+      </footer>
 
       {/* Success Modal */}
       {successToken && (
