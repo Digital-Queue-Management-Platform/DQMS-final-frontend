@@ -71,6 +71,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed, activePa
     { name: 'Feedbacks ', icon: MessageSquare, to: '/admin/feedback' },
     { name: 'Compare', icon: Scale3D, to: '/admin/compare' },
     { name: 'Backup', icon: Database, to: '/admin/backup' },
+    { name: 'Insights', icon: BarChart2, to: '/admin/insights' },
   ]
   // Officer navigation items - Queue is now the primary page (first in order)
   const officerItems: NavigationItem[] = [

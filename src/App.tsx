@@ -19,6 +19,7 @@ const BranchComparePage = React.lazy(() => import("./admin/adminPages/BranchComp
 const AdminBackupPage = React.lazy(() => import("./admin/adminPages/AdminBackupPage"))
 const AdminAllOfficers = React.lazy(() => import("./admin/adminPages/AdminAllOfficers"))
 const ManagerManagement = React.lazy(() => import("./admin/adminPages/ManagerManagement"))
+const InsightsPage = React.lazy(() => import("./admin/adminPages/InsightsPage"))
 import OfficerQueuePage from "./pages/OfficerQueuePage"
 import IPSpeakerPage from "./pages/IPSpeakerPage"
 import ManagerLogin from "./pages/ManagerLogin"
@@ -532,6 +533,10 @@ function App() {
         <Route
           element={<Layout><ProtectedAdminRoute><AdminFeedback /></ProtectedAdminRoute></Layout>}
           path="/admin/feedback"
+        />
+        <Route
+          element={<Layout><ProtectedAdminRoute><InsightsPage /></ProtectedAdminRoute></Layout>}
+          path="/admin/insights"
         />
         <Route
           element={<Layout><ProtectedAdminRoute><AdminGMs /></ProtectedAdminRoute></Layout>}
