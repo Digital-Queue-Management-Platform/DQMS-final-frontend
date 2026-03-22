@@ -146,13 +146,13 @@ export default function AppointmentBooking() {
 
   // Auto-submit form after OTP verification (non-SLT services)
   useEffect(() => {
-    if (shouldAutoSubmit && otpStep === 'verified' && otpToken) {
+    if (shouldAutoSubmit && otpStep === 'verified' && otpToken && !isSltRequiredService(selectedService)) {
       setShouldAutoSubmit(false)
       if (formRef.current) {
         formRef.current.dispatchEvent(new Event('submit', { bubbles: true }))
       }
     }
-  }, [shouldAutoSubmit, otpStep, otpToken])
+  }, [shouldAutoSubmit, otpStep, otpToken, selectedService])
 
   // Interactive validation for closure checks
   useEffect(() => {
@@ -575,8 +575,11 @@ export default function AppointmentBooking() {
     setLoading(true)
     setError("")
     try {
-      const response = await api.get(`/bills/verify/${sltTelephoneNumber}`)
+      const response = await api.get(`/bills/verify/${sltTelephoneNumber}`, {
+        params: { mobileNumber }
+      })
       if (response.data.success && response.data.bill) {
+
         const bill = response.data.bill
 
         // Check if mobile number is registered with SLT account
@@ -617,8 +620,19 @@ export default function AppointmentBooking() {
         let isOwner = false
         if (otpStep === 'verified' && mobileNumber) {
           const userMobileNormalized = normalizeForComparison(mobileNumber)
-          const ownerMobileNormalized = normalizeForComparison(bill.mobileNumber)
-          isOwner = userMobileNormalized === ownerMobileNormalized
+          const ownerMobile = bill.mobileNumber || ""
+          
+          if (ownerMobile.includes('*')) {
+            // Masked number comparison: check if suffix matches
+            const visiblePart = ownerMobile.replace(/\*+/g, '')
+            if (visiblePart && userMobileNormalized.endsWith(visiblePart)) {
+              isOwner = true
+            }
+          } else {
+            // Unmasked comparison
+            const ownerMobileNormalized = normalizeForComparison(ownerMobile)
+            isOwner = userMobileNormalized === ownerMobileNormalized
+          }
         }
         setIsOwnerOfAccount(isOwner)
 
@@ -635,17 +649,22 @@ export default function AppointmentBooking() {
         setNotificationSent(true)
 
         // Send SMS notification with bill information (including due amount)
-        try {
-          await api.post('/bills/send-notification', {
-            mobileNumber: bill.mobileNumber,
-            accountName: bill.accountName,
-            billAmount: bill.currentBill,
-            dueDate: bill.dueDate,
-            sltNumber: sltTelephoneNumber
-          })
-        } catch (notifErr) {
-          console.log('Notification sent (or notification service not configured)')
+        const targetNumber = isOwner ? mobileNumber : bill.mobileNumber
+        
+        if (targetNumber && !targetNumber.includes('*')) {
+          try {
+            await api.post('/bills/send-notification', {
+              mobileNumber: targetNumber,
+              accountName: bill.accountName,
+              billAmount: bill.currentBill,
+              dueDate: bill.dueDate,
+              sltNumber: sltTelephoneNumber
+            })
+          } catch (notifErr) {
+            console.log('Notification sent (or notification service not configured)')
+          }
         }
+
       } else {
         setError("No account found for this telephone number")
       }
@@ -661,6 +680,7 @@ export default function AppointmentBooking() {
 
   const handleBook = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (loading) return;
     setError("")
     setSuccess("")
     setLoading(true)

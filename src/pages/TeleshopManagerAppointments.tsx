@@ -62,9 +62,10 @@ export default function TeleshopManagerAppointments() {
       const regionId: string | undefined = tm?.region?.id || tm?.regionId
       const res = await api.get("/queue/outlets")
       const all: Outlet[] = res.data || []
-      setOutlets(
-        regionId ? all.filter((o: any) => o?.region?.id === regionId || o?.regionId === regionId) : all
-      )
+      const filtered = regionId ? all.filter((o: any) => o?.region?.id === regionId || o?.regionId === regionId) : all
+      // Deduplicate outlets by ID
+      const unique = Array.from(new Map(filtered.map(o => [o.id, o])).values());
+      setOutlets(unique)
     } catch { setError("Failed to load outlets") }
   }
 
