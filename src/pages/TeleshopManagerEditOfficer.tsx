@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import { useState, useEffect } from "react"
 import { useNavigate, useParams } from "react-router-dom"
@@ -19,6 +19,7 @@ interface Officer {
   id: string
   name: string
   mobileNumber: string
+  email?: string
   counterNumber?: number
   outlet: {
     id: string
@@ -58,6 +59,7 @@ export default function TeleshopManagerEditOfficer() {
 
   const [formData, setFormData] = useState({
     name: "",
+    email: "",
     counterNumber: "",
     outletId: "",
     assignedServices: [] as string[],
@@ -98,6 +100,7 @@ export default function TeleshopManagerEditOfficer() {
           setOfficer(foundOfficer)
           setFormData({
             name: foundOfficer.name,
+            email: foundOfficer.email || "",
             counterNumber: foundOfficer.counterNumber?.toString() || "",
             outletId: foundOfficer.outlet.id,
             assignedServices: foundOfficer.assignedServices || [],
@@ -152,6 +155,7 @@ export default function TeleshopManagerEditOfficer() {
 
       const updateData: any = {
         name: formData.name.trim(),
+        email: formData.email.trim() || null,
         assignedServices: formData.assignedServices,
       }
 
@@ -279,6 +283,20 @@ export default function TeleshopManagerEditOfficer() {
               className="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent"
               placeholder="Enter officer name"
               required
+            />
+          </div>
+
+          {/* Officer Email */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Officer Email
+            </label>
+            <input
+              type="email"
+              value={formData.email}
+              onChange={(e) => handleInputChange('email', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              placeholder="Enter officer email (optional)"
             />
           </div>
 
