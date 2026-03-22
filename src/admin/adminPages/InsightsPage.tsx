@@ -10,7 +10,7 @@ interface Analytics {
   totalTokens: number
   avgWaitTime: number
   avgServiceTime: number
-  feedbackStats: Array<{ rating: number; _count: number }>
+  feedbackStats: Array<{ rating: number; count: number; _count?: number }>
   officerPerformance: Array<{
     officer: any
     tokensHandled: number
@@ -172,16 +172,18 @@ export default function InsightsPage() {
 
     const distribution = [0, 0, 0, 0, 0]
     analytics.feedbackStats.forEach((stat) => {
-      distribution[stat.rating - 1] = stat._count
+      const idx = stat.rating - 1
+      if (idx >= 0 && idx < 5) {
+        distribution[idx] = stat.count ?? stat._count ?? 0
+      }
     })
+
+    const totalFeedback = distribution.reduce((sum, c) => sum + c, 0)
 
     return distribution.map((count, index) => ({
       rating: index + 1,
-      count,
-      percentage:
-        analytics.feedbackStats.length > 0
-          ? (count / analytics.feedbackStats.reduce((sum, s) => sum + s._count, 0)) * 100
-          : 0,
+      count: count ?? 0,
+      percentage: totalFeedback > 0 ? ((count ?? 0) / totalFeedback) * 100 : 0,
     }))
   }
 
@@ -192,8 +194,7 @@ export default function InsightsPage() {
     const reportDate = new Date().toLocaleString()
     const outName = selectedOutlet ? (outlets.find((o: any) => o.id === selectedOutlet)?.name || 'Outlet').replace(/\s+/g, '_') : 'All_Outlets'
 
-    // Constructing a more professional CSV structure using array of rows
-    const rows = [
+    const rows: any[][] = [
       ["SLT-MOBITEL DIGITAL QUEUE MANAGEMENT PLATFORM"],
       ["ANALYTICS & PERFORMANCE REPORT"],
       [""],
@@ -203,65 +204,81 @@ export default function InsightsPage() {
       ["Scope", selectedOutlet ? (outlets.find((o: any) => o.id === selectedOutlet)?.name || 'Specified Outlet') : 'Island-wide (All Outlets)'],
       ["Period", `${dateRange.startDate} to ${dateRange.endDate}`],
       [""],
+
+      // ── I. Executive Summary ──
       ["I. EXECUTIVE SUMMARY"],
       ["Operational Metric", "Statistical Value"],
       ["Total Tokens Issued", analytics.totalTokens.toLocaleString()],
-      ["Average Wait Time (min)", analytics.avgWaitTime],
-      ["Average Service Time (min)", analytics.avgServiceTime],
+      ["Average Wait Time (min)", Number(analytics.avgWaitTime ?? 0).toFixed(1)],
+      ["Average Service Time (min)", Number(analytics.avgServiceTime ?? 0).toFixed(1)],
       [""],
+
+      // ── II. Customer Satisfaction Analysis ──
       ["II. CUSTOMER SATISFACTION ANALYSIS"],
       ["Satisfaction Level", "Token Count", "Percentage Share"],
       ...calculateRatingDistribution().reverse().map(item => [
         `${item.rating} Stars`,
-        item.count,
-        `${item.percentage.toFixed(1)}%`
+        item.count ?? 0,
+        `${(item.percentage ?? 0).toFixed(1)}%`
       ]),
       [""],
+
+      // ── III. Service Utilization Breakdown ──
       ["III. SERVICE UTILIZATION BREAKDOWN"],
-      ["Service Category", "Tokens Issued"]
+      ["Service Category", "Tokens Issued"],
     ]
 
-    // Service Type Data
+    // Service type rows (or placeholder)
     if (analytics.serviceTypes && analytics.serviceTypes.length > 0) {
-      analytics.serviceTypes.forEach(st => {
-        rows.push([st.name, st.count])
-      })
+      analytics.serviceTypes.forEach(st => rows.push([st.name, st.count ?? 0]))
+    } else {
+      rows.push(["No service data available for selected period", "—"])
     }
     rows.push([""])
 
-    // Section IV: Regional (Conditional)
-    if (analytics.branchPerformance && analytics.branchPerformance.length > 0 && !selectedOutlet) {
-      rows.push(["IV. REGIONAL PERFORMANCE AUDIT"])
-      rows.push(["Outlet Name", "Tokens", "Avg Wait", "Avg Svc", "Rating", "Reviews"])
-      analytics.branchPerformance.forEach(b => {
-        rows.push([b.name, b.totalTokens, b.avgWaitTime, b.avgServiceTime, b.avgRating, b.feedbackCount])
-      })
-      rows.push([""])
+    // ── IV. Regional Performance Audit (always shown) ──
+    rows.push(["IV. REGIONAL PERFORMANCE AUDIT"])
+    rows.push(["Outlet Name", "Tokens", "Avg Wait (min)", "Avg Svc (min)", "Rating", "Feedbacks"])
+    if (analytics.branchPerformance && analytics.branchPerformance.length > 0) {
+      analytics.branchPerformance.forEach(b => rows.push([
+        b.name,
+        b.totalTokens ?? 0,
+        Number(b.avgWaitTime ?? 0).toFixed(1),
+        Number(b.avgServiceTime ?? 0).toFixed(1),
+        Number(b.avgRating ?? 0).toFixed(1),
+        b.feedbackCount ?? 0
+      ]))
+    } else {
+      rows.push(["No regional data available for selected filters", "—", "—", "—", "—", "—"])
     }
+    rows.push([""])
 
-    // Section V: Officer Insights
+    // ── V. Officer Efficiency Insights (always shown) ──
     rows.push(["V. OFFICER EFFICIENCY INSIGHTS"])
     rows.push(["Officer Name", "Outlet", "Tokens", "Rating", "Feedbacks"])
-    analytics.officerPerformance.forEach(perf => {
-      rows.push([
+    if (analytics.officerPerformance && analytics.officerPerformance.length > 0) {
+      analytics.officerPerformance.forEach(perf => rows.push([
         perf.officer?.name || 'Unknown',
         perf.officer?.outlet?.name || 'N/A',
-        perf.tokensHandled,
-        perf.avgRating.toFixed(1),
-        perf.feedbackCount
-      ])
-    })
-
-    if (realtimeStats) {
-      rows.push([""])
-      rows.push(["LATEST REAL-TIME OVERVIEW"])
-      rows.push(["Active Tokens", realtimeStats.activeTokens])
-      rows.push(["Completed Today", realtimeStats.completedToday])
-      rows.push(["Active Officers", realtimeStats.activeOfficers])
-      rows.push(["Avg Rating Today", realtimeStats.avgRating.toFixed(1)])
+        perf.tokensHandled ?? 0,
+        Number(perf.avgRating ?? 0).toFixed(1),
+        perf.feedbackCount ?? 0
+      ]))
+    } else {
+      rows.push(["No officer data available for selected period", "—", "—", "—", "—"])
     }
 
-    // Convert rows to CSV string with proper escaping
+    // ── Live Real-time Snapshot (bonus section) ──
+    if (realtimeStats) {
+      rows.push([""])
+      rows.push(["LIVE REAL-TIME SNAPSHOT"])
+      rows.push(["Active Tokens Now", realtimeStats.activeTokens])
+      rows.push(["Completed Today", realtimeStats.completedToday])
+      rows.push(["Active Officers", realtimeStats.activeOfficers])
+      rows.push(["Avg Rating Today", Number(realtimeStats.avgRating ?? 0).toFixed(1)])
+    }
+
+    // Convert rows to CSV with proper escaping
     const csvString = rows
       .map(row => row.map(value => {
         const str = String(value ?? '').replace(/"/g, '""')
@@ -273,12 +290,12 @@ export default function InsightsPage() {
     const url = URL.createObjectURL(blob)
     const link = document.createElement("a")
     link.setAttribute("href", url)
-    const fileName = `DQMP_Analytics_${outName}_${dateStr}.csv`
-    link.setAttribute("download", fileName)
+    link.setAttribute("download", `DQMP_Analytics_${outName}_${dateStr}.csv`)
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
   }
+
 
   const exportToPDF = () => {
     if (!analytics) return
@@ -286,191 +303,254 @@ export default function InsightsPage() {
     const doc = new jsPDF()
     const pageWidth = doc.internal.pageSize.getWidth()
     const pageHeight = doc.internal.pageSize.getHeight()
-    const SLT_BLUE = [0, 92, 185]
-    const SLT_ORANGE = [255, 102, 0]
-    const SLT_DARK = [22, 38, 70]
+    const SLT_BLUE:  [number, number, number] = [0, 92, 185]
+    const SLT_ORANGE: [number, number, number] = [255, 102, 0]
+    const SLT_DARK:  [number, number, number] = [22, 38, 70]
+    const SLT_INDIGO: [number, number, number] = [99, 102, 241]
 
+    // ─── Header (every page) ───────────────────────────────────────
     const addHeader = (isFirstPage: boolean = false) => {
-      // Background Banner (Executive Dark Navy)
-      doc.setFillColor(SLT_DARK[0], SLT_DARK[1], SLT_DARK[2])
+      doc.setFillColor(...SLT_DARK)
       doc.rect(0, 0, pageWidth, 32, 'F')
 
-      // Vertical branding divider (Orange Accent)
-      doc.setFillColor(SLT_ORANGE[0], SLT_ORANGE[1], SLT_ORANGE[2])
-      doc.rect(20, 8, 1, 16, 'F')
+      // Orange accent bar
+      doc.setFillColor(...SLT_ORANGE)
+      doc.rect(20, 8, 1.2, 16, 'F')
 
-      // Main Logo Branding
+      // Left: brand name + sub-label
       doc.setTextColor(255, 255, 255)
-      doc.setFont("helvetica", "bold")
-      doc.setFontSize(16)
-      doc.text("SLT MOBITEL", 25, 16)
+      doc.setFont('helvetica', 'bold')
+      doc.setFontSize(15)
+      doc.text('SLT MOBITEL', 25, 16)
+      doc.setFontSize(7.5)
+      doc.setFont('helvetica', 'normal')
+      doc.text('DIGITAL QUEUE MANAGEMENT PLATFORM', 25, 23)
 
-      doc.setFontSize(8)
-      doc.setFont("helvetica", "normal")
-      doc.text("DIGITAL QUEUE MANAGEMENT PLATFORM", 25, 23)
-
+      // Right: report title (first page only)
       if (isFirstPage) {
-        doc.setFontSize(12)
-        doc.setFont("helvetica", "bold")
-        doc.setTextColor(255, 255, 255)
-        doc.text("ANALYTICS & PERFORMANCE", pageWidth - 20, 16, { align: "right" })
-        doc.setFontSize(8)
-        doc.setFont("helvetica", "normal")
-        doc.text("Insights Intelligence Series", pageWidth - 20, 23, { align: "right" })
+        doc.setFont('helvetica', 'bold')
+        doc.setFontSize(11.5)
+        doc.text('ANALYTICS & PERFORMANCE', pageWidth - 20, 16, { align: 'right' })
+        doc.setFontSize(7.5)
+        doc.setFont('helvetica', 'normal')
+        doc.text('Insights Intelligence Series', pageWidth - 20, 23, { align: 'right' })
       }
     }
 
+    // ─── Footer (every page) ──────────────────────────────────────
     const addFooter = (page: number, total: number) => {
       doc.setPage(page)
       doc.setDrawColor(203, 213, 225)
-      doc.setLineWidth(0.1)
+      doc.setLineWidth(0.2)
       doc.line(20, pageHeight - 15, pageWidth - 20, pageHeight - 15)
 
-      doc.setFontSize(6.5)
-      doc.setTextColor(100, 116, 139)
       const dateStr = new Date().toLocaleString()
       const reportId = `DQMP-${Math.floor(Date.now() / 10000)}`
 
-      // LEFT: ID & Generation Date
+      doc.setFontSize(6.5)
+      doc.setFont('helvetica', 'normal')
+      doc.setTextColor(100, 116, 139)
       doc.text(`${reportId} | Generated on: ${dateStr}`, 20, pageHeight - 10)
 
-      // CENTER: Management Notice (Bold)
-      doc.setFont("helvetica", "bold")
-      doc.text("SLT-MOBITEL DQMP Management Report", pageWidth / 2, pageHeight - 10, { align: "center" })
+      doc.setFont('helvetica', 'bold')
+      doc.text('SLT-MOBITEL DQMP Management Report', pageWidth / 2, pageHeight - 10, { align: 'center' })
 
-      // RIGHT: Page Registry
-      doc.setFont("helvetica", "normal")
-      doc.text(`Page ${page} of ${total}`, pageWidth - 20, pageHeight - 10, { align: "right" })
+      doc.setFont('helvetica', 'normal')
+      doc.text(`Page ${page} of ${total}`, pageWidth - 20, pageHeight - 10, { align: 'right' })
     }
 
+    // ─── Helper: draw a blue section heading, with page-break check ──
+    const sectionHeading = (label: string, y: number): number => {
+      if (y > pageHeight - 50) {
+        doc.addPage()
+        addHeader()
+        y = 45
+      }
+      doc.setFont('helvetica', 'bold')
+      doc.setFontSize(14)
+      doc.setTextColor(...SLT_BLUE)
+      doc.text(label, 20, y)
+      return y
+    }
+
+    // ══════════════════════════════════════════════
+    //  PAGE 1
+    // ══════════════════════════════════════════════
     addHeader(true)
 
+    // Report Parameters block
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(9.5)
     doc.setTextColor(51, 65, 85)
-    doc.setFont("helvetica", "bold")
-    doc.setFontSize(10)
-    doc.text("REPORT PARAMETERS", 20, 50)
-    doc.setFont("helvetica", "normal")
-    doc.setFontSize(9)
-    doc.text(`Period: ${dateRange.startDate} to ${dateRange.endDate}`, 20, 56)
-    doc.text(`Scope: ${selectedOutlet ? outlets.find((o: any) => o.id === selectedOutlet)?.name || selectedOutlet : 'Island-wide (All Outlets)'}`, 20, 61)
+    doc.text('REPORT PARAMETERS', 20, 48)
 
-    doc.setFontSize(14)
-    doc.setFont("helvetica", "bold")
-    doc.setTextColor(SLT_BLUE[0], SLT_BLUE[1], SLT_BLUE[2])
-    doc.text("I. Executive Summary", 20, 75)
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(8.5)
+    doc.setTextColor(71, 85, 105)
+    const scopeLabel = selectedOutlet
+      ? outlets.find((o: any) => o.id === selectedOutlet)?.name || selectedOutlet
+      : 'Island-wide (All Outlets)'
+    doc.text(`Period: ${dateRange.startDate} to ${dateRange.endDate}`, 20, 55)
+    doc.text(`Scope: ${scopeLabel}`, 20, 61)
 
-    const summaryData = [
-      ["Operational Metric", "Statistical Value"],
-      ["Total Tokens Issued", analytics.totalTokens.toLocaleString()],
-      ["Average Wait Time", `${analytics.avgWaitTime} minutes`],
-      ["Average Service Time", `${analytics.avgServiceTime} minutes`]
-    ]
+    // ── I. Executive Summary ──────────────────────────────────────
+    let currentY = sectionHeading('I. Executive Summary', 74)
 
-    // Section 1: Executive Summary
     autoTable(doc, {
-      startY: 82,
-      head: [summaryData[0]],
-      body: summaryData.slice(1),
+      startY: currentY + 7,
+      head: [['Operational Metric', 'Statistical Value']],
+      body: [
+        ['Total Tokens Issued',   analytics.totalTokens.toLocaleString()],
+        ['Average Wait Time',     `${Number(analytics.avgWaitTime ?? 0).toFixed(1)} minutes`],
+        ['Average Service Time',  `${Number(analytics.avgServiceTime ?? 0).toFixed(1)} minutes`],
+      ],
       theme: 'grid',
-      headStyles: { fillColor: SLT_DARK as [number, number, number], textColor: [256, 255, 255], fontStyle: 'bold', halign: 'left' },
+      headStyles: {
+        fillColor: SLT_DARK,
+        textColor: [255, 255, 255],
+        fontStyle: 'bold',
+        halign: 'left',
+        fontSize: 9,
+        cellPadding: 4
+      },
       styles: { fontSize: 9, cellPadding: 4 },
       columnStyles: {
-        0: { cellWidth: 100 },
-        1: { halign: 'right', fontStyle: 'bold', textColor: SLT_BLUE as [number, number, number] }
+        0: { cellWidth: 110, textColor: [51, 65, 85] },
+        1: { halign: 'right', fontStyle: 'bold', textColor: SLT_BLUE }
       },
       margin: { left: 20, right: 20 }
     })
 
-    let currentY = (doc as any).lastAutoTable.finalY + 15
-    doc.setFontSize(14)
-    doc.setFont("helvetica", "bold")
-    doc.text("II. Customer Satisfaction Analysis", 20, currentY)
+    // ── II. Customer Satisfaction Analysis ───────────────────────
+    currentY = sectionHeading('II. Customer Satisfaction Analysis', (doc as any).lastAutoTable.finalY + 15)
 
     const satisfactionData = calculateRatingDistribution().reverse().map(item => [
       `${item.rating} Stars`,
-      item.count.toLocaleString(),
-      `${item.percentage.toFixed(1)}%`
+      (item.count ?? 0).toLocaleString(),
+      `${(item.percentage ?? 0).toFixed(1)}%`
     ])
 
     autoTable(doc, {
-      startY: currentY + 6,
+      startY: currentY + 7,
       head: [['Satisfaction Level', 'Token Count', 'Percentage Share']],
-      body: satisfactionData,
+      body: satisfactionData.length ? satisfactionData : [['No feedback data', '—', '—']],
       theme: 'striped',
-      headStyles: { fillColor: SLT_BLUE as [number, number, number], textColor: [255, 255, 255], halign: 'center' },
-      styles: { fontSize: 9, cellPadding: 3 },
+      headStyles: {
+        fillColor: SLT_BLUE,
+        textColor: [255, 255, 255],
+        halign: 'center',
+        fontStyle: 'bold',
+        fontSize: 9,
+        cellPadding: 4
+      },
+      styles: { fontSize: 9, cellPadding: 3.5 },
       columnStyles: {
-        0: { halign: 'left' },
+        0: { halign: 'left', cellWidth: 90 },
         1: { halign: 'center' },
         2: { halign: 'center', fontStyle: 'bold' }
       },
       margin: { left: 20, right: 20 }
     })
 
-    currentY = (doc as any).lastAutoTable.finalY + 15
-    if (analytics.serviceTypes && analytics.serviceTypes.length > 0) {
-      if (currentY > pageHeight - 50) { doc.addPage(); addHeader(); currentY = 45; }
-      doc.setFontSize(14)
-      doc.setFont("helvetica", "bold")
-      doc.text("III. Service Utilization Breakdown", 20, currentY)
-      const stData = analytics.serviceTypes.map(st => [st.name, st.count.toLocaleString()])
-      autoTable(doc, {
-        startY: currentY + 6,
-        head: [['Service Category', 'Tokens Issued']],
-        body: stData,
-        theme: 'grid',
-        headStyles: { fillColor: [99, 102, 241], textColor: [255, 255, 255], halign: 'left' },
-        styles: { fontSize: 9, cellPadding: 3 },
-        columnStyles: {
-          0: { cellWidth: 'auto' },
-          1: { halign: 'center', fontStyle: 'bold', cellWidth: 40 }
-        },
-        margin: { left: 20, right: 20 }
-      })
-      currentY = (doc as any).lastAutoTable.finalY + 15
-    }
+    // ── III. Service Utilization Breakdown ───────────────────────
+    currentY = sectionHeading('III. Service Utilization Breakdown', (doc as any).lastAutoTable.finalY + 15)
 
-    if (analytics.branchPerformance && analytics.branchPerformance.length > 0 && !selectedOutlet) {
-      if (currentY > pageHeight - 50) { doc.addPage(); addHeader(); currentY = 45; }
-      doc.setFontSize(14)
-      doc.setFont("helvetica", "bold")
-      doc.text("IV. Regional Performance Audit", 20, currentY)
-      const branchData = analytics.branchPerformance.map(b => [b.name, b.totalTokens.toLocaleString(), `${b.avgWaitTime}m`, `${b.avgServiceTime}m`, b.avgRating.toFixed(1), b.feedbackCount.toLocaleString()])
-      autoTable(doc, {
-        startY: currentY + 6,
-        head: [['Outlet Name', 'Tokens', 'Avg Wait', 'Avg Svc', 'Rating', 'Feedbacks']],
-        body: branchData,
-        theme: 'grid',
-        headStyles: { fillColor: SLT_DARK as [number, number, number], textColor: [255, 255, 255], halign: 'center' },
-        styles: { fontSize: 8, cellPadding: 2 },
-        columnStyles: {
-          0: { halign: 'left', cellWidth: 'auto' },
-          1: { halign: 'center' },
-          2: { halign: 'center' },
-          3: { halign: 'center' },
-          4: { halign: 'center', fontStyle: 'bold' },
-          5: { halign: 'center' }
-        },
-        margin: { left: 20, right: 20 }
-      })
-      currentY = (doc as any).lastAutoTable.finalY + 15
-    }
+    const stData = (analytics.serviceTypes && analytics.serviceTypes.length > 0)
+      ? analytics.serviceTypes.map(st => [st.name, (st.count ?? 0).toLocaleString()])
+      : [['No service data available for selected period', '—']]
 
-    if (currentY > pageHeight - 50) { doc.addPage(); addHeader(); currentY = 45; }
-    doc.setFontSize(14)
-    doc.setFont("helvetica", "bold")
-    doc.text("V. Officer Efficiency Insights", 20, currentY)
-    const officerData = analytics.officerPerformance.map(perf => [perf.officer?.name || 'Unknown', perf.officer?.outlet?.name || 'N/A', perf.tokensHandled.toLocaleString(), perf.avgRating.toFixed(1), perf.feedbackCount.toLocaleString()])
     autoTable(doc, {
-      startY: currentY + 6,
+      startY: currentY + 7,
+      head: [['Service Category', 'Tokens Issued']],
+      body: stData,
+      theme: 'grid',
+      headStyles: {
+        fillColor: SLT_INDIGO,
+        textColor: [255, 255, 255],
+        halign: 'left',
+        fontStyle: 'bold',
+        fontSize: 9,
+        cellPadding: 4
+      },
+      styles: { fontSize: 9, cellPadding: 3.5 },
+      columnStyles: {
+        0: { halign: 'left', cellWidth: 'auto', textColor: [51, 65, 85] },
+        1: { halign: 'center', fontStyle: 'bold', cellWidth: 45 }
+      },
+      margin: { left: 20, right: 20 }
+    })
+
+    // ── IV. Regional Performance Audit ───────────────────────────
+    currentY = sectionHeading('IV. Regional Performance Audit', (doc as any).lastAutoTable.finalY + 15)
+
+    const hasBranchData = analytics.branchPerformance && analytics.branchPerformance.length > 0
+    const branchData = hasBranchData
+      ? analytics.branchPerformance!.map(b => [
+          b.name,
+          (b.totalTokens ?? 0).toLocaleString(),
+          `${Number(b.avgWaitTime ?? 0).toFixed(1)}m`,
+          `${Number(b.avgServiceTime ?? 0).toFixed(1)}m`,
+          Number(b.avgRating ?? 0).toFixed(1),
+          (b.feedbackCount ?? 0).toLocaleString()
+        ])
+      : [['No regional data available for selected filters', '—', '—', '—', '—', '—']]
+
+    autoTable(doc, {
+      startY: currentY + 7,
+      head: [['Outlet Name', 'Tokens', 'Avg Wait', 'Avg Svc', 'Rating', 'Feedbacks']],
+      body: branchData,
+      theme: 'grid',
+      headStyles: {
+        fillColor: SLT_DARK,
+        textColor: [255, 255, 255],
+        halign: 'center',
+        fontStyle: 'bold',
+        fontSize: 8.5,
+        cellPadding: 3.5
+      },
+      styles: { fontSize: 8.5, cellPadding: 3 },
+      columnStyles: {
+        0: { halign: 'left', cellWidth: 'auto', textColor: [51, 65, 85] },
+        1: { halign: 'center' },
+        2: { halign: 'center' },
+        3: { halign: 'center' },
+        4: { halign: 'center', fontStyle: 'bold', textColor: SLT_BLUE },
+        5: { halign: 'center' }
+      },
+      margin: { left: 20, right: 20 }
+    })
+
+    // ── V. Officer Efficiency Insights ───────────────────────────
+    currentY = sectionHeading('V. Officer Efficiency Insights', (doc as any).lastAutoTable.finalY + 15)
+
+    const hasOfficerData = analytics.officerPerformance && analytics.officerPerformance.length > 0
+    const officerData = hasOfficerData
+      ? analytics.officerPerformance.map(perf => [
+          perf.officer?.name || 'Unknown',
+          perf.officer?.outlet?.name || 'N/A',
+          (perf.tokensHandled ?? 0).toLocaleString(),
+          Number(perf.avgRating ?? 0).toFixed(1),
+          (perf.feedbackCount ?? 0).toLocaleString()
+        ])
+      : [['No officer data available for selected period', '—', '—', '—', '—']]
+
+    autoTable(doc, {
+      startY: currentY + 7,
       head: [['Officer Name', 'Outlet', 'Tokens', 'Rating', 'Feedbacks']],
       body: officerData,
       theme: 'grid',
-      headStyles: { fillColor: SLT_BLUE as [number, number, number], textColor: [255, 255, 255], halign: 'center' },
-      styles: { fontSize: 8, cellPadding: 2 },
+      headStyles: {
+        fillColor: SLT_BLUE,
+        textColor: [255, 255, 255],
+        halign: 'center',
+        fontStyle: 'bold',
+        fontSize: 8.5,
+        cellPadding: 3.5
+      },
+      styles: { fontSize: 8.5, cellPadding: 3 },
       columnStyles: {
-        0: { halign: 'left' },
-        1: { halign: 'left' },
+        0: { halign: 'left', textColor: [51, 65, 85] },
+        1: { halign: 'left', textColor: [71, 85, 105] },
         2: { halign: 'center', fontStyle: 'bold' },
         3: { halign: 'center' },
         4: { halign: 'center' }
@@ -478,8 +558,10 @@ export default function InsightsPage() {
       margin: { left: 20, right: 20 }
     })
 
+    // ─── Stamp footers on every page ─────────────────────────────
     const totalPages = (doc as any).internal.getNumberOfPages()
-    for (let i = 1; i <= totalPages; i++) { addFooter(i, totalPages) }
+    for (let i = 1; i <= totalPages; i++) addFooter(i, totalPages)
+
     const fileDate = new Date().toISOString().split('T')[0]
     doc.save(`DQMP_Report_${selectedOutlet ? 'Outlet' : 'IslandWide'}_${fileDate}.pdf`)
   }
