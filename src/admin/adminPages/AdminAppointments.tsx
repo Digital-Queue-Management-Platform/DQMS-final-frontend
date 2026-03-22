@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
-import { Calendar, Filter, RefreshCwIcon, Search } from "lucide-react"
+import { Calendar, RefreshCwIcon, Search } from "lucide-react"
 import api, { WS_URL } from "../../config/api"
 import ServiceName from "../../components/ServiceName"
 
@@ -19,9 +19,12 @@ type Appointment = {
   queuedAt?: string | null
 }
 
-const SERVICE_OPTIONS = [
-  { code: 'BILL_PAYMENT', label: 'Bill Payment' },
-  { code: 'OTHERS', label: 'Others' },
+const STATUS_OPTIONS = [
+  { value: 'all', label: 'All Statuses' },
+  { value: 'booked', label: 'Booked' },
+  { value: 'queued', label: 'Queued' },
+  { value: 'completed', label: 'Completed' },
+  { value: 'cancelled', label: 'Cancelled' },
 ]
 
 export default function AdminAppointments() {
@@ -29,8 +32,9 @@ export default function AdminAppointments() {
   const [selectedOutlet, setSelectedOutlet] = useState<string>('all')
   const [startDate, setStartDate] = useState<string>(() => new Date().toISOString().slice(0, 10))
   const [endDate, setEndDate] = useState<string>(() => new Date().toISOString().slice(0, 10))
-  // We only show booked appointments (queued ones will disappear from this pool)
-  const [services, setServices] = useState<string[]>([])
+  const [selectedService, setSelectedService] = useState<string>('all')
+  const [serviceOptions, setServiceOptions] = useState<{code: string, title: string}[]>([])
+  const [selectedStatus, setSelectedStatus] = useState<string>('all')
   const [q, setQ] = useState<string>('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -107,10 +111,14 @@ export default function AdminAppointments() {
 
   const fetchOutlets = async () => {
     try {
-      const res = await api.get('/queue/outlets')
-      setOutlets(res.data || [])
+      const [outletsRes, servicesRes] = await Promise.all([
+        api.get('/queue/outlets'),
+        api.get('/appointment/services')
+      ])
+      setOutlets(outletsRes.data || [])
+      setServiceOptions(servicesRes.data || [])
     } catch (e) {
-      setError('Failed to load outlets')
+      setError('Failed to load metadata')
     }
   }
 
@@ -149,9 +157,12 @@ export default function AdminAppointments() {
 
   const filtered = useMemo(() => {
     let data = rows.slice()
-    // Appointment pool shows only booked items; queued items are excluded
-    data = data.filter(r => r.status === 'booked')
-    if (services.length) data = data.filter(r => Array.isArray(r.serviceTypes) && services.every(s => r.serviceTypes.includes(s)))
+    if (selectedStatus !== 'all') {
+      data = data.filter(r => r.status === selectedStatus)
+    }
+    if (selectedService !== 'all') {
+      data = data.filter(r => Array.isArray(r.serviceTypes) && r.serviceTypes.includes(selectedService))
+    }
     if (q.trim()) {
       const qq = q.trim().toLowerCase()
       data = data.filter(r => r.name?.toLowerCase().includes(qq) || r.mobileNumber?.includes(qq))
@@ -159,11 +170,7 @@ export default function AdminAppointments() {
     // sort by appointmentAt ASC
     data.sort((a, b) => new Date(a.appointmentAt).getTime() - new Date(b.appointmentAt).getTime())
     return data
-  }, [rows, services, q])
-
-  const toggleService = (code: string) => {
-    setServices(prev => prev.includes(code) ? prev.filter(c => c !== code) : [...prev, code])
-  }
+  }, [rows, selectedService, q, selectedStatus])
 
   const formatDate = (s: string) => new Date(s).toLocaleDateString([], { year: 'numeric', month: 'short', day: 'numeric' })
   const formatTime = (s: string) => new Date(s).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
@@ -217,25 +224,32 @@ export default function AdminAppointments() {
               <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="w-full border rounded-lg pl-9 pr-3 py-2 text-sm" />
             </div>
           </div>
+          {/* Service */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Service</label>
+            <select value={selectedService} onChange={(e) => setSelectedService(e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm">
+              <option value="all">All Services</option>
+              {serviceOptions.map(s => (
+                <option key={s.code} value={s.code}>{s.title}</option>
+              ))}
+            </select>
+          </div>
+          {/* Status */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+            <select value={selectedStatus} onChange={(e) => setSelectedStatus(e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm">
+              {STATUS_OPTIONS.map(opt => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
+            </select>
+          </div>
           {/* Search */}
-          <div className="sm:col-span-2 lg:col-span-1">
+          <div className="sm:col-span-1">
             <label className="block text-sm font-medium text-gray-700 mb-1">Search</label>
             <div className="relative">
               <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
-              <input type="text" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Name or Mobile" className="w-full border rounded-lg pl-9 pr-3 py-2 text-sm" />
+              <input type="text" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Name/Mobile" className="w-full border rounded-lg pl-9 pr-3 py-2 text-sm" />
             </div>
-          </div>
-        </div>
-        {/* Services */}
-        <div className="mt-3">
-          <label className="block text-sm font-medium text-gray-700 mb-2">Services</label>
-          <div className="flex flex-wrap gap-2">
-            {SERVICE_OPTIONS.map(s => (
-              <label key={s.code} className={`inline-flex items-center gap-2 px-3 py-1.5 border rounded-full text-sm cursor-pointer transition-colors ${services.includes(s.code) ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-gray-700 border-gray-300 hover:border-indigo-300'}`}>
-                <input type="checkbox" checked={services.includes(s.code)} onChange={() => toggleService(s.code)} className="hidden" />
-                <Filter className="w-3 h-3" /> {s.label}
-              </label>
-            ))}
           </div>
         </div>
       </div>
