@@ -1,9 +1,10 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
-import { Calendar, RefreshCwIcon, Search } from "lucide-react"
+import { Calendar, Filter, RefreshCwIcon, Search } from "lucide-react"
 import api, { WS_URL } from "../../config/api"
 import ServiceName from "../../components/ServiceName"
+import { AnimatedDropdown } from "../../components/AnimatedDropdown"
 
 type Outlet = { id: string; name: string; location: string }
 type Appointment = {
@@ -19,29 +20,25 @@ type Appointment = {
   queuedAt?: string | null
 }
 
-const STATUS_OPTIONS = [
-  { value: 'all', label: 'All Statuses' },
-  { value: 'booked', label: 'Booked' },
-  { value: 'queued', label: 'Queued' },
-  { value: 'completed', label: 'Completed' },
-  { value: 'cancelled', label: 'Cancelled' },
-]
+type Service = { code: string; title: string }
 
 export default function AdminAppointments() {
   const [outlets, setOutlets] = useState<Outlet[]>([])
   const [selectedOutlet, setSelectedOutlet] = useState<string>('all')
   const [startDate, setStartDate] = useState<string>(() => new Date().toISOString().slice(0, 10))
   const [endDate, setEndDate] = useState<string>(() => new Date().toISOString().slice(0, 10))
+  // We only show booked appointments (queued ones will disappear from this pool)
   const [selectedService, setSelectedService] = useState<string>('all')
-  const [serviceOptions, setServiceOptions] = useState<{code: string, title: string}[]>([])
-  const [selectedStatus, setSelectedStatus] = useState<string>('all')
+  const [statusFilter, setStatusFilter] = useState<string>('all')
   const [q, setQ] = useState<string>('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [rows, setRows] = useState<(Appointment & { outletName?: string; outletLocation?: string })[]>([])
+  const [availableServices, setAvailableServices] = useState<Service[]>([])
 
   useEffect(() => {
     fetchOutlets()
+    fetchServices()
 
     // Auto-refresh every 30 seconds
     const interval = setInterval(() => {
@@ -111,14 +108,19 @@ export default function AdminAppointments() {
 
   const fetchOutlets = async () => {
     try {
-      const [outletsRes, servicesRes] = await Promise.all([
-        api.get('/queue/outlets'),
-        api.get('/appointment/services')
-      ])
-      setOutlets(outletsRes.data || [])
-      setServiceOptions(servicesRes.data || [])
+      const res = await api.get('/queue/outlets')
+      setOutlets(res.data || [])
     } catch (e) {
-      setError('Failed to load metadata')
+      setError('Failed to load outlets')
+    }
+  }
+
+  const fetchServices = async () => {
+    try {
+      const res = await api.get('/queue/services')
+      setAvailableServices(res.data || [])
+    } catch (e) {
+      console.error('Failed to fetch services:', e)
     }
   }
 
@@ -157,9 +159,13 @@ export default function AdminAppointments() {
 
   const filtered = useMemo(() => {
     let data = rows.slice()
-    if (selectedStatus !== 'all') {
-      data = data.filter(r => r.status === selectedStatus)
+    // Filter by status: if "all" shows both booked and queued to keep pool active
+    if (statusFilter === 'all') {
+      data = data.filter(r => ['booked', 'queued'].includes(r.status))
+    } else {
+      data = data.filter(r => r.status === statusFilter)
     }
+
     if (selectedService !== 'all') {
       data = data.filter(r => Array.isArray(r.serviceTypes) && r.serviceTypes.includes(selectedService))
     }
@@ -170,7 +176,8 @@ export default function AdminAppointments() {
     // sort by appointmentAt ASC
     data.sort((a, b) => new Date(a.appointmentAt).getTime() - new Date(b.appointmentAt).getTime())
     return data
-  }, [rows, selectedService, q, selectedStatus])
+  }, [rows, selectedService, statusFilter, q])
+
 
   const formatDate = (s: string) => new Date(s).toLocaleDateString([], { year: 'numeric', month: 'short', day: 'numeric' })
   const formatTime = (s: string) => new Date(s).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
@@ -197,7 +204,7 @@ export default function AdminAppointments() {
       </div>
 
       <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 sm:p-6 mb-4">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
           {/* Outlet */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Outlet</label>
@@ -224,32 +231,42 @@ export default function AdminAppointments() {
               <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="w-full border rounded-lg pl-9 pr-3 py-2 text-sm" />
             </div>
           </div>
-          {/* Service */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Service</label>
-            <select value={selectedService} onChange={(e) => setSelectedService(e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm">
-              <option value="all">All Services</option>
-              {serviceOptions.map(s => (
-                <option key={s.code} value={s.code}>{s.title}</option>
-              ))}
-            </select>
+          {/* Search */}
+          <div className="sm:col-span-1 lg:col-span-1">
+            <label className="block text-sm font-medium text-gray-700 mb-1">Search</label>
+            <div className="relative">
+              <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <input type="text" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Name or Mobile" className="w-full border rounded-lg pl-9 pr-3 py-2 text-sm" />
+            </div>
           </div>
           {/* Status */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-            <select value={selectedStatus} onChange={(e) => setSelectedStatus(e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm">
-              {STATUS_OPTIONS.map(opt => (
-                <option key={opt.value} value={opt.value}>{opt.label}</option>
-              ))}
-            </select>
+            <AnimatedDropdown
+              value={statusFilter}
+              onChange={setStatusFilter}
+              options={[
+                { value: "all", label: "All Statuses" },
+                { value: "booked", label: "Booked" },
+                { value: "queued", label: "Queued" },
+                { value: "completed", label: "Completed" },
+                { value: "cancelled", label: "Cancelled" }
+              ]}
+              icon={<Filter className="w-4 h-4" />}
+            />
           </div>
-          {/* Search */}
-          <div className="sm:col-span-1">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Search</label>
-            <div className="relative">
-              <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
-              <input type="text" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Name/Mobile" className="w-full border rounded-lg pl-9 pr-3 py-2 text-sm" />
-            </div>
+          {/* Services */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Services</label>
+            <AnimatedDropdown
+              value={selectedService}
+              onChange={setSelectedService}
+              options={[
+                { value: "all", label: "All Services" },
+                ...availableServices.map(s => ({ value: s.code, label: s.title }))
+              ]}
+              icon={<Filter className="w-4 h-4" />}
+            />
           </div>
         </div>
       </div>

@@ -1,4 +1,4 @@
-﻿import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { ChevronDown } from 'lucide-react';
 
 interface DropdownOption {
@@ -82,7 +82,7 @@ const AnimatedDropdown: React.FC<AnimatedDropdownProps> = ({
           }`}
       >
         <div
-          className={`max-h-[200px] overflow-y-auto py-1 ${SCROLLBAR_STYLES}`}
+          className={`max-h-[200px] overflow-y-auto py-1 flex flex-col ${SCROLLBAR_STYLES}`}
           style={{
             scrollbarWidth: 'thin',
             scrollbarColor: '#3b82f6 #f3f4f6'

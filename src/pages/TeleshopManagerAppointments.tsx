@@ -1,7 +1,7 @@
-﻿"use client"
+"use client"
 
 import { useEffect, useMemo, useRef, useState } from "react"
-import { Filter, RefreshCw, Languages, Search } from "lucide-react"
+import { Filter, RefreshCw, Search } from "lucide-react"
 import api from "../config/api"
 import { AnimatedDropdown } from "../components/AnimatedDropdown"
 import ServiceName from "../components/ServiceName"
@@ -20,22 +20,20 @@ type Appointment = {
   queuedAt?: string | null
 }
 
-const SERVICE_OPTIONS = [
-  { code: 'BILL_PAYMENT', label: 'Bill Payment' },
-  { code: 'OTHERS', label: 'Others' },
-]
+type Service = { code: string; title: string }
 
 export default function TeleshopManagerAppointments() {
   const [outlets, setOutlets] = useState<Outlet[]>([])
   const [startDate, setStartDate] = useState<string>(() => new Date().toISOString().slice(0, 10))
   const [endDate, setEndDate] = useState<string>(() => new Date().toISOString().slice(0, 10))
-  const [services, setServices] = useState<string[]>([])
+  const [selectedService, setSelectedService] = useState<string>('all')
   const [q, setQ] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
   const [languageFilter, setLanguageFilter] = useState('all')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [rows, setRows] = useState<(Appointment & { outletName?: string; outletLocation?: string })[]>([])
+  const [availableServices, setAvailableServices] = useState<Service[]>([])
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 10
 
@@ -50,7 +48,10 @@ export default function TeleshopManagerAppointments() {
     }
   }
 
-  useEffect(() => { fetchOutlets() }, [])
+  useEffect(() => { 
+    fetchOutlets()
+    fetchServices()
+  }, [])
 
   const fetchOutlets = async () => {
     try {
@@ -65,6 +66,15 @@ export default function TeleshopManagerAppointments() {
       setOutlets(filtered)
     } catch (e) {
       setError('Failed to load outlets')
+    }
+  }
+
+  const fetchServices = async () => {
+    try {
+      const res = await api.get('/queue/services')
+      setAvailableServices(res.data || [])
+    } catch (e) {
+      console.error('Failed to fetch services:', e)
     }
   }
 
@@ -135,9 +145,15 @@ export default function TeleshopManagerAppointments() {
 
   const filtered = useMemo(() => {
     let data = rows.slice()
-    data = data.filter(r => r.status === 'booked')
-    if (services.length) data = data.filter(r => Array.isArray(r.serviceTypes) && services.every(s => r.serviceTypes.includes(s)))
-    if (statusFilter !== 'all') data = data.filter(r => r.status === statusFilter)
+    // Status filter: in "pool" view, "all" should show booked and queued
+    if (statusFilter === 'all') {
+      data = data.filter(r => ['booked', 'queued'].includes(r.status))
+    } else {
+      data = data.filter(r => r.status === statusFilter)
+    }
+    if (selectedService !== 'all') {
+      data = data.filter(r => Array.isArray(r.serviceTypes) && r.serviceTypes.includes(selectedService))
+    }
     if (languageFilter !== 'all') data = data.filter(r => r.preferredLanguage === languageFilter)
     if (q.trim()) {
       const qq = q.trim().toLowerCase()
@@ -145,7 +161,7 @@ export default function TeleshopManagerAppointments() {
     }
     data.sort((a, b) => new Date(a.appointmentAt).getTime() - new Date(b.appointmentAt).getTime())
     return data
-  }, [rows, services, statusFilter, languageFilter, q])
+  }, [rows, selectedService, statusFilter, languageFilter, q])
 
   // Pagination calculations
   const totalPages = Math.ceil(filtered.length / itemsPerPage)
@@ -156,11 +172,8 @@ export default function TeleshopManagerAppointments() {
   // Reset to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1)
-  }, [startDate, endDate, services, statusFilter, languageFilter, q])
+  }, [startDate, endDate, selectedService, statusFilter, languageFilter, q])
 
-  const toggleService = (code: string) => {
-    setServices(prev => prev.includes(code) ? prev.filter(c => c !== code) : [...prev, code])
-  }
 
   const formatDate = (s: string) => new Date(s).toLocaleDateString([], { year: 'numeric', month: 'short', day: 'numeric' })
   const formatTime = (s: string) => new Date(s).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
@@ -191,10 +204,11 @@ export default function TeleshopManagerAppointments() {
         </button>
       </div>
 
-      <div className="rounded-xl border border-slate-200 p-2.5 mb-4">
-        <div className="flex gap-3">
-          {/* Status Filter */}
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 sm:p-6 mb-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+          {/* Status */}
           <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
             <AnimatedDropdown
               value={statusFilter}
               onChange={setStatusFilter}
@@ -206,12 +220,12 @@ export default function TeleshopManagerAppointments() {
                 { value: "cancelled", label: "Cancelled" }
               ]}
               icon={<Filter className="w-4 h-4" />}
-              className="w-48"
             />
           </div>
 
-          {/* Language Filter */}
+          {/* Language */}
           <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Language</label>
             <AnimatedDropdown
               value={languageFilter}
               onChange={setLanguageFilter}
@@ -221,52 +235,53 @@ export default function TeleshopManagerAppointments() {
                 { value: "si", label: "Sinhala" },
                 { value: "ta", label: "Tamil" }
               ]}
-              icon={<Languages className="w-4 h-4" />}
-              className="w-48"
+              icon={<Filter className="w-4 h-4" />}
             />
           </div>
 
           {/* Date Range */}
           <div>
-            {/*<label className="block text-sm font-medium text-gray-700 mb-1">Date Range</label>*/}
+            <label className="block text-sm font-medium text-gray-700 mb-1">Date Range</label>
             <div className="flex items-center gap-2">
               <input
                 type="date"
                 value={startDate}
                 onChange={e => handleDateChange(e, setStartDate)}
-                className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:border-transparent focus:outline-none"
-                placeholder="Start date"
+                className="w-full px-3 py-2 border border-blue-100 rounded-lg text-sm focus:border-blue-300 focus:outline-none bg-blue-50/30"
+                placeholder="Start"
               />
-              <span className="text-gray-500 text-sm">to</span>
+              <span className="text-gray-400 text-xs text-center">to</span>
               <input
                 type="date"
                 value={endDate}
                 onChange={e => handleDateChange(e, setEndDate)}
-                className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:border-transparent focus:outline-none"
-                placeholder="End date"
+                className="w-full px-3 py-2 border border-blue-100 rounded-lg text-sm focus:border-blue-300 focus:outline-none bg-blue-50/30"
+                placeholder="End"
               />
             </div>
           </div>
+
           {/* Search */}
-          <div className="flex-1">
-            {/*<label className="block text-sm font-medium text-gray-700 mb-1">Search</label>*/}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Search</label>
             <div className="relative">
               <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
               <input type="text" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Name or Mobile" className="w-full border border-gray-300 rounded-lg focus:border-transparent focus:outline-none pl-9 pr-3 py-2" />
             </div>
           </div>
-        </div>
 
-        {/* Services */}
-        <div className="mt-3">
-          {/*<label className="block text-sm font-medium text-gray-700 mb-2">Services</label>*/}
-          <div className="flex flex-wrap gap-2">
-            {SERVICE_OPTIONS.map(s => (
-              <label key={s.code} className={`inline-flex items-center gap-2 px-3 py-1.5 border rounded-full text-sm cursor-pointer ${services.includes(s.code) ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-gray-700 border-gray-300'}`}>
-                <input type="checkbox" checked={services.includes(s.code)} onChange={() => toggleService(s.code)} className="hidden" />
-                {/*<Filter className="w-3 h-3" />*/} {s.label}
-              </label>
-            ))}
+          {/* Service Filter */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Service</label>
+            <AnimatedDropdown
+              value={selectedService}
+              onChange={setSelectedService}
+              options={[
+                { value: "all", label: "All Services" },
+                ...availableServices.map(s => ({ value: s.code, label: s.title }))
+              ]}
+              icon={<Filter className="w-4 h-4" />}
+            />
           </div>
         </div>
       </div>
