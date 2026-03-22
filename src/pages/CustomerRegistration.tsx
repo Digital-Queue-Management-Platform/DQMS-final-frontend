@@ -780,6 +780,7 @@ export default function CustomerRegistration() {
       step4Title: "Review & Generate Token",
       step4Subtitle: "Verify your information and generate token",
       enterSltNumber: "Enter your SLT telephone number",
+      sltVerificationNote: "We'll verify your SLT account after you verify your mobile number",
       verifiedAccount: "Account Verified",
       billSummary: "Bill Summary",
       verified: "Phone Verified",
@@ -788,6 +789,7 @@ export default function CustomerRegistration() {
       notificationSent: "Notification Sent",
       continueWithYourNumber: "You can continue with any mobile number to complete the service.",
       dueAmountNote: "Please ask the account holder to confirm the due amount with the officer at the counter.",
+
       payFullAmount: "Pay Full Amount",
       payPartialAmount: "Pay Partial Amount",
       partialAmountLabel: "Enter Amount to Pay (Rs.)",
@@ -827,15 +829,15 @@ export default function CustomerRegistration() {
       tamil: "දෙමළ",
       noServicesAvailable: "සේවා ලබා ගත නොහැක",
       nicPlaceholder: "123456789V හෝ 200012345678",
-      preferredLanguageSubtitle: "අறிவிப்புகளுக்கான உங்கள் விருப்ப மொழி தேர்ந்தெடுக்கவும்.",
+      preferredLanguageSubtitle: "ප්‍රකාශන සඳහා ඔබ කැමති භාෂාව තෝරන්න.",
       verify: "තහවුරු කරන්න",
       sendingOTP: "OTP යවමින්...",
       clearForm: "පෝරමය පැහැදිලි කරන්න",
-      changeNumber: "எண்ணை மாற்றவும்",
-      sltTelephone: "SLT தொலைபேசி எண்",
+      changeNumber: "අංකය වෙනස් කරන්න",
+      sltTelephone: "SLT දුරකථන අංකය",
       sltTelephonePlaceholder: "011XXXXXXX",
-      verifySlt: "எண்ணைச் சரிபார்க்கவும்",
-      verifyingSlt: "சரிபார்க்கிறது...",
+      verifySlt: "අංකය තහවුරු කරන්න",
+      verifyingSlt: "තහවුරු කරමින්...",
       accountName: "ගිණුම් නම",
       accountAddress: "බිල්පත් ලිපිනය",
       billAmount: "බිල් ගාස්තුව",
@@ -858,6 +860,8 @@ export default function CustomerRegistration() {
       step4Title: "සමාලෝචනය සහ ටෝකන් උත්පාදනය",
       step4Subtitle: "ඔබගේ තොරතුරු තහවුරු කර ටෝකන් උත්පාදනය කරන්න",
       enterSltNumber: "ඔබේ SLT දුරකථන අංකය ඇතුළත් කරන්න",
+      sltVerificationNote: "අපි ඔබේ ජංගම අංකය තහවුරු වූ පසු ඔබේ SLT ගිණුම තහවුරු කරන්නෙමු",
+
       verifiedAccount: "ගිණුම තහවුරු කර ඇත",
       billSummary: "බිල් සාරාංශය",
       verified: "දුරකථන තහවුරු විය",
@@ -936,6 +940,7 @@ export default function CustomerRegistration() {
       step4Title: "மதிப்பாய்வு மற்றும் டோக்கன் உருவாக்கம்",
       step4Subtitle: "உங்கள் தகவலைச் சரிபார்த்து டோக்கனை உருவாக்கவும்",
       enterSltNumber: "உங்கள் SLT தொலைபேசி எண்ணை உள்ளிடவும்",
+      sltVerificationNote: "உங்கள் கைபேசி எண்ணை சரிபார்த்த பிறகு உங்கள் SLT கணக்கை சரிபார்ப்போம்",
       verifiedAccount: "கணக்கு சரிபார்க்கப்பட்டது",
       billSummary: "பில் சுருக்கம்",
       verified: "தொலைபேசி சரிபார்க்கப்பட்டது",
@@ -944,6 +949,7 @@ export default function CustomerRegistration() {
       notificationSent: "அறிவிப்பு அனுப்பப்பட்டது",
       continueWithYourNumber: "சேவையை முடிக்க நீங்கள் எந்த மொபைல் எண்ணைக் கொண்டும் தொடரலாம்.",
       dueAmountNote: "கணக்கு வைத்திருப்பவர் கவுண்டரில் உள்ள அதிகாரியிடம் நிலுவைத் தொகையை உறுதிப்படுத்துமாறு கேட்கவும்.",
+
       payFullAmount: "முழு தொகை செலுத்துங்கள்",
       payPartialAmount: "பகுதி தொகை செலுத்துங்கள்",
       partialAmountLabel: "செலுத்த வேண்டிய தொகை (ரூ.)",
@@ -1188,7 +1194,8 @@ export default function CustomerRegistration() {
                               {sltTelephoneNumber.length > 0 && !isValidSlt(sltTelephoneNumber) && (
                                 <p className="text-xs text-red-500 mt-1">Enter a valid 10-digit SLT number (e.g. 011XXXXXXX)</p>
                               )}
-                              <p className="text-xs text-blue-600 mt-2"> We'll verify your SLT account after you verify your mobile number</p>
+                              <p className="text-xs text-blue-600 mt-2">{t.sltVerificationNote}</p>
+
                             </div>
                           </div>
                         </div>
