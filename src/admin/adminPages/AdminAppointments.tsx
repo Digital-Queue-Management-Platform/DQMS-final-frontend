@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import { useEffect, useMemo, useState } from "react"
 import { Calendar, Filter, RefreshCwIcon, Search } from "lucide-react"
@@ -92,8 +92,14 @@ export default function AdminAppointments() {
       if (reconnectTimer) {
         clearTimeout(reconnectTimer)
       }
-      if (ws && ws.readyState === WebSocket.OPEN) {
-        ws.close()
+      if (ws) {
+        ws.onopen = null
+        ws.onmessage = null
+        ws.onerror = null
+        ws.onclose = null
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.close()
+        }
       }
     }
   }, [])

@@ -70,7 +70,7 @@ export default function InsightsPage() {
     const checkAuthStatus = () => {
       const adminToken = localStorage.getItem('adminToken')
       const isCurrentlyAuth = !!adminToken
-      
+
       if (isAuthenticated !== isCurrentlyAuth) {
         setIsAuthenticated(isCurrentlyAuth)
         if (!isCurrentlyAuth) {
@@ -114,7 +114,13 @@ export default function InsightsPage() {
 
     return () => {
       clearInterval(interval)
-      ws.close()
+      ws.onopen = null
+      ws.onmessage = null
+      ws.onerror = null
+      ws.onclose = null
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.close()
+      }
     }
   }, [isAuthenticated])
 
@@ -185,7 +191,7 @@ export default function InsightsPage() {
     const dateStr = new Date().toLocaleDateString().replace(/\//g, '-')
     const reportDate = new Date().toLocaleString()
     const outName = selectedOutlet ? (outlets.find((o: any) => o.id === selectedOutlet)?.name || 'Outlet').replace(/\s+/g, '_') : 'All_Outlets'
-    
+
     // Constructing a more professional CSV structure using array of rows
     const rows = [
       ["SLT-MOBITEL DIGITAL QUEUE MANAGEMENT PLATFORM"],
@@ -193,7 +199,7 @@ export default function InsightsPage() {
       [""],
       ["REPORT PARAMETERS"],
       ["Generated At", reportDate],
-      ["Report ID", `DQMP-${Math.floor(Date.now()/10000)}`],
+      ["Report ID", `DQMP-${Math.floor(Date.now() / 10000)}`],
       ["Scope", selectedOutlet ? (outlets.find((o: any) => o.id === selectedOutlet)?.name || 'Specified Outlet') : 'Island-wide (All Outlets)'],
       ["Period", `${dateRange.startDate} to ${dateRange.endDate}`],
       [""],
@@ -288,7 +294,7 @@ export default function InsightsPage() {
       // Background Banner (Executive Dark Navy)
       doc.setFillColor(SLT_DARK[0], SLT_DARK[1], SLT_DARK[2])
       doc.rect(0, 0, pageWidth, 32, 'F')
-      
+
       // Vertical branding divider (Orange Accent)
       doc.setFillColor(SLT_ORANGE[0], SLT_ORANGE[1], SLT_ORANGE[2])
       doc.rect(20, 8, 1, 16, 'F')
@@ -298,11 +304,11 @@ export default function InsightsPage() {
       doc.setFont("helvetica", "bold")
       doc.setFontSize(16)
       doc.text("SLT MOBITEL", 25, 16)
-      
+
       doc.setFontSize(8)
       doc.setFont("helvetica", "normal")
       doc.text("DIGITAL QUEUE MANAGEMENT PLATFORM", 25, 23)
-      
+
       if (isFirstPage) {
         doc.setFontSize(12)
         doc.setFont("helvetica", "bold")
@@ -319,19 +325,19 @@ export default function InsightsPage() {
       doc.setDrawColor(203, 213, 225)
       doc.setLineWidth(0.1)
       doc.line(20, pageHeight - 15, pageWidth - 20, pageHeight - 15)
-      
+
       doc.setFontSize(6.5)
       doc.setTextColor(100, 116, 139)
       const dateStr = new Date().toLocaleString()
-      const reportId = `DQMP-${Math.floor(Date.now()/10000)}`
-      
+      const reportId = `DQMP-${Math.floor(Date.now() / 10000)}`
+
       // LEFT: ID & Generation Date
       doc.text(`${reportId} | Generated on: ${dateStr}`, 20, pageHeight - 10)
-      
+
       // CENTER: Management Notice (Bold)
       doc.setFont("helvetica", "bold")
       doc.text("SLT-MOBITEL DQMP Management Report", pageWidth / 2, pageHeight - 10, { align: "center" })
-      
+
       // RIGHT: Page Registry
       doc.setFont("helvetica", "normal")
       doc.text(`Page ${page} of ${total}`, pageWidth - 20, pageHeight - 10, { align: "right" })
@@ -347,12 +353,12 @@ export default function InsightsPage() {
     doc.setFontSize(9)
     doc.text(`Period: ${dateRange.startDate} to ${dateRange.endDate}`, 20, 56)
     doc.text(`Scope: ${selectedOutlet ? outlets.find((o: any) => o.id === selectedOutlet)?.name || selectedOutlet : 'Island-wide (All Outlets)'}`, 20, 61)
-    
+
     doc.setFontSize(14)
     doc.setFont("helvetica", "bold")
     doc.setTextColor(SLT_BLUE[0], SLT_BLUE[1], SLT_BLUE[2])
     doc.text("I. Executive Summary", 20, 75)
-    
+
     const summaryData = [
       ["Operational Metric", "Statistical Value"],
       ["Total Tokens Issued", analytics.totalTokens.toLocaleString()],
@@ -368,9 +374,9 @@ export default function InsightsPage() {
       theme: 'grid',
       headStyles: { fillColor: SLT_DARK as [number, number, number], textColor: [256, 255, 255], fontStyle: 'bold', halign: 'left' },
       styles: { fontSize: 9, cellPadding: 4 },
-      columnStyles: { 
+      columnStyles: {
         0: { cellWidth: 100 },
-        1: { halign: 'right', fontStyle: 'bold', textColor: SLT_BLUE as [number, number, number] } 
+        1: { halign: 'right', fontStyle: 'bold', textColor: SLT_BLUE as [number, number, number] }
       },
       margin: { left: 20, right: 20 }
     })
@@ -379,7 +385,7 @@ export default function InsightsPage() {
     doc.setFontSize(14)
     doc.setFont("helvetica", "bold")
     doc.text("II. Customer Satisfaction Analysis", 20, currentY)
-    
+
     const satisfactionData = calculateRatingDistribution().reverse().map(item => [
       `${item.rating} Stars`,
       item.count.toLocaleString(),
@@ -393,10 +399,10 @@ export default function InsightsPage() {
       theme: 'striped',
       headStyles: { fillColor: SLT_BLUE as [number, number, number], textColor: [255, 255, 255], halign: 'center' },
       styles: { fontSize: 9, cellPadding: 3 },
-      columnStyles: { 
+      columnStyles: {
         0: { halign: 'left' },
-        1: { halign: 'center' }, 
-        2: { halign: 'center', fontStyle: 'bold' } 
+        1: { halign: 'center' },
+        2: { halign: 'center', fontStyle: 'bold' }
       },
       margin: { left: 20, right: 20 }
     })
@@ -415,9 +421,9 @@ export default function InsightsPage() {
         theme: 'grid',
         headStyles: { fillColor: [99, 102, 241], textColor: [255, 255, 255], halign: 'left' },
         styles: { fontSize: 9, cellPadding: 3 },
-        columnStyles: { 
+        columnStyles: {
           0: { cellWidth: 'auto' },
-          1: { halign: 'center', fontStyle: 'bold', cellWidth: 40 } 
+          1: { halign: 'center', fontStyle: 'bold', cellWidth: 40 }
         },
         margin: { left: 20, right: 20 }
       })
@@ -437,11 +443,11 @@ export default function InsightsPage() {
         theme: 'grid',
         headStyles: { fillColor: SLT_DARK as [number, number, number], textColor: [255, 255, 255], halign: 'center' },
         styles: { fontSize: 8, cellPadding: 2 },
-        columnStyles: { 
+        columnStyles: {
           0: { halign: 'left', cellWidth: 'auto' },
-          1: { halign: 'center' }, 
-          2: { halign: 'center' }, 
-          3: { halign: 'center' }, 
+          1: { halign: 'center' },
+          2: { halign: 'center' },
+          3: { halign: 'center' },
           4: { halign: 'center', fontStyle: 'bold' },
           5: { halign: 'center' }
         },
@@ -456,19 +462,19 @@ export default function InsightsPage() {
     doc.text("V. Officer Efficiency Insights", 20, currentY)
     const officerData = analytics.officerPerformance.map(perf => [perf.officer?.name || 'Unknown', perf.officer?.outlet?.name || 'N/A', perf.tokensHandled.toLocaleString(), perf.avgRating.toFixed(1), perf.feedbackCount.toLocaleString()])
     autoTable(doc, {
-      startY: currentY + 6, 
-      head: [['Officer Name', 'Outlet', 'Tokens', 'Rating', 'Feedbacks']], 
-      body: officerData, 
+      startY: currentY + 6,
+      head: [['Officer Name', 'Outlet', 'Tokens', 'Rating', 'Feedbacks']],
+      body: officerData,
       theme: 'grid',
       headStyles: { fillColor: SLT_BLUE as [number, number, number], textColor: [255, 255, 255], halign: 'center' },
-      styles: { fontSize: 8, cellPadding: 2 }, 
-      columnStyles: { 
+      styles: { fontSize: 8, cellPadding: 2 },
+      columnStyles: {
         0: { halign: 'left' },
         1: { halign: 'left' },
         2: { halign: 'center', fontStyle: 'bold' },
         3: { halign: 'center' },
         4: { halign: 'center' }
-      }, 
+      },
       margin: { left: 20, right: 20 }
     })
 
@@ -684,22 +690,22 @@ export default function InsightsPage() {
                   </h3>
                 </div>
                 <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-slate-100">
-                      <thead>
-                        <tr>
-                          <th className="px-6 py-3 text-left text-[10px] font-bold text-slate-500 uppercase">Service Type</th>
-                          <th className="px-6 py-3 text-right text-[10px] font-bold text-slate-500 uppercase">Total Tokens Issued</th>
+                  <table className="min-w-full divide-y divide-slate-100">
+                    <thead>
+                      <tr>
+                        <th className="px-6 py-3 text-left text-[10px] font-bold text-slate-500 uppercase">Service Type</th>
+                        <th className="px-6 py-3 text-right text-[10px] font-bold text-slate-500 uppercase">Total Tokens Issued</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100 px-6">
+                      {analytics.serviceTypes.map((st) => (
+                        <tr key={st.name} className="hover:bg-slate-50 transition-colors">
+                          <td className="px-6 py-4 text-sm font-medium text-slate-700">{st.name}</td>
+                          <td className="px-6 py-4 text-sm text-right text-slate-900 font-bold">{st.count}</td>
                         </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-100 px-6">
-                        {analytics.serviceTypes.map((st) => (
-                          <tr key={st.name} className="hover:bg-slate-50 transition-colors">
-                            <td className="px-6 py-4 text-sm font-medium text-slate-700">{st.name}</td>
-                            <td className="px-6 py-4 text-sm text-right text-slate-900 font-bold">{st.count}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               </div>
             )}

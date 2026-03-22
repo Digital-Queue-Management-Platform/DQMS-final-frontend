@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import { MapPinIcon, UsersIcon, ClockIcon, StarIcon, TrendingUpIcon, TrendingDownIcon } from 'lucide-react';
 
 interface Branch {
@@ -13,9 +13,10 @@ interface Branch {
 
 interface SriLankaMapProps {
   branchData: Branch[];
+  onViewDetails?: (branch: Branch) => void;
 }
 
-const SriLankaMap: React.FC<SriLankaMapProps> = ({ branchData }) => {
+const SriLankaMap: React.FC<SriLankaMapProps> = ({ branchData, onViewDetails }) => {
   // Group branches by region
   const regions: Record<string, string[]> = {
     Western: ['Colombo', 'Negombo'],
@@ -124,7 +125,10 @@ const SriLankaMap: React.FC<SriLankaMapProps> = ({ branchData }) => {
                 <div className="text-xs text-gray-500">
                   Service: {branch.avgServiceTime}min
                 </div>
-                <div className="text-xs font-medium text-indigo-600 hover:text-indigo-800 cursor-pointer">
+                <div 
+                  className="text-xs font-medium text-indigo-600 hover:text-indigo-800 cursor-pointer"
+                  onClick={() => onViewDetails && onViewDetails(branch)}
+                >
                   <span className="hidden sm:inline">View details →</span>
                   <span className="sm:hidden">Details</span>
                 </div>

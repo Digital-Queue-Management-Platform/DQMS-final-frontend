@@ -22,12 +22,12 @@ interface WaitingTimeChartProps {
 const WaitingTimeChart: React.FC<WaitingTimeChartProps> = ({ data }) => {
   // Extract outlet names from data (excluding 'day' key)
   const outletNames = data.length > 0 ? Object.keys(data[0]).filter(key => key !== 'day') : [];
-  
+
   // Define colors for up to 6 outlets
   const colors = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#14b8a6'];
 
   return (
-    <ResponsiveContainer width="100%" height={300}>
+    <ResponsiveContainer width="100%" height={300} minWidth={0} minHeight={150} debounce={1}>
       <LineChart
         data={data}
         margin={{ top: 25, right: 30, left: 20, bottom: 5 }}
@@ -54,12 +54,12 @@ const WaitingTimeChart: React.FC<WaitingTimeChartProps> = ({ data }) => {
         />
         <Legend verticalAlign="bottom" height={20} />
         {outletNames.map((outletName, index) => (
-          <Line 
+          <Line
             key={outletName}
-            type="monotone" 
-            dataKey={outletName} 
-            stroke={colors[index % colors.length]} 
-            activeDot={{ r: 8 }} 
+            type="monotone"
+            dataKey={outletName}
+            stroke={colors[index % colors.length]}
+            activeDot={{ r: 8 }}
           />
         ))}
       </LineChart>

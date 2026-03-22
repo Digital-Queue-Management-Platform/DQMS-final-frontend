@@ -1,12 +1,14 @@
-﻿"use client"
+"use client"
 
 import { useState, useEffect } from "react"
-import { useNavigate } from "react-router-dom"
+import { useNavigate, useLocation } from "react-router-dom"
 import { Clock, Star, Users, Building2, TrendingUp, TrendingDown, Bell, X, Activity, Building, Calendar, MessageSquare } from "lucide-react"
 import { motion } from "framer-motion"
 // ManagerTopBar is provided globally from Layout for manager routes
 import api, { WS_URL } from "../config/api"
 import type { Alert } from "../types"
+import BranchDashboardPage from "../admin/adminPages/BranchDashboardPage"
+import { Eye, ArrowLeft } from "lucide-react"
 
 interface BranchData {
   id: string;
@@ -22,6 +24,7 @@ interface BranchData {
 
 export default function ManagerDashboard() {
   const navigate = useNavigate()
+  const location = useLocation()
   const [branchData, setBranchData] = useState<BranchData[]>([])
   const [loading, setLoading] = useState(true)
   const [currentDateTime, setCurrentDateTime] = useState<Date>(new Date())
@@ -41,11 +44,29 @@ export default function ManagerDashboard() {
   const [showAlerts, setShowAlerts] = useState(false)
   const [alertsLoading, setAlertsLoading] = useState(false)
   const [alertFilter, setAlertFilter] = useState({ 
-    type: "", 
-    severity: "", 
     outletId: "", 
     importantOnly: false 
   })
+
+  // Branch Drill-down State
+  const [showBranchDashboard, setShowBranchDashboard] = useState(false);
+  const [selectedBranchIdForDetails, setSelectedBranchIdForDetails] = useState<string | null>(null);
+  const [selectedBranchNameForDetails, setSelectedBranchNameForDetails] = useState<string | null>(null);
+  const [timeframe, setTimeframe] = useState('Today');
+
+  // Deep-link to branch dashboard if branchId is in URL
+  useEffect(() => {
+    const params = new URLSearchParams(location.search)
+    const bid = params.get('branchId')
+    if (bid && branchData.length > 0) {
+      const b = branchData.find(x => x.id === bid)
+      if (b) {
+        setSelectedBranchIdForDetails(b.id)
+        setSelectedBranchNameForDetails(b.name)
+        setShowBranchDashboard(true)
+      }
+    }
+  }, [location.search, branchData])
 
   // Calculate unread alert count for notification badge
   const unreadAlertCount = alerts.filter((a) => !a.isRead).length
@@ -134,7 +155,7 @@ export default function ManagerDashboard() {
         ws.close()
       }
     }
-  }, [navigate])
+  }, [navigate, timeframe])
 
   // Date/time update effect
   useEffect(() => {
@@ -184,11 +205,20 @@ export default function ManagerDashboard() {
             const queueRes = await api.get(`/queue/outlet/${outlet.id}`)
             const queueData = queueRes.data || {}
 
-            // Get today's analytics
+            // Get analytics based on timeframe
             const start = new Date()
-            start.setHours(0,0,0,0)
             const end = new Date()
-            end.setHours(23,59,59,999)
+            end.setHours(23, 59, 59, 999)
+
+            if (timeframe === 'Today') {
+              start.setHours(0, 0, 0, 0)
+            } else if (timeframe === 'Weekly') {
+              start.setDate(start.getDate() - 7); start.setHours(0, 0, 0, 0)
+            } else if (timeframe === 'Monthly') {
+              start.setMonth(start.getMonth() - 1); start.setHours(0, 0, 0, 0)
+            } else if (timeframe === 'Annual') {
+              start.setFullYear(start.getFullYear() - 1); start.setHours(0, 0, 0, 0)
+            }
 
             const analyticsRes = await api.get(`/manager/outlet/${outlet.id}/analytics`, {
               params: { 
@@ -422,7 +452,18 @@ export default function ManagerDashboard() {
 
         {/* Branch Performance Table */}
         <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
-          <h2 className="text-xl font-bold text-slate-900 mb-6">Branch Performance</h2>
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6">
+            <h2 className="text-xl font-bold text-slate-900">Branch Performance Overview</h2>
+            
+            <div className="flex bg-slate-100 p-1 rounded-xl">
+              {['Today', 'Weekly', 'Monthly', 'Annual'].map((tf) => (
+                <button key={tf} onClick={() => setTimeframe(tf)}
+                  className={`px-4 py-1.5 text-xs font-semibold rounded-lg transition-all ${timeframe === tf ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
+                  {tf}
+                </button>
+              ))}
+            </div>
+          </div>
           
           <div className="overflow-x-auto">
             <table className="w-full">
@@ -448,6 +489,9 @@ export default function ManagerDashboard() {
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
                     Trend
+                  </th>
+                  <th className="px-6 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                    Actions
                   </th>
                 </tr>
               </thead>
@@ -481,6 +525,19 @@ export default function ManagerDashboard() {
                       ) : (
                         <TrendingDown className="w-5 h-5 text-green-500" />
                       )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <button
+                        onClick={() => {
+                          setSelectedBranchIdForDetails(branch.id);
+                          setSelectedBranchNameForDetails(branch.name);
+                          setShowBranchDashboard(true);
+                        }}
+                        className="text-blue-600 hover:text-blue-900 flex items-center gap-1 ml-auto"
+                      >
+                        <Eye className="w-4 h-4" />
+                        View Details
+                      </button>
                     </td>
                   </tr>
                 ))}
@@ -624,6 +681,51 @@ export default function ManagerDashboard() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Branch Detail View Overlay */}
+      {showBranchDashboard && (
+        <motion.div 
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          className="fixed inset-0 bg-slate-50 z-30 overflow-y-auto p-4 sm:p-6 lg:p-8"
+        >
+          <div className="max-w-[1600px] mx-auto">
+            <div className="flex items-center justify-between mb-6">
+              <button 
+                onClick={() => setShowBranchDashboard(false)}
+                className="flex items-center gap-2 text-slate-600 hover:text-slate-900 font-medium transition-colors"
+              >
+                <ArrowLeft className="w-5 h-5" />
+                Back to Regional Dashboard
+              </button>
+              
+              <div className="flex bg-white p-1 rounded-xl shadow-sm border border-slate-200">
+                {['Today', 'Weekly', 'Monthly', 'Annual'].map((tf) => (
+                  <button
+                    key={tf}
+                    onClick={() => setTimeframe(tf)}
+                    className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${
+                      timeframe === tf 
+                        ? 'bg-blue-600 text-white shadow-md' 
+                        : 'text-slate-600 hover:bg-slate-50'
+                    }`}
+                  >
+                    {tf}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <BranchDashboardPage 
+              timeframe={timeframe}
+              setTimeframe={setTimeframe}
+              initialBranchId={selectedBranchIdForDetails}
+              initialBranchName={selectedBranchNameForDetails}
+              outlets={branchData.map(b => ({ id: b.id, name: b.name }))}
+            />
+          </div>
+        </motion.div>
       )}
     </div>
   )

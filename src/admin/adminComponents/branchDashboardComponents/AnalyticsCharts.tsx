@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import {
   LineChart,
   Line,
@@ -45,25 +45,21 @@ interface AnalyticsData {
   hourlyWaitingTimes: HourlyWaitingTime[];
   serviceTypes: ServiceType[];
   ratingDistribution: RatingDistribution[];
+  staffUtilizationTrend?: any[];
 }
 
 interface AnalyticsChartsProps {
   data: AnalyticsData;
   tokenData: TokenDataItem[];
-  outletId?: string | null;
-  apiEndpoint?: string;
 }
 
-type TimeRange = 'daily' | 'weekly' | 'monthly';
-
-const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ data, tokenData, outletId = null, apiEndpoint = '/admin/analytics' }) => {
-  const [timeRange, setTimeRange] = useState<TimeRange>('daily');
+const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ data, tokenData }) => {
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
 
   const totalIssued = tokenData.reduce((sum, item) => sum + item.issued, 0);
   const totalCompleted = tokenData.reduce((sum, item) => sum + item.completed, 0);
   const totalDropOffs = totalIssued - totalCompleted;
-  const dropOffPercentage = ((totalDropOffs / totalIssued) * 100).toFixed(1);
+  const dropOffPercentage = totalIssued > 0 ? ((totalDropOffs / totalIssued) * 100).toFixed(1) : "0.0";
 
   const enhancedTokenData: EnhancedTokenDataItem[] = tokenData.map(item => ({
     ...item,
@@ -90,35 +86,6 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ data, tokenData, outl
         <h2 className="text-lg font-semibold text-gray-800">
           Branch Analytics
         </h2>
-        <div className="flex space-x-2">
-          <button
-            className={`px-3 py-1 text-sm rounded-md ${timeRange === 'daily'
-                ? 'bg-blue-100 text-blue-700'
-                : 'bg-gray-100 text-gray-600'
-              }`}
-            onClick={() => setTimeRange('daily')}
-          >
-            Daily
-          </button>
-          <button
-            className={`px-3 py-1 text-sm rounded-md ${timeRange === 'weekly'
-                ? 'bg-blue-100 text-blue-700'
-                : 'bg-gray-100 text-gray-600'
-              }`}
-            onClick={() => setTimeRange('weekly')}
-          >
-            Weekly
-          </button>
-          <button
-            className={`px-3 py-1 text-sm rounded-md ${timeRange === 'monthly'
-                ? 'bg-blue-100 text-blue-700'
-                : 'bg-gray-100 text-gray-600'
-              }`}
-            onClick={() => setTimeRange('monthly')}
-          >
-            Monthly
-          </button>
-        </div>
       </div>
 
       {/* Line Chart */}
@@ -127,8 +94,8 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ data, tokenData, outl
           <h3 className="text-sm font-medium text-gray-700 mb-4">
             Waiting Times Throughout the Day
           </h3>
-          <div className="h-64 mt-6">
-            <ResponsiveContainer width="100%" height="100%">
+          <div className="h-64 mt-6" style={{ minWidth: 0 }}>
+            <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={150}>
               <LineChart data={data.hourlyWaitingTimes}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} />
                 <XAxis dataKey="hour" />
@@ -151,8 +118,8 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ data, tokenData, outl
           <h3 className="text-sm font-medium text-gray-700 mb-4">
             Services Availed
           </h3>
-          <div className="h-64 mt-6">
-            <ResponsiveContainer width="100%" height="100%">
+          <div className="h-64 mt-6" style={{ minWidth: 0 }}>
+            <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={150}>
               <BarChart data={formattedServiceTypes}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} />
                 <XAxis dataKey="name" />
@@ -185,8 +152,8 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ data, tokenData, outl
               </div>
             </div>
           </div>
-          <div className="h-72">
-            <ResponsiveContainer width="100%" height="100%">
+          <div className="h-72" style={{ minWidth: 0 }}>
+            <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={150}>
               <LineChart data={enhancedTokenData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="hour" />
@@ -218,7 +185,7 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ data, tokenData, outl
       </div>
 
       <div className="mt-14">
-        <StaffUtilizationChart outletId={outletId} apiEndpoint={apiEndpoint} />
+        <StaffUtilizationChart data={data.staffUtilizationTrend || []} />
       </div>
 
       {/* Pie Chart */}
@@ -226,8 +193,8 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ data, tokenData, outl
         <h3 className="text-sm font-medium text-gray-700 mb-4">
           Customer Rating Distribution
         </h3>
-        <div className="h-64 flex items-center justify-center">
-          <ResponsiveContainer width="100%" height="100%">
+        <div className="h-64 flex items-center justify-center" style={{ minWidth: 0 }}>
+          <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={150}>
             <PieChart>
               <Pie
                 data={data.ratingDistribution as any}

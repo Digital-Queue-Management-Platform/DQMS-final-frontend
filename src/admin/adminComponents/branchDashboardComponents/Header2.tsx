@@ -1,78 +1,64 @@
 import React from 'react'
-
 import SearchableSelect from '../../../components/SearchableSelect'
 
 interface Header2Props {
   selectedBranch: string
   setSelectedBranch: (branch: string) => void
   branchOptions: string[]
+  timeframe?: string
+  setTimeframe?: (tf: string) => void
 }
 
 const Header2: React.FC<Header2Props> = ({ 
   selectedBranch, 
   setSelectedBranch, 
-  branchOptions 
+  branchOptions,
+  timeframe,
+  setTimeframe
 }) => {
-  /*const currentDate = new Date().toLocaleDateString('en-US', {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  })
-
-  const currentTime = new Date().toLocaleTimeString('en-US', {
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit'
-  })*/
-
   const options = branchOptions.map((name) => ({ _id: name, name }))
 
   return (
     <div className="p-2 mb-6">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
-        {/* Title and Date */}
-        <div>
-          <h1 className="text-lg font-semibold text-gray-800">
+      <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4">
+        {/* Title and Search */}
+        <div className="flex flex-col sm:flex-row items-center gap-4 w-full xl:w-auto">
+          <h1 className="text-lg font-bold text-gray-800 whitespace-nowrap min-w-[200px]">
             {selectedBranch}
           </h1>
-          {/*<div className="flex text-sm items-center text-gray-500 mt-1">
-            <Clock size={16} className="mr-1" />
-            <span>
-              {currentDate} | {currentTime}
-            </span>
-          </div>*/}
-        </div>
-
-        {/* Controls */}
-        <div className="flex flex-col md:flex-row gap-3 mt-4 md:mt-0">
-          {/* Branch Select */}
-          <div className="min-w-[300px]">
+          <div className="w-full sm:w-[400px]">
             <SearchableSelect
               options={options}
               value={selectedBranch}
               onChange={setSelectedBranch}
-              placeholder="Select branch"
+              placeholder="Select branch to view live data"
               displayKey={(opt) => opt.name || opt._id}
               searchKeys={["name", "_id"]}
             />
           </div>
-
-          {/* Refresh Button
-          <button className="flex items-center bg-white border border-gray-300 rounded-md px-4 py-2 text-gray-700 hover:bg-gray-50">
-            <RefreshCw size={16} className="mr-2" />
-            Refresh
-          </button>
-
-          {/* Export Button 
-          <button className="flex items-center bg-blue-600 text-white rounded-md px-4 py-2 hover:bg-blue-700">
-            <Download size={16} className="mr-2" />
-            Export
-          </button> */}
         </div>
+
+        {/* Global timeframe controlled at Dashboard level */}
+        {setTimeframe && timeframe && (
+          <div className="flex items-center gap-2 bg-slate-100 p-1 rounded-xl shadow-sm border border-slate-200 ml-auto xl:ml-0">
+            {['Today', 'Weekly', 'Monthly', 'Annual'].map((tf) => (
+              <button
+                key={tf}
+                onClick={() => setTimeframe(tf)}
+                className={`px-4 py-1.5 text-xs font-semibold rounded-lg transition-all ${
+                  timeframe === tf 
+                    ? 'bg-white text-blue-600 shadow-sm border border-slate-200/50' 
+                    : 'text-slate-500 hover:text-slate-700 hover:bg-white/50'
+                }`}
+              >
+                {tf}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   )
 }
 
-export default Header2
+export default Header2
