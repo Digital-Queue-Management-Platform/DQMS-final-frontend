@@ -132,7 +132,7 @@ export default function AppointmentBooking() {
       }, 800);
       return () => clearTimeout(timer);
     }
-  }, [mobileNumber, currentStep])
+  }, [mobileNumber, name, currentStep, sltTelephoneNumber, selectedService, datetime, outletId])
 
   // Auto-send OTP when entering step 4
   useEffect(() => {
@@ -1059,7 +1059,7 @@ export default function AppointmentBooking() {
                     <input
                       type="text"
                       value={name}
-                      onChange={(e) => setName(e.target.value.replace(/[^a-zA-Z\s\-'.]/g, ''))}
+                      onChange={(e) => setName(e.target.value)}
                       className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                       placeholder={t.fullNamePh}
                       maxLength={100}

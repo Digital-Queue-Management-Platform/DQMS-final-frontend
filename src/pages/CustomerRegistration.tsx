@@ -360,7 +360,7 @@ export default function CustomerRegistration() {
         return () => clearTimeout(timer);
       }
     }
-  }, [mobileNumber, currentStep])
+  }, [mobileNumber, name, currentStep, sltTelephoneNumber, selectedService])
 
   // Auto-submit for non-bill payment services once OTP is verified
   useEffect(() => {
@@ -1211,7 +1211,7 @@ export default function CustomerRegistration() {
                       <input
                         type="text"
                         value={name}
-                        onChange={(e) => setName(e.target.value.replace(/[^a-zA-Z\s\-'.]/g, ''))}
+                        onChange={(e) => setName(e.target.value)}
                         className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent rounded-xl"
                         placeholder={t.name}
                         maxLength={100}
