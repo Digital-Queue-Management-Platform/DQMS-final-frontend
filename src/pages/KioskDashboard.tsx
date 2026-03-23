@@ -802,11 +802,17 @@ export default function KioskDashboard() {
       )}
       {/* Top language switcher removed as it's redundant with Step 1. Logout button preserved. */}
       <div className="bg-white border-b border-slate-200 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 py-3 flex justify-end items-center">
+        <div className="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
+          {/* Logos */}
+          <div className="flex items-center gap-4 sm:gap-6">
+            <img src="/logo.png" alt="SLT-Mobitel Logo" className="h-8 sm:h-10 object-contain" />
+            <div className="w-px h-8 bg-slate-200 hidden sm:block"></div>
+            <img src="/Transzent Logo.png" alt="Transzent Logo" className="h-[80px] sm:h-[90px] object-contain hidden sm:block -my-6" />
+          </div>
           {/* Logout button */}
           <button
             onClick={handleLogout}
-            className="px-4 py-2 text-sm bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors font-medium"
+            className="px-4 py-2 text-sm bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors font-medium shrink-0"
           >
             {t.logout}
           </button>
@@ -1410,6 +1416,15 @@ export default function KioskDashboard() {
           autoCloseDuration={30000}
         />
       )}
+
+      {/* Footer Copyright */}
+      <div className="mt-8 text-center text-sm text-slate-500 pb-6 flex flex-col items-center gap-3">
+        <p>&copy; 2026 SLT-Mobitel Digital Platforms Section</p>
+        <div className="flex items-center gap-2 sm:hidden opacity-50">
+          <span className="text-xs">Powered by</span>
+          <img src="/Transzent Logo.png" alt="Transzent Logo" className="h-[60px] object-contain -mt-5 -mb-5" />
+        </div>
+      </div>
     </div>
   )
 }

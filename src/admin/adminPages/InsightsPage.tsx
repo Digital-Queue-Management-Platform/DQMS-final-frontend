@@ -10,7 +10,7 @@ interface Analytics {
   totalTokens: number
   avgWaitTime: number
   avgServiceTime: number
-  feedbackStats: Array<{ rating: number; _count: number }>
+  feedbackStats: Array<{ rating: number; _count?: number; count?: number }>
   officerPerformance: Array<{
     officer: any
     tokensHandled: number
@@ -172,15 +172,17 @@ export default function InsightsPage() {
 
     const distribution = [0, 0, 0, 0, 0]
     analytics.feedbackStats.forEach((stat) => {
-      distribution[stat.rating - 1] = stat._count
+      distribution[stat.rating - 1] = stat._count !== undefined ? stat._count : (stat.count || 0)
     })
+
+    const totalCount = analytics.feedbackStats.reduce((sum, s) => sum + (s._count !== undefined ? s._count : (s.count || 0)), 0)
 
     return distribution.map((count, index) => ({
       rating: index + 1,
-      count,
+      count: count || 0,
       percentage:
-        analytics.feedbackStats.length > 0
-          ? (count / analytics.feedbackStats.reduce((sum, s) => sum + s._count, 0)) * 100
+        totalCount > 0
+          ? ((count || 0) / totalCount) * 100
           : 0,
     }))
   }
@@ -213,8 +215,8 @@ export default function InsightsPage() {
       ["Satisfaction Level", "Token Count", "Percentage Share"],
       ...calculateRatingDistribution().reverse().map(item => [
         `${item.rating} Stars`,
-        item.count,
-        `${item.percentage.toFixed(1)}%`
+        (item.count || 0),
+        `${(item.percentage || 0).toFixed(1)}%`
       ]),
       [""],
       ["III. SERVICE UTILIZATION BREAKDOWN"],
@@ -388,8 +390,8 @@ export default function InsightsPage() {
 
     const satisfactionData = calculateRatingDistribution().reverse().map(item => [
       `${item.rating} Stars`,
-      item.count.toLocaleString(),
-      `${item.percentage.toFixed(1)}%`
+      (item.count || 0).toLocaleString(),
+      `${(item.percentage || 0).toFixed(1)}%`
     ])
 
     autoTable(doc, {
