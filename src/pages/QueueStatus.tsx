@@ -24,7 +24,7 @@ export default function QueueStatus() {
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card' | 'cheque' | 'bank_transfer' | null>(null)
   const [paymentSubmitting, setPaymentSubmitting] = useState(false)
   const [paymentConfirmed, setPaymentConfirmed] = useState(false)
-  const [language] = useState<'en' | 'si' | 'ta'>(() => {
+  const [language, setLanguage] = useState<'en' | 'si' | 'ta'>(() => {
     try {
       const saved = localStorage.getItem('dq_lang') as 'en' | 'si' | 'ta' | null
       if (saved) return saved
@@ -76,7 +76,12 @@ export default function QueueStatus() {
       payByBankTransfer: "Bank Transfer",
       confirmPayment: "Confirm Payment Method",
       paymentConfirmedMsg: "Payment method recorded. Please proceed to the counter.",
-      submittingPayment: "Saving..."
+      submittingPayment: "Saving...",
+      billPayment: "Bill Payment",
+      newService: "New Service",
+      serviceComplaint: "Service Complaint",
+      billDispute: "Bill Dispute",
+      other: "Other Services"
     },
     si: {
       yourToken: "ඔබේ ටෝකන් අංකය",
@@ -118,7 +123,12 @@ export default function QueueStatus() {
       payByBankTransfer: "බැංකු හුළමාරුව",
       confirmPayment: "ගෙවීමේ ක්‍රමය තහවුරු කරන්න",
       paymentConfirmedMsg: "ගෙවීමේ ක්‍රමය සටහන් කර ඇත. කරුණාකර කවුන්ටරයට යන්න.",
-      submittingPayment: "සුරකිමින්..."
+      submittingPayment: "සුරකිමින්...",
+      billPayment: "බිල් ගෙවීම",
+      newService: "නව සේවාව",
+      serviceComplaint: "සේවා පැමිණිල්ල",
+      billDispute: "බිල්පත් ආරවුල",
+      other: "වෙනත් සේවා"
     },
     ta: {
       yourToken: "உங்கள் டோக்கன் எண்",
@@ -160,7 +170,12 @@ export default function QueueStatus() {
       payByBankTransfer: "வங்கி பரிமாற்றம்",
       confirmPayment: "கட்டண முறையை உறுதிப்படுத்தவும்",
       paymentConfirmedMsg: "கட்டண முறை பதிவு செய்யப்பட்டது. தயவுசெய்து கவுண்டருக்குச் செல்லவும்.",
-      submittingPayment: "சேமிக்கிறது..."
+      submittingPayment: "சேமிக்கிறது...",
+      billPayment: "பில் செலுத்தல்",
+      newService: "புதிய சேவை",
+      serviceComplaint: "சேவை புகார்",
+      billDispute: "பில் சர்ச்சை",
+      other: "மற்ற சேவைகள்"
     }
   }
 
@@ -198,6 +213,20 @@ export default function QueueStatus() {
 
       if (response.data.token.status === "completed") {
         navigate(`/feedback/${tokenId}`)
+      }
+
+      // Update language from token if available
+      if (Array.isArray(response.data.token.preferredLanguages) && response.data.token.preferredLanguages.length > 0) {
+        const pref = response.data.token.preferredLanguages[0].toLowerCase()
+        if (['en', 'si', 'ta'].includes(pref)) {
+          setLanguage(pref as 'en' | 'si' | 'ta')
+        } else if (pref === 'english') {
+          setLanguage('en')
+        } else if (pref === 'sinhala') {
+          setLanguage('si')
+        } else if (pref === 'tamil') {
+          setLanguage('ta')
+        }
       }
     } catch (err) {
       console.error("Failed to fetch token status:", err)
@@ -486,8 +515,16 @@ export default function QueueStatus() {
               <div className="flex flex-wrap gap-2">
                 {Array.isArray(token.serviceTypes) && token.serviceTypes.length > 0 ? (
                   token.serviceTypes.map((stype: string) => (
-                    <span key={stype} className="px-3 py-1 rounded-lg text-[11px] font-bold bg-white border border-slate-200 text- slate-700 shadow-sm">
-                      <ServiceName serviceType={stype} />
+                    <span key={stype} className="px-3 py-1 rounded-lg text-[11px] font-bold bg-white border border-slate-200 text-slate-700 shadow-sm">
+                      {(() => {
+                        const code = stype.toUpperCase();
+                        if (code === 'BILL_PAYMENT' || code === 'SVC002') return t.billPayment;
+                        if (code === 'NEW_SERVICE' || code === 'SVC001') return t.newService;
+                        if (code === 'SERVICE_COMPLAINT' || code === 'SVC003') return t.serviceComplaint;
+                        if (code === 'BILL_DISPUTE' || code === 'SVC004') return t.billDispute;
+                        if (code === 'OTHER' || code === 'OTHERS') return t.other;
+                        return <ServiceName serviceType={stype} />;
+                      })()}
                     </span>
                   ))
                 ) : (
