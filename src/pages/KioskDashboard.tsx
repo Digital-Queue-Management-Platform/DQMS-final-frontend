@@ -615,7 +615,11 @@ export default function KioskDashboard() {
       payByCard: "Card",
       payByCheque: "Cheque",
       payByBankTransfer: "Bank Transfer",
-      dueAmountNote: "Please ask the account holder to confirm the due amount with the officer at the counter."
+      dueAmountNote: "Please ask the account holder to confirm the due amount with the officer at the counter.",
+      invalidMobile: "Enter a valid 10-digit number starting with 07 or 01",
+      invalidSltNumber: "Enter a valid 10-digit SLT number (e.g. 011XXXXXXX)",
+      invalidName: "Please enter your full name (at least 2 characters)",
+      verifySltAccountNote: "We'll verify your SLT account after you verify your mobile number"
     },
     si: {
       title: "ඩිජිටල් පෝලිම වේදිකාව",
@@ -693,7 +697,11 @@ export default function KioskDashboard() {
       payByCard: "කාඩ්",
       payByCheque: "චෙකක්",
       payByBankTransfer: "බැංකු හුවමාරුව",
-      dueAmountNote: "ගිණුම් හිමිකරුගෙන් ගෙවිය යුතු නිවැරදි මුදල ශාලාවේ නිලධාරීට ලබා දෙන ලෙස කරුණාකර ඉල්ලා සිටින්න."
+      dueAmountNote: "ගිණුම් හිමිකරුගෙන් ගෙවිය යුතු නිවැරදි මුදල ශාලාවේ නිලධාරීට ලබා දෙන ලෙස කරුණාකර ඉල්ලා සිටින්න.",
+      invalidMobile: "07 හෝ 01 න් ආරම්භ වන වලංගු අංක 10 කින් යුත් අංකයක් ඇතුළත් කරන්න",
+      invalidSltNumber: "වලංගු අංක 10 කින් යුත් SLT දුරකථන අංකයක් ඇතුළත් කරන්න (උදා: 011XXXXXXX)",
+      invalidName: "කරුණාකර ඔබගේ සම්පූර්ණ නම ඇතුළත් කරන්න (අඩුම තරමින් අකුරු 2ක්)",
+      verifySltAccountNote: "ඔබ ජංගම දුරකථන අංකය තහවුරු කළ පසු අපි ඔබේ SLT ගිණුම තහවුරු කරන්නෙමු"
     },
     ta: {
       title: "டிஜிட்டல் வரிசை தளம்",
@@ -771,7 +779,11 @@ export default function KioskDashboard() {
       payByCard: "அட்டை",
       payByCheque: "காசோலை",
       payByBankTransfer: "வங்கி பரிமாற்றம்",
-      dueAmountNote: "கணக்கு வைத்திருப்பவர் கவுண்டரில் உள்ள அதிகாரியிடம் நிலுவைத் தொகையை உறுதிப்படுத்துமாறு கேட்கவும்."
+      dueAmountNote: "கணக்கு வைத்திருப்பவர் கவுண்டரில் உள்ள அதிகாரியிடம் நிலுவைத் தொகையை உறுதிப்படுத்துமாறு கேட்கவும்.",
+      invalidMobile: "07 அல்லது 01 இல் ஆரம்பிக்கும் சரியான 10 இலக்க எண்ணை உள்ளிடவும்",
+      invalidSltNumber: "சரியான 10 இலக்க SLT எண்ணை உள்ளிடவும் (உதாரணமாக 011XXXXXXX)",
+      invalidName: "தயவுசெய்து உங்கள் முழு பெயரை உள்ளிடவும் (குறைந்தது 2 எழுத்துக்கள்)",
+      verifySltAccountNote: "உங்கள் மொபைல் எண்ணை சரிபார்த்த பிறகு உங்கள் SLT கணக்கை சரிபார்ப்போம்"
     }
   }
 
@@ -997,9 +1009,9 @@ export default function KioskDashboard() {
                               />
                             </div>
                             {sltTelephoneNumber.length > 0 && !isValidSlt(sltTelephoneNumber) && (
-                              <p className="text-xs text-red-500 mt-1">Enter a valid 10-digit SLT number (e.g. 011XXXXXXX)</p>
+                              <p className="text-xs text-red-500 mt-1">{t.invalidSltNumber}</p>
                             )}
-                            <p className="text-xs text-blue-600 mt-2"> We'll verify your SLT account after you verify your mobile number</p>
+                            <p className="text-xs text-blue-600 mt-2"> {t.verifySltAccountNote}</p>
                           </div>
                         </div>
                       </div>
@@ -1038,7 +1050,7 @@ export default function KioskDashboard() {
                           required
                         />
                         {mobileNumber.length > 0 && !isValidMobile(mobileNumber) && (
-                          <p className="text-xs text-red-500 mt-1">Enter a valid 10-digit number starting with 07 or 01</p>
+                          <p className="text-xs text-red-500 mt-1">{t.invalidMobile}</p>
                         )}
                       </div>
                     </div>
