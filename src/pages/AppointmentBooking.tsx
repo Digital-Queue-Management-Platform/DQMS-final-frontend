@@ -574,7 +574,7 @@ export default function AppointmentBooking() {
     setLoading(true)
     setError("")
     try {
-      const response = await api.get(`/bills/verify/${sltTelephoneNumber}`)
+      const response = await api.get(`/bills/verify/${sltTelephoneNumber}?force=true`)
       if (response.data.success && response.data.bill) {
         const bill = response.data.bill
 
@@ -660,6 +660,7 @@ export default function AppointmentBooking() {
 
   const handleBook = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (loading) return
     setError("")
     setSuccess("")
     setLoading(true)
@@ -773,20 +774,36 @@ export default function AppointmentBooking() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-      {/* Branch Closed Modal */}
-      {outletId && branchStatus.isClosed && !closedDismissed && (
-        <BranchClosedModal
-          reason={branchStatus.reason}
-          activeNotice={branchStatus.activeNotice}
-          onDismiss={() => setClosedDismissed(true)}
-        />
-      )}
-      {/* Standard notices – dismissable */}
-      {outletId && !branchStatus.isClosed && activeNotices.length > 0 && (
-        <NoticeModal notices={activeNotices} onDismiss={dismissNotice} />
-      )}
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-lg p-6">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex flex-col">
+      {/* Header */}
+      <div className="bg-white/80 backdrop-blur-md border-b border-white/20 shadow-sm sticky top-0 z-10 w-full">
+        <div className="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
+          {/* Logos */}
+          <div className="flex items-center gap-4 sm:gap-6">
+            <img src="/logo.png" alt="SLT-Mobitel Logo" className="h-8 sm:h-10 object-contain" />
+            <div className="w-px h-8 bg-slate-300 hidden sm:block"></div>
+            <img src="/Transzent Logo.png" alt="Transzent Logo" className="h-[80px] sm:h-[90px] object-contain hidden sm:block -my-6" />
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col items-center justify-center p-4">
+        <div className="w-full max-w-lg space-y-4">
+          {/* Branch Closed Modal */}
+          {outletId && branchStatus.isClosed && !closedDismissed && (
+            <BranchClosedModal
+              reason={branchStatus.reason}
+              activeNotice={branchStatus.activeNotice}
+              onDismiss={() => setClosedDismissed(true)}
+            />
+          )}
+          {/* Standard notices – dismissable */}
+          {outletId && !branchStatus.isClosed && activeNotices.length > 0 && (
+            <NoticeModal notices={activeNotices} onDismiss={dismissNotice} />
+          )}
+
+          <div className="bg-white rounded-xl shadow-xl w-full p-6">
         {/* Top language selector removed as it's redundant with Step 1 */}
 
         <h1 className="text-2xl font-bold text-gray-900 mb-2">{t.title}</h1>
@@ -1329,6 +1346,8 @@ export default function AppointmentBooking() {
           )}
         </form>
       </div>
+      </div>
+      </div>
 
       {/* OTP Popup for Demo Mode */}
       {showOtpPopup && devOtpCode && (
@@ -1338,6 +1357,15 @@ export default function AppointmentBooking() {
           autoCloseDuration={30000}
         />
       )}
+
+      {/* Footer Copyright */}
+      <div className="w-full text-center text-sm text-slate-500 pb-6 pt-4 mt-auto flex flex-col items-center gap-3">
+        <p>&copy; 2026 SLT-Mobitel Digital Platforms Section</p>
+        <div className="flex items-center gap-2 sm:hidden opacity-50">
+          <span className="text-xs">Powered by</span>
+          <img src="/Transzent Logo.png" alt="Transzent Logo" className="h-[60px] object-contain -mt-5 -mb-5" />
+        </div>
+      </div>
     </div>
   )
 }
