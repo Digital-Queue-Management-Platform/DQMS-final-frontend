@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import React from "react"
 import { useNavigate } from "react-router-dom"
@@ -84,7 +84,7 @@ export default function TeleshopManagerTopBar({
             >
               <Bell className="w-5 h-5 text-gray-700" />
               {unreadAlertCount > 0 && (
-                <span className="absolute -top-1 -right-1 w-4 h-4 bg-orange-500 text-white text-xs rounded-xl flex items-center justify-center text-[10px]">
+                <span className="absolute -top-1 -right-1 w-4 h-4 bg-blue-500 text-white text-xs rounded-xl flex items-center justify-center text-[10px]">
                   {unreadAlertCount > 99 ? '99+' : unreadAlertCount}
                 </span>
               )}

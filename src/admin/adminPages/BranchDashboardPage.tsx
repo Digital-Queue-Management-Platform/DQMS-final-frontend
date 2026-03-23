@@ -198,7 +198,7 @@ const BranchDashboardPage: React.FC<BranchDashboardPageProps> = ({
         const ar = await api.get('/admin/alerts', { params: { isRead: false, importantOnly: true, outletId } })
         const items = (ar.data || []).map((a: any) => ({
           id: a.id,
-          type: (a.severity === 'high' || a.type === 'error') ? 'error' : (a.type === 'warning' ? 'warning' : 'info'),
+          type: a.severity === 'critical' ? 'error' : (a.severity === 'high' ? 'warning' : (a.severity === 'medium' ? 'info' : 'info')),
           branch: outlet?.name || 'Branch',
           message: a.message || a.type || 'Alert',
           time: new Date(a.createdAt || Date.now()).toLocaleString(),
