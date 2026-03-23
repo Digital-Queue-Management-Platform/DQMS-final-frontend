@@ -427,7 +427,7 @@ export default function AdminFeedback() {
       <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <div className="bg-white p-6 rounded-xl border border-slate-200">
           <div className="flex items-center">
-            <MessageSquare className="w-8 h-8 text-blue-600 mr-3" />
+            <MessageSquare className="w-8 h-8 text-red-600 mr-3" />
             <div>
               <h3 className="text-sm font-medium text-slate-500 mb-1">Total Feedback</h3>
               <p className="text-2xl font-bold text-gray-900">{stats?.totalFeedback || 0}</p>
@@ -454,10 +454,10 @@ export default function AdminFeedback() {
         </div>
         <div className="bg-white p-6 rounded-xl border border-slate-200">
           <div className="flex items-center">
-            <Calendar className="w-8 h-8 text-blue-600 mr-3" />
+            <Calendar className="w-8 h-8 text-red-600 mr-3" />
             <div>
               <h3 className="text-sm font-medium text-slate-500 mb-1">Today</h3>
-              <p className="text-2xl font-bold text-blue-600">{stats?.todayFeedback || 0}</p>
+              <p className="text-2xl font-bold text-red-600">{stats?.todayFeedback || 0}</p>
             </div>
           </div>
         </div>
@@ -707,40 +707,36 @@ export default function AdminFeedback() {
                   {alerts.map((alert) => (
                     <div
                       key={alert.id}
-                      className={`p-3 rounded-lg border-l-4 ${!alert.isRead
-                        ? 'bg-red-50 border-red-500'
-                        : 'bg-gray-50 border-gray-300'
-                        }`}
+                      className={`p-3 rounded-lg border-b border-slate-100 transition-colors bg-red-50 hover:bg-red-100`}
                     >
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="mt-1 flex-shrink-0 p-1.5 bg-red-100 text-red-600 rounded-full animate-pulse">
+                          <AlertCircle className="w-4 h-4" />
+                        </div>
+                        <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1">
-                            <span className="px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700 flex items-center gap-1">
-                              <AlertCircle className="w-3 h-3" />
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-200 text-red-800 uppercase tracking-wider flex items-center gap-1">
                               CRITICAL
                             </span>
-                            <span className="text-xs text-gray-500">
+                            <span className="text-xs font-semibold text-slate-600 truncate">
                               {(alert as any).outletInfo?.outletName || 'System Alert'}
                             </span>
                           </div>
-                          <p className="text-sm text-gray-700 mb-2">{alert.message}</p>
-                          {(alert as any).outletInfo?.customerName && (
-                            <p className="text-xs text-slate-500 mb-1">
-                              Customer: {(alert as any).outletInfo.customerName}
-                            </p>
-                          )}
-                          <p className="text-xs text-gray-500">
-                            {new Date(alert.createdAt).toLocaleString()}
-                          </p>
+                          <p className="text-sm text-red-900 font-medium mb-2 break-words">{alert.message}</p>
+                          <div className="flex items-center justify-between mt-2">
+                             <span className="text-[10px] text-slate-400 font-medium">
+                              {new Date(alert.createdAt).toLocaleString()}
+                            </span>
+                            {!alert.isRead && (
+                              <button
+                                onClick={() => markAlertAsRead(alert.id)}
+                                className="px-2 py-1 text-[10px] font-bold bg-white border border-red-200 text-red-600 rounded-md hover:bg-red-50 transition-colors uppercase tracking-tight"
+                              >
+                                Mark Read
+                              </button>
+                            )}
+                          </div>
                         </div>
-                        {!alert.isRead && (
-                          <button
-                            onClick={() => markAlertAsRead(alert.id)}
-                            className="ml-2 px-2 py-1 text-xs bg-red-500 text-white rounded hover:bg-red-600"
-                          >
-                            Mark Read
-                          </button>
-                        )}
                       </div>
                     </div>
                   ))}

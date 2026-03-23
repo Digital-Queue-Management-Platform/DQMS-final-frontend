@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
@@ -11,7 +11,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Bell,
-  X
+  X,
+  Info
 } from "lucide-react"
 import FeedbackCard from "../components/FeedbackCard"
 import { AnimatedDropdown } from "../components/AnimatedDropdown"
@@ -350,7 +351,7 @@ export default function TeleshopManagerFeedback() {
           >
             <Bell className="w-5 h-5 text-gray-700" />
             {unreadAlertCount > 0 && (
-              <span className="absolute -top-1 -right-1 w-4 h-4 bg-orange-500 text-white text-xs rounded-xl flex items-center justify-center text-[10px]">
+              <span className="absolute -top-1 -right-1 w-4 h-4 bg-blue-500 text-white text-xs rounded-xl flex items-center justify-center text-[10px]">
                 {unreadAlertCount > 99 ? '99+' : unreadAlertCount}
               </span>
             )}
@@ -362,7 +363,7 @@ export default function TeleshopManagerFeedback() {
       <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <div className="bg-white p-6 rounded-xl border border-slate-200">
           <div className="flex items-center">
-            <MessageSquare className="w-8 h-8 text-purple-600 mr-3" />
+            <MessageSquare className="w-8 h-8 text-blue-600 mr-3" />
             <div>
               <h3 className="text-sm font-medium text-slate-500 mb-1">Total Feedback</h3>
               <p className="text-2xl font-bold text-gray-900">{stats?.totalFeedback || 0}</p>
@@ -558,42 +559,55 @@ export default function TeleshopManagerFeedback() {
                   {alerts.map((alert) => (
                     <div
                       key={alert.id}
-                      className={`p-3 rounded-lg border-l-4 ${!alert.isRead
-                        ? 'bg-orange-50 border-orange-400'
-                        : 'bg-gray-50 border-gray-300'
-                        }`}
+                      className={`p-3 rounded-lg border-b border-slate-100 transition-colors ${
+                        alert.severity === 'high' ? 'bg-blue-50 hover:bg-blue-100' :
+                        alert.severity === 'medium' ? 'bg-blue-50 hover:bg-blue-100' :
+                        'bg-white hover:bg-gray-50'
+                      }`}
                     >
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className={`mt-1 flex-shrink-0 p-1.5 rounded-full ${
+                          alert.severity === 'high' ? 'bg-blue-100 text-blue-600' :
+                          alert.severity === 'medium' ? 'bg-blue-100 text-blue-600' :
+                          'bg-slate-100 text-slate-600'
+                        }`}>
+                          {alert.severity === 'high' ? <Info className="w-4 h-4" /> :
+                           alert.severity === 'medium' ? <Info className="w-4 h-4" /> :
+                           <Info className="w-4 h-4" />
+                          }
+                        </div>
+                        <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1">
-                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${alert.severity === 'high' ? 'bg-red-100 text-red-700' :
-                              alert.severity === 'medium' ? 'bg-orange-100 text-orange-700' :
-                                'bg-gray-100 text-gray-700'
-                              }`}>
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                              alert.severity === 'high' ? 'bg-purple-200 text-purple-800' :
+                              alert.severity === 'medium' ? 'bg-blue-200 text-blue-800' :
+                              'bg-slate-200 text-slate-800'
+                            }`}>
                               3-Star Feedback
                             </span>
-                            <span className="text-xs text-gray-500">
-                              {(alert as any).outletInfo?.outletName || 'Unknown Outlet'}
+                            <span className="text-xs font-semibold text-slate-600 truncate">
+                              {(alert as any).outletInfo?.outletName || 'System Alert'}
                             </span>
                           </div>
-                          <p className="text-sm text-gray-700 mb-2">{alert.message}</p>
-                          {(alert as any).outletInfo?.customerName && (
-                            <p className="text-xs text-slate-500 mb-1">
-                              Customer: {(alert as any).outletInfo.customerName}
-                            </p>
-                          )}
-                          <p className="text-xs text-gray-500">
-                            {new Date(alert.createdAt).toLocaleString()}
-                          </p>
+                          <p className={`text-sm mb-2 break-words ${
+                            alert.severity === 'high' ? 'text-purple-900 font-medium' :
+                            alert.severity === 'medium' ? 'text-blue-900 font-medium' :
+                            'text-slate-700'
+                          }`}>{alert.message}</p>
+                          <div className="flex items-center justify-between mt-2">
+                             <span className="text-[10px] text-slate-400 font-medium">
+                              {new Date(alert.createdAt).toLocaleString()}
+                            </span>
+                            {!alert.isRead && (
+                              <button
+                                onClick={() => markAlertAsRead(alert.id)}
+                                className="px-2 py-1 text-[10px] font-bold bg-white border border-slate-200 text-purple-600 rounded-md hover:bg-purple-50 transition-colors uppercase tracking-tight"
+                              >
+                                Mark Read
+                              </button>
+                            )}
+                          </div>
                         </div>
-                        {!alert.isRead && (
-                          <button
-                            onClick={() => markAlertAsRead(alert.id)}
-                            className="ml-2 px-2 py-1 text-xs bg-purple-500 text-white rounded hover:bg-purple-600"
-                          >
-                            Mark Read
-                          </button>
-                        )}
                       </div>
                     </div>
                   ))}

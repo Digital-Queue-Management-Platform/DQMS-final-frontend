@@ -56,8 +56,9 @@ function FeedbackCardComponent({ feedback, onResolve }: FeedbackCardProps) {
   }
 
   const getRatingColor = (rating: number) => {
-    if (rating <= 2) return "text-red-600 bg-red-50 border-red-200"
-    if (rating === 3) return "text-yellow-600 bg-yellow-50 border-yellow-200"
+    if (rating === 1) return "text-red-600 bg-red-50 border-red-200"
+    if (rating === 2) return "text-orange-600 bg-orange-50 border-orange-200"
+    if (rating === 3) return "text-blue-600 bg-blue-50 border-blue-200"
     return "text-green-600 bg-green-50 border-green-200"
   }
 

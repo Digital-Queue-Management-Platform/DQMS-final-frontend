@@ -6,7 +6,7 @@ import { BranchTable } from '../adminComponents/dashboardComponents/BranchTable'
 import SriLankaMap from '../adminComponents/dashboardComponents/SriLankaMap';
 import SystemHealthStatus from '../adminComponents/dashboardComponents/SystemHealthStatus';
 import BranchDashboardPage from './BranchDashboardPage';
-import { UsersIcon, ClockIcon, StarIcon, Ticket, BellIcon, Eye, ArrowLeft, Trash2, Loader2, X, BellOff, CheckCircle2, Send, Phone } from 'lucide-react';
+import { UsersIcon, ClockIcon, StarIcon, Ticket, BellIcon, Eye, ArrowLeft, Trash2, Loader2, X, BellOff, CheckCircle2, Send, Phone, AlertCircle, AlertTriangle, Info } from 'lucide-react';
 import { motion } from 'framer-motion';
 import api, { WS_URL } from '../../config/api'
 import type { Alert } from '../../types'
@@ -686,38 +686,52 @@ const DashboardPage: React.FC = () => {
                           </div>
                         ) : (
                           alerts.slice(0, 10).map((alert) => (
-                            <div key={alert.id} className="p-3 border-b border-gray-100 hover:bg-gray-50">
-                              <div className="flex items-start space-x-3">
-                                <div className={`w-2 h-2 rounded-full mt-2 flex-shrink-0 ${alert.severity === 'critical' ? 'bg-red-600 animate-pulse' :
-                                    alert.severity === 'high' ? 'bg-red-500' :
-                                      alert.severity === 'medium' ? 'bg-yellow-500' : 'bg-blue-500'
-                                  }`}></div>
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-sm font-medium text-gray-900 break-words">{alert.message}</p>
-                                  <p className="text-xs text-gray-400 mt-1">
-                                    {new Date(alert.createdAt).toLocaleString()}
-                                  </p>
-                                  <div className="flex items-center space-x-2 mt-2">
-                                    {!alert.isRead && (
+                            <div key={alert.id} className={`p-3 border-b border-gray-100 transition-colors ${alert.severity === 'critical' ? 'bg-red-50 hover:bg-red-100' :
+                                alert.severity === 'high' ? 'bg-orange-50 hover:bg-orange-100' :
+                                  alert.severity === 'medium' ? 'bg-blue-50 hover:bg-blue-100' :
+                                    'hover:bg-gray-50'
+                              }`}>
+                                <div className="flex items-start space-x-3">
+                                  <div className={`mt-1 flex-shrink-0 p-1 rounded-full ${alert.severity === 'critical' ? 'bg-red-100 text-red-600 animate-pulse' :
+                                      alert.severity === 'high' ? 'bg-orange-100 text-orange-600' :
+                                        alert.severity === 'medium' ? 'bg-blue-100 text-blue-600' :
+                                          'bg-slate-100 text-slate-600'
+                                    }`}>
+                                    {alert.severity === 'critical' ? <AlertCircle className="w-4 h-4" /> :
+                                      alert.severity === 'high' ? <AlertTriangle className="w-4 h-4" /> :
+                                        alert.severity === 'medium' ? <Info className="w-4 h-4" /> :
+                                          <Info className="w-4 h-4" />
+                                    }
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <p className={`text-sm font-medium break-words ${alert.severity === 'critical' ? 'text-red-900' :
+                                        alert.severity === 'high' ? 'text-orange-900' :
+                                          alert.severity === 'medium' ? 'text-blue-900' : 'text-gray-900'
+                                      }`}>{alert.message}</p>
+                                    <p className="text-xs text-gray-400 mt-1">
+                                      {new Date(alert.createdAt).toLocaleString()}
+                                    </p>
+                                    <div className="flex items-center space-x-2 mt-2">
+                                      {!alert.isRead && (
+                                        <button
+                                          onClick={() => markAlertAsRead(alert.id)}
+                                          className="text-xs text-blue-600 hover:text-blue-700 font-semibold px-2 py-1 bg-white border border-blue-100 rounded"
+                                        >
+                                          Mark as read
+                                        </button>
+                                      )}
                                       <button
-                                        onClick={() => markAlertAsRead(alert.id)}
-                                        className="text-xs text-blue-600 hover:text-blue-700 px-2 py-1 bg-blue-50 rounded"
+                                        onClick={() => deleteAlert(alert.id)}
+                                        className="flex items-center text-xs text-red-600 hover:text-red-700 font-semibold px-2 py-1 bg-white border border-red-100 rounded"
+                                        title="Delete notification"
                                       >
-                                        Mark as read
+                                        <Trash2 className="w-3 h-3 mr-1" />
+                                        Delete
                                       </button>
-                                    )}
-                                    <button
-                                      onClick={() => deleteAlert(alert.id)}
-                                      className="flex items-center text-xs text-red-600 hover:text-red-700 px-2 py-1 bg-red-50 rounded"
-                                      title="Delete notification"
-                                    >
-                                      <Trash2 className="w-3 h-3 mr-1" />
-                                      Delete
-                                    </button>
+                                    </div>
                                   </div>
                                 </div>
                               </div>
-                            </div>
                           ))
                         )}
                       </div>
