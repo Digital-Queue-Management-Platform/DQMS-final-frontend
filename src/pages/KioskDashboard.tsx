@@ -284,7 +284,7 @@ export default function KioskDashboard() {
     setLoading(true)
     setError("")
     try {
-      const response = await api.get(`/bills/verify/${sltTelephoneNumber}`)
+      const response = await api.get(`/bills/verify/${sltTelephoneNumber}?force=true`)
       if (response.data.success && response.data.bill) {
         const bill = response.data.bill
 
@@ -412,6 +412,7 @@ export default function KioskDashboard() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (submitting) return
     setError('')
     setSubmitting(true)
 

@@ -574,7 +574,7 @@ export default function AppointmentBooking() {
     setLoading(true)
     setError("")
     try {
-      const response = await api.get(`/bills/verify/${sltTelephoneNumber}`)
+      const response = await api.get(`/bills/verify/${sltTelephoneNumber}?force=true`)
       if (response.data.success && response.data.bill) {
         const bill = response.data.bill
 
@@ -660,6 +660,7 @@ export default function AppointmentBooking() {
 
   const handleBook = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (loading) return
     setError("")
     setSuccess("")
     setLoading(true)
