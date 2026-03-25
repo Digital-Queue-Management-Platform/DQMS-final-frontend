@@ -1,4 +1,5 @@
-import { useNavigate } from "react-router-dom";
+import { useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ShieldCheck, Building2, PhoneCall, UserCircle2, ArrowRight, Briefcase, UserCheck, CalendarDays, ClipboardCheck, Search, MonitorSmartphone } from "lucide-react";
 
@@ -13,6 +14,15 @@ const itemVariants = {
 
 export default function ProLoginLanding() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  useEffect(() => {
+    const outletId = searchParams.get("outletId");
+    if (outletId) {
+      console.log("[Redirect] Found outletId in query params, redirecting to display:", outletId);
+      navigate(`/display/outlet/${outletId}${window.location.search}`, { replace: true });
+    }
+  }, [searchParams, navigate]);
 
   const portals = [
     {
