@@ -128,21 +128,24 @@ export default function OutletQueueDisplay() {
   }, [])
   
   const isInAndroidApp = (window as any).AndroidApp !== undefined || 
+                         (window as any).DQMP_NATIVE === true ||
                          navigator.userAgent.includes("DQMP_APK") || 
                          window.location.href.includes("apk=true")
                          
   useEffect(() => {
-    if (isInAndroidApp && !audioUnlocked) {
-      console.log("[APK] Attempting auto-unlock for native environment...")
-      // Try to just unlock immediately since mediaPlaybackRequiresUserGesture is false in the APK WebView
-      const audio = new Audio("/announcement.mp3")
-      audio.volume = 0.01
-      audio.play().then(() => {
-        setAudioUnlocked(true)
-        console.log("[APK] Auto-unlock successful")
-      }).catch(() => {
-        console.log("[APK] Auto-unlock blocked by engine, waiting for native button click.")
-      })
+    if (isInAndroidApp) {
+      console.log("[APK] Native shell confirmed. Dashboard in SILENT mode (no web overlays).")
+      if (!audioUnlocked) {
+        // Attempt auto-activation inside the shell
+        const audio = new Audio("/announcement.mp3")
+        audio.volume = 0.01
+        audio.play().then(() => {
+          setAudioUnlocked(true)
+          console.log("[APK] Auto-unlock successful")
+        }).catch(() => {
+          console.log("[APK] Waiting for native button click.")
+        })
+      }
     }
   }, [isInAndroidApp, audioUnlocked])
                          
