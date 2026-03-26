@@ -115,6 +115,41 @@ export default function OutletQueueDisplay() {
   const [notice, setNotice] = useState<{ title: string; message: string } | null>(null)
   const [recentCalled, setRecentCalled] = useState<CalledRecord[]>([])
 
+  // Remote Unlock for Native Android Shell
+  useEffect(() => {
+    (window as any).forceUnlockAudio = () => {
+      console.log("[Voice] Remote unlock triggered via Native Bridge")
+      const audio = new Audio("/announcement.mp3")
+      audio.volume = 0.01
+      audio.play().then(() => {
+        setAudioUnlocked(true)
+      }).catch(err => console.error("[Voice] Remote unlock failed:", err))
+    }
+  }, [])
+  
+  const isInAndroidApp = (window as any).AndroidApp !== undefined || 
+                         navigator.userAgent.includes("DQMP_APK") || 
+                         window.location.href.includes("apk=true")
+                         
+  useEffect(() => {
+    if (isInAndroidApp && !audioUnlocked) {
+      console.log("[APK] Attempting auto-unlock for native environment...")
+      // Try to just unlock immediately since mediaPlaybackRequiresUserGesture is false in the APK WebView
+      const audio = new Audio("/announcement.mp3")
+      audio.volume = 0.01
+      audio.play().then(() => {
+        setAudioUnlocked(true)
+        console.log("[APK] Auto-unlock successful")
+      }).catch(() => {
+        console.log("[APK] Auto-unlock blocked by engine, waiting for native button click.")
+      })
+    }
+  }, [isInAndroidApp, audioUnlocked])
+                         
+  if (isInAndroidApp) {
+    console.log("[APK] Detected native shell environment. Suppressing internal UI.")
+  }
+
   const fetchAll = async () => {
     if (!outletId) return
 
@@ -193,68 +228,88 @@ export default function OutletQueueDisplay() {
   }, [outletId, refreshSeconds])
 
   useEffect(() => {
-    const ws = new WebSocket(WS_URL)
+    let ws: WebSocket | null = null
+    let reconnectTimeout: any = null
+    let mounted = true
 
-    ws.onmessage = (event) => {
-      try {
-        const msg = JSON.parse(event.data)
-        const type = msg?.type
-        const data = msg?.data
-        if (!data || !outletId) return
+    const connect = () => {
+      if (!outletId || !mounted) return
+      
+      console.log("[WebSocket] Connecting to:", WS_URL)
+      ws = new WebSocket(WS_URL)
 
-        if (["NEW_TOKEN", "TOKEN_COMPLETED", "TOKEN_UPDATED", "TOKEN_CANCELLED", "TOKEN_PRIORITY_UPDATED", "OFFICER_STATUS_CHANGE", "OFFICER_UPDATED", "TOKEN_SKIPPED"].includes(type)) {
-          if (!data.outletId || data.outletId === outletId) fetchAll()
-        }
+      ws.onopen = () => {
+        console.log("[WebSocket] Connected successfully")
+      }
 
-        if (type === "TOKEN_CALLED" || type === "TOKEN_RECALLED") {
-          console.log(`[WebSocket] ${type} event received for token:`, data.tokenNumber)
-          if (!data.outletId || data.outletId === outletId) {
-            fetchAll()
-            if (voiceEnabledRef.current) {
-              console.log("[Voice] Adding to announcement queue:", type)
-              setAnnouncementQueue(prev => [...prev, { ...data, eventType: type }])
-            } else {
-              console.log("[Voice] Skipping announcement because sound is muted. Click the speaker icon to enable.")
-            }
+      ws.onmessage = (event) => {
+        try {
+          const msg = JSON.parse(event.data)
+          const type = msg?.type
+          const data = msg?.data
+          if (!data || !outletId) return
+
+          if (["NEW_TOKEN", "TOKEN_COMPLETED", "TOKEN_UPDATED", "TOKEN_CANCELLED", "TOKEN_PRIORITY_UPDATED", "OFFICER_STATUS_CHANGE", "OFFICER_UPDATED", "TOKEN_SKIPPED"].includes(type)) {
+            if (!data.outletId || data.outletId === outletId) fetchAll()
           }
-        }
 
-        if (type === "TEST_SOUND") {
-          console.log("[WebSocket] TEST_SOUND event received:", data.testType)
-          if (!data.outletId || data.outletId === outletId) {
-            if (voiceEnabledRef.current) {
-              const testType = data.testType || 'chime'
-              const testLang = data.lang || 'en'
-
-              if (testType === 'chime') {
-                playChime()
-              } else {
-                const sampleText = data.customText
-                  ? data.customText
-                  : testLang === 'si'
-                    ? "ශබ්ද විකාශන යන්ත්‍ර පරීක්ෂා කිරීම. එය සාර්ථකව ක්‍රියා කරයි."
-                    : testLang === 'ta'
-                      ? "ஒலிபெருக்கி சோதனை. இது சரியாக வேலை செய்கிறது."
-                      : "Testing the speakers. It is working fine."
-
-                console.log("[Voice] Enqueueing manual test announcement:", sampleText)
-                setAnnouncementQueue(prev => [...prev, {
-                  tokenNumber: "Test", // Placeholder for speech logic
-                  counterNumber: "",
-                  eventType: 'TEST_SOUND',
-                  text: sampleText,
-                  lang: testLang
-                }])
+          if (type === "TOKEN_CALLED" || type === "TOKEN_RECALLED") {
+            if (!data.outletId || data.outletId === outletId) {
+              fetchAll()
+              if (voiceEnabledRef.current) {
+                setAnnouncementQueue(prev => [...prev, { ...data, eventType: type }])
               }
             }
           }
+
+          if (type === "RELOAD_DISPLAY") {
+            console.log("[WebSocket] Force reload command received from manager")
+            window.location.reload()
+            return
+          }
+
+          if (type === "TEST_SOUND") {
+            if (!data.outletId || data.outletId === outletId) {
+              if (voiceEnabledRef.current) {
+                const testType = data.testType || 'chime'
+                if (testType === 'chime') {
+                  playChime()
+                } else {
+                  setAnnouncementQueue(prev => [...prev, {
+                    tokenNumber: "Test",
+                    counterNumber: "",
+                    eventType: 'TEST_SOUND',
+                    text: data.customText || "Testing the speakers. It is working fine.",
+                    lang: data.lang || 'en'
+                  }])
+                }
+              }
+            }
+          }
+        } catch (err) {
+          console.error("[WebSocket] Message error:", err)
         }
-      } catch (err) {
-        console.error("WebSocket message processing error:", err)
+      }
+
+      ws.onclose = () => {
+        if (!mounted) return
+        console.log("[WebSocket] Disconnected. Reconnecting in 5s...")
+        reconnectTimeout = setTimeout(connect, 5000)
+      }
+
+      ws.onerror = (err) => {
+        console.error("[WebSocket] Connection error:", err)
+        ws?.close()
       }
     }
 
-    return () => ws.close()
+    connect()
+
+    return () => {
+      mounted = false
+      if (ws) ws.close()
+      if (reconnectTimeout) clearTimeout(reconnectTimeout)
+    }
   }, [outletId])
 
   const servingByCounter = useMemo(() => {
@@ -493,7 +548,7 @@ export default function OutletQueueDisplay() {
                     ) : (
                       <div
                         key={`${token.id}-${idx}`}
-                        className={`flex-shrink-0 w-[min(72vw,230px)] sm:min-w-[210px] rounded-xl border transition-colors bg-emerald-50 border-emerald-200 flex items-center justify-between shadow-sm ${zoomScale > 150 ? 'py-1 px-2' : 'py-2 px-3'}`}
+                        className={`flex-shrink-0 w-[min(72vw,320px)] sm:min-w-[280px] rounded-xl border transition-colors bg-emerald-50 border-emerald-200 flex items-center justify-between shadow-sm ${zoomScale > 150 ? 'py-1 px-2' : 'py-2 px-3'}`}
                       >
                         <div className="flex-1 flex flex-col justify-center min-w-0">
                           <div className="flex items-center justify-between gap-2 mb-0.5 sm:mb-1">
@@ -508,7 +563,7 @@ export default function OutletQueueDisplay() {
                           </div>
                           <p
                             className={`font-black tracking-wider leading-tight text-slate-900`}
-                            style={{ fontSize: `calc(clamp(1.2rem, 8vw, 2.5rem) * ${zoomScale / 100})` }}
+                            style={{ fontSize: `calc(clamp(1.5rem, 10vw, 3.8rem) * ${zoomScale / 100})` }}
                           >
                             {String(token.tokenNumber).padStart(3, "0")}
                           </p>
@@ -545,7 +600,7 @@ export default function OutletQueueDisplay() {
                     ) : (
                       <div
                         key={`${token.id}-${idx}`}
-                        className={`flex-shrink-0 w-[min(72vw,230px)] sm:min-w-[210px] rounded-xl border flex items-center justify-between shadow-sm transition-colors bg-slate-50 border-slate-200 ${zoomScale > 150 ? 'py-1 px-2' : 'py-2 px-3'}`}
+                        className={`flex-shrink-0 w-[min(72vw,320px)] sm:min-w-[280px] rounded-xl border flex items-center justify-between shadow-sm transition-colors bg-slate-50 border-slate-200 ${zoomScale > 150 ? 'py-1 px-2' : 'py-2 px-3'}`}
                       >
                         <div className="flex-1 flex flex-col justify-center min-w-0">
                           <div className="flex items-center justify-between gap-2 mb-0.5 sm:mb-1">
@@ -558,7 +613,7 @@ export default function OutletQueueDisplay() {
                           </div>
                           <p
                             className={`font-black tracking-wider leading-tight text-slate-900`}
-                            style={{ fontSize: `calc(clamp(1.2rem, 8vw, 2.5rem) * ${zoomScale / 100})` }}
+                            style={{ fontSize: `calc(clamp(1.5rem, 10vw, 3.8rem) * ${zoomScale / 100})` }}
                           >
                             {String(token.tokenNumber).padStart(3, "0")}
                           </p>
@@ -747,60 +802,75 @@ export default function OutletQueueDisplay() {
       </div>
 
 
-      {/* Voice Control Floating Button */}
-      <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3">
-        {announcementQueue.length > 0 && (
-          <div className="text-[10px] font-bold px-2 py-1 rounded-full animate-bounce shadow-lg bg-emerald-500 text-white shadow-emerald-200">
-            {announcementQueue.length} Announcement{announcementQueue.length > 1 ? 's' : ''} Pending
-          </div>
-        )}
-        <button
-          onClick={() => setVoiceEnabled(!voiceEnabled)}
-          className={`group relative flex items-center justify-center w-14 h-14 rounded-2xl shadow-xl transition-all duration-300 hover:scale-110 active:scale-95 ${voiceEnabled
-              ? 'bg-emerald-600 text-white ring-4 ring-emerald-100'
-              : 'bg-white text-slate-400 border border-slate-200 hover:text-emerald-600'
-            }`}
-          title={voiceEnabled ? "Mute Voice Announcements" : "Enable Voice Announcements"}
-        >
-          {voiceEnabled ? (
-            <Volume2 className={`w-6 h-6 ${isSpeaking ? 'animate-pulse' : ''}`} />
-          ) : (
-            <VolumeX className="w-6 h-6" />
-          )}
-
-          {!voiceEnabled && (
-            <div className="absolute bottom-full mb-3 right-0 border shadow-xl p-3 rounded-xl whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 bg-white border-slate-200 text-slate-800">
-              <p className="text-xs font-bold">Browser blocks audio by default.</p>
-              <p className="text-[10px] text-slate-500">Click to enable voice announcements.</p>
+      {/* Voice Control Floating Button (Hidden in APK as Native Remote focuses better on main UI) */}
+      {!isInAndroidApp && (
+        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3">
+          {announcementQueue.length > 0 && (
+            <div className="text-[10px] font-bold px-2 py-1 rounded-full animate-bounce shadow-lg bg-emerald-500 text-white shadow-emerald-200">
+              {announcementQueue.length} Announcement{announcementQueue.length > 1 ? 's' : ''} Pending
             </div>
           )}
-        </button>
-      </div>
+          <button
+            onClick={() => setVoiceEnabled(!voiceEnabled)}
+            className={`group relative flex items-center justify-center w-14 h-14 rounded-2xl shadow-xl transition-all duration-300 hover:scale-110 active:scale-95 ${voiceEnabled
+                ? 'bg-emerald-600 text-white ring-4 ring-emerald-100'
+                : 'bg-white text-slate-400 border border-slate-200 hover:text-emerald-600'
+              }`}
+            title={voiceEnabled ? "Mute Voice Announcements" : "Enable Voice Announcements"}
+          >
+            {voiceEnabled ? (
+              <Volume2 className={`w-6 h-6 ${isSpeaking ? 'animate-pulse' : ''}`} />
+            ) : (
+              <VolumeX className="w-6 h-6" />
+            )}
+  
+            {!voiceEnabled && (
+              <div className="absolute bottom-full mb-3 right-0 border shadow-xl p-3 rounded-xl whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 bg-white border-slate-200 text-slate-800">
+                <p className="text-xs font-bold">Browser blocks audio by default.</p>
+                <p className="text-[10px] text-slate-500">Click to enable voice announcements.</p>
+              </div>
+            )}
+          </button>
+        </div>
+      )}
 
-      {/* Audio Unlock Overlay */}
-      {voiceEnabled && !audioUnlocked && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 text-center backdrop-blur-sm bg-slate-900/95">
+      {/* Audio Unlock Overlay (Hidden if in APK as we use a Native Overlay) */}
+      {voiceEnabled && !audioUnlocked && !isInAndroidApp && (
+        <div 
+          className="fixed inset-0 z-[100] flex items-center justify-center p-6 text-center backdrop-blur-sm bg-slate-900/95"
+          onKeyDown={() => {
+            // Any key press on an Android TV remote (Enter, Center, etc.) should attempt to unlock audio
+            const unlock = () => {
+              const audio = new Audio("/announcement.mp3")
+              audio.volume = 0.01 
+              audio.play().then(() => {
+                setAudioUnlocked(true)
+                console.log("[Voice] D-pad/Key unlock successful")
+              }).catch(err => console.error("[Voice] Key unlock failed:", err))
+            }
+            unlock()
+          }}
+        >
           <div className="max-w-md w-full rounded-3xl p-8 shadow-2xl border bg-white border-white/20">
             <div className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 bg-emerald-100 text-emerald-600">
               <Volume2 className="w-10 h-10 animate-pulse" />
             </div>
             <h2 className="text-2xl font-black mb-2 text-slate-900">Enable Audio</h2>
             <p className="text-slate-500 mb-8">
-              Browser security requires a manual click to enable sounds and voice announcements for this display.
+              Press **ANY BUTTON** on your remote to start the audio display.
             </p>
             <button
+              autoFocus
+              tabIndex={0}
               onClick={() => {
-                // Play a brief silent chime to unlock audio context
                 const audio = new Audio("/announcement.mp3")
-                audio.volume = 0.01 // Very quiet initial play
+                audio.volume = 0.01 
                 audio.play().then(() => {
                   setAudioUnlocked(true)
-                  console.log("[Voice] Audio context unlocked successfully")
-                }).catch(err => {
-                  console.error("[Voice] Final unlock attempt failed:", err)
-                })
+                  console.log("[Voice] Manual click unlock successful")
+                }).catch(err => console.error("[Voice] Manual click failed:", err))
               }}
-              className="w-full py-4 rounded-2xl font-bold text-lg shadow-xl transition-all active:scale-95 bg-emerald-600 text-white shadow-emerald-200 hover:bg-emerald-700"
+              className="w-full py-4 rounded-2xl font-bold text-lg shadow-xl transition-all active:scale-95 bg-emerald-600 text-white shadow-emerald-200 hover:bg-emerald-700 focus:bg-emerald-800 focus:ring-4 focus:ring-emerald-200 outline-none"
             >
               Start Audio Display
             </button>

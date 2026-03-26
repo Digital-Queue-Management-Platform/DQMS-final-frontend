@@ -213,12 +213,36 @@ export default function TeleshopManagerOutletDisplay() {
         },
         { headers: { Authorization: `Bearer ${token}` } }
       )
+      
+      // Trigger a remote reload after saving settings to apply changes instantly
+      await api.post("/teleshop-manager/test-sound", {
+        type: 'RELOAD_DISPLAY'
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+
       setSaveSuccess(true)
       setTimeout(() => setSaveSuccess(false), 2000)
     } catch (e: any) {
       setError(e?.response?.data?.error || "Failed to save settings")
     } finally {
       setSaving(false)
+    }
+  }
+
+  const forceReload = async () => {
+    if (saving) return
+    try {
+      const token = localStorage.getItem("teleshopManagerToken")
+      await api.post("/teleshop-manager/test-sound", {
+        type: 'RELOAD_DISPLAY'
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      setSaveSuccess(true)
+      setTimeout(() => setSaveSuccess(false), 2000)
+    } catch (err) {
+      console.error("Force reload failed:", err)
     }
   }
 
@@ -516,7 +540,16 @@ export default function TeleshopManagerOutletDisplay() {
                </div>
              </div>
 
-             <div className="mt-6 pt-4 border-t border-slate-100 flex justify-end">
+              <div className="mt-6 pt-4 border-t border-slate-100 flex justify-end gap-3">
+               <button
+                 onClick={forceReload}
+                disabled={saving}
+                className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-orange-50 border border-orange-200 text-orange-700 font-bold hover:bg-orange-100 transition-all disabled:opacity-50"
+              >
+                <Monitor className="w-4 h-4" />
+                RELOAD SCREEN
+              </button>
+
               <button
                 onClick={saveSettings}
                 disabled={saving}
