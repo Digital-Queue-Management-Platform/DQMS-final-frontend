@@ -89,7 +89,9 @@ const TeleshopManagerOutletSetup: React.FC = () => {
         setError(response.data.message || 'Failed to configure device');
       }
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to configure Android TV device. Please try again.');
+      console.error('QR scan error:', err);
+      const errorMessage = err.response?.data?.error || err.response?.data?.message || err.message || 'Failed to configure Android TV device. Please try again.';
+      setError(errorMessage);
     } finally {
       setConfiguring(false);
     }
