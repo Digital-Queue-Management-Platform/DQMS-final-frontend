@@ -15,6 +15,7 @@ export default function OfficerQueuePage() {
   const [officer, setOfficer] = useState<Officer | null>(null)
   const [currentToken, setCurrentToken] = useState<Token | null>(null)
   const [billInfo, setBillInfo] = useState<{ telephoneNumber: string; accountName: string; currentBill: number; dueDate: string; status: string; updatedAt: string } | null>(null)
+  const [multipleBills, setMultipleBills] = useState<{ telephoneNumber: string; accountName: string; currentBill: number; dueDate: string; status: string; billPaymentIntent?: string; billPaymentAmount?: number; updatedAt: string }[]>([])
   const [queue, setQueue] = useState<{ waiting: Token[]; inService: Token[]; availableOfficers: number; totalWaiting: number } | null>(null)
   const [accountRef, setAccountRef] = useState("")
   const [loading, setLoading] = useState(false)
@@ -188,10 +189,11 @@ export default function OfficerQueuePage() {
 
   const fetchCurrentToken = async (officerId: string) => {
     try {
-      // Officer stats returns currentToken and billData; re-use it to keep parity with dashboard
+      // Officer stats returns currentToken, billData, and multipleBills; update to handle both
       const res = await api.get(`/officer/stats/${officerId}`)
       setCurrentToken(res.data.currentToken)
       setBillInfo(res.data.billData || null)
+      setMultipleBills(res.data.multipleBills || [])
     } catch (e) {
       console.error('failed to fetch current token', e)
     }
@@ -734,76 +736,161 @@ export default function OfficerQueuePage() {
                         <h3 className="text-sm font-bold text-amber-900">Bill Payment Details</h3>
                       </div>
 
-                      {/* SLT Telephone */}
-                      {currentToken.sltTelephoneNumber && (
-                        <div className="flex justify-between items-center text-sm mb-2">
-                          <span className="text-gray-500 text-xs">SLT Number</span>
-                          <span className="font-mono font-semibold text-gray-800">{currentToken.sltTelephoneNumber}</span>
-                        </div>
-                      )}
-
-                      {/* Bill Due Amount from DB */}
-                      {billInfo ? (
+                      {/* Multiple Bills Support */}
+                      {multipleBills.length > 0 ? (
                         <>
-                          <div className="flex justify-between items-center mb-1">
-                            <span className="text-xs text-gray-500">Account Name</span>
-                            <span className="text-sm font-semibold text-gray-800">{billInfo.accountName}</span>
-                          </div>
-                          <div className="flex justify-between items-center mb-2">
-                            <span className="text-xs text-gray-500">Due Amount</span>
-                            <span className="text-lg font-bold text-red-600">Rs. {billInfo.currentBill.toFixed(2)}</span>
-                          </div>
-                          <div className="flex justify-between items-center mb-3">
-                            <span className="text-xs text-gray-500">Bill Status</span>
-                            <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${billInfo.status === 'paid' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                              {billInfo.status.toUpperCase()}
-                            </span>
-                          </div>
-                        </>
-                      ) : currentToken.sltTelephoneNumber ? (
-                        <p className="text-xs text-amber-700 italic mb-2">Fetching bill details...</p>
-                      ) : null}
+                          {/* Multiple SLT Accounts Display */}
+                          {multipleBills.map((bill, index) => (
+                            <div key={bill.telephoneNumber} className={`${index > 0 ? 'border-t border-amber-200 pt-3 mt-3' : ''}`}>
+                              <div className="flex justify-between items-center text-sm mb-2">
+                                <span className="text-gray-500 text-xs">SLT Number</span>
+                                <span className="font-mono font-semibold text-gray-800">{bill.telephoneNumber}</span>
+                              </div>
+                              
+                              <div className="flex justify-between items-center mb-1">
+                                <span className="text-xs text-gray-500">Account Name</span>
+                                <span className="text-sm font-semibold text-gray-800">{bill.accountName}</span>
+                              </div>
+                              
+                              <div className="flex justify-between items-center mb-2">
+                                <span className="text-xs text-gray-500">Due Amount</span>
+                                <span className="text-lg font-bold text-red-600">Rs. {bill.currentBill.toFixed(2)}</span>
+                              </div>
+                              
+                              <div className="flex justify-between items-center mb-2">
+                                <span className="text-xs text-gray-500">Bill Status</span>
+                                <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${bill.status === 'paid' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                  {bill.status.toUpperCase()}
+                                </span>
+                              </div>
+                            </div>
+                          ))}
 
-                      {/* Customer Payment Intent */}
-                      <div className="border-t border-amber-200 pt-3 mt-1">
-                        <div className="text-xs text-gray-500 mb-1">Customer's Payment Plan</div>
-                        {currentToken.billPaymentIntent === 'full' ? (
-                          <div className="flex items-center gap-2 bg-green-100 text-green-800 px-3 py-2 rounded-xl">
-                            <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
-                            <span className="text-sm font-bold">Full Payment</span>
-                            {billInfo && (
-                              <span className="ml-auto text-sm font-bold">Rs. {billInfo.currentBill.toFixed(2)}</span>
+                          {/* Total Amount for Multiple Bills */}
+                          <div className="border-t border-amber-300 pt-3 mt-3 bg-amber-100 -mx-4 px-4 -mb-4 pb-4 rounded-b-2xl">
+                            <div className="flex justify-between items-center mb-2">
+                              <span className="text-sm font-bold text-amber-900">Total Due Amount</span>
+                              <span className="text-xl font-bold text-red-700">
+                                Rs. {multipleBills.reduce((sum, bill) => sum + bill.currentBill, 0).toFixed(2)}
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Customer Payment Intent for Multiple Bills */}
+                          <div className="border-t border-amber-200 pt-3 mt-1">
+                            <div className="text-xs text-gray-500 mb-1">Customer's Payment Plan</div>
+                            {currentToken.billPaymentIntent === 'full' ? (
+                              <div className="flex items-center gap-2 bg-green-100 text-green-800 px-3 py-2 rounded-xl">
+                                <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+                                <span className="text-sm font-bold">Full Payment</span>
+                                <span className="ml-auto text-sm font-bold">
+                                  Rs. {multipleBills.reduce((sum, bill) => sum + bill.currentBill, 0).toFixed(2)}
+                                </span>
+                              </div>
+                            ) : currentToken.billPaymentIntent === 'partial' ? (
+                              <div className="flex items-center gap-2 bg-blue-100 text-blue-800 px-3 py-2 rounded-xl">
+                                <CircleDashed className="w-4 h-4 flex-shrink-0" />
+                                <span className="text-sm font-bold">Partial Payment</span>
+                                <span className="ml-auto text-base font-bold">Rs. {(currentToken.billPaymentAmount ?? 0).toFixed(2)}</span>
+                              </div>
+                            ) : (
+                              <div className="bg-gray-100 text-gray-500 px-3 py-2 rounded-xl text-sm italic">
+                                Customer did not specify payment amount
+                              </div>
+                            )}
+                            {currentToken.billPaymentIntent === 'partial' && (
+                              <p className="text-xs text-orange-700 mt-1 font-medium flex items-center gap-1">
+                                <AlertTriangle className="w-3 h-3" /> Remaining after payment: Rs. {Math.max(0, multipleBills.reduce((sum, bill) => sum + bill.currentBill, 0) - (currentToken.billPaymentAmount ?? 0)).toFixed(2)}
+                              </p>
+                            )}
+                            {currentToken.billPaymentMethod && (
+                              <div className="mt-2 flex items-center gap-2 bg-slate-100 text-slate-700 px-3 py-2 rounded-xl">
+                                {currentToken.billPaymentMethod === 'cash' ? <Banknote className="w-4 h-4" /> :
+                                 currentToken.billPaymentMethod === 'card' ? <CreditCard className="w-4 h-4" /> :
+                                 currentToken.billPaymentMethod === 'cheque' ? <FileText className="w-4 h-4" /> :
+                                 <Landmark className="w-4 h-4" />}
+                                <span className="text-xs text-gray-500">Payment Method</span>
+                                <span className="ml-auto text-sm font-semibold capitalize">
+                                  {currentToken.billPaymentMethod === 'bank_transfer' ? 'Bank Transfer' : currentToken.billPaymentMethod.charAt(0).toUpperCase() + currentToken.billPaymentMethod.slice(1)}
+                                </span>
+                              </div>
                             )}
                           </div>
-                        ) : currentToken.billPaymentIntent === 'partial' ? (
-                          <div className="flex items-center gap-2 bg-blue-100 text-blue-800 px-3 py-2 rounded-xl">
-                            <CircleDashed className="w-4 h-4 flex-shrink-0" />
-                            <span className="text-sm font-bold">Partial Payment</span>
-                            <span className="ml-auto text-base font-bold">Rs. {(currentToken.billPaymentAmount ?? 0).toFixed(2)}</span>
+                        </>
+                      ) : (
+                        <>
+                          {/* Legacy Single Bill Support */}
+                          {currentToken.sltTelephoneNumber && (
+                            <div className="flex justify-between items-center text-sm mb-2">
+                              <span className="text-gray-500 text-xs">SLT Number</span>
+                              <span className="font-mono font-semibold text-gray-800">{currentToken.sltTelephoneNumber}</span>
+                            </div>
+                          )}
+
+                          {/* Bill Due Amount from DB */}
+                          {billInfo ? (
+                            <>
+                              <div className="flex justify-between items-center mb-1">
+                                <span className="text-xs text-gray-500">Account Name</span>
+                                <span className="text-sm font-semibold text-gray-800">{billInfo.accountName}</span>
+                              </div>
+                              <div className="flex justify-between items-center mb-2">
+                                <span className="text-xs text-gray-500">Due Amount</span>
+                                <span className="text-lg font-bold text-red-600">Rs. {billInfo.currentBill.toFixed(2)}</span>
+                              </div>
+                              <div className="flex justify-between items-center mb-3">
+                                <span className="text-xs text-gray-500">Bill Status</span>
+                                <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${billInfo.status === 'paid' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                  {billInfo.status.toUpperCase()}
+                                </span>
+                              </div>
+                            </>
+                          ) : currentToken.sltTelephoneNumber ? (
+                            <p className="text-xs text-amber-700 italic mb-2">Fetching bill details...</p>
+                          ) : null}
+
+                          {/* Customer Payment Intent for Single Bill */}
+                          <div className="border-t border-amber-200 pt-3 mt-1">
+                            <div className="text-xs text-gray-500 mb-1">Customer's Payment Plan</div>
+                            {currentToken.billPaymentIntent === 'full' ? (
+                              <div className="flex items-center gap-2 bg-green-100 text-green-800 px-3 py-2 rounded-xl">
+                                <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+                                <span className="text-sm font-bold">Full Payment</span>
+                                {billInfo && (
+                                  <span className="ml-auto text-sm font-bold">Rs. {billInfo.currentBill.toFixed(2)}</span>
+                                )}
+                              </div>
+                            ) : currentToken.billPaymentIntent === 'partial' ? (
+                              <div className="flex items-center gap-2 bg-blue-100 text-blue-800 px-3 py-2 rounded-xl">
+                                <CircleDashed className="w-4 h-4 flex-shrink-0" />
+                                <span className="text-sm font-bold">Partial Payment</span>
+                                <span className="ml-auto text-base font-bold">Rs. {(currentToken.billPaymentAmount ?? 0).toFixed(2)}</span>
+                              </div>
+                            ) : (
+                              <div className="bg-gray-100 text-gray-500 px-3 py-2 rounded-xl text-sm italic">
+                                Customer did not specify payment amount
+                              </div>
+                            )}
+                            {currentToken.billPaymentIntent === 'partial' && billInfo && (
+                              <p className="text-xs text-orange-700 mt-1 font-medium flex items-center gap-1">
+                                <AlertTriangle className="w-3 h-3" /> Remaining after payment: Rs. {Math.max(0, billInfo.currentBill - (currentToken.billPaymentAmount ?? 0)).toFixed(2)}
+                              </p>
+                            )}
+                            {currentToken.billPaymentMethod && (
+                              <div className="mt-2 flex items-center gap-2 bg-slate-100 text-slate-700 px-3 py-2 rounded-xl">
+                                {currentToken.billPaymentMethod === 'cash' ? <Banknote className="w-4 h-4" /> :
+                                 currentToken.billPaymentMethod === 'card' ? <CreditCard className="w-4 h-4" /> :
+                                 currentToken.billPaymentMethod === 'cheque' ? <FileText className="w-4 h-4" /> :
+                                 <Landmark className="w-4 h-4" />}
+                                <span className="text-xs text-gray-500">Payment Method</span>
+                                <span className="ml-auto text-sm font-semibold capitalize">
+                                  {currentToken.billPaymentMethod === 'bank_transfer' ? 'Bank Transfer' : currentToken.billPaymentMethod.charAt(0).toUpperCase() + currentToken.billPaymentMethod.slice(1)}
+                                </span>
+                              </div>
+                            )}
                           </div>
-                        ) : (
-                          <div className="bg-gray-100 text-gray-500 px-3 py-2 rounded-xl text-sm italic">
-                            Customer did not specify payment amount
-                          </div>
-                        )}
-                        {currentToken.billPaymentIntent === 'partial' && billInfo && (
-                          <p className="text-xs text-orange-700 mt-1 font-medium flex items-center gap-1">
-                            <AlertTriangle className="w-3 h-3" /> Remaining after payment: Rs. {Math.max(0, billInfo.currentBill - (currentToken.billPaymentAmount ?? 0)).toFixed(2)}
-                          </p>
-                        )}
-                        {currentToken.billPaymentMethod && (
-                          <div className="mt-2 flex items-center gap-2 bg-slate-100 text-slate-700 px-3 py-2 rounded-xl">
-                            {currentToken.billPaymentMethod === 'cash' ? <Banknote className="w-4 h-4" /> :
-                             currentToken.billPaymentMethod === 'card' ? <CreditCard className="w-4 h-4" /> :
-                             currentToken.billPaymentMethod === 'cheque' ? <FileText className="w-4 h-4" /> :
-                             <Landmark className="w-4 h-4" />}
-                            <span className="text-xs text-gray-500">Payment Method</span>
-                            <span className="ml-auto text-sm font-semibold capitalize">
-                              {currentToken.billPaymentMethod === 'bank_transfer' ? 'Bank Transfer' : currentToken.billPaymentMethod.charAt(0).toUpperCase() + currentToken.billPaymentMethod.slice(1)}
-                            </span>
-                          </div>
-                        )}
-                      </div>
+                        </>
+                      )}
                     </div>
                   )}
 

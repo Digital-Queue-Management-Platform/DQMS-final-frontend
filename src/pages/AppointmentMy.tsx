@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import React, { useEffect, useState } from "react"
 import { useLocation, useNavigate } from "react-router-dom"
 import { Calendar, Clock, MapPin, RefreshCwIcon } from "lucide-react"
 import api from "../config/api"
@@ -8,6 +8,8 @@ import type { Outlet } from "../types"
 
 type Appt = {
   id: string
+  name?: string
+  mobileNumber?: string
   outletId: string
   outletName?: string
   outletLocation?: string
@@ -18,6 +20,23 @@ type Appt = {
   appointmentAt: string
   queuedAt?: string | null
   createdAt: string
+  token?: {
+    id: string
+    tokenNumber: number
+    status: string
+    createdAt: string
+    customer: {
+      name: string
+    }
+  }
+  queueInfo?: {
+    position: number
+    estimatedWaitMinutes: number
+  }
+  outlet?: {
+    name: string
+    location?: string
+  }
 }
 
 type BillData = {
@@ -35,6 +54,8 @@ export default function AppointmentMy() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const [appts, setAppts] = useState<Appt[]>([])
+  const [filteredAppts, setFilteredAppts] = useState<Appt[]>([])
+  const [activeFilter, setActiveFilter] = useState<string>('all')
   const [billDataMap, setBillDataMap] = useState<Record<string, BillData>>({})
   const [outletMap, setOutletMap] = useState<Record<string, { name: string; location?: string }>>({})
   const [language] = useState<'en' | 'si' | 'ta'>(() => {
@@ -105,6 +126,40 @@ export default function AppointmentMy() {
     }
   }
 
+  // Filter appointments when filter changes or appointments are loaded
+  const applyFilter = (filter: string, appointments: Appt[]) => {
+    if (filter === 'all') {
+      return appointments
+    }
+    return appointments.filter(appt => appt.status === filter)
+  }
+
+  // Update filtered appointments when appointments or filter changes
+  React.useEffect(() => {
+    setFilteredAppts(applyFilter(activeFilter, appts))
+  }, [appts, activeFilter])
+
+  // Get appointment counts per status
+  const getStatusCounts = () => {
+    const counts = {
+      all: appts.length,
+      booked: 0,
+      queued: 0,
+      completed: 0,
+      cancelled: 0
+    }
+    
+    appts.forEach(appt => {
+      if (counts.hasOwnProperty(appt.status)) {
+        counts[appt.status as keyof typeof counts]++
+      }
+    })
+    
+    return counts
+  }
+
+  const statusCounts = getStatusCounts()
+
   const cancelAppt = async (apptId: string) => {
     if (!window.confirm(t.cancelConfirm)) return
     setLoading(true)
@@ -158,6 +213,19 @@ export default function AppointmentMy() {
       cancelling: 'Cancelling…',
       cancelConfirm: 'Are you sure you want to cancel this appointment?',
       cancelSuccess: 'Appointment cancelled successfully',
+      customerName: 'Customer Name',
+      mobileNumber: 'Mobile Number',
+      inQueueNow: 'You\'re in the Queue!',
+      tokenNumber: 'Token Number',
+      queuePosition: 'Position in Queue',
+      estimatedWait: 'Estimated Wait',
+      queuedAt: 'Joined Queue',
+      filterAll: 'All',
+      filterBooked: 'Booked',
+      filterQueued: 'Queued', 
+      filterCompleted: 'Completed',
+      filterCancelled: 'Cancelled',
+      filterBy: 'Filter by status:',
     },
     si: {
       title: 'මගේ ඇප්පොයින්ට්මන්ට්',
@@ -193,6 +261,19 @@ export default function AppointmentMy() {
       cancelling: 'අවලංගු කරමින්…',
       cancelConfirm: 'මෙම හමුව අවලංගු කිරීමට ඔබට විශ්වාසද?',
       cancelSuccess: 'හමුව සාර්ථකව අවලංගු කරන ලදී',
+      customerName: 'පාරිභෝගික නම',
+      mobileNumber: 'ජංගම අංකය',
+      inQueueNow: 'ඔබ පෝලිමේ සිටී!',
+      tokenNumber: 'ටෝකන් අංකය',
+      queuePosition: 'පෝලිමේ ස්ථානය',
+      estimatedWait: 'ඇස්තමේන්තුගත බලාපොරොත්තු',
+      queuedAt: 'පෝලිමට එක්වුණු',
+      filterAll: 'සියල්ල',
+      filterBooked: 'වෙන්කර ඇත',
+      filterQueued: 'පෝලිමට එක්වී ඇත',
+      filterCompleted: 'සම්පූර්ණයි',
+      filterCancelled: 'අවලංගු කළා',
+      filterBy: 'තත්ත්වය අනුව පෙරහන:',
     },
     ta: {
       title: 'எனது நேரங்கள்',
@@ -228,6 +309,19 @@ export default function AppointmentMy() {
       cancelling: 'ரத்துசெய்கிறது…',
       cancelConfirm: 'இந்த சந்திப்பை ரத்து செய்ய விரும்புகிறீர்களா?',
       cancelSuccess: 'சந்திப்பு வெற்றிகரமாக ரத்து செய்யப்பட்டது',
+      customerName: 'வாடிக்கையாளர் பெயர்',
+      mobileNumber: 'கைபேசி எண்',
+      inQueueNow: 'நீங்கள் வரிசையில் உள்ளீர்கள்!',
+      tokenNumber: 'டோக்கன் எண்',
+      queuePosition: 'வரிசையில் நிலை',
+      estimatedWait: 'மதிப்பிடப்பட்ட காத்திருப்பு',
+      queuedAt: 'வரிசையில் சேர்ந்தது',
+      filterAll: 'அனைத்தும்',
+      filterBooked: 'புக் செய்யப்பட்டது',
+      filterQueued: 'வரிசையில்',
+      filterCompleted: 'நிறைவுற்றது',
+      filterCancelled: 'ரத்து செய்யப்பட்டது',
+      filterBy: 'நிலை மூலம் வடிகட்டவும்:',
     },
   } as const
 
@@ -280,8 +374,39 @@ export default function AppointmentMy() {
           ) : appts.length === 0 ? (
             <div className="text-gray-600">{t.none}</div>
           ) : (
-            <div className="space-y-3">
-              {appts.map(a => (
+            <>
+              {/* Filter Buttons */}
+              <div className="mb-6">
+                <p className="text-sm font-medium text-gray-700 mb-3">{t.filterBy}</p>
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    { key: 'all', label: t.filterAll, count: statusCounts.all },
+                    { key: 'booked', label: t.filterBooked, count: statusCounts.booked },
+                    { key: 'queued', label: t.filterQueued, count: statusCounts.queued },
+                    { key: 'completed', label: t.filterCompleted, count: statusCounts.completed },
+                    { key: 'cancelled', label: t.filterCancelled, count: statusCounts.cancelled }
+                  ].map(filter => (
+                    <button
+                      key={filter.key}
+                      onClick={() => setActiveFilter(filter.key)}
+                      className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                        activeFilter === filter.key
+                          ? 'bg-indigo-600 text-white'
+                          : filter.count > 0
+                            ? 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                            : 'bg-gray-50 text-gray-400 cursor-not-allowed'
+                      }`}
+                      disabled={filter.count === 0}
+                    >
+                      {filter.label} ({filter.count})
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Appointments List */}
+              <div className="space-y-3">
+                {filteredAppts.map(a => (
                 <div key={a.id} className="border rounded-lg p-4 flex flex-col gap-1">
                   <div className="flex items-center justify-between">
                     <div className="text-sm text-gray-700 inline-flex items-center gap-2">
@@ -310,6 +435,51 @@ export default function AppointmentMy() {
                     <Clock className="w-4 h-4 text-gray-400" />
                     <span>{t.services}: {Array.isArray(a.serviceTypes) ? a.serviceTypes.map(renderService).join(', ') : ''}</span>
                   </div>
+                  
+                  {/* Customer Details */}
+                  {a.name && (
+                    <div className="text-sm text-gray-700 font-medium mt-2">
+                      {t.customerName || 'Customer'}: {a.name}
+                    </div>
+                  )}
+                  {a.mobileNumber && (
+                    <div className="text-xs text-gray-500">
+                      {t.mobileNumber || 'Mobile'}: {a.mobileNumber}
+                    </div>
+                  )}
+                  
+                  {/* Queue Information - Show when appointment is queued */}
+                  {a.status === 'queued' && a.token && (
+                    <div className="mt-3 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg p-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                        <span className="text-sm font-semibold text-green-900">{t.inQueueNow || 'You\'re in the Queue!'}</span>
+                      </div>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between items-center">
+                          <span className="text-gray-600">{t.tokenNumber || 'Token Number'}:</span>
+                          <span className="font-bold text-2xl text-green-700">#{a.token.tokenNumber}</span>
+                        </div>
+                        {a.queueInfo && (
+                          <>
+                            <div className="flex justify-between items-center pt-2 border-t border-green-200">
+                              <span className="text-gray-600">{t.queuePosition || 'Position in Queue'}:</span>
+                              <span className="font-semibold text-green-900">{a.queueInfo.position}</span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <span className="text-gray-600">{t.estimatedWait || 'Estimated Wait'}:</span>
+                              <span className="font-semibold text-green-900">~{a.queueInfo.estimatedWaitMinutes} min</span>
+                            </div>
+                          </>
+                        )}
+                        <div className="flex justify-between items-center">
+                          <span className="text-gray-600">{t.queuedAt || 'Joined Queue'}:</span>
+                          <span className="text-gray-700">{a.token.createdAt ? formatTime(a.token.createdAt) : '-'}</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
                   {a.preferredLanguage && (
                     <div className="text-xs text-gray-500">{t.languageLabel}: {a.preferredLanguage}</div>
                   )}
@@ -374,7 +544,8 @@ export default function AppointmentMy() {
                   )}
                 </div>
               ))}
-            </div>
+              </div>
+            </>
           )}
         </div>
 
