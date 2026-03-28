@@ -62,6 +62,7 @@ const TeleshopManagerServiceTracking = React.lazy(() => import("./pages/Teleshop
 const TeleshopManagerClosureNotices = React.lazy(() => import("./pages/TeleshopManagerClosureNotices"))
 const TeleshopManagerAuditLogs = React.lazy(() => import("./pages/TeleshopManagerAuditLogs"))
 const TeleshopManagerOutletDisplay = React.lazy(() => import("./pages/TeleshopManagerOutletDisplay"))
+const TeleshopManagerOutletSetup = React.lazy(() => import("./pages/TeleshopManagerOutletSetup"))
 const ManagerClosureNotices = React.lazy(() => import("./pages/ManagerClosureNotices"))
 const AdminGMs = React.lazy(() => import("./admin/adminPages/AdminGMs"))
 const AdminDGMs = React.lazy(() => import("./admin/adminPages/AdminDGMs"))
@@ -657,6 +658,10 @@ function App() {
         <Route
           element={<Layout><ProtectedTeleshopManagerRoute><TeleshopManagerOutletDisplay /></ProtectedTeleshopManagerRoute></Layout>}
           path="/teleshop-manager/outlet-display"
+        />
+        <Route
+          element={<Layout><ProtectedTeleshopManagerRoute><TeleshopManagerOutletSetup /></ProtectedTeleshopManagerRoute></Layout>}
+          path="/teleshop-manager/outlet-setup"
         />
         <Route element={<GMLogin />} path="/gm/login" />
         <Route
