@@ -8,6 +8,7 @@ import OTPInput from '../components/OTPInput'
 import OTPPopup from '../components/OTPPopup'
 import BranchClosedModal from '../components/BranchClosedModal'
 import NoticeModal from '../components/NoticeModal'
+import MultiTelephoneNumberInput from '../components/MultiTelephoneNumberInput'
 import { useBranchStatus } from '../hooks/useBranchStatus'
 import { useOutletNotices } from '../hooks/useOutletNotices'
 
@@ -54,7 +55,20 @@ export default function KioskDashboard() {
   // Service dropdown states
 
   // Bill payment specific states
-  const [sltTelephoneNumber, setSltTelephoneNumber] = useState("")
+  const [sltTelephoneNumbers, setSltTelephoneNumbers] = useState<string[]>([])
+  const [verifiedBills, setVerifiedBills] = useState<Array<{
+    id: string;
+    telephoneNumber: string;
+    accountName: string;
+    accountAddress?: string;
+    currentBill: number;
+    dueDate: string;
+    status: string;
+    lastPaymentDate?: string;
+    mobileNumber?: string;  // Add mobile number property
+  }>>([])
+  // Legacy state variables (keeping for potential backward compatibility)
+  // const [sltTelephoneNumber, setSltTelephoneNumber] = useState("")
   const [sltVerified, setSltVerified] = useState(false)
   const [shouldAutoSubmit, setShouldAutoSubmit] = useState(false)
   const [isOwnerOfAccount, setIsOwnerOfAccount] = useState(false)
@@ -236,9 +250,9 @@ export default function KioskDashboard() {
         setOtpToken(res.data.verifiedMobileToken)
         setOtpStep('verified')
 
-        // Auto-verify SLT number after mobile OTP (for bill payment)
-        if (isSltRequiredService(selectedService) && sltTelephoneNumber && !sltVerified) {
-          await verifySltNumber()
+  // Auto-verify SLT number after mobile OTP (for bill payment)
+        if (isSltRequiredService(selectedService) && sltTelephoneNumbers.length > 0 && verifiedBills.length === 0) {
+          await verifySltNumbers()
         }
 
         // For bill payment: do NOT auto-submit — customer must select payment intent first
@@ -258,120 +272,105 @@ export default function KioskDashboard() {
     }
   }
 
-  // Helper function to mask phone number - show last 3 digits
+  // Helper function to mask phone number - show last 4 digits
   const getMaskedPhoneNumber = (phone: string): string => {
-    if (!phone || phone.length < 3) return phone
-    const lastThree = phone.slice(-3)
-    return `xxxxxxx${lastThree}`
+    if (!phone || phone.length < 4) return phone
+    const lastFour = phone.slice(-4)
+    return `xxxxxx${lastFour}`
   }
 
   // Removed unused normalizeMobileNumber function
 
-  // Verify SLT telephone number and send bill notification
-  const verifySltNumber = async () => {
-    if (!sltTelephoneNumber) {
-      setError("Please enter SLT telephone number")
-      return
-    }
-
-    // Relaxed validation: Just check for 10 digits
-    const phoneRegex = /^\d{10}$/
-    if (!phoneRegex.test(sltTelephoneNumber)) {
-      setError("Invalid telephone number. Must be 10 digits.")
+  // Verify multiple SLT telephone numbers and send bill notifications
+  const verifySltNumbers = async () => {
+    if (sltTelephoneNumbers.length === 0) {
+      setError("Please enter at least one SLT telephone number")
       return
     }
 
     setLoading(true)
     setError("")
     try {
-      const response = await api.get(`/bills/verify/${sltTelephoneNumber}?force=true`)
-      if (response.data.success && response.data.bill) {
-        const bill = response.data.bill
+      const response = await api.post('/bills/verify-multiple', {
+        telephoneNumbers: sltTelephoneNumbers
+      })
+      
+      if (response.data.success) {
+        const verifiedBills = response.data.results
+          .filter((result: any) => result.bill)
+          .map((result: any) => result.bill)
 
-        // Check if mobile number is registered with SLT account
-        // If the API returned success, it means SLT system triggered an SMS, even if we couldn't parse the number
-        if (!bill.mobileNumber && !response.data.smsNotification?.maskedMobile) {
-          const hotline = import.meta.env.VITE_SLT_HOTLINE || "1213"
-          setError(`⚠️ This SLT account does not have a registered mobile number. Please contact the SLT hotline at ${hotline} to register your mobile number before proceeding.`)
-          setSltVerified(false)
-          setNotificationSent(false)
-          // Still allow proceeding if the user says it's correct? No, let's keep the block for absolute certainty of no number.
-          // However, if the user says it was sent, then extractMaskedMobile likely failed or message was different.
-          return
-        }
-
+        setVerifiedBills(verifiedBills)
         setSltVerified(true)
-        setError("")
-        setBillData({
-          currentBill: bill.currentBill,
-          accountName: bill.accountName,
-          dueDate: bill.dueDate,
-          status: bill.status,
-        })
-        // Reset payment intent when bill is freshly verified
-        setBillPaymentIntent(null)
-        setBillPaymentCustomAmount("")
-        setBillPaymentMethod(null)
 
-        // DO NOT auto-fill name from bill - allow user to enter their own name
-        // This is important because sometimes the person paying (e.g., driver)
-        // is not the account owner, and we want their name in the system
-
-        // Normalize mobile numbers to compare (07x → 94x format)
-        const normalizeForComparison = (num: string) => {
-          let normalized = num.replace(/\D/g, '')
-          if (normalized.startsWith('0')) {
-            normalized = '94' + normalized.substring(1)
-          } else if (!normalized.startsWith('94')) {
-            normalized = '94' + normalized
-          }
-          return normalized
-        }
-
-        // Check if person verifying is the registered owner
-        let isOwner = false
-        if (otpStep === 'verified' && mobileNumber) {
-          const userMobileNormalized = normalizeForComparison(mobileNumber)
-          const ownerMobileNormalized = normalizeForComparison(bill.mobileNumber)
-          isOwner = userMobileNormalized === ownerMobileNormalized
-        }
+        // Check if customer mobile is the owner of any account
+        const isOwner = verifiedBills.some((bill: any) => 
+          bill.mobileNumber && bill.mobileNumber === mobileNumber
+        )
         setIsOwnerOfAccount(isOwner)
 
-        // Create appropriate message
-        const maskedPhone = getMaskedPhoneNumber(bill.mobileNumber)
-
         if (isOwner) {
-          setNotificationMessage(`Bill details have been sent to your registered mobile number.`)
+          const totalAmount = verifiedBills.reduce((sum: number, bill: any) => sum + bill.currentBill, 0);
+          setNotificationMessage(`You are the verified account owner. Due amount details have been sent to your mobile number. Total: LKR ${totalAmount.toFixed(2)}`)
+          
+          // Send bill notification using SLT API to registered account owners
+          try {
+            await api.post('/bills/send-bill-notification', {
+              sltTelephoneNumbers: verifiedBills.map((bill: any) => bill.telephoneNumber)
+            });
+            console.log('SLT bill notifications sent to verified account owner')
+          } catch (smsError) {
+            console.log('SLT notification failed (non-critical):', smsError)
+            // Don't fail the process if notification fails
+          }
         } else {
-          // Non-owner: message says amount was sent to owner, but does NOT show the amount
-          setNotificationMessage(`Bill details have been sent to the account holder at ${maskedPhone}`)
+          // Create list of masked mobile numbers for the notification
+          const maskedNumbers = verifiedBills
+            .map((bill: any) => bill.mobileNumber ? getMaskedPhoneNumber(bill.mobileNumber) : null)
+            .filter((num: string | null) => num !== null)
+          
+          const maskedNumbersText = maskedNumbers.length > 0 
+            ? ` ${maskedNumbers.join(', ')}`
+            : ''
+          
+          // Create list of SLT telephone numbers  
+          const sltNumbers = verifiedBills.map((bill: any) => bill.telephoneNumber).join(', ')
+            
+          setNotificationMessage(`Bill notification has been sent to the registered mobile number(s)${maskedNumbersText} of the SLT account(s) ${sltNumbers}. You can proceed with your token generation.`)
+          
+          // Send bill notification using SLT API to registered account owners
+          try {
+            await api.post('/bills/send-bill-notification', {
+              sltTelephoneNumbers: verifiedBills.map((bill: any) => bill.telephoneNumber)
+            });
+            console.log('SLT bill notifications sent to registered account owners')
+          } catch (smsError) {
+            console.log('SLT notification failed (non-critical):', smsError)
+            // Don't fail the process if notification fails
+          }
         }
         setNotificationSent(true)
 
-        // Send SMS notification with bill information (including due amount)
-        try {
-          await api.post('/bills/send-notification', {
-            mobileNumber: bill.mobileNumber,
-            accountName: bill.accountName,
-            billAmount: bill.currentBill,
-            dueDate: bill.dueDate,
-            sltNumber: sltTelephoneNumber
+        // Set first bill data for legacy compatibility
+        if (verifiedBills.length > 0) {
+          setBillData({
+            currentBill: verifiedBills.reduce((sum: number, bill: any) => sum + bill.currentBill, 0),
+            accountName: verifiedBills.map((bill: any) => bill.accountName).join(', '),
+            dueDate: verifiedBills[0].dueDate,
+            status: verifiedBills[0].status
           })
-        } catch (notifErr) {
-          console.log('Notification sent (or notification service not configured)')
         }
-      } else {
-        setError("No account found for this telephone number")
       }
     } catch (err: any) {
-      console.error('Bill verification error:', err)
-      setError(err.response?.data?.error || "Failed to verify telephone number")
-      setSltVerified(false)
-      setNotificationSent(false)
+      console.error('SLT verification error:', err)
+      const errMsg = err?.response?.data?.error || 'Failed to verify SLT numbers. Please try again.'
+      setError(errMsg)
     } finally {
       setLoading(false)
     }
   }
+
+  // Legacy single number verification removed in favor of multi-number approach
 
   // Step navigation functions
   const goToNextStep = () => {
@@ -405,7 +404,7 @@ export default function KioskDashboard() {
   const canProceedFromStep3 = () => {
     const validDetails = name.trim().length >= 2 && isValidMobile(mobileNumber)
     if (isSltRequiredService(selectedService)) {
-      return validDetails && isValidSlt(sltTelephoneNumber)
+      return validDetails && sltTelephoneNumbers.length > 0 && sltTelephoneNumbers.every(num => isValidSlt(num))
     }
     return validDetails
   }
@@ -472,10 +471,10 @@ export default function KioskDashboard() {
           serviceTypes: [selectedService],
           preferredLanguages: preferredLanguage ? [preferredLanguage] : undefined,
           verifiedMobileToken: tokenForSubmit,
-          sltTelephoneNumber: isSltRequiredService(selectedService) ? sltTelephoneNumber || undefined : undefined,
-          billPaymentIntent: isSltRequiredService(selectedService) && sltVerified ? billPaymentIntent : undefined,
+          sltTelephoneNumbers: isSltRequiredService(selectedService) ? sltTelephoneNumbers : undefined,
+          billPaymentIntent: isSltRequiredService(selectedService) && verifiedBills.length > 0 ? billPaymentIntent : undefined,
           billPaymentAmount: partialAmount,
-          billPaymentMethod: isSltRequiredService(selectedService) && sltVerified ? billPaymentMethod : undefined,
+          billPaymentMethod: isSltRequiredService(selectedService) && verifiedBills.length > 0 ? billPaymentMethod : undefined,
         }),
       })
 
@@ -527,7 +526,8 @@ export default function KioskDashboard() {
     setOtpToken('')
     setOtpError('')
     setError('')
-    setSltTelephoneNumber('')
+    setSltTelephoneNumbers([])
+    setVerifiedBills([])
     setSltVerified(false)
     setNotificationSent(false)
     setNotificationMessage('')
@@ -985,35 +985,22 @@ export default function KioskDashboard() {
                     <p className="text-sm text-gray-600">{t.step3Subtitle}</p>
                   </div>
 
-                  {/* Bill Payment Path - Collect SLT Number (will verify after OTP) */}
+                  {/* Bill Payment Path - Collect SLT Numbers (will verify after OTP) */}
                   {isSltRequiredService(selectedService) && (
                     <div className="space-y-4">
                       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                         <h3 className="text-sm font-semibold text-blue-900 mb-3">{t.enterSltNumber}</h3>
-                        <div className="space-y-3">
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">{t.sltTelephone}</label>
-                            <div className="relative">
-                              <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                              <input
-                                type="tel"
-                                value={sltTelephoneNumber}
-                                onChange={(e) => {
-                                  setSltTelephoneNumber(e.target.value.replace(/\D/g, '').slice(0, 10))
-                                  setError("")
-                                  setSltVerified(false)
-                                }}
-                                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent rounded-xl"
-                                placeholder={t.sltTelephonePlaceholder}
-                                maxLength={10}
-                              />
-                            </div>
-                            {sltTelephoneNumber.length > 0 && !isValidSlt(sltTelephoneNumber) && (
-                              <p className="text-xs text-red-500 mt-1">{t.invalidSltNumber}</p>
-                            )}
-                            <p className="text-xs text-blue-600 mt-2"> {t.verifySltAccountNote}</p>
-                          </div>
-                        </div>
+                        <MultiTelephoneNumberInput
+                          telephoneNumbers={sltTelephoneNumbers}
+                          onTelephoneNumbersChange={setSltTelephoneNumbers}
+                          verifiedBills={verifiedBills}
+                          onVerifiedBillsChange={setVerifiedBills}
+                          language={language}
+                          autoVerify={false}
+                          maxNumbers={10}
+                          disabled={false}
+                        />
+                        <p className="text-xs text-blue-600 mt-2">{t.verifySltAccountNote}</p>
                       </div>
                     </div>
                   )}
@@ -1149,10 +1136,27 @@ export default function KioskDashboard() {
                         {getServiceTitle(selectedService)}
                       </p>
                     </div>
-                    {isSltRequiredService(selectedService) && sltTelephoneNumber && (
+                    {isSltRequiredService(selectedService) && sltTelephoneNumbers.length > 0 && (
                       <div>
                         <span className="text-xs font-medium text-gray-500 uppercase">{t.sltTelephone}</span>
-                        <p className="text-sm font-medium text-gray-900">{sltTelephoneNumber}</p>
+                        <div className="text-sm font-medium text-gray-900">
+                          {sltTelephoneNumbers.map((number) => (
+                            <div key={number} className="flex items-center justify-between">
+                              <span>{number}</span>
+                              {verifiedBills.find(bill => bill.telephoneNumber === number) && (
+                                <span className="text-xs text-green-600">✓ Verified</span>
+                              )}
+                            </div>
+                          ))}
+                          {verifiedBills.length > 0 && (() => {
+                            const totalAmount = verifiedBills.reduce((sum, bill) => sum + bill.currentBill, 0);
+                            return totalAmount > 0 ? (
+                              <div className="text-xs text-blue-600 mt-1">
+                                Total: LKR {totalAmount.toFixed(2)}
+                              </div>
+                            ) : null;
+                          })()}
+                        </div>
                       </div>
                     )}
                     <div>
@@ -1166,7 +1170,7 @@ export default function KioskDashboard() {
                   </div>
 
                   {/* Notification Message - Show after SLT verified */}
-                  {isSltRequiredService(selectedService) && sltVerified && notificationSent && (
+                  {isSltRequiredService(selectedService) && verifiedBills.length > 0 && notificationSent && (
                     <div className={`rounded-lg p-4 border ${isOwnerOfAccount
                       ? 'bg-green-50 border-green-200'
                       : 'bg-blue-50 border-blue-200'
@@ -1196,7 +1200,7 @@ export default function KioskDashboard() {
                   )}
 
                   {/* Bill Payment Intent Selection - shown after SLT verification */}
-                  {isSltRequiredService(selectedService) && sltVerified && billData && otpStep === 'verified' && (
+                  {isSltRequiredService(selectedService) && verifiedBills.length > 0 && billData && otpStep === 'verified' && (
                     <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 space-y-4">
                       <div className="flex items-center gap-2">
                         <div className="w-2 h-2 rounded-full bg-amber-500"></div>
@@ -1318,7 +1322,7 @@ export default function KioskDashboard() {
 
                   {/* Auto-submit feedback — spinner shown once all bill payment selections are made */}
                    {/* Auto-submit feedback — spinner shown once all bill payment selections are made */}
-                  {shouldAutoSubmit && otpStep === 'verified' && (isSltRequiredService(selectedService) ? (sltVerified && billPaymentIntent && billPaymentMethod && !(billPaymentIntent === 'partial' && (!billPaymentCustomAmount || parseFloat(billPaymentCustomAmount) <= 0))) : true) && (
+                  {shouldAutoSubmit && otpStep === 'verified' && (isSltRequiredService(selectedService) ? (verifiedBills.length > 0 && billPaymentIntent && billPaymentMethod && !(billPaymentIntent === 'partial' && (!billPaymentCustomAmount || parseFloat(billPaymentCustomAmount) <= 0))) : true) && (
                     <div className="w-full bg-blue-50 border border-blue-200 text-blue-700 py-3 rounded-xl text-sm font-medium flex items-center justify-center gap-2">
                        <svg className="animate-spin h-4 w-4 text-blue-600" viewBox="0 0 24 24">
                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>

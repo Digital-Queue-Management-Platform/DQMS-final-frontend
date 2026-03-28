@@ -11,6 +11,7 @@ import OTPInput from "../components/OTPInput"
 import OTPPopup from "../components/OTPPopup"
 import BranchClosedModal from "../components/BranchClosedModal"
 import NoticeModal from "../components/NoticeModal"
+import MultiTelephoneNumberInput from "../components/MultiTelephoneNumberInput"
 import { useBranchStatus } from "../hooks/useBranchStatus"
 import { useOutletNotices } from "../hooks/useOutletNotices"
 
@@ -50,6 +51,18 @@ export default function CustomerRegistration() {
 
 
   // Bill payment specific states
+  const [sltTelephoneNumbers, setSltTelephoneNumbers] = useState<string[]>([])
+  const [verifiedBills, setVerifiedBills] = useState<Array<{
+    id: string;
+    telephoneNumber: string;
+    accountName: string;
+    accountAddress?: string;
+    currentBill: number;
+    dueDate: string;
+    status: string;
+    lastPaymentDate?: string;
+    mobileNumber?: string;  // Add mobile number property
+  }>>([])
   const [sltTelephoneNumber, setSltTelephoneNumber] = useState("")
   const [_billData, setBillData] = useState<any>(null)
   const [sltVerified, setSltVerified] = useState(false)
@@ -92,6 +105,8 @@ export default function CustomerRegistration() {
     setOtpError("")
     setOtpSending(false)
     // Reset bill payment state
+    setSltTelephoneNumbers([])
+    setVerifiedBills([])
     setSltTelephoneNumber("")
     setBillData(null)
     setError("")
@@ -633,10 +648,10 @@ export default function CustomerRegistration() {
         qrToken,
         verifiedMobileToken: tokenForSubmit,
         preferredLanguages: preferredLanguage ? [preferredLanguage] : undefined,
-        sltTelephoneNumber: isSltRequiredService(selectedService) ? sltTelephoneNumber || undefined : undefined,
-        billPaymentIntent: isSltRequiredService(selectedService) && sltVerified ? billPaymentIntent : undefined,
+        sltTelephoneNumbers: isSltRequiredService(selectedService) ? sltTelephoneNumbers : undefined,
+        billPaymentIntent: isSltRequiredService(selectedService) && verifiedBills.length > 0 ? billPaymentIntent : undefined,
         billPaymentAmount: isSltRequiredService(selectedService) && billPaymentIntent === 'partial' ? parseFloat(billPaymentCustomAmount) || undefined : undefined,
-        billPaymentMethod: isSltRequiredService(selectedService) && sltVerified ? billPaymentMethod : undefined,
+        billPaymentMethod: isSltRequiredService(selectedService) && verifiedBills.length > 0 ? billPaymentMethod : undefined,
       })
 
       if (response.data.success) {
@@ -696,7 +711,7 @@ export default function CustomerRegistration() {
   const canProceedFromStep3 = () => {
     const validDetails = name.trim().length >= 2 && isValidMobile(mobileNumber)
     if (selectedService === 'BILL_PAYMENT' || isSltRequiredService(selectedService)) {
-      return validDetails && isValidSlt(sltTelephoneNumber)
+      return validDetails && sltTelephoneNumbers.length > 0 && sltTelephoneNumbers.every(num => isValidSlt(num))
     }
     return validDetails
   }
@@ -1157,30 +1172,17 @@ export default function CustomerRegistration() {
                       <div className="space-y-4">
                         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                           <h3 className="text-sm font-semibold text-blue-900 mb-3">{t.enterSltNumber}</h3>
-                          <div className="space-y-3">
-                            <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-2">{t.sltTelephone}</label>
-                              <div className="relative">
-                                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                                <input
-                                  type="tel"
-                                  value={sltTelephoneNumber}
-                                  onChange={(e) => {
-                                    setSltTelephoneNumber(e.target.value.replace(/\D/g, '').slice(0, 10))
-                                    setError("")
-                                    setSltVerified(false)
-                                  }}
-                                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent rounded-xl"
-                                  placeholder={t.sltTelephonePlaceholder}
-                                  maxLength={10}
-                                />
-                              </div>
-                              {sltTelephoneNumber.length > 0 && !isValidSlt(sltTelephoneNumber) && (
-                                <p className="text-xs text-red-500 mt-1">{t.invalidSltNumber}</p>
-                              )}
-                              <p className="text-xs text-blue-600 mt-2"> {t.verifySltAccountNote}</p>
-                            </div>
-                          </div>
+                          <MultiTelephoneNumberInput
+                            telephoneNumbers={sltTelephoneNumbers}
+                            onTelephoneNumbersChange={setSltTelephoneNumbers}
+                            verifiedBills={verifiedBills}
+                            onVerifiedBillsChange={setVerifiedBills}
+                            language={language}
+                            autoVerify={false}
+                            maxNumbers={10}
+                            disabled={false}
+                          />
+                          <p className="text-xs text-blue-600 mt-2">{t.verifySltAccountNote}</p>
                         </div>
                       </div>
                     )}
