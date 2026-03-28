@@ -1,4 +1,5 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
+import QrScanner from 'qr-scanner';
 import { Camera, X, CheckCircle, AlertCircle, Monitor } from 'lucide-react';
 
 interface QRScannerProps {
@@ -18,40 +19,89 @@ interface DeviceInfo {
 
 const QRScanner: React.FC<QRScannerProps> = ({ onScan, onClose, isOpen }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const scannerRef = useRef<QrScanner | null>(null);
   const [scanning, setScanning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [deviceInfo, setDeviceInfo] = useState<DeviceInfo | null>(null);
   const [scanResult, setScanResult] = useState<'success' | 'error' | null>(null);
 
-  const startScanner = useCallback(async () => {
+  const handleScan = useCallback((result: QrScanner.ScanResult) => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { 
-          facingMode: 'environment',
-          width: { ideal: 1280 },
-          height: { ideal: 720 }
-        }
-      });
+      console.log('QR Code scanned:', result.data);
+      const data = JSON.parse(result.data);
       
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        await videoRef.current.play();
-        setScanning(true);
-        setError(null);
+      // Validate QR code format
+      if (data.type === 'dqmp_outlet_setup' && data.deviceId && data.setupCode) {
+        console.log('Valid QR code detected:', data);
+        setDeviceInfo(data);
+        setScanResult('success');
+        
+        // Stop scanning after successful scan
+        if (scannerRef.current) {
+          scannerRef.current.stop();
+        }
+        
+        // Auto-proceed after 2 seconds on successful scan
+        setTimeout(() => {
+          onScan(data);
+        }, 2000);
+      } else {
+        console.log('Invalid QR code format:', data);
+        setError('Invalid QR code format. Please scan a DQMP Android TV setup code.');
+        setScanResult('error');
+        
+        // Reset error after 3 seconds and continue scanning
+        setTimeout(() => {
+          setError(null);
+          setScanResult(null);
+        }, 3000);
       }
     } catch (err) {
-      setError('Unable to access camera. Please check camera permissions and try again.');
-      console.error('Camera error:', err);
+      console.error('QR Code parsing error:', err, 'Data:', result.data);
+      setError('Unable to read QR code. Please ensure it\'s a valid DQMP setup code.');
+      setScanResult('error');
+      
+      setTimeout(() => {
+        setError(null);
+        setScanResult(null);
+      }, 3000);
     }
-  }, []);
+  }, [onScan]);
+
+  const startScanner = useCallback(async () => {
+    if (!videoRef.current || scannerRef.current) return;
+
+    try {
+      console.log('Starting QR scanner...');
+      const scanner = new QrScanner(
+        videoRef.current,
+        handleScan,
+        {
+          highlightScanRegion: true,
+          highlightCodeOutline: true,
+          maxScansPerSecond: 5,
+          preferredCamera: 'environment', // Use rear camera on mobile
+        }
+      );
+
+      scannerRef.current = scanner;
+      await scanner.start();
+      console.log('QR scanner started successfully');
+      setScanning(true);
+      setError(null);
+    } catch (err) {
+      console.error('QR Scanner start error:', err);
+      setError('Unable to access camera. Please check camera permissions and try again.');
+    }
+  }, [handleScan]);
 
   const stopScanner = useCallback(() => {
-    if (videoRef.current?.srcObject) {
-      const tracks = (videoRef.current.srcObject as MediaStream).getTracks();
-      tracks.forEach(track => track.stop());
-      videoRef.current.srcObject = null;
+    if (scannerRef.current) {
+      scannerRef.current.stop();
+      scannerRef.current.destroy();
+      scannerRef.current = null;
+      setScanning(false);
     }
-    setScanning(false);
   }, []);
 
   const handleManualEntry = () => {
@@ -81,6 +131,7 @@ const QRScanner: React.FC<QRScannerProps> = ({ onScan, onClose, isOpen }) => {
   const createTestQRCode = () => {
     const testData = {
       type: 'dqmp_outlet_setup',
+      version: '1.0',
       deviceId: 'android-tv-' + Date.now(),
       deviceName: 'Test Android TV',
       macAddress: '00:11:22:33:44:55',
@@ -90,7 +141,9 @@ const QRScanner: React.FC<QRScannerProps> = ({ onScan, onClose, isOpen }) => {
     
     const jsonData = JSON.stringify(testData);
     navigator.clipboard.writeText(jsonData).then(() => {
-      alert('Test QR data copied to clipboard. You can use this for testing.');
+      alert('Test QR data copied to clipboard:\n\n' + jsonData);
+    }).catch(() => {
+      prompt('Copy this test data manually:', jsonData);
     });
   };
 
@@ -167,7 +220,7 @@ const QRScanner: React.FC<QRScannerProps> = ({ onScan, onClose, isOpen }) => {
               <div className="absolute inset-0 bg-emerald-500 bg-opacity-90 flex items-center justify-center">
                 <div className="text-center text-white">
                   <CheckCircle className="w-16 h-16 mx-auto mb-4" />
-                  <h3 className="text-xl font-semibold mb-2">QR Code Processed Successfully!</h3>
+                  <h3 className="text-xl font-semibold mb-2">QR Code Scanned Successfully!</h3>
                   <p className="text-emerald-100 mb-4">
                     Device: {deviceInfo.deviceName}
                   </p>
@@ -186,7 +239,7 @@ const QRScanner: React.FC<QRScannerProps> = ({ onScan, onClose, isOpen }) => {
               <div className="absolute inset-0 bg-red-500 bg-opacity-90 flex items-center justify-center">
                 <div className="text-center text-white">
                   <AlertCircle className="w-16 h-16 mx-auto mb-4" />
-                  <h3 className="text-xl font-semibold mb-2">Processing Error</h3>
+                  <h3 className="text-xl font-semibold mb-2">Scan Error</h3>
                   <p className="text-red-100 text-center max-w-xs">
                     {error}
                   </p>
@@ -211,20 +264,17 @@ const QRScanner: React.FC<QRScannerProps> = ({ onScan, onClose, isOpen }) => {
               <div className="flex items-start">
                 <AlertCircle className="w-5 h-5 text-red-500 mt-0.5 mr-2" />
                 <div>
-                  <h4 className="text-red-800 font-medium">Camera Error</h4>
+                  <h4 className="text-red-800 font-medium">Camera/Scanning Error</h4>
                   <p className="text-red-700 text-sm mt-1">{error}</p>
                 </div>
               </div>
             </div>
           )}
 
-          {/* Demo Notice */}
+          {/* Testing Section */}
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-            <h4 className="text-blue-800 font-medium mb-2">Development Note:</h4>
-            <p className="text-blue-700 text-sm mb-3">
-              This is a basic camera interface. In production, QR scanning would be automated. For testing, use the manual entry option.
-            </p>
-            <div className="flex space-x-2">
+            <h4 className="text-blue-800 font-medium mb-2">Testing & Troubleshooting:</h4>
+            <div className="flex space-x-2 mb-3">
               <button
                 onClick={handleManualEntry}
                 className="px-4 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors"
@@ -235,19 +285,23 @@ const QRScanner: React.FC<QRScannerProps> = ({ onScan, onClose, isOpen }) => {
                 onClick={createTestQRCode}
                 className="px-4 py-2 bg-gray-600 text-white text-sm rounded hover:bg-gray-700 transition-colors"
               >
-                Copy Test Data
+                Generate Test Data
               </button>
             </div>
+            <p className="text-blue-700 text-sm">
+              Use "Manual Entry" to paste the QR code data directly for testing, or "Generate Test Data" to create sample data.
+            </p>
           </div>
 
           {/* Instructions */}
           <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4">
             <h4 className="text-emerald-800 font-medium mb-2">Instructions:</h4>
             <ol className="text-emerald-700 text-sm space-y-1">
-              <li>1. Ensure the Android TV is showing the QR code setup screen</li>
-              <li>2. Hold your camera steady and point it at the QR code</li>
-              <li>3. Use "Manual Entry" for testing without QR code</li>
-              <li>4. Wait for confirmation before proceeding</li>
+              <li>1. Open the Android TV app and navigate to the QR setup screen</li>
+              <li>2. Allow camera access when prompted by your browser</li>
+              <li>3. Point the camera directly at the QR code on the TV screen</li>
+              <li>4. Hold steady - scanning happens automatically when detected</li>
+              <li>5. Wait for the green confirmation before proceeding</li>
             </ol>
           </div>
 
