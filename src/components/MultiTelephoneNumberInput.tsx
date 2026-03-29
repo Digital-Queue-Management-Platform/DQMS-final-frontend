@@ -56,6 +56,44 @@ const MultiTelephoneNumberInput: React.FC<MultiTelephoneNumberInputProps> = ({
     setBills(verifiedBills)
   }, [verifiedBills])
 
+  // Handle input change with auto-add when 10 digits entered
+  const handleInputChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = e.target.value.replace(/\D/g, '') // Only allow digits
+    setInputValue(newValue)
+    
+    // Auto-add when 10 digits are entered
+    if (newValue.length === 10 && validateTelephoneNumber(newValue)) {
+      const number = newValue.trim()
+      
+      // Check if already added
+      if (telephoneNumbers.includes(number)) {
+        setErrors({ ...errors, [number]: "Telephone number already added." })
+        return
+      }
+      
+      // Check max limit
+      if (telephoneNumbers.length >= maxNumbers) {
+        setErrors({ ...errors, [number]: `Maximum ${maxNumbers} telephone numbers allowed.` })
+        return
+      }
+      
+      // Add to list
+      const newNumbers = [...telephoneNumbers, number]
+      onTelephoneNumbersChange(newNumbers)
+      setInputValue("")
+      
+      // Clear any existing errors for this number
+      const newErrors = { ...errors }
+      delete newErrors[number]
+      setErrors(newErrors)
+      
+      // Auto-verify if enabled
+      if (autoVerify) {
+        await verifyTelephoneNumber(number)
+      }
+    }
+  }
+
   // Validate telephone number format
   const validateTelephoneNumber = (number: string): boolean => {
     const phoneRegex = /^\d{10}$/
@@ -215,24 +253,44 @@ const MultiTelephoneNumberInput: React.FC<MultiTelephoneNumberInputProps> = ({
             <input
               type="text"
               value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
+              onChange={handleInputChange}
               onKeyPress={handleKeyPress}
               placeholder={language === "si" ? "දුරකථන අංකය ඇතුල් කරන්න" : language === "ta" ? "தொலைபேசி எண்ணை உள்ளிடவும்" : "Enter telephone number"}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className={`w-full pl-10 pr-4 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all ${
+                inputValue.length === 10 && validateTelephoneNumber(inputValue) 
+                  ? 'border-green-500 bg-green-50' 
+                  : inputValue.length > 0 
+                    ? 'border-blue-300' 
+                    : 'border-gray-300'
+              }`}
               disabled={disabled || telephoneNumbers.length >= maxNumbers}
               maxLength={10}
             />
+            {/* Auto-add indicator */}
+            {inputValue.length === 10 && validateTelephoneNumber(inputValue) && (
+              <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                <CheckCircle className="h-4 w-4 text-green-500" />
+              </div>
+            )}
           </div>
           
+          {/* Make Add button smaller and less prominent since auto-add is primary */}
           <button
             onClick={handleAddNumber}
-            disabled={disabled || !inputValue.trim() || telephoneNumbers.length >= maxNumbers}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            disabled={disabled || !inputValue.trim() || !validateTelephoneNumber(inputValue) || telephoneNumbers.length >= maxNumbers}
+            className="px-3 py-2 bg-gray-100 text-gray-600 rounded-md hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed text-sm border border-gray-300"
+            title={language === "si" ? "එකතු කරන්න" : language === "ta" ? "சேர்க்கவும்" : "Add manually"}
           >
             <Plus className="h-4 w-4" />
-            {language === "si" ? "එකතු කරන්න" : language === "ta" ? "சேர்க்கவும்" : "Add"}
           </button>
         </div>
+        
+        {/* Helper text for auto-add */}
+        <p className="text-xs text-gray-500">
+          {language === "si" ? "10 අංක ඇතුළත් කළ විට ස්වයංක්‍රීයව එකතු වේ" : 
+           language === "ta" ? "10 இலக்கங்களை உள்ளிட்டவுடன் தானாக சேர்க்கும்" : 
+           "Numbers are automatically added when 10 digits are entered"}
+        </p>
 
         {/* General error */}
         {errors.general && (

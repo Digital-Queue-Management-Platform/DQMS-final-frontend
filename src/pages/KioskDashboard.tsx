@@ -74,7 +74,7 @@ export default function KioskDashboard() {
   const [isOwnerOfAccount, setIsOwnerOfAccount] = useState(false)
   const [billData, setBillData] = useState<{ currentBill: number; accountName: string; dueDate: string; status: string } | null>(null)
   const [billPaymentIntent, setBillPaymentIntent] = useState<'full' | 'partial' | null>(null)
-  const [billPaymentCustomAmount, setBillPaymentCustomAmount] = useState("")
+  const [billPaymentCustomAmounts, setBillPaymentCustomAmounts] = useState<Record<string, string>>({}) // Per-account amounts
   const [billPaymentMethod, setBillPaymentMethod] = useState<'cash' | 'card' | 'cheque' | 'bank_transfer' | null>(null)
   const formRef = useRef<HTMLFormElement>(null)
 
@@ -113,6 +113,19 @@ export default function KioskDashboard() {
     }
   }, [shouldAutoSubmit, otpStep, otpToken])
 
+  // Helper function to check if partial amount is valid for all accounts
+  const isPartialAmountValid = () => {
+    if (billPaymentIntent !== 'partial') return true
+    if (verifiedBills.length === 0) return false
+    
+    // Check if all verified bills have valid amounts
+    return verifiedBills.every(bill => {
+      const amount = billPaymentCustomAmounts[bill.telephoneNumber]
+      const numAmount = parseFloat(amount || '0')
+      return !isNaN(numAmount) && numAmount > 0
+    })
+  }
+
   // Auto-submit for bill payment once intent + method (+ amount if partial) are all set
   useEffect(() => {
     if (selectedService !== 'SVC002' && selectedService !== 'BILL_PAYMENT') {
@@ -128,8 +141,7 @@ export default function KioskDashboard() {
       return
     }
     if (billPaymentIntent === 'partial') {
-      const amount = parseFloat(billPaymentCustomAmount)
-      if (!billPaymentCustomAmount || isNaN(amount) || amount <= 0) {
+      if (!isPartialAmountValid()) {
         setShouldAutoSubmit(false)
         return
       }
@@ -144,7 +156,7 @@ export default function KioskDashboard() {
       clearTimeout(timer)
       setShouldAutoSubmit(false)
     }
-  }, [billPaymentIntent, billPaymentMethod, billPaymentCustomAmount, otpStep, selectedService, sltVerified])
+  }, [billPaymentIntent, billPaymentMethod, billPaymentCustomAmounts, otpStep, selectedService, sltVerified, verifiedBills])
 
   // Auto-send OTP when mobile number reaches 10 valid digits on step 3
   useEffect(() => {
@@ -435,9 +447,8 @@ export default function KioskDashboard() {
           return
         }
         if (billPaymentIntent === 'partial') {
-          const amount = parseFloat(billPaymentCustomAmount)
-          if (!billPaymentCustomAmount || isNaN(amount) || amount <= 0) {
-            setError('Please enter a valid payment amount')
+          if (!isPartialAmountValid()) {
+            setError('Please enter valid payment amounts for all accounts')
             setSubmitting(false)
             return
           }
@@ -455,7 +466,15 @@ export default function KioskDashboard() {
         return
       }
 
-      const partialAmount = billPaymentIntent === 'partial' ? parseFloat(billPaymentCustomAmount) : undefined
+      const partialAmount = (() => {
+        if (billPaymentIntent !== 'partial') return undefined
+        // Calculate total amount from per-account amounts
+        const total = Object.values(billPaymentCustomAmounts).reduce((sum, amount) => {
+          const numAmount = parseFloat(amount || '0')
+          return sum + (isNaN(numAmount) ? 0 : numAmount)
+        }, 0)
+        return total > 0 ? total : undefined
+      })()
 
       const response = await fetch(`${API_URL}/kiosk/tokens`, {
         method: 'POST',
@@ -474,6 +493,7 @@ export default function KioskDashboard() {
           sltTelephoneNumbers: isSltRequiredService(selectedService) ? sltTelephoneNumbers : undefined,
           billPaymentIntent: isSltRequiredService(selectedService) && verifiedBills.length > 0 ? billPaymentIntent : undefined,
           billPaymentAmount: partialAmount,
+          billPaymentCustomAmounts: isSltRequiredService(selectedService) && billPaymentIntent === 'partial' ? billPaymentCustomAmounts : undefined,
           billPaymentMethod: isSltRequiredService(selectedService) && verifiedBills.length > 0 ? billPaymentMethod : undefined,
         }),
       })
@@ -533,7 +553,7 @@ export default function KioskDashboard() {
     setNotificationMessage('')
     setBillData(null)
     setBillPaymentIntent(null)
-    setBillPaymentCustomAmount('')
+    setBillPaymentCustomAmounts({})
     setBillPaymentMethod(null)
     setCurrentStep(1)
   }
@@ -1212,7 +1232,7 @@ export default function KioskDashboard() {
                       <div className="flex flex-col gap-2">
                         <button
                           type="button"
-                          onClick={() => { setBillPaymentIntent('full'); setBillPaymentCustomAmount('') }}
+                          onClick={() => { setBillPaymentIntent('full'); setBillPaymentCustomAmounts({}) }}
                           className={`py-3 px-4 rounded-xl border-2 text-sm font-semibold transition-all ${billPaymentIntent === 'full'
                             ? 'border-green-600 bg-green-600 text-white'
                             : 'border-green-300 bg-white text-green-700 hover:border-green-500'}`}
@@ -1229,17 +1249,43 @@ export default function KioskDashboard() {
                           ◑ {t.payPartialAmount}
                         </button>
                         {billPaymentIntent === 'partial' && (
-                          <div className="mt-1 space-y-1">
-                            <label className="block text-xs font-medium text-gray-700">{t.partialAmountLabel}</label>
-                            <input
-                              type="number"
-                              value={billPaymentCustomAmount}
-                              onChange={(e) => setBillPaymentCustomAmount(e.target.value)}
-                              min="1"
-                              step="0.01"
-                              className="w-full px-3 py-2.5 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                              placeholder={t.partialAmountPlaceholder}
-                            />
+                          <div className="mt-1 space-y-2">
+                            <label className="block text-xs font-medium text-gray-700">
+                              Enter payment amount for each account:
+                            </label>
+                            {verifiedBills.map((bill) => (
+                              <div key={bill.telephoneNumber} className="bg-gray-50 p-3 rounded-lg border">
+                                <div className="flex items-center justify-between mb-2">
+                                  <span className="font-medium text-sm text-gray-900">
+                                    {bill.telephoneNumber}
+                                  </span>
+                                  <span className="text-xs text-gray-500">
+                                    Account: {bill.accountName || 'Verified Account'}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-xs text-gray-600">Amount to pay (Rs.)</span>
+                                  <input
+                                    type="number"
+                                    value={billPaymentCustomAmounts[bill.telephoneNumber] || ''}
+                                    onChange={(e) => setBillPaymentCustomAmounts(prev => ({
+                                      ...prev,
+                                      [bill.telephoneNumber]: e.target.value
+                                    }))}
+                                    min="1"
+                                    step="0.01"
+                                    className="flex-1 px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    placeholder="0.00"
+                                  />
+                                </div>
+                                <div className="mt-1 text-xs text-gray-500">
+                                  Total due: Rs. {bill.currentBill.toFixed(2)}
+                                </div>
+                              </div>
+                            ))}
+                            <div className="text-xs text-gray-500 mt-1">
+                              You can pay different amounts for each account
+                            </div>
                           </div>
                         )}
                       </div>
@@ -1322,7 +1368,7 @@ export default function KioskDashboard() {
 
                   {/* Auto-submit feedback — spinner shown once all bill payment selections are made */}
                    {/* Auto-submit feedback — spinner shown once all bill payment selections are made */}
-                  {shouldAutoSubmit && otpStep === 'verified' && (isSltRequiredService(selectedService) ? (verifiedBills.length > 0 && billPaymentIntent && billPaymentMethod && !(billPaymentIntent === 'partial' && (!billPaymentCustomAmount || parseFloat(billPaymentCustomAmount) <= 0))) : true) && (
+                  {shouldAutoSubmit && otpStep === 'verified' && (isSltRequiredService(selectedService) ? (verifiedBills.length > 0 && billPaymentIntent && billPaymentMethod && (billPaymentIntent !== 'partial' || isPartialAmountValid())) : true) && (
                     <div className="w-full bg-blue-50 border border-blue-200 text-blue-700 py-3 rounded-xl text-sm font-medium flex items-center justify-center gap-2">
                        <svg className="animate-spin h-4 w-4 text-blue-600" viewBox="0 0 24 24">
                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>

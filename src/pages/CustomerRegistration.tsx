@@ -68,6 +68,7 @@ export default function CustomerRegistration() {
   const [sltVerified, setSltVerified] = useState(false)
   const [billPaymentIntent, setBillPaymentIntent] = useState<'full' | 'partial' | null>(null)
   const [billPaymentCustomAmount, setBillPaymentCustomAmount] = useState("")
+  const [billPaymentCustomAmounts, setBillPaymentCustomAmounts] = useState<{[sltNumber: string]: string}>({}) // Per-account amounts
   const [billPaymentMethod, setBillPaymentMethod] = useState<'cash' | 'card' | 'cheque' | 'bank_transfer' | null>(null)
   const [notificationSent, setNotificationSent] = useState(false)
   const [notificationMessage, setNotificationMessage] = useState("")
@@ -113,6 +114,7 @@ export default function CustomerRegistration() {
     setSltVerified(false)
     setBillPaymentIntent(null)
     setBillPaymentCustomAmount("")
+    setBillPaymentCustomAmounts({}) // Reset per-account amounts
     setBillPaymentMethod(null)
     setNotificationSent(false)
     setNotificationMessage("")
@@ -359,15 +361,16 @@ export default function CustomerRegistration() {
     }
   }
 
-  // Auto-send OTP when mobile number is 10 digits
+  // Auto-send OTP when mobile number is 10 digits (but don't auto-advance for bill payment services)
   useEffect(() => {
     if (currentStep === 3 && mobileNumber.length === 10 && (mobileNumber.startsWith('07') || mobileNumber.startsWith('01'))) {
-      const canProceed = canProceedFromStep3();
-      if (canProceed && otpStep === 'idle' && !otpSending && !autoSendingOtp) {
+      const canGetOtp = canReceiveOtp();
+      if (canGetOtp && otpStep === 'idle' && !otpSending && !autoSendingOtp) {
         console.log('Mobile number reached 10 digits, auto-sending OTP...');
         setAutoSendingOtp(true);
         // Small delay to ensure the user sees their number entered
         const timer = setTimeout(() => {
+          // Always auto-advance to Step 4 for OTP verification (regardless of service type)
           goToNextStep();
           sendOtp();
           setAutoSendingOtp(false);
@@ -375,58 +378,100 @@ export default function CustomerRegistration() {
         return () => clearTimeout(timer);
       }
     }
-  }, [mobileNumber, currentStep])
+  }, [mobileNumber, currentStep, selectedService])
+
+  // Track step changes for debugging
+  useEffect(() => {
+    console.log(`Current Step: ${currentStep}`)
+  }, [currentStep])
 
   // Auto-submit for non-bill payment services once OTP is verified
+  // Auto-submit form after OTP verification (simplified kiosk pattern)
   useEffect(() => {
-    if (!isSltRequiredService(selectedService) && currentStep === 4 && otpStep === 'verified' && otpToken) {
-      setShouldAutoSubmit(true)
-      const timer = setTimeout(() => {
-        if (formRef.current) {
-          formRef.current.dispatchEvent(new Event('submit', { bubbles: true }))
-        }
-      }, 800)
-      return () => {
-        clearTimeout(timer)
-        setShouldAutoSubmit(false)
+    if (shouldAutoSubmit && otpStep === 'verified' && otpToken) {
+      setShouldAutoSubmit(false)
+      // Submit the form immediately after OTP is verified
+      if (formRef.current) {
+        formRef.current.dispatchEvent(new Event('submit', { bubbles: true }))
       }
+    }
+  }, [shouldAutoSubmit, otpStep, otpToken])
+
+  // Auto-submit for non-bill services after OTP verification
+  useEffect(() => {
+    if (selectedService !== 'SVC002' && selectedService !== 'BILL_PAYMENT' && currentStep === 4 && otpStep === 'verified' && otpToken) {
+      setShouldAutoSubmit(true)
     } else {
       setShouldAutoSubmit(false)
     }
   }, [selectedService, currentStep, otpStep, otpToken])
 
-  // Auto-submit for bill payment once intent + method (+ amount if partial) are all set
+  // Auto-submit detection for bill payment (sets flag only)
   useEffect(() => {
-    if (!isSltRequiredService(selectedService)) {
+    // Debug logging for bill payment auto-submit
+    console.log('Bill Payment Auto-Submit Check:', {
+      selectedService,
+      isBillService: selectedService === 'SVC002' || selectedService === 'BILL_PAYMENT',
+      sltVerified,
+      otpStep,
+      billPaymentIntent,
+      billPaymentMethod,
+      billPaymentCustomAmount
+    })
+    
+    if (selectedService !== 'SVC002' && selectedService !== 'BILL_PAYMENT') {
       setShouldAutoSubmit(false)
       return
     }
     if (!sltVerified || otpStep !== 'verified') {
+      console.log('FAILED: Bill Payment: SLT or OTP not verified', { sltVerified, otpStep })
       setShouldAutoSubmit(false)
       return
     }
     if (!billPaymentIntent || !billPaymentMethod) {
+      console.log('FAILED: Bill Payment: Missing payment intent or method', { billPaymentIntent, billPaymentMethod })
       setShouldAutoSubmit(false)
       return
     }
     if (billPaymentIntent === 'partial') {
-      const amount = parseFloat(billPaymentCustomAmount)
-      if (!billPaymentCustomAmount || isNaN(amount) || amount <= 0) {
+      // Check if all verified bills have valid amounts entered
+      const hasValidAmounts = verifiedBills.every(bill => {
+        const amount = parseFloat(billPaymentCustomAmounts[bill.telephoneNumber] || '0')
+        return !isNaN(amount) && amount > 0
+      })
+      
+      if (!hasValidAmounts) {
+        console.log('FAILED: Bill Payment: Invalid or missing per-account amounts', { billPaymentCustomAmounts })
         setShouldAutoSubmit(false)
         return
       }
     }
+    console.log('SUCCESS: Bill Payment: All conditions met, setting auto-submit')
     setShouldAutoSubmit(true)
-    const timer = setTimeout(() => {
-      if (formRef.current) {
-        formRef.current.dispatchEvent(new Event('submit', { bubbles: true }))
-      }
-    }, 800)
-    return () => {
-      clearTimeout(timer)
-      setShouldAutoSubmit(false)
+  }, [billPaymentIntent, billPaymentMethod, billPaymentCustomAmount, billPaymentCustomAmounts, otpStep, selectedService, sltVerified, verifiedBills])
+
+  // Separate useEffect to handle the actual submission when flag is set
+  useEffect(() => {
+    if (shouldAutoSubmit) {
+      console.log('SUBMIT: Triggering auto-submit due to shouldAutoSubmit=true')
+      const timer = setTimeout(() => {
+        if (formRef.current) {
+          formRef.current.dispatchEvent(new Event('submit', { bubbles: true }))
+        }
+        setShouldAutoSubmit(false) // Reset flag after submission
+      }, 500)
+      return () => clearTimeout(timer)
     }
-  }, [billPaymentIntent, billPaymentMethod, billPaymentCustomAmount, otpStep, selectedService, sltVerified])
+  }, [shouldAutoSubmit])
+
+  // Helper function to check if partial payment amounts are valid
+  const isPartialAmountValid = () => {
+    if (billPaymentIntent !== 'partial') return true
+    return verifiedBills.every(bill => {
+      const amount = parseFloat(billPaymentCustomAmounts[bill.telephoneNumber] || '0')
+      return !isNaN(amount) && amount > 0
+    })
+  }
 
 
   // Handle service selection
@@ -511,9 +556,10 @@ export default function CustomerRegistration() {
         setOtpToken(res.data.verifiedMobileToken)
         setOtpStep('verified')
 
-        // Auto-verify SLT number after mobile OTP (for bill payment)
-        if (isSltRequiredService(selectedService) && sltTelephoneNumber && !sltVerified) {
-          await verifySltNumber()
+        // Auto-verify SLT numbers after mobile OTP (for bill payment)
+        if (isSltRequiredService(selectedService) && sltTelephoneNumbers.length > 0 && !sltVerified) {
+          console.log('Auto-verifying all SLT numbers:', sltTelephoneNumbers)
+          await verifyAllSltNumbers()
         }
 
         // Auto-submit disabled
@@ -532,70 +578,95 @@ export default function CustomerRegistration() {
     }
   }
 
-  // Verify SLT telephone number and fetch bill data with auto-fill
-  const verifySltNumber = async () => {
-    if (!sltTelephoneNumber) {
-      setError("Please enter SLT telephone number")
+  // Verify multiple SLT telephone numbers and combine results
+  const verifyAllSltNumbers = async () => {
+    if (sltTelephoneNumbers.length === 0) {
+      setError("Please enter at least one SLT telephone number")
       return
     }
 
-    /* Removed pattern validation */
-
     setLoading(true)
     setError("")
+    
     try {
-      const response = await api.get(`/bills/verify/${sltTelephoneNumber}?force=true`)
-      if (response.data.success && response.data.bill) {
-        const bill = response.data.bill
-        setBillData(bill)
-        setSltVerified(true)
-        setError("")
-
-        // Determine if the person verifying is the registered owner
-        const normalizeForComparison = (num: string) => {
-          let n = num.replace(/\D/g, '')
-          if (n.startsWith('0')) n = '94' + n.substring(1)
-          else if (!n.startsWith('94')) n = '94' + n
-          return n
-        }
-        let isOwner = false
-        if (bill.mobileNumber && mobileNumber) {
-          isOwner = normalizeForComparison(mobileNumber) === normalizeForComparison(bill.mobileNumber)
-        }
-        setIsOwnerOfAccount(isOwner)
-
-        const getMaskedPhone = (phone: string) => {
-          if (!phone || phone.length < 3) return phone
-          return `xxxxxxx${phone.slice(-3)}`
-        }
-
-        if (isOwner) {
-          setNotificationMessage(`Bill details have been sent to your registered mobile number.`)
-        } else {
-          setNotificationMessage(`Bill details have been sent to the account holder at ${getMaskedPhone(bill.mobileNumber)}`)
-        }
-        setNotificationSent(true)
-
-        // Send SMS notification
+      const verificationResults = []
+      const allBills = []
+      
+      // Verify each SLT number
+      for (const sltNumber of sltTelephoneNumbers) {
+        console.log('Verifying SLT number:', sltNumber)
         try {
-          await api.post('/bills/send-notification', {
-            mobileNumber: bill.mobileNumber,
-            accountName: bill.accountName,
-            billAmount: bill.currentBill,
-            dueDate: bill.dueDate,
-            sltNumber: sltTelephoneNumber,
+          const response = await api.get(`/bills/verify/${sltNumber}?force=true`)
+          if (response.data.success && response.data.bill) {
+            const bill = response.data.bill
+            allBills.push({
+              ...bill,
+              telephoneNumber: sltNumber
+            })
+            verificationResults.push({
+              sltNumber,
+              success: true,
+              bill,
+              mobileNumber: bill.mobileNumber
+            })
+            console.log('SUCCESS: SLT verification successful for:', sltNumber)
+          } else {
+            verificationResults.push({
+              sltNumber,
+              success: false,
+              error: 'No account found'
+            })
+            console.log('FAILED: SLT verification failed for:', sltNumber)
+          }
+        } catch (error) {
+          verificationResults.push({
+            sltNumber,
+            success: false,
+            error: (error as any).response?.data?.error || 'Verification failed'
           })
-        } catch {
-          // Non-critical
+          console.log('ERROR: SLT verification error for:', sltNumber, error)
         }
-      } else {
-        setError("No account found for this telephone number")
       }
+      
+      // Check if at least one verification was successful
+      const successfulVerifications = verificationResults.filter(result => result.success)
+      
+      if (successfulVerifications.length > 0) {
+        // Set verification as successful
+        setSltVerified(true)
+        setVerifiedBills(allBills)
+        setSltTelephoneNumber(successfulVerifications[0].sltNumber) // Set first successful one for compatibility
+        
+        // Generate combined notification message
+        const maskedMobileNumbers = successfulVerifications.map(result => {
+          if (result.mobileNumber) {
+            return result.mobileNumber.replace(/(\d{6})\d{3}(\d+)/, '$1***$2')
+          }
+          return 'unknown'
+        })
+        
+        const sltNumbers = successfulVerifications.map(result => result.sltNumber)
+        
+        setNotificationSent(true)
+        setNotificationMessage(
+          `Bill notification has been sent to the registered mobile number(s) ${maskedMobileNumbers.join(', ')} of the SLT account(s) ${sltNumbers.join(', ')}.`
+        )
+        
+        setError("")
+        console.log('SUCCESS: All SLT verifications completed:', successfulVerifications.length, 'successful')
+      } else {
+        // All verifications failed
+        setError("No valid accounts found for the provided telephone numbers")
+        setSltVerified(false)
+        setVerifiedBills([])
+        console.log('FAILED: All SLT verifications failed')
+      }
+      
     } catch (err: any) {
-      console.error('Bill verification error:', err)
-      setError(err.response?.data?.error || "Failed to verify telephone number")
-      setBillData(null)
+      console.error('Multiple SLT verification error:', err)
+      setError("Failed to verify telephone numbers")
       setSltVerified(false)
+      setVerifiedBills([])
     } finally {
       setLoading(false)
     }
@@ -606,6 +677,17 @@ export default function CustomerRegistration() {
     setError("")
     setLoading(true)
     setShouldAutoSubmit(false) // Reset auto-submit status on manual submit
+    
+    console.log('SUBMIT: Form submission started', {
+      selectedService,
+      sltVerified,
+      billPaymentIntent,
+      billPaymentMethod,
+      billPaymentCustomAmounts,
+      verifiedBills: verifiedBills.length,
+      otpStep,
+      otpToken: !!otpToken
+    })
 
     try {
       // On Register: verify OTP if not already verified and ensure we submit the fresh token
@@ -624,9 +706,14 @@ export default function CustomerRegistration() {
           return
         }
         if (billPaymentIntent === 'partial') {
-          const amount = parseFloat(billPaymentCustomAmount)
-          if (!billPaymentCustomAmount || isNaN(amount) || amount <= 0) {
-            setError('Please enter a valid payment amount')
+          // Validate per-account amounts
+          const hasValidAmounts = verifiedBills.every(bill => {
+            const amount = parseFloat(billPaymentCustomAmounts[bill.telephoneNumber] || '0')
+            return !isNaN(amount) && amount > 0
+          })
+          
+          if (!hasValidAmounts) {
+            setError('Please enter a valid payment amount for each account')
             setLoading(false)
             return
           }
@@ -638,7 +725,8 @@ export default function CustomerRegistration() {
         }
       }
 
-      const response = await api.post("/customer/register", {
+      // Log the request data for debugging
+      const requestData = {
         name,
         mobileNumber,
         nicNumber: nicNumber || undefined,
@@ -648,13 +736,29 @@ export default function CustomerRegistration() {
         qrToken,
         verifiedMobileToken: tokenForSubmit,
         preferredLanguages: preferredLanguage ? [preferredLanguage] : undefined,
-        sltTelephoneNumbers: isSltRequiredService(selectedService) ? sltTelephoneNumbers : undefined,
+        sltTelephoneNumber: isSltRequiredService(selectedService) && sltTelephoneNumbers.length > 0 ? sltTelephoneNumbers[0] : undefined, // Send first SLT number for backward compatibility
         billPaymentIntent: isSltRequiredService(selectedService) && verifiedBills.length > 0 ? billPaymentIntent : undefined,
-        billPaymentAmount: isSltRequiredService(selectedService) && billPaymentIntent === 'partial' ? parseFloat(billPaymentCustomAmount) || undefined : undefined,
+        billPaymentAmount: (() => {
+          if (!isSltRequiredService(selectedService) || billPaymentIntent !== 'partial') return undefined
+          // Calculate total amount from per-account amounts
+          const total = Object.values(billPaymentCustomAmounts).reduce((sum, amount) => {
+            const numAmount = parseFloat(amount || '0')
+            return sum + (isNaN(numAmount) ? 0 : numAmount)
+          }, 0)
+          return total > 0 ? total : undefined
+        })(),
+        billPaymentCustomAmounts: isSltRequiredService(selectedService) && billPaymentIntent === 'partial' ? billPaymentCustomAmounts : undefined,
         billPaymentMethod: isSltRequiredService(selectedService) && verifiedBills.length > 0 ? billPaymentMethod : undefined,
-      })
+      }
+      
+      console.log('SUBMIT: Request data being sent to backend:', JSON.stringify(requestData, null, 2))
+      
+      const response = await api.post("/customer/register", requestData)
+      
+      console.log('SUBMIT: Registration API response:', response.data)
 
       if (response.data.success) {
+        console.log('SUCCESS: Registration successful, navigating to queue...')
         // Clear form state to prevent confusion for next user
         clearAllFormData()
 
@@ -668,9 +772,18 @@ export default function CustomerRegistration() {
 
         // Navigate to queue status
         navigate(`/queue/${response.data.token.id}`)
+      } else {
+        console.log('ERROR: Registration failed - success=false')
+        setError('Registration failed. Please try again.')
       }
     } catch (err: any) {
-      console.error('Registration error:', err)
+      console.error('ERROR: Registration failed:', err)
+      console.log('ERROR: Full error details:', {
+        status: err.response?.status,
+        statusText: err.response?.statusText,
+        data: err.response?.data,
+        message: err.message
+      })
 
       // Handle specific error cases
       if (err.response?.status === 409) {
@@ -689,7 +802,9 @@ export default function CustomerRegistration() {
 
   // Step navigation functions
   const goToNextStep = () => {
-    setCurrentStep(prev => Math.min(prev + 1, 4))
+    const newStep = Math.min(currentStep + 1, 4)
+    console.log(`Step progression: ${currentStep} → ${newStep}`)
+    setCurrentStep(newStep)
   }
 
   const goToPreviousStep = () => {
@@ -699,15 +814,21 @@ export default function CustomerRegistration() {
     if (currentStep === 3) {
       setSelectedService("")
     }
-    setCurrentStep(prev => Math.max(prev - 1, 1))
+    const newStep = Math.max(currentStep - 1, 1)
+    console.log(`Step regression: ${currentStep} → ${newStep}`)
+    setCurrentStep(newStep)
   }
 
   const isValidMobile = (m: string) => m.length === 10 && (m.startsWith('07') || m.startsWith('01'))
   const isValidSlt = (s: string) => /^\d{10}$/.test(s) && s.startsWith('0') && !s.startsWith('07')
   const isValidEmail = (e: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)
 
-  // const canProceedFromStep1 = preferredLanguage !== ''
-  // const canProceedFromStep2 = selectedService !== ""
+  // Check if user can receive OTP (basic details only)
+  const canReceiveOtp = () => {
+    return name.trim().length >= 2 && isValidMobile(mobileNumber)
+  }
+
+  // Check if user can proceed from Step 3 (including SLT for bill payment)
   const canProceedFromStep3 = () => {
     const validDetails = name.trim().length >= 2 && isValidMobile(mobileNumber)
     if (selectedService === 'BILL_PAYMENT' || isSltRequiredService(selectedService)) {
@@ -1132,7 +1253,7 @@ export default function CustomerRegistration() {
                   </div>
 
                   {/* Auto-submit feedback — spinner shown once all bill payment selections are made */}
-                  {shouldAutoSubmit && otpStep === 'verified' && (isSltRequiredService(selectedService) ? (sltVerified && billPaymentIntent && billPaymentMethod && !(billPaymentIntent === 'partial' && (!billPaymentCustomAmount || parseFloat(billPaymentCustomAmount) <= 0))) : true) && (
+                  {shouldAutoSubmit && otpStep === 'verified' && (isSltRequiredService(selectedService) ? (sltVerified && billPaymentIntent && billPaymentMethod && isPartialAmountValid()) : true) && (
                     <div className="w-full bg-blue-50 border border-blue-200 text-blue-700 py-3 rounded-xl text-sm font-medium flex items-center justify-center gap-2">
                       <svg className="animate-spin h-4 w-4 text-blue-600" viewBox="0 0 24 24">
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
@@ -1404,17 +1525,54 @@ export default function CustomerRegistration() {
                           ◑ {t.payPartialAmount}
                         </button>
                         {billPaymentIntent === 'partial' && (
-                          <div className="mt-1 space-y-1">
-                            <label className="block text-xs font-medium text-gray-700">{t.partialAmountLabel}</label>
-                            <input
-                              type="number"
-                              value={billPaymentCustomAmount}
-                              onChange={(e) => setBillPaymentCustomAmount(e.target.value)}
-                              min="1"
-                              step="0.01"
-                              className="w-full px-3 py-2.5 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                              placeholder={t.partialAmountPlaceholder}
-                            />
+                          <div className="mt-1 space-y-3">
+                            {/* Show individual amount inputs for each SLT account */}
+                            {verifiedBills.length > 0 && (
+                              <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl">
+                                <div className="text-xs font-medium text-amber-900 mb-3">
+                                  Enter payment amount for each account:
+                                </div>
+                                <div className="space-y-3">
+                                  {verifiedBills.map((bill, index) => (
+                                    <div key={index} className="bg-white p-3 rounded-lg border border-amber-200">
+                                      <div className="flex items-center justify-between mb-2">
+                                        <span className="text-sm font-medium text-gray-900">
+                                          {bill.telephoneNumber}
+                                        </span>
+                                        <span className="text-xs text-gray-600">
+                                          Account: {bill.accountName || 'N/A'}
+                                        </span>
+                                      </div>
+                                      <div className="space-y-1">
+                                        <label className="block text-xs font-medium text-gray-700">
+                                          Amount to pay (Rs.)
+                                        </label>
+                                        <input
+                                          type="number"
+                                          value={billPaymentCustomAmounts[bill.telephoneNumber] || ""}
+                                          onChange={(e) => setBillPaymentCustomAmounts(prev => ({
+                                            ...prev,
+                                            [bill.telephoneNumber]: e.target.value
+                                          }))}
+                                          min="1"
+                                          step="0.01"
+                                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                          placeholder={`Enter amount for ${bill.telephoneNumber}`}
+                                        />
+                                      </div>
+                                      {bill.currentBill && (
+                                        <div className="text-xs text-gray-600 mt-1">
+                                          Total due: Rs. {bill.currentBill.toFixed(2)}
+                                        </div>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                                <div className="text-xs text-amber-700 mt-2">
+                                  You can pay different amounts for each account
+                                </div>
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>
@@ -1448,7 +1606,7 @@ export default function CustomerRegistration() {
                       )}
 
                       {/* Bill payment summary message when ready */}
-                      {billPaymentIntent && billPaymentMethod && !(billPaymentIntent === 'partial' && (!billPaymentCustomAmount || parseFloat(billPaymentCustomAmount) <= 0)) && !loading && (
+                      {billPaymentIntent && billPaymentMethod && isPartialAmountValid() && !loading && (
                         <div className="w-full bg-green-50 border border-green-200 text-green-700 py-3 rounded-xl text-center text-sm font-medium">
                           {t.readyToRegister || 'Ready to generate your token'}
                         </div>
@@ -1515,7 +1673,7 @@ export default function CustomerRegistration() {
                         !selectedOutlet || 
                         !selectedService || 
                         (otpStep === 'sent' && otpCode.length !== 4) ||
-                        (otpStep === 'verified' && isSltRequiredService(selectedService) && (!billPaymentIntent || (billPaymentIntent === 'partial' && (!billPaymentCustomAmount || parseFloat(billPaymentCustomAmount) <= 0)) || !billPaymentMethod))
+                        (otpStep === 'verified' && isSltRequiredService(selectedService) && (!billPaymentIntent || !isPartialAmountValid() || !billPaymentMethod))
                       }
                       className="w-full bg-blue-600 text-white py-3 rounded-xl font-semibold hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
                     >

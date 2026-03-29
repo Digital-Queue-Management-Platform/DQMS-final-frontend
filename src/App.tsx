@@ -66,6 +66,7 @@ const TeleshopManagerOutletSetup = React.lazy(() => import("./pages/TeleshopMana
 const ManagerClosureNotices = React.lazy(() => import("./pages/ManagerClosureNotices"))
 const AdminGMs = React.lazy(() => import("./admin/adminPages/AdminGMs"))
 const AdminDGMs = React.lazy(() => import("./admin/adminPages/AdminDGMs"))
+const SystemLogsPage = React.lazy(() => import("./admin/adminPages/SystemLogsPage"))
 const GMLogin = React.lazy(() => import("./pages/GMLogin"))
 const DGMLogin = React.lazy(() => import("./pages/DGMLogin"))
 const GMDashboard = React.lazy(() => import("./pages/GMDashboard"))
@@ -546,6 +547,10 @@ function App() {
         <Route
           element={<Layout><ProtectedAdminRoute><AdminDGMs /></ProtectedAdminRoute></Layout>}
           path="/admin/dgms"
+        />
+        <Route
+          element={<Layout><ProtectedAdminRoute><SystemLogsPage /></ProtectedAdminRoute></Layout>}
+          path="/admin/logs"
         />
         <Route
           element={<KioskLogin />}

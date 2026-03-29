@@ -191,6 +191,8 @@ export default function OfficerQueuePage() {
     try {
       // Officer stats returns currentToken, billData, and multipleBills; update to handle both
       const res = await api.get(`/officer/stats/${officerId}`)
+      console.log('DEBUG: fetchCurrentToken response:', res.data)
+      console.log('DEBUG: currentToken customer data:', res.data.currentToken?.customer)
       setCurrentToken(res.data.currentToken)
       setBillInfo(res.data.billData || null)
       setMultipleBills(res.data.multipleBills || [])
@@ -667,7 +669,9 @@ export default function OfficerQueuePage() {
                       </div>
                       <div className="flex-1">
                         <div className="text-xs text-gray-500">Customer Name</div>
-                        <div className="text-sm font-semibold text-gray-900">{currentToken.customer.name}</div>
+                        <div className="text-sm font-semibold text-gray-900">
+                          {currentToken.customer?.name || 'Name not available'}
+                        </div>
                       </div>
                     </div>
 
@@ -677,7 +681,9 @@ export default function OfficerQueuePage() {
                       </div>
                       <div className="flex-1">
                         <div className="text-xs text-gray-500">Phone Number</div>
-                        <div className="text-sm font-semibold text-gray-900">{currentToken.customer.mobileNumber}</div>
+                        <div className="text-sm font-semibold text-gray-900">
+                          {currentToken.customer?.mobileNumber || 'Phone not available'}
+                        </div>
                       </div>
                     </div>
 
@@ -778,31 +784,117 @@ export default function OfficerQueuePage() {
 
                           {/* Customer Payment Intent for Multiple Bills */}
                           <div className="border-t border-amber-200 pt-3 mt-1">
-                            <div className="text-xs text-gray-500 mb-1">Customer's Payment Plan</div>
+                            <div className="text-xs text-gray-500 mb-2">Customer's Payment Plan</div>
                             {currentToken.billPaymentIntent === 'full' ? (
-                              <div className="flex items-center gap-2 bg-green-100 text-green-800 px-3 py-2 rounded-xl">
-                                <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
-                                <span className="text-sm font-bold">Full Payment</span>
-                                <span className="ml-auto text-sm font-bold">
-                                  Rs. {multipleBills.reduce((sum, bill) => sum + bill.currentBill, 0).toFixed(2)}
-                                </span>
-                              </div>
+                              <>
+                                <div className="flex items-center gap-2 bg-green-100 text-green-800 px-3 py-2 rounded-xl mb-2">
+                                  <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+                                  <span className="text-sm font-bold">Full Payment</span>
+                                  <span className="ml-auto text-sm font-bold">
+                                    Rs. {multipleBills.reduce((sum, bill) => sum + bill.currentBill, 0).toFixed(2)}
+                                  </span>
+                                </div>
+                                <div className="text-xs text-gray-600 space-y-1">
+                                  <div className="font-medium">Payment breakdown:</div>
+                                  {multipleBills.map((bill) => (
+                                    <div key={bill.telephoneNumber} className="flex justify-between">
+                                      <span>{bill.telephoneNumber}</span>
+                                      <span>Rs. {bill.currentBill.toFixed(2)}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </>
                             ) : currentToken.billPaymentIntent === 'partial' ? (
-                              <div className="flex items-center gap-2 bg-blue-100 text-blue-800 px-3 py-2 rounded-xl">
-                                <CircleDashed className="w-4 h-4 flex-shrink-0" />
-                                <span className="text-sm font-bold">Partial Payment</span>
-                                <span className="ml-auto text-base font-bold">Rs. {(currentToken.billPaymentAmount ?? 0).toFixed(2)}</span>
-                              </div>
+                              <>
+                                <div className="flex items-center gap-2 bg-blue-100 text-blue-800 px-3 py-2 rounded-xl mb-2">
+                                  <CircleDashed className="w-4 h-4 flex-shrink-0" />
+                                  <span className="text-sm font-bold">Partial Payment</span>
+                                  <span className="ml-auto text-base font-bold">Rs. {(currentToken.billPaymentAmount ?? 0).toFixed(2)}</span>
+                                </div>
+                                
+                                {/* Enhanced: Show per-account payment details */}
+                                <div className="bg-blue-50 rounded-lg p-3 mb-2">
+                                  <div className="text-xs font-semibold text-blue-900 mb-2">Payment Distribution Details:</div>
+                                  {multipleBills.map((bill) => {
+                                    // Use actual customer-entered amounts if available, otherwise fall back to estimation
+                                    const customAmounts = currentToken.billPaymentCustomAmounts as Record<string, string> | null
+                                    const customerAmount = customAmounts ? parseFloat(customAmounts[bill.telephoneNumber] || '0') : null
+                                    
+                                    let actualPayment: number
+                                    let isEstimated = false
+                                    
+                                    if (customerAmount !== null && !isNaN(customerAmount)) {
+                                      // Use actual customer-entered amount
+                                      actualPayment = customerAmount
+                                    } else {
+                                      // Fallback to proportional estimation
+                                      const totalDue = multipleBills.reduce((sum, b) => sum + b.currentBill, 0)
+                                      const totalPayment = currentToken.billPaymentAmount ?? 0
+                                      actualPayment = totalDue > 0 ? (totalPayment * (bill.currentBill / totalDue)) : 0
+                                      isEstimated = true
+                                    }
+                                    
+                                    const remaining = Math.max(0, bill.currentBill - actualPayment)
+                                    
+                                    return (
+                                      <div key={bill.telephoneNumber} className="bg-white rounded-md p-2 mb-2 last:mb-0 border border-blue-200">
+                                        <div className="flex justify-between items-center mb-1">
+                                          <span className="font-semibold text-sm text-gray-900">{bill.telephoneNumber}</span>
+                                          <span className="text-xs text-gray-500">{bill.accountName}</span>
+                                        </div>
+                                        <div className="space-y-1 text-xs">
+                                          <div className="flex justify-between">
+                                            <span className="text-gray-600">Total Due:</span>
+                                            <span className="font-medium">Rs. {bill.currentBill.toFixed(2)}</span>
+                                          </div>
+                                          <div className="flex justify-between">
+                                            <span className="text-blue-700">Customer Payment:</span>
+                                            <span className="font-bold text-blue-700">
+                                              Rs. {actualPayment.toFixed(2)}
+                                              {isEstimated && <span className="text-xs opacity-75"> (est.)</span>}
+                                            </span>
+                                          </div>
+                                          <div className="flex justify-between">
+                                            <span className="text-orange-600">Remaining:</span>
+                                            <span className="font-medium text-orange-600">Rs. {remaining.toFixed(2)}</span>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    )
+                                  })}
+                                  {/* Show note only if any amounts are estimated */}
+                                  {multipleBills.some(bill => {
+                                    const customAmounts = currentToken.billPaymentCustomAmounts as Record<string, string> | null
+                                    const customerAmount = customAmounts ? parseFloat(customAmounts[bill.telephoneNumber] || '0') : null
+                                    return customerAmount === null || isNaN(customerAmount)
+                                  }) && (
+                                    <div className="text-xs text-blue-600 mt-2 italic">
+                                      * Some payment amounts are estimated proportionally (marked with "est.")
+                                    </div>
+                                  )}
+                                </div>
+                              </>
                             ) : (
                               <div className="bg-gray-100 text-gray-500 px-3 py-2 rounded-xl text-sm italic">
                                 Customer did not specify payment amount
                               </div>
                             )}
+                            
+                            {/* Summary for partial payment */}
                             {currentToken.billPaymentIntent === 'partial' && (
-                              <p className="text-xs text-orange-700 mt-1 font-medium flex items-center gap-1">
-                                <AlertTriangle className="w-3 h-3" /> Remaining after payment: Rs. {Math.max(0, multipleBills.reduce((sum, bill) => sum + bill.currentBill, 0) - (currentToken.billPaymentAmount ?? 0)).toFixed(2)}
-                              </p>
+                              <div className="bg-orange-50 border border-orange-200 rounded-lg p-2">
+                                <div className="flex justify-between items-center text-sm">
+                                  <span className="flex items-center gap-1 text-orange-700 font-medium">
+                                    <AlertTriangle className="w-3 h-3" />
+                                    Total Remaining:
+                                  </span>
+                                  <span className="font-bold text-orange-700">
+                                    Rs. {Math.max(0, multipleBills.reduce((sum, bill) => sum + bill.currentBill, 0) - (currentToken.billPaymentAmount ?? 0)).toFixed(2)}
+                                  </span>
+                                </div>
+                              </div>
                             )}
+                            
                             {currentToken.billPaymentMethod && (
                               <div className="mt-2 flex items-center gap-2 bg-slate-100 text-slate-700 px-3 py-2 rounded-xl">
                                 {currentToken.billPaymentMethod === 'cash' ? <Banknote className="w-4 h-4" /> :
@@ -851,31 +943,80 @@ export default function OfficerQueuePage() {
 
                           {/* Customer Payment Intent for Single Bill */}
                           <div className="border-t border-amber-200 pt-3 mt-1">
-                            <div className="text-xs text-gray-500 mb-1">Customer's Payment Plan</div>
+                            <div className="text-xs text-gray-500 mb-2">Customer's Payment Plan</div>
                             {currentToken.billPaymentIntent === 'full' ? (
-                              <div className="flex items-center gap-2 bg-green-100 text-green-800 px-3 py-2 rounded-xl">
-                                <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
-                                <span className="text-sm font-bold">Full Payment</span>
+                              <>
+                                <div className="flex items-center gap-2 bg-green-100 text-green-800 px-3 py-2 rounded-xl mb-2">
+                                  <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+                                  <span className="text-sm font-bold">Full Payment</span>
+                                  {billInfo && (
+                                    <span className="ml-auto text-sm font-bold">Rs. {billInfo.currentBill.toFixed(2)}</span>
+                                  )}
+                                </div>
                                 {billInfo && (
-                                  <span className="ml-auto text-sm font-bold">Rs. {billInfo.currentBill.toFixed(2)}</span>
+                                  <div className="text-xs text-gray-600 bg-green-50 rounded p-2">
+                                    <div className="flex justify-between">
+                                      <span>Account: {billInfo.accountName}</span>
+                                      <span>Complete payment for full amount due</span>
+                                    </div>
+                                  </div>
                                 )}
-                              </div>
+                              </>
                             ) : currentToken.billPaymentIntent === 'partial' ? (
-                              <div className="flex items-center gap-2 bg-blue-100 text-blue-800 px-3 py-2 rounded-xl">
-                                <CircleDashed className="w-4 h-4 flex-shrink-0" />
-                                <span className="text-sm font-bold">Partial Payment</span>
-                                <span className="ml-auto text-base font-bold">Rs. {(currentToken.billPaymentAmount ?? 0).toFixed(2)}</span>
-                              </div>
+                              <>
+                                <div className="flex items-center gap-2 bg-blue-100 text-blue-800 px-3 py-2 rounded-xl mb-2">
+                                  <CircleDashed className="w-4 h-4 flex-shrink-0" />
+                                  <span className="text-sm font-bold">Partial Payment</span>
+                                  <span className="ml-auto text-base font-bold">Rs. {(currentToken.billPaymentAmount ?? 0).toFixed(2)}</span>
+                                </div>
+                                
+                                {billInfo && (
+                                  <div className="bg-blue-50 rounded-lg p-3 mb-2">
+                                    <div className="text-xs font-semibold text-blue-900 mb-2">Payment Details:</div>
+                                    <div className="bg-white rounded-md p-2 border border-blue-200">
+                                      <div className="flex justify-between items-center mb-1">
+                                        <span className="font-semibold text-sm text-gray-900">{currentToken.sltTelephoneNumber}</span>
+                                        <span className="text-xs text-gray-500">{billInfo.accountName}</span>
+                                      </div>
+                                      <div className="space-y-1 text-xs">
+                                        <div className="flex justify-between">
+                                          <span className="text-gray-600">Total Due:</span>
+                                          <span className="font-medium">Rs. {billInfo.currentBill.toFixed(2)}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                          <span className="text-blue-700">Customer Payment:</span>
+                                          <span className="font-bold text-blue-700">Rs. {(currentToken.billPaymentAmount ?? 0).toFixed(2)}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                          <span className="text-orange-600">Remaining:</span>
+                                          <span className="font-medium text-orange-600">Rs. {Math.max(0, billInfo.currentBill - (currentToken.billPaymentAmount ?? 0)).toFixed(2)}</span>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                )}
+                              </>
                             ) : (
                               <div className="bg-gray-100 text-gray-500 px-3 py-2 rounded-xl text-sm italic">
                                 Customer did not specify payment amount
                               </div>
                             )}
+                            
+                            {/* Summary for partial payment */}
                             {currentToken.billPaymentIntent === 'partial' && billInfo && (
-                              <p className="text-xs text-orange-700 mt-1 font-medium flex items-center gap-1">
-                                <AlertTriangle className="w-3 h-3" /> Remaining after payment: Rs. {Math.max(0, billInfo.currentBill - (currentToken.billPaymentAmount ?? 0)).toFixed(2)}
-                              </p>
+                              <div className="bg-orange-50 border border-orange-200 rounded-lg p-2">
+                                <div className="flex justify-between items-center text-sm">
+                                  <span className="flex items-center gap-1 text-orange-700 font-medium">
+                                    <AlertTriangle className="w-3 h-3" />
+                                    Remaining Balance:
+                                  </span>
+                                  <span className="font-bold text-orange-700">
+                                    Rs. {Math.max(0, billInfo.currentBill - (currentToken.billPaymentAmount ?? 0)).toFixed(2)}
+                                  </span>
+                                </div>
+                              </div>
                             )}
+                            
                             {currentToken.billPaymentMethod && (
                               <div className="mt-2 flex items-center gap-2 bg-slate-100 text-slate-700 px-3 py-2 rounded-xl">
                                 {currentToken.billPaymentMethod === 'cash' ? <Banknote className="w-4 h-4" /> :
