@@ -98,7 +98,7 @@ const TeleshopManagerOutletSetup: React.FC = () => {
   };
 
   const removeDevice = async (deviceId: string) => {
-    if (!confirm('Are you sure you want to remove this device configuration?')) return;
+    if (!confirm('Are you sure you want to remove this device configuration? After removal, this TV display will be available for configuration by any teleshop manager.')) return;
 
     try {
       const token = localStorage.getItem('teleshopManagerToken');
@@ -108,12 +108,12 @@ const TeleshopManagerOutletSetup: React.FC = () => {
         }
       });
       
-      setSuccess('Device configuration removed successfully');
+      setSuccess('Device configuration removed successfully! The TV display is now available for new configuration. Any teleshop manager can scan the QR code shown on that TV to configure it for their outlet.');
       fetchLinkedDevices();
       
       setTimeout(() => {
         setSuccess(null);
-      }, 3000);
+      }, 8000); // Longer timeout for detailed message
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to remove device');
     }
@@ -189,10 +189,24 @@ const TeleshopManagerOutletSetup: React.FC = () => {
             <div className="bg-white rounded-lg shadow-sm border p-6">
               <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
                 <QrCode className="w-5 h-5 mr-2 text-emerald-600" />
-                QR Code Setup
+                Android TV Setup & Management
               </h2>
 
               <div className="space-y-6">
+                {/* Device Transfer Info */}
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <div className="flex items-start">
+                    <Monitor className="w-5 h-5 text-blue-600 mt-0.5 mr-3" />
+                    <div>
+                      <h3 className="text-blue-800 font-medium">Device Transfer</h3>
+                      <p className="text-blue-700 text-sm mt-1">
+                        Remove devices from your outlet to make them available for other teleshop managers. 
+                        When removed, the TV will show a new QR code that any manager can scan to configure for their outlet.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
                 {/* Step by step instructions */}
                 <div className="space-y-4">
                   <div className="flex items-start space-x-3">
@@ -294,9 +308,10 @@ const TeleshopManagerOutletSetup: React.FC = () => {
                           
                           <button
                             onClick={() => removeDevice(device.id)}
-                            className="text-red-600 hover:text-red-800 text-xs px-2 py-1 hover:bg-red-50 rounded transition-colors"
+                            className="text-red-600 hover:text-red-800 text-xs px-3 py-1 hover:bg-red-50 rounded transition-colors border border-red-200 hover:border-red-300"
+                            title="Remove this device to make it available for other outlets"
                           >
-                            Remove
+                            Release Device
                           </button>
                         </div>
                       </div>
@@ -331,6 +346,40 @@ const TeleshopManagerOutletSetup: React.FC = () => {
                   <Wifi className="w-4 h-4" />
                   <span>Refresh Devices</span>
                 </button>
+              </div>
+            </div>
+            
+            {/* Device Transfer Instructions */}
+            <div className="bg-white rounded-lg shadow-sm border p-6 mt-6">
+              <h3 className="text-md font-semibold text-gray-900 mb-3 flex items-center">
+                <QrCode className="w-4 h-4 mr-2 text-blue-600" />
+                Device Transfer Process
+              </h3>
+              
+              <div className="space-y-3 text-sm text-gray-600">
+                <div className="flex items-start space-x-2">
+                  <span className="text-blue-600 font-medium">1.</span>
+                  <span>Click "Release Device" above to remove a TV from your outlet</span>
+                </div>
+                <div className="flex items-start space-x-2">
+                  <span className="text-blue-600 font-medium">2.</span>
+                  <span>The TV will automatically show a new QR code setup screen</span>
+                </div>
+                <div className="flex items-start space-x-2">
+                  <span className="text-blue-600 font-medium">3.</span>
+                  <span>Any teleshop manager can scan that QR code to configure the TV for their outlet</span>
+                </div>
+                <div className="flex items-start space-x-2">
+                  <span className="text-blue-600 font-medium">4.</span>
+                  <span>The TV will immediately start displaying the new outlet's queue information</span>
+                </div>
+              </div>
+              
+              <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                <p className="text-amber-800 text-xs">
+                  <strong>Note:</strong> Released devices are immediately available for reconfiguration. 
+                  Make sure to coordinate with other managers if transferring devices between outlets.
+                </p>
               </div>
             </div>
           </div>
