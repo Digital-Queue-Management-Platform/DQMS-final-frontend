@@ -448,7 +448,7 @@ export default function OutletQueueDisplay() {
           </div>
         </header>
 
-        <div className="flex-1 flex flex-col gap-4 sm:gap-6 min-h-0 overflow-hidden">
+        <div className="flex-1 flex flex-col gap-2 sm:gap-3 min-h-0 overflow-hidden">
           {notice && (
             <div className="flex-shrink-0 animate-in fade-in slide-in-from-top-4 duration-500 rounded-2xl border border-amber-200 bg-amber-50 p-3 flex items-start gap-3">
               <AlertTriangle className="w-5 h-5 mt-0.5 text-amber-600 flex-shrink-0" />
@@ -465,7 +465,7 @@ export default function OutletQueueDisplay() {
             </div>
           )}
 
-          <div className={`flex-1 min-h-0 overflow-hidden ${(!showRecent && !showCounters) ? "flex flex-col gap-2 sm:gap-4" : "grid grid-cols-1 2xl:grid-cols-3 gap-3 sm:gap-4"}`}>
+          <div className={`flex-1 min-h-0 overflow-hidden ${(!showRecent && !showCounters) ? "flex flex-col gap-2 sm:gap-3" : "grid grid-cols-1 2xl:grid-cols-3 gap-2 sm:gap-3"}`}>
             <section className={`${(!showRecent && !showCounters) ? "flex-1" : "2xl:col-span-2"} rounded-3xl border shadow-sm p-2 sm:p-4 flex flex-col min-h-0 bg-white border-slate-200 overflow-hidden`}>
               <div className="flex items-center gap-2 mb-2 flex-shrink-0">
                 <Sparkles className="w-5 h-5 text-emerald-400" />
@@ -731,17 +731,27 @@ export default function OutletQueueDisplay() {
           )}
         </div>
 
-        <footer className="flex-shrink-0 mt-4 sm:mt-6 pt-4 sm:pt-6 border-t flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 text-center sm:text-left border-slate-200 bg-white/50">
-          <div className="flex items-center gap-4">
-            <img src={logo} alt="SLT-Mobitel Logo" className="h-8 sm:h-10 lg:h-12 object-contain" />
-            <div className="h-8 w-[1px] bg-slate-200" />
-            <img src="/Transzent Logo.png" alt="Transzent Logo" className="h-14 sm:h-18 lg:h-20 object-contain" />
-          </div>
-          <div className="sm:border-l sm:pl-4 border-slate-300">
-            <p className="text-sm sm:text-base font-bold leading-tight text-slate-800">
-              Digital Queue<br />Management Platform
+        <footer className="flex-shrink-0 mt-1 pt-1 border-t border-slate-200 bg-white/50">
+          {/* Centered content with left/right aligned logos - ultra compact */}
+          <div className="flex flex-col items-center justify-center">
+            {/* Grouped content with logos close to text */}
+            <div className="flex items-center justify-center space-x-3">
+              {/* Left: SLT Logo */}
+              <img src={logo} alt="SLT-Mobitel Logo" className="h-8 sm:h-10 lg:h-12 object-contain py-1" />
+              
+              {/* Center: Platform Title */}
+              <p className="text-sm sm:text-base font-bold leading-tight text-slate-800">
+                Digital Queue Management Platform
+              </p>
+              
+              {/* Right: Transzent Logo */}
+              <img src="/Transzent Logo.png" alt="Transzent Logo" className="h-10 sm:h-12 lg:h-14 object-contain py-1" />
+            </div>
+            
+            {/* Centered Copyright Text - aligned to same center as above */}
+            <p className="text-[11px] sm:text-xs text-slate-500 pb-1 -mt-1 text-center">
+              © 2026 SLT-Mobitel Digital Platforms Section
             </p>
-            <p className="text-[11px] sm:text-xs text-slate-500 mt-1">© 2026 SLT-Mobitel Digital Platforms Section</p>
           </div>
         </footer>
       </div>
