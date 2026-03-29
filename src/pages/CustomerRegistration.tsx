@@ -578,75 +578,6 @@ export default function CustomerRegistration() {
     }
   }
 
-  // Verify SLT telephone number and fetch bill data with auto-fill
-  const verifySltNumber = async () => {
-    if (!sltTelephoneNumber) {
-      setError("Please enter SLT telephone number")
-      return
-    }
-
-    /* Removed pattern validation */
-
-    setLoading(true)
-    setError("")
-    try {
-      const response = await api.get(`/bills/verify/${sltTelephoneNumber}?force=true`)
-      if (response.data.success && response.data.bill) {
-        const bill = response.data.bill
-        setBillData(bill)
-        setSltVerified(true)
-        setError("")
-
-        // Determine if the person verifying is the registered owner
-        const normalizeForComparison = (num: string) => {
-          let n = num.replace(/\D/g, '')
-          if (n.startsWith('0')) n = '94' + n.substring(1)
-          else if (!n.startsWith('94')) n = '94' + n
-          return n
-        }
-        let isOwner = false
-        if (bill.mobileNumber && mobileNumber) {
-          isOwner = normalizeForComparison(mobileNumber) === normalizeForComparison(bill.mobileNumber)
-        }
-        setIsOwnerOfAccount(isOwner)
-
-        const getMaskedPhone = (phone: string) => {
-          if (!phone || phone.length < 3) return phone
-          return `xxxxxxx${phone.slice(-3)}`
-        }
-
-        if (isOwner) {
-          setNotificationMessage(`Bill details have been sent to your registered mobile number.`)
-        } else {
-          setNotificationMessage(`Bill details have been sent to the account holder at ${getMaskedPhone(bill.mobileNumber)}`)
-        }
-        setNotificationSent(true)
-
-        // Send SMS notification
-        try {
-          await api.post('/bills/send-notification', {
-            mobileNumber: bill.mobileNumber,
-            accountName: bill.accountName,
-            billAmount: bill.currentBill,
-            dueDate: bill.dueDate,
-            sltNumber: sltTelephoneNumber,
-          })
-        } catch {
-          // Non-critical
-        }
-      } else {
-        setError("No account found for this telephone number")
-      }
-    } catch (err: any) {
-      console.error('Bill verification error:', err)
-      setError(err.response?.data?.error || "Failed to verify telephone number")
-      setBillData(null)
-      setSltVerified(false)
-    } finally {
-      setLoading(false)
-    }
-  }
-
   // Verify multiple SLT telephone numbers and combine results
   const verifyAllSltNumbers = async () => {
     if (sltTelephoneNumbers.length === 0) {
@@ -691,7 +622,7 @@ export default function CustomerRegistration() {
           verificationResults.push({
             sltNumber,
             success: false,
-            error: error.response?.data?.error || 'Verification failed'
+            error: (error as any).response?.data?.error || 'Verification failed'
           })
           console.log('ERROR: SLT verification error for:', sltNumber, error)
         }
@@ -816,6 +747,7 @@ export default function CustomerRegistration() {
           }, 0)
           return total > 0 ? total : undefined
         })(),
+        billPaymentCustomAmounts: isSltRequiredService(selectedService) && billPaymentIntent === 'partial' ? billPaymentCustomAmounts : undefined,
         billPaymentMethod: isSltRequiredService(selectedService) && verifiedBills.length > 0 ? billPaymentMethod : undefined,
       }
       

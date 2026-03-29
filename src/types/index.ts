@@ -22,6 +22,7 @@ export interface Token {
   sltTelephoneNumber?: string | null
   billPaymentIntent?: 'full' | 'partial' | null
   billPaymentAmount?: number | null
+  billPaymentCustomAmounts?: Record<string, string> | null
   billPaymentMethod?: string | null
   outletId: string
   outlet?: Outlet
