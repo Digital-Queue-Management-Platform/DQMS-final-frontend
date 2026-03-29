@@ -33,6 +33,7 @@ import {
   BarChart2,
   Database,
   ClipboardList,
+  Activity,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useUser } from '../../../contexts/UserContext'
@@ -73,6 +74,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed, activePa
     { name: 'Compare', icon: Scale3D, to: '/admin/compare' },
     { name: 'Backup', icon: Database, to: '/admin/backup' },
     { name: 'Insights', icon: BarChart2, to: '/admin/insights' },
+    { name: 'System Logs', icon: Activity, to: '/admin/logs' },
   ]
   // Officer navigation items - Queue is now the primary page (first in order)
   const officerItems: NavigationItem[] = [
