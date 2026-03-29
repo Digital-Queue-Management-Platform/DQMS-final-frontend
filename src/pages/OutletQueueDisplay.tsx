@@ -733,22 +733,22 @@ export default function OutletQueueDisplay() {
 
         <footer className="flex-shrink-0 mt-1 pt-1 border-t border-slate-200 bg-white/50">
           {/* Centered content with left/right aligned logos - ultra compact */}
-          <div className="text-center">
-            {/* Logo row with left and right alignment, centered text */}
-            <div className="flex items-center justify-between">
-              {/* Left: SLT Logo (increased size) */}
+          <div className="flex flex-col items-center justify-center">
+            {/* Grouped content with logos close to text */}
+            <div className="flex items-center justify-center space-x-3">
+              {/* Left: SLT Logo */}
               <img src={logo} alt="SLT-Mobitel Logo" className="h-8 sm:h-10 lg:h-12 object-contain py-1" />
               
               {/* Center: Platform Title */}
-              <p className="text-sm sm:text-base font-bold leading-tight text-slate-800 text-center">
+              <p className="text-sm sm:text-base font-bold leading-tight text-slate-800">
                 Digital Queue Management Platform
               </p>
               
-              {/* Right: Transzent Logo (increased size) */}
+              {/* Right: Transzent Logo */}
               <img src="/Transzent Logo.png" alt="Transzent Logo" className="h-10 sm:h-12 lg:h-14 object-contain py-1" />
             </div>
             
-            {/* Centered Copyright Text */}
+            {/* Centered Copyright Text - aligned to same center as above */}
             <p className="text-[11px] sm:text-xs text-slate-500 pb-1 -mt-1 text-center">
               © 2026 SLT-Mobitel Digital Platforms Section
             </p>
