@@ -191,6 +191,8 @@ export default function OfficerQueuePage() {
     try {
       // Officer stats returns currentToken, billData, and multipleBills; update to handle both
       const res = await api.get(`/officer/stats/${officerId}`)
+      console.log('DEBUG: fetchCurrentToken response:', res.data)
+      console.log('DEBUG: currentToken customer data:', res.data.currentToken?.customer)
       setCurrentToken(res.data.currentToken)
       setBillInfo(res.data.billData || null)
       setMultipleBills(res.data.multipleBills || [])
@@ -667,7 +669,9 @@ export default function OfficerQueuePage() {
                       </div>
                       <div className="flex-1">
                         <div className="text-xs text-gray-500">Customer Name</div>
-                        <div className="text-sm font-semibold text-gray-900">{currentToken.customer.name}</div>
+                        <div className="text-sm font-semibold text-gray-900">
+                          {currentToken.customer?.name || 'Name not available'}
+                        </div>
                       </div>
                     </div>
 
@@ -677,7 +681,9 @@ export default function OfficerQueuePage() {
                       </div>
                       <div className="flex-1">
                         <div className="text-xs text-gray-500">Phone Number</div>
-                        <div className="text-sm font-semibold text-gray-900">{currentToken.customer.mobileNumber}</div>
+                        <div className="text-sm font-semibold text-gray-900">
+                          {currentToken.customer?.mobileNumber || 'Phone not available'}
+                        </div>
                       </div>
                     </div>
 
