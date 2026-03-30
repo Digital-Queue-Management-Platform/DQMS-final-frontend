@@ -2,7 +2,8 @@ import { useEffect, useMemo, useRef, useState } from "react"
 import logo from "../assets/logo.png"
 import { useParams, useSearchParams } from "react-router-dom"
 import { Clock3, Users, Ticket, Layers, AlertTriangle, Sparkles, CalendarDays, Coffee, Volume2, VolumeX } from "lucide-react"
-import api, { WS_URL, API_URL } from "../config/api"
+import api, { API_URL } from "../config/api"
+import { useWebSocket } from "../hooks/useWebSocket"
 import type { Token } from "../types"
 import ServiceName from "../components/ServiceName"
 
@@ -105,6 +106,9 @@ export default function OutletQueueDisplay() {
   const [announcementQueue, setAnnouncementQueue] = useState<any[]>([])
   const [isSpeaking, setIsSpeaking] = useState(false)
   const [audioUnlocked, setAudioUnlocked] = useState(false)
+  
+  // Audio Context Management for better browser compatibility
+  const audioContextRef = useRef<AudioContext | null>(null)
 
   const [queue, setQueue] = useState<QueuePayload | null>(null)
   const [counters, setCounters] = useState<CounterRow[]>([])
@@ -192,12 +196,10 @@ export default function OutletQueueDisplay() {
     return () => clearInterval(poll)
   }, [outletId, refreshSeconds])
 
-  useEffect(() => {
-    const ws = new WebSocket(WS_URL)
-
-    ws.onmessage = (event) => {
+  // Auto-reconnecting WebSocket with robust error handling
+  useWebSocket({
+    onMessage: (msg) => {
       try {
-        const msg = JSON.parse(event.data)
         const type = msg?.type
         const data = msg?.data
         if (!data || !outletId) return
@@ -252,10 +254,18 @@ export default function OutletQueueDisplay() {
       } catch (err) {
         console.error("WebSocket message processing error:", err)
       }
-    }
-
-    return () => ws.close()
-  }, [outletId])
+    },
+    onError: () => {
+      console.error("[WebSocket] Connection error - auto-reconnect will attempt recovery")
+    },
+    onClose: (event) => {
+      if (!event.wasClean) {
+        console.warn("[WebSocket] Connection lost unexpectedly - auto-reconnecting...")
+      }
+    },
+    autoReconnect: true,
+    reconnectInterval: 3000 // Reconnect every 3 seconds if connection drops
+  })
 
   const servingByCounter = useMemo(() => {
     const serving = (queue?.inService || []).slice()
@@ -271,35 +281,94 @@ export default function OutletQueueDisplay() {
   const { trackRef: recentTrackRef, duration: recentDuration } = useUniformMarqueeSpeed([recentCalled.length, autoSlide])
   const { trackRef: counterTrackRef, duration: counterDuration } = useUniformMarqueeSpeed([counters.length, autoSlide])
 
-  // Voice Announcement Logic
-  const playChime = () => {
-    return new Promise((resolve) => {
+  // Audio Context Management - ensures audio works after browser suspension
+  const ensureAudioContextActive = async (): Promise<boolean> => {
+    try {
+      // Get or create audio context
+      const AudioContextClass = (window as any).AudioContext || (window as any).webkitAudioContext
+      if (!audioContextRef.current && AudioContextClass) {
+        audioContextRef.current = new AudioContextClass()
+      }
+      
+      const ctx = audioContextRef.current
+      if (!ctx) return true // Fallback to HTML5 audio
+      
+      // Resume if suspended (happens after user interaction is gone)
+      if (ctx.state === 'suspended') {
+        await ctx.resume()
+        console.log("[Voice] Audio context resumed from suspended state")
+      }
+      
+      return true
+    } catch (err) {
+      console.warn("[Voice] Could not ensure audio context:", err)
+      return true // Fail gracefully
+    }
+  }
+
+  // Voice Announcement Logic - Enhanced with audio context management
+  const playChime = async () => {
+    return new Promise<void>((resolve) => {
       let resolved = false
-      const done = (val?: any) => {
+      const done = () => {
         if (!resolved) {
           resolved = true
           clearTimeout(timeoutId)
-          resolve(val)
+          resolve()
         }
       }
       const timeoutId = setTimeout(done, 10000) // 10 seconds max
 
-      const audio = new Audio("/announcement.mp3")
-      // @ts-ignore - Prevent GC
-      window.__activeChime = audio
-      audio.volume = 0.8
-      audio.onended = done
-      audio.onerror = (err) => {
-        console.error("Failed to play custom announcement chime:", err)
-        done()
-      }
-      audio.play().catch(err => {
-        console.error("[Voice] Audio playback blocked:", err)
-        if (err.name === 'NotAllowedError') {
-          setAudioUnlocked(false)
+      // Ensure audio context is active before playing
+      ensureAudioContextActive().then(async () => {
+        const audio = new Audio("/announcement.mp3")
+        // @ts-ignore - Prevent GC
+        window.__activeChime = audio
+        audio.volume = 0.8
+        audio.onended = done
+        audio.onerror = (err) => {
+          console.error("Failed to play custom announcement chime:", err)
+          done()
         }
-        done()
-      })
+        audio.play().catch(err => {
+          console.error("[Voice] Audio playback blocked:", err)
+          if (err.name === 'NotAllowedError') {
+            setAudioUnlocked(false)
+          }
+          done()
+        })
+      }).catch(done)
+    })
+  }
+
+  // Fallback to browser Speech API when TTS fails
+  const fallbackToSpeechAPI = (text: string, lang: string): Promise<void> => {
+    return new Promise<void>((resolve) => {
+      if (!window.speechSynthesis) {
+        console.error("[Voice] SpeechSynthesis API not available")
+        resolve()
+        return
+      }
+      
+      window.speechSynthesis.cancel()
+      
+      const utterance = new SpeechSynthesisUtterance(text)
+      utterance.lang = lang === 'si' ? 'si-LK' : lang === 'ta' ? 'ta-LK' : 'en-US'
+      utterance.rate = lang === 'en' ? 0.9 : 0.7
+      utterance.volume = 1.0
+      
+      utterance.onend = () => resolve()
+      utterance.onerror = (err) => {
+        console.error("[Voice] SpeechSynthesis error:", err)
+        resolve()
+      }
+      
+      try {
+        window.speechSynthesis.speak(utterance)
+      } catch (err) {
+        console.error("[Voice] Could not speak:", err)
+        resolve()
+      }
     })
   }
 
@@ -328,27 +397,56 @@ export default function OutletQueueDisplay() {
     }
 
     try {
-      const ttsUrl = `${API_URL}/tts/speak?text=${encodeURIComponent(text)}&lang=${lang}`
-      const audio = new Audio(ttsUrl)
-      // @ts-ignore - Prevent GC
-      window.__activeSpeech = audio
-      return new Promise((resolve) => {
-        let resolved = false
-        const done = () => {
-          if (!resolved) {
-            resolved = true
-            clearTimeout(timeoutId)
-            resolve(null)
-          }
+      await ensureAudioContextActive()
+      
+      // Only use TTS for Sinhala and Tamil, fallback for English and TTS failures
+      if ((lang === 'si' || lang === 'ta') && eventType !== 'TEST_SOUND') {
+        try {
+          const ttsUrl = `${API_URL}/tts/speak?text=${encodeURIComponent(text)}&lang=${lang}`
+          const audio = new Audio(ttsUrl)
+          // @ts-ignore - Prevent GC
+          window.__activeSpeech = audio
+          
+          return new Promise<void>((resolve) => {
+            let resolved = false
+            const done = () => {
+              if (!resolved) {
+                resolved = true
+                clearTimeout(timeoutId)
+                clearTimeout(abortTimer)
+                resolve()
+              }
+            }
+            
+            const timeoutId = setTimeout(done, 15000) // TTS timeout
+            const abortTimer = setTimeout(() => {
+              // If still not playing after 3s, TTS likely failed
+              console.warn("[Voice] TTS likely failed, timeout exceeded - falling back to Speech API")
+              audio.pause()
+              fallbackToSpeechAPI(text, lang).then(done)
+            }, 3000)
+            
+            audio.onended = done
+            audio.onerror = (err) => {
+              console.error("[Voice] TTS audio error, using Speech API fallback:", err)
+              fallbackToSpeechAPI(text, lang).then(done)
+            }
+            
+            audio.play().catch(err => {
+              console.error("[Voice] TTS play failed, using Speech API fallback:", err)
+              fallbackToSpeechAPI(text, lang).then(done)
+            })
+          })
+        } catch (ttsErr) {
+          console.error("[Voice] TTS request failed, using Speech API fallback:", ttsErr)
+          return fallbackToSpeechAPI(text, lang)
         }
-        const timeoutId = setTimeout(done, 15000) // 15 seconds max
-
-        audio.onended = done
-        audio.onerror = done
-        audio.play().catch(done)
-      })
+      } else {
+        // Use browser Speech API for English or test sounds
+        return fallbackToSpeechAPI(text, lang)
+      }
     } catch (err) {
-      console.error("TTS failed", err)
+      console.error("[Voice] speakSentence failed completely:", err)
     }
   }
 
@@ -357,23 +455,58 @@ export default function OutletQueueDisplay() {
       const processQueue = async () => {
         setIsSpeaking(true)
         const nextToken = announcementQueue[0]
-        console.log("[Voice] Processing announcement for token:", nextToken.tokenNumber)
-
-        try {
-          if (playTone) {
-            await playChime()
-            await new Promise(r => setTimeout(r, 600)) // Pause after chime
+        let retryCount = 0
+        const maxRetries = 2
+        
+        let success = false
+        while (!success && retryCount <= maxRetries) {
+          try {
+            console.log(`[Voice] Processing announcement for token ${nextToken.tokenNumber} (attempt ${retryCount + 1}/${maxRetries + 1})`)
+            
+            if (playTone) {
+              await playChime()
+              await new Promise(r => setTimeout(r, 600)) // Pause after chime
+            }
+            
+            await speakSentence(nextToken)
+            success = true
+            
+          } catch (err) {
+            retryCount++
+            console.error(`[Voice] Announcement failed (attempt ${retryCount}):`, err)
+            
+            if (retryCount <= maxRetries) {
+              // Retry with exponential backoff
+              await new Promise(r => setTimeout(r, 1000 * retryCount))
+              
+              // Try to reset audio context on retry
+              try {
+                await ensureAudioContextActive()
+              } catch {}
+            } else {
+              console.error(`[Voice] Failed after ${maxRetries} retries, skipping announcement for token:`, nextToken.tokenNumber)
+              
+              // Log failure to backend for diagnostics (optional)
+              try {
+                api.post('/logs/voice-failure', {
+                  tokenNumber: nextToken.tokenNumber,
+                  lang: nextToken.lang || 'unknown',
+                  error: (err as Error)?.message || 'Unknown error',
+                  timestamp: new Date().toISOString()
+                }).catch(() => {
+                  // Silently fail if logging fails - don't break the queue
+                })
+              } catch {}
+            }
           }
-          await speakSentence(nextToken)
-        } catch (err) {
-          console.error("[Voice] Announcement failed:", err)
-        } finally {
-          setAnnouncementQueue(prev => prev.slice(1))
-          // Add a small pause between consecutive announcements so they are clear
-          await new Promise(r => setTimeout(r, 1000))
-          setIsSpeaking(false)
         }
+        
+        setAnnouncementQueue(prev => prev.slice(1))
+        // Add a small pause between consecutive announcements so they are clear
+        await new Promise(r => setTimeout(r, 1000))
+        setIsSpeaking(false)
       }
+      
       processQueue()
     }
   }, [voiceEnabled, announcementQueue, isSpeaking, playTone])
