@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { ExternalLink, Copy, Monitor, SlidersHorizontal, CheckCircle2, Save, Loader2, Volume2, Play, Music } from "lucide-react"
+import { ExternalLink, Copy, Monitor, SlidersHorizontal, CheckCircle2, Save, Loader2, Volume2, Play, Music, Bell, Mic } from "lucide-react"
 import api from "../config/api"
 
 type TeleshopManagerMe = {
@@ -39,6 +39,50 @@ export default function TeleshopManagerOutletDisplay() {
   const [customEn, setCustomEn] = useState("")
   const [customSi, setCustomSi] = useState("")
   const [customTa, setCustomTa] = useState("")
+  // Load saved volume settings from localStorage, fallback to max defaults
+  const [chimeVolume, setChimeVolume] = useState(() => {
+    try {
+      const saved = localStorage.getItem('teleshop-chime-volume')
+      if (saved) {
+        const parsed = parseInt(saved)
+        // Ensure value is within valid range (20-100)
+        if (parsed >= 20 && parsed <= 100) {
+          return parsed
+        }
+      }
+    } catch (error) {
+      console.warn('[VolumeSettings] Failed to load saved chime volume:', error)
+    }
+    return 100 // MAX by default (20-100%)
+  })
+  const [voiceVolume, setVoiceVolume] = useState(() => {
+    try {
+      const saved = localStorage.getItem('teleshop-voice-volume')
+      if (saved) {
+        const parsed = parseInt(saved)
+        // Ensure value is within valid range (20-300)
+        if (parsed >= 20 && parsed <= 300) {
+          return parsed
+        }
+      }
+    } catch (error) {
+      console.warn('[VolumeSettings] Failed to load saved voice volume:', error)
+    }
+    return 300 // MAX by default (20-300%)
+  })
+  // Volume settings are automatically saved to localStorage via useEffect hooks
+
+  // Save chime volume to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('teleshop-chime-volume', chimeVolume.toString())
+    console.log(`[VolumeSettings] Chime volume saved: ${chimeVolume}%`)
+  }, [chimeVolume])
+
+  // Save voice volume to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('teleshop-voice-volume', voiceVolume.toString())
+    console.log(`[VolumeSettings] Voice volume saved: ${voiceVolume}%`)
+  }, [voiceVolume])
 
   useEffect(() => {
     const load = async () => {
@@ -118,11 +162,13 @@ export default function TeleshopManagerOutletDisplay() {
       await api.post("/teleshop-manager/test-sound", {
         type,
         lang: lang || testLang,
-        customText: type === 'voice' ? (message || undefined) : undefined
+        customText: type === 'voice' ? (message || undefined) : undefined,
+        chimeVolume: chimeVolume, // Pass chime volume
+        voiceVolume: voiceVolume  // Pass voice volume
       }, {
         headers: { Authorization: `Bearer ${localStorage.getItem("teleshopManagerToken")}` }
       })
-      console.log("[SpeakerTest] Remote broadcast triggered successfully")
+      console.log(`[SpeakerTest] Remote broadcast triggered successfully - ${type === 'chime' ? `Chime: ${chimeVolume}%` : `Voice: ${voiceVolume}%`}`)
     } catch (err) {
       console.error("Speaker test failed:", err)
     } finally {
@@ -379,6 +425,67 @@ export default function TeleshopManagerOutletDisplay() {
                </p>
  
                <div className="bg-slate-50 rounded-2xl p-4 sm:p-5 border border-slate-200">
+                 {/* Volume Controls - Settings are automatically saved and restored on refresh */}
+                 <div className="space-y-4 mb-4 pb-4 border-b border-slate-200">
+                   {/* Chime Volume */}
+                   <div className="flex items-center gap-4">
+                     <div className="flex items-center gap-2 min-w-0 w-20">
+                       <Bell className="w-4 h-4 text-blue-600" />
+                       <label className="text-xs font-bold text-slate-700 whitespace-nowrap">Chime:</label>
+                     </div>
+                     <div className="flex-1 flex items-center gap-3">
+                       <input
+                         type="range"
+                         min={20}
+                         max={100}
+                         step={5}
+                         value={chimeVolume}
+                         onChange={(e) => setChimeVolume(Number(e.target.value))}
+                         className="flex-1 h-3 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                       />
+                       <div className="w-14 h-8 rounded-lg bg-gradient-to-r from-blue-50 to-blue-100 border border-blue-200 flex items-center justify-center font-bold text-blue-700 text-xs shadow-sm">
+                         {chimeVolume}%
+                       </div>
+                     </div>
+                     <div className="text-xs text-slate-500 w-20 flex items-center gap-1">
+                       <Bell className="w-3 h-3" />
+                       <span>{chimeVolume >= 80 ? 'Loud' : chimeVolume >= 60 ? 'Normal' : 'Quiet'}</span>
+                     </div>
+                   </div>
+                   
+                   {/* Voice Volume */}
+                   <div className="flex items-center gap-4">
+                     <div className="flex items-center gap-2 min-w-0 w-20">
+                       <Mic className="w-4 h-4 text-green-600" />
+                       <label className="text-xs font-bold text-slate-700 whitespace-nowrap">Voice:</label>
+                     </div>
+                     <div className="flex-1 flex items-center gap-3">
+                       <input
+                         type="range"
+                         min={20}
+                         max={300}
+                         step={10}
+                         value={voiceVolume}
+                         onChange={(e) => setVoiceVolume(Number(e.target.value))}
+                         className="flex-1 h-3 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-green-600"
+                       />
+                       <div className="w-14 h-8 rounded-lg bg-gradient-to-r from-green-50 to-green-100 border border-green-200 flex items-center justify-center font-bold text-green-700 text-xs shadow-sm">
+                         {voiceVolume}%
+                       </div>
+                     </div>
+                     <div className="text-xs text-slate-500 w-20 flex items-center gap-1">
+                       <Mic className="w-3 h-3" />
+                       <span>{voiceVolume >= 200 ? 'Very Loud' : voiceVolume >= 150 ? 'Loud' : voiceVolume >= 100 ? 'Normal' : 'Quiet'}</span>
+                     </div>
+                   </div>
+                 </div>
+                 
+                 {/* Auto-save indicator */}
+                 <div className="text-xs text-slate-400 flex items-center gap-1 mt-2">
+                   <CheckCircle2 className="w-3 h-3" />
+                   <span>Volume settings are automatically saved</span>
+                 </div>
+                 
                  <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-4">
                    {/* Language Switcher */}
                    <div className="flex bg-white p-1 rounded-xl border border-slate-200 shadow-sm grow lg:grow-0">
