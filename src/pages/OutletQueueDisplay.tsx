@@ -79,6 +79,17 @@ export default function OutletQueueDisplay() {
   const { outletId } = useParams()
   const [query] = useSearchParams()
 
+  // Component instance tracking for debugging
+  const instanceIdRef = useRef(Math.random().toString(36).substr(2, 9))
+
+  // Log component mounting for debugging
+  useEffect(() => {
+    console.log(`[OutletQueueDisplay] Component mounted [Instance: ${instanceIdRef.current}] for outlet: ${outletId}`)
+    return () => {
+      console.log(`[OutletQueueDisplay] Component unmounting [Instance: ${instanceIdRef.current}]`)
+    }
+  }, [])
+
   const [refreshSeconds, setRefreshSeconds] = useState(() => Math.max(5, Math.min(60, toInt(query.get("refresh"), 10))))
   const [nextLimit, setNextLimit] = useState(() => Math.max(3, Math.min(20, toInt(query.get("next"), 8))))
   const [showService, setShowService] = useState(() => toBool(query.get("services"), false))
@@ -106,6 +117,9 @@ export default function OutletQueueDisplay() {
   const [announcementQueue, setAnnouncementQueue] = useState<any[]>([])
   const [isSpeaking, setIsSpeaking] = useState(false)
   const [audioUnlocked, setAudioUnlocked] = useState(false)
+  
+  // Deduplication: Track recent announcements to prevent duplicates
+  const recentAnnouncementsRef = useRef<Set<string>>(new Set())
   
   // Audio Context Management for better browser compatibility
   const audioContextRef = useRef<AudioContext | null>(null)
@@ -209,12 +223,32 @@ export default function OutletQueueDisplay() {
         }
 
         if (type === "TOKEN_CALLED" || type === "TOKEN_RECALLED") {
-          console.log(`[WebSocket] ${type} event received for token:`, data.tokenNumber)
+          console.log(`[WebSocket] ${type} event received for token:`, data.tokenNumber, `[Instance: ${instanceIdRef.current}]`)
           if (!data.outletId || data.outletId === outletId) {
             fetchAll()
             if (voiceEnabledRef.current) {
-              console.log("[Voice] Adding to announcement queue:", type)
-              setAnnouncementQueue(prev => [...prev, { ...data, eventType: type }])
+              // Create unique key for deduplication: eventType + token + timestamp window (5 seconds)
+              const timeWindow = Math.floor(Date.now() / 5000) // 5-second windows
+              const announcementKey = `${type}-${data.tokenNumber}-${data.counterNumber}-${timeWindow}`
+              
+              // Check if we've already processed this announcement recently
+              if (recentAnnouncementsRef.current.has(announcementKey)) {
+                console.log(`[Voice] Skipping duplicate announcement: ${announcementKey} [Instance: ${instanceIdRef.current}]`)
+                return
+              }
+              
+              // Add to recent announcements set and clean up old entries
+              recentAnnouncementsRef.current.add(announcementKey)
+              
+              // Clean up old entries (keep only last 10)
+              if (recentAnnouncementsRef.current.size > 10) {
+                const entries = Array.from(recentAnnouncementsRef.current)
+                recentAnnouncementsRef.current.clear()
+                entries.slice(-5).forEach(key => recentAnnouncementsRef.current.add(key))
+              }
+              
+              console.log(`[Voice] Adding to announcement queue: ${type} Key: ${announcementKey} [Instance: ${instanceIdRef.current}]`)
+              setAnnouncementQueue(prev => [...prev, { ...data, eventType: type, volume: 300 }]) // Default MAX (300%) volume for regular announcements
             } else {
               console.log("[Voice] Skipping announcement because sound is muted. Click the speaker icon to enable.")
             }
@@ -222,15 +256,37 @@ export default function OutletQueueDisplay() {
         }
 
         if (type === "TEST_SOUND") {
-          console.log("[WebSocket] TEST_SOUND event received:", data.testType)
+          console.log(`[WebSocket] TEST_SOUND event received: ${data.testType} [Instance: ${instanceIdRef.current}]`)
           if (!data.outletId || data.outletId === outletId) {
             if (voiceEnabledRef.current) {
               const testType = data.testType || 'chime'
               const testLang = data.lang || 'en'
 
               if (testType === 'chime') {
-                playChime()
+                // Create unique key for chime test deduplication
+                const timeWindow = Math.floor(Date.now() / 3000) // 3-second windows for tests
+                const chimeKey = `TEST_CHIME-${timeWindow}`
+                
+                if (recentAnnouncementsRef.current.has(chimeKey)) {
+                  console.log(`[Voice] Skipping duplicate chime test: ${chimeKey} [Instance: ${instanceIdRef.current}]`)
+                  return
+                }
+                
+                recentAnnouncementsRef.current.add(chimeKey)
+                console.log(`[Voice] Playing chime test [Instance: ${instanceIdRef.current}]`)
+                playChime(data.chimeVolume || 100) // Default to MAX chime volume (100%)
               } else {
+                // Create unique key for voice test deduplication
+                const timeWindow = Math.floor(Date.now() / 3000) // 3-second windows for tests
+                const voiceTestKey = `TEST_VOICE-${testLang}-${timeWindow}`
+                
+                if (recentAnnouncementsRef.current.has(voiceTestKey)) {
+                  console.log(`[Voice] Skipping duplicate voice test: ${voiceTestKey} [Instance: ${instanceIdRef.current}]`)
+                  return
+                }
+                
+                recentAnnouncementsRef.current.add(voiceTestKey)
+                
                 const sampleText = data.customText
                   ? data.customText
                   : testLang === 'si'
@@ -239,13 +295,14 @@ export default function OutletQueueDisplay() {
                       ? "ஒலிபெருக்கி சோதனை. இது சரியாக வேலை செய்கிறது."
                       : "Testing the speakers. It is working fine."
 
-                console.log("[Voice] Enqueueing manual test announcement:", sampleText)
+                console.log(`[Voice] Enqueueing manual test announcement: ${sampleText} [Instance: ${instanceIdRef.current}]`)
                 setAnnouncementQueue(prev => [...prev, {
                   tokenNumber: "Test", // Placeholder for speech logic
                   counterNumber: "",
                   eventType: 'TEST_SOUND',
                   text: sampleText,
-                  lang: testLang
+                  lang: testLang,
+                  volume: data.voiceVolume || 300 // Use voice volume from test request, default to MAX (300%)
                 }])
               }
             }
@@ -307,7 +364,7 @@ export default function OutletQueueDisplay() {
   }
 
   // Voice Announcement Logic - Enhanced with audio context management
-  const playChime = async () => {
+  const playChime = async (volume: number = 100) => {
     return new Promise<void>((resolve) => {
       let resolved = false
       const done = () => {
@@ -324,7 +381,9 @@ export default function OutletQueueDisplay() {
         const audio = new Audio("/announcement.mp3")
         // @ts-ignore - Prevent GC
         window.__activeChime = audio
-        audio.volume = 0.8
+        // Convert percentage to audio volume (0.0-1.0), capped at 100% for chime to prevent distortion
+        audio.volume = Math.min(volume / 100, 1.0)
+        console.log(`[Voice] Chime volume set to ${Math.min(volume, 100)}%`)
         audio.onended = done
         audio.onerror = (err) => {
           console.error("Failed to play custom announcement chime:", err)
@@ -341,9 +400,32 @@ export default function OutletQueueDisplay() {
     })
   }
 
+  // Helper function to ensure voices are loaded
+  const loadVoices = (): Promise<SpeechSynthesisVoice[]> => {
+    return new Promise((resolve) => {
+      if (window.speechSynthesis.getVoices().length > 0) {
+        resolve(window.speechSynthesis.getVoices())
+        return
+      }
+      
+      const voicesChanged = () => {
+        window.speechSynthesis.removeEventListener('voiceschanged', voicesChanged)
+        resolve(window.speechSynthesis.getVoices())
+      }
+      
+      window.speechSynthesis.addEventListener('voiceschanged', voicesChanged)
+      
+      // Fallback timeout
+      setTimeout(() => {
+        window.speechSynthesis.removeEventListener('voiceschanged', voicesChanged)
+        resolve(window.speechSynthesis.getVoices())
+      }, 1000)
+    })
+  }
+
   // Fallback to browser Speech API when TTS fails
-  const fallbackToSpeechAPI = (text: string, lang: string): Promise<void> => {
-    return new Promise<void>((resolve) => {
+  const fallbackToSpeechAPI = async (text: string, lang: string): Promise<void> => {
+    return new Promise<void>(async (resolve) => {
       if (!window.speechSynthesis) {
         console.error("[Voice] SpeechSynthesis API not available")
         resolve()
@@ -356,6 +438,37 @@ export default function OutletQueueDisplay() {
       utterance.lang = lang === 'si' ? 'si-LK' : lang === 'ta' ? 'ta-LK' : 'en-US'
       utterance.rate = lang === 'en' ? 0.9 : 0.7
       utterance.volume = 1.0
+      
+      // For English, try to select a female voice
+      if (lang === 'en') {
+        const voices = await loadVoices()
+        console.log(`[Voice] Available voices: ${voices.map(v => v.name).join(', ')}`)
+        
+        const femaleVoice = voices.find(voice => 
+          voice.lang.startsWith('en') && 
+          (voice.name.toLowerCase().includes('female') || 
+           voice.name.toLowerCase().includes('woman') ||
+           voice.name.toLowerCase().includes('zira') ||
+           voice.name.toLowerCase().includes('hazel') ||
+           voice.name.toLowerCase().includes('susan') ||
+           voice.name.toLowerCase().includes('samantha') ||
+           voice.name.toLowerCase().includes('karen') ||
+           voice.name.toLowerCase().includes('veena') ||
+           voice.name.toLowerCase().includes('fiona'))
+        )
+        
+        if (femaleVoice) {
+          utterance.voice = femaleVoice
+          console.log(`[Voice] Using female voice: ${femaleVoice.name}`)
+        } else {
+          // Fallback: try to find any English voice that's likely female
+          const englishVoice = voices.find(voice => voice.lang.startsWith('en'))
+          if (englishVoice) {
+            utterance.voice = englishVoice
+            console.log(`[Voice] Using English voice: ${englishVoice.name}`)
+          }
+        }
+      }
       
       utterance.onend = () => resolve()
       utterance.onerror = (err) => {
@@ -399,11 +512,69 @@ export default function OutletQueueDisplay() {
     try {
       await ensureAudioContextActive()
       
-      // Only use TTS for Sinhala and Tamil, fallback for English and TTS failures
-      if ((lang === 'si' || lang === 'ta') && eventType !== 'TEST_SOUND') {
+      // Use TTS API for all languages for consistent quality
+      if (lang === 'si' || lang === 'ta' || lang === 'en') {
         try {
-          const ttsUrl = `${API_URL}/tts/speak?text=${encodeURIComponent(text)}&lang=${lang}`
-          const audio = new Audio(ttsUrl)
+          const ttsUrl = `${API_URL}/tts/speak?text=${encodeURIComponent(text)}&lang=${lang}&gender=female`
+          console.log(`[Voice] Using TTS API for ${lang} (female voice): ${text.substring(0, 50)}...`)
+          console.log(`[Voice] TTS URL: ${ttsUrl}`)
+          console.log(`[Voice] Requested volume for this test: ${tokenData.volume}%`)
+          
+          // Fetch the audio data first, then create Audio from blob
+          const response = await fetch(ttsUrl)
+          if (!response.ok) {
+            throw new Error(`TTS request failed with status ${response.status}`)
+          }
+          
+          const audioBlob = await response.blob()
+          const audioUrl = URL.createObjectURL(audioBlob)
+          const audio = new Audio(audioUrl)
+          
+          // Set up Web Audio API for volume amplification
+          let audioContext: AudioContext | null = null
+          let gainNode: GainNode | null = null
+          let source: MediaElementAudioSourceNode | null = null
+          
+          try {
+            audioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
+            source = audioContext.createMediaElementSource(audio)
+            gainNode = audioContext.createGain()
+            
+            // Add a compressor to prevent audio clipping at high volumes (less aggressive settings for better volume)
+            const compressor = audioContext.createDynamicsCompressor()
+            compressor.threshold.value = -10  // Higher threshold (was -20)
+            compressor.knee.value = 20        // Smoother knee (was 40)
+            compressor.ratio.value = 4        // Lower ratio (was 12)
+            compressor.attack.value = 0.005   // Slightly slower attack
+            compressor.release.value = 0.1    // Faster release (was 0.25)
+            
+            // Calculate volume multiplier based on user setting (20-300%)
+            // Convert percentage to multiplier (100% = 1.0, 300% = 3.0)
+            // Extra boost for Sinhala and Tamil to compensate for TTS differences
+            const userVolume = tokenData.volume || 100 // Default to 100% if not specified
+            let volumeMultiplier = userVolume / 100
+            
+            // Apply extra boost for Sinhala and Tamil (they tend to be quieter from Google TTS)
+            if (lang === 'si' || lang === 'ta') {
+              volumeMultiplier *= 1.5  // 50% extra boost for these languages
+              console.log(`[Voice] Applied extra 50% boost for ${lang} language`)
+            }
+            
+            gainNode.gain.value = volumeMultiplier
+            console.log(`[Voice] Audio amplified to ${userVolume}% (effective: ${Math.round(volumeMultiplier * 100)}%) using Web Audio API with compression for language: ${lang}`)
+            
+            source.connect(gainNode)
+            gainNode.connect(compressor)
+            compressor.connect(audioContext.destination)
+            
+            // Set base volume to maximum as well
+            audio.volume = 1.0
+            
+          } catch (webAudioError) {
+            console.warn(`[Voice] Web Audio API amplification failed, using standard volume:`, webAudioError)
+            audio.volume = 1.0
+          }
+          
           // @ts-ignore - Prevent GC
           window.__activeSpeech = audio
           
@@ -413,27 +584,42 @@ export default function OutletQueueDisplay() {
               if (!resolved) {
                 resolved = true
                 clearTimeout(timeoutId)
-                clearTimeout(abortTimer)
+                // Clean up blob URL to prevent memory leaks
+                if (audioUrl) URL.revokeObjectURL(audioUrl)
+                // Clean up Web Audio API resources
+                if (audioContext && audioContext.state !== 'closed') {
+                  audioContext.close().catch(err => console.warn('[Voice] AudioContext cleanup error:', err))
+                }
                 resolve()
               }
             }
             
             const timeoutId = setTimeout(done, 15000) // TTS timeout
-            const abortTimer = setTimeout(() => {
-              // If still not playing after 3s, TTS likely failed
-              console.warn("[Voice] TTS likely failed, timeout exceeded - falling back to Speech API")
-              audio.pause()
-              fallbackToSpeechAPI(text, lang).then(done)
-            }, 3000)
             
             audio.onended = done
+            audio.oncanplay = () => {
+              console.log("[Voice] TTS audio (blob) loaded successfully")
+            }
+            audio.onplay = () => {
+              console.log("[Voice] TTS audio (blob) started playing")
+            }
             audio.onerror = (err) => {
-              console.error("[Voice] TTS audio error, using Speech API fallback:", err)
+              console.error(`[Voice] TTS audio (blob) error for ${lang}:`, err)
+              console.error(`[Voice] Audio element state:`, {
+                readyState: audio.readyState,
+                networkState: audio.networkState,
+                error: audio.error
+              })
               fallbackToSpeechAPI(text, lang).then(done)
             }
             
             audio.play().catch(err => {
-              console.error("[Voice] TTS play failed, using Speech API fallback:", err)
+              console.error(`[Voice] TTS play (blob) failed for ${lang}:`, err)
+              console.error(`[Voice] Audio element state:`, {
+                readyState: audio.readyState,
+                networkState: audio.networkState,
+                src: audio.src
+              })
               fallbackToSpeechAPI(text, lang).then(done)
             })
           })
@@ -443,6 +629,7 @@ export default function OutletQueueDisplay() {
         }
       } else {
         // Use browser Speech API for English or test sounds
+        console.log(`[Voice] Using browser Speech API for ${lang}: ${text.substring(0, 50)}...`)
         return fallbackToSpeechAPI(text, lang)
       }
     } catch (err) {
@@ -464,7 +651,7 @@ export default function OutletQueueDisplay() {
             console.log(`[Voice] Processing announcement for token ${nextToken.tokenNumber} (attempt ${retryCount + 1}/${maxRetries + 1})`)
             
             if (playTone) {
-              await playChime()
+              await playChime(100) // Use MAX volume for regular announcements (100% is maximum for chimes)
               await new Promise(r => setTimeout(r, 600)) // Pause after chime
             }
             
