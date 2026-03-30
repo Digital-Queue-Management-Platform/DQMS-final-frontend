@@ -745,21 +745,21 @@ export default function OutletQueueDisplay() {
 
           <div className="grid grid-cols-3 gap-2 md:col-span-2 2xl:col-span-1">
             <div className="rounded-2xl border p-3 text-center bg-emerald-50 border-emerald-200">
-              <p className="text-[10px] font-black uppercase tracking-widest opacity-70 text-emerald-700">Waiting</p>
+              <p className="text-[14px] font-black uppercase tracking-widest opacity-80 text-emerald-700">Waiting</p>
               <p
                 className="font-black text-slate-900"
                 style={{ fontSize: `calc(1.5rem * ${zoomScale / 100})` }}
               >{queue?.totalWaiting || 0}</p>
             </div>
             <div className="rounded-2xl border p-3 text-center bg-sky-50 border-sky-200">
-              <p className="text-[10px] font-black uppercase tracking-widest opacity-70 text-sky-700">Serving</p>
+              <p className="text-[14px] font-black uppercase tracking-widest opacity-80 text-sky-700">Serving</p>
               <p
                 className="font-black text-slate-900"
                 style={{ fontSize: `calc(1.5rem * ${zoomScale / 100})` }}
               >{queue?.inService?.length || 0}</p>
             </div>
             <div className="rounded-2xl border p-3 text-center bg-indigo-50 border-indigo-200">
-              <p className="text-[10px] font-black uppercase tracking-widest opacity-70 text-indigo-700">Counters</p>
+              <p className="text-[14px] font-black uppercase tracking-widest opacity-80 text-indigo-700">Counters</p>
               <p
                 className="font-black text-slate-900"
                 style={{ fontSize: `calc(1.5rem * ${zoomScale / 100})` }}
@@ -817,7 +817,7 @@ export default function OutletQueueDisplay() {
                       >
                         <div className="flex-1 flex flex-col justify-center min-w-0">
                           <div className="flex items-center justify-between gap-2 mb-0.5 sm:mb-1">
-                            <p className="text-[12px] opacity-80 font-bold text-emerald-800 truncate">
+                            <p className="text-[16px] opacity-90 font-bold text-emerald-800 truncate">
                               {token.counterNumber ? `Counter #${token.counterNumber}` : "Staff Station"}
                             </p>
                             {showService && token.serviceTypes?.length && (
@@ -869,7 +869,7 @@ export default function OutletQueueDisplay() {
                       >
                         <div className="flex-1 flex flex-col justify-center min-w-0">
                           <div className="flex items-center justify-between gap-2 mb-0.5 sm:mb-1">
-                            <p className="text-[12px] opacity-80 font-bold text-slate-700 truncate">Queue #{upNext.findIndex(t => t.id === token.id) + 1}</p>
+                            <p className="text-[14px] opacity-90 font-bold text-slate-700 truncate">Queue #{upNext.findIndex(t => t.id === token.id) + 1}</p>
                             {showService && token.serviceTypes?.[0] && (
                               <span className="text-[11px] px-2 py-0.5 rounded-md border bg-white border-sky-100 text-sky-600 font-bold truncate max-w-[90px] sm:max-w-[110px]">
                                 <ServiceName serviceType={token.serviceTypes[0]} />
@@ -931,7 +931,7 @@ export default function OutletQueueDisplay() {
                           >
                             <p
                               className={`font-black tracking-wider drop-shadow-sm leading-tight text-slate-900`}
-                              style={{ fontSize: `calc(clamp(1.2rem, 8vw, 2.5rem) * ${zoomScale / 100})` }}
+                              style={{ fontSize: `calc(clamp(1.5rem, 10vw, 3rem) * ${zoomScale / 100})` }}
                             >
                               {String(item.tokenNumber).padStart(3, "0")}
                             </p>
@@ -997,7 +997,7 @@ export default function OutletQueueDisplay() {
                                 }`}
                             >
                               <div className="flex items-center gap-3">
-                                <div className={`w-12 h-12 rounded-xl flex items-center justify-center font-black text-2xl shadow-sm ${isOffline ? 'bg-slate-200 text-slate-500' :
+                                <div className={`w-14 h-14 rounded-xl flex items-center justify-center font-black text-3xl shadow-sm ${isOffline ? 'bg-slate-200 text-slate-500' :
                                   isServing ? 'bg-sky-500 text-white' :
                                     isOnBreak ? 'bg-amber-500 text-white' :
                                       'bg-emerald-500 text-white'
@@ -1005,7 +1005,7 @@ export default function OutletQueueDisplay() {
                                   {counter.number}
                                 </div>
                                 <div className="text-left">
-                                  <p className={`font-bold text-sm leading-none ${isOffline ? 'text-slate-500' : 'text-slate-600'}`}>Counter #{counter.number}</p>
+                                  <p className={`font-bold text-lg leading-none ${isOffline ? 'text-slate-500' : 'text-slate-600'}`}>Counter #{counter.number}</p>
                                   <div className="flex items-center gap-1.5 mt-1.5">
                                     {isOffline ? (
                                       <div className="flex items-center gap-1">
