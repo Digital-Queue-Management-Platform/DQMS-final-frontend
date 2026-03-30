@@ -79,6 +79,17 @@ export default function OutletQueueDisplay() {
   const { outletId } = useParams()
   const [query] = useSearchParams()
 
+  // Component instance tracking for debugging
+  const instanceIdRef = useRef(Math.random().toString(36).substr(2, 9))
+
+  // Log component mounting for debugging
+  useEffect(() => {
+    console.log(`[OutletQueueDisplay] Component mounted [Instance: ${instanceIdRef.current}] for outlet: ${outletId}`)
+    return () => {
+      console.log(`[OutletQueueDisplay] Component unmounting [Instance: ${instanceIdRef.current}]`)
+    }
+  }, [])
+
   const [refreshSeconds, setRefreshSeconds] = useState(() => Math.max(5, Math.min(60, toInt(query.get("refresh"), 10))))
   const [nextLimit, setNextLimit] = useState(() => Math.max(3, Math.min(20, toInt(query.get("next"), 8))))
   const [showService, setShowService] = useState(() => toBool(query.get("services"), false))
@@ -106,6 +117,9 @@ export default function OutletQueueDisplay() {
   const [announcementQueue, setAnnouncementQueue] = useState<any[]>([])
   const [isSpeaking, setIsSpeaking] = useState(false)
   const [audioUnlocked, setAudioUnlocked] = useState(false)
+  
+  // Deduplication: Track recent announcements to prevent duplicates
+  const recentAnnouncementsRef = useRef<Set<string>>(new Set())
   
   // Audio Context Management for better browser compatibility
   const audioContextRef = useRef<AudioContext | null>(null)
@@ -209,11 +223,31 @@ export default function OutletQueueDisplay() {
         }
 
         if (type === "TOKEN_CALLED" || type === "TOKEN_RECALLED") {
-          console.log(`[WebSocket] ${type} event received for token:`, data.tokenNumber)
+          console.log(`[WebSocket] ${type} event received for token:`, data.tokenNumber, `[Instance: ${instanceIdRef.current}]`)
           if (!data.outletId || data.outletId === outletId) {
             fetchAll()
             if (voiceEnabledRef.current) {
-              console.log("[Voice] Adding to announcement queue:", type)
+              // Create unique key for deduplication: eventType + token + timestamp window (5 seconds)
+              const timeWindow = Math.floor(Date.now() / 5000) // 5-second windows
+              const announcementKey = `${type}-${data.tokenNumber}-${data.counterNumber}-${timeWindow}`
+              
+              // Check if we've already processed this announcement recently
+              if (recentAnnouncementsRef.current.has(announcementKey)) {
+                console.log(`[Voice] Skipping duplicate announcement: ${announcementKey} [Instance: ${instanceIdRef.current}]`)
+                return
+              }
+              
+              // Add to recent announcements set and clean up old entries
+              recentAnnouncementsRef.current.add(announcementKey)
+              
+              // Clean up old entries (keep only last 10)
+              if (recentAnnouncementsRef.current.size > 10) {
+                const entries = Array.from(recentAnnouncementsRef.current)
+                recentAnnouncementsRef.current.clear()
+                entries.slice(-5).forEach(key => recentAnnouncementsRef.current.add(key))
+              }
+              
+              console.log(`[Voice] Adding to announcement queue: ${type} Key: ${announcementKey} [Instance: ${instanceIdRef.current}]`)
               setAnnouncementQueue(prev => [...prev, { ...data, eventType: type, volume: 300 }]) // Default MAX (300%) volume for regular announcements
             } else {
               console.log("[Voice] Skipping announcement because sound is muted. Click the speaker icon to enable.")
@@ -222,15 +256,37 @@ export default function OutletQueueDisplay() {
         }
 
         if (type === "TEST_SOUND") {
-          console.log("[WebSocket] TEST_SOUND event received:", data.testType)
+          console.log(`[WebSocket] TEST_SOUND event received: ${data.testType} [Instance: ${instanceIdRef.current}]`)
           if (!data.outletId || data.outletId === outletId) {
             if (voiceEnabledRef.current) {
               const testType = data.testType || 'chime'
               const testLang = data.lang || 'en'
 
               if (testType === 'chime') {
+                // Create unique key for chime test deduplication
+                const timeWindow = Math.floor(Date.now() / 3000) // 3-second windows for tests
+                const chimeKey = `TEST_CHIME-${timeWindow}`
+                
+                if (recentAnnouncementsRef.current.has(chimeKey)) {
+                  console.log(`[Voice] Skipping duplicate chime test: ${chimeKey} [Instance: ${instanceIdRef.current}]`)
+                  return
+                }
+                
+                recentAnnouncementsRef.current.add(chimeKey)
+                console.log(`[Voice] Playing chime test [Instance: ${instanceIdRef.current}]`)
                 playChime(data.chimeVolume || 100) // Default to MAX chime volume (100%)
               } else {
+                // Create unique key for voice test deduplication
+                const timeWindow = Math.floor(Date.now() / 3000) // 3-second windows for tests
+                const voiceTestKey = `TEST_VOICE-${testLang}-${timeWindow}`
+                
+                if (recentAnnouncementsRef.current.has(voiceTestKey)) {
+                  console.log(`[Voice] Skipping duplicate voice test: ${voiceTestKey} [Instance: ${instanceIdRef.current}]`)
+                  return
+                }
+                
+                recentAnnouncementsRef.current.add(voiceTestKey)
+                
                 const sampleText = data.customText
                   ? data.customText
                   : testLang === 'si'
@@ -239,7 +295,7 @@ export default function OutletQueueDisplay() {
                       ? "ஒலிபெருக்கி சோதனை. இது சரியாக வேலை செய்கிறது."
                       : "Testing the speakers. It is working fine."
 
-                console.log("[Voice] Enqueueing manual test announcement:", sampleText)
+                console.log(`[Voice] Enqueueing manual test announcement: ${sampleText} [Instance: ${instanceIdRef.current}]`)
                 setAnnouncementQueue(prev => [...prev, {
                   tokenNumber: "Test", // Placeholder for speech logic
                   counterNumber: "",
