@@ -31,6 +31,7 @@ interface NewTeleshopManagerForm {
   name: string
   mobileNumber: string
   email: string
+  branchId: string
 }
 
 export default function ManagerTeleshopManagers() {
@@ -45,7 +46,8 @@ export default function ManagerTeleshopManagers() {
   const [formData, setFormData] = useState<NewTeleshopManagerForm>({
     name: "",
     mobileNumber: "",
-    email: ""
+    email: "",
+    branchId: ""
   })
   const [branches, setBranches] = useState<Array<{ id: string, name: string, location: string }>>([])
   const [showAssignBranchModal, setShowAssignBranchModal] = useState(false)
@@ -69,7 +71,7 @@ export default function ManagerTeleshopManagers() {
         headers: { Authorization: `Bearer ${token}` }
       })
 
-      setTeleshopManagers(response.data)
+      setTeleshopManagers(response.data.teleshopManagers || response.data || [])
     } catch (error: any) {
       console.error("Failed to fetch teleshop managers:", error)
       if (error.response?.status === 401) {
@@ -119,7 +121,7 @@ export default function ManagerTeleshopManagers() {
       )
 
       if (response.data.success) {
-        setTeleshopManagers(prev => prev.map(tm =>
+        setTeleshopManagers(prev => (Array.isArray(prev) ? prev : []).map(tm =>
           tm.id === selectedTeleshopManager.id
             ? { ...tm, branchId: selectedBranchId ?? undefined, branch: branches.find(b => b.id === selectedBranchId) }
             : tm
@@ -150,7 +152,7 @@ export default function ManagerTeleshopManagers() {
       })
 
       if (response.data.success) {
-        setTeleshopManagers(prev => [...prev, response.data.teleshopManager])
+        setTeleshopManagers(prev => [...(Array.isArray(prev) ? prev : []), response.data.teleshopManager])
         setSuccessData({
           name: formData.name,
           mobile: formData.mobileNumber,
@@ -158,7 +160,7 @@ export default function ManagerTeleshopManagers() {
         })
         setShowAddForm(false)
         setShowSuccessDialog(true)
-        setFormData({ name: "", mobileNumber: "", email: "" })
+        setFormData({ name: "", mobileNumber: "", email: "", branchId: "" })
       }
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || "Failed to create teleshop manager"
@@ -186,7 +188,7 @@ export default function ManagerTeleshopManagers() {
       })
 
       if (response.data.success) {
-        setTeleshopManagers(prev => prev.filter(tm => tm.id !== teleshopManagerId))
+        setTeleshopManagers(prev => (Array.isArray(prev) ? prev : []).filter(tm => tm.id !== teleshopManagerId))
       }
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || "Failed to delete teleshop manager"
@@ -209,7 +211,7 @@ export default function ManagerTeleshopManagers() {
       )
 
       if (response.data.success) {
-        setTeleshopManagers(prev => prev.map(tm =>
+        setTeleshopManagers(prev => (Array.isArray(prev) ? prev : []).map(tm =>
           tm.id === teleshopManagerId
             ? { ...tm, isActive: !currentStatus }
             : tm
@@ -223,7 +225,7 @@ export default function ManagerTeleshopManagers() {
   }
 
   const resetForm = () => {
-    setFormData({ name: "", mobileNumber: "", email: "" })
+    setFormData({ name: "", mobileNumber: "", email: "", branchId: "" })
     setShowAddForm(false)
     setError("")
   }
@@ -316,6 +318,25 @@ export default function ManagerTeleshopManagers() {
                       required
                     />
                   </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Assign Outlet *
+                  </label>
+                  <select
+                    value={formData.branchId}
+                    onChange={(e) => setFormData(prev => ({ ...prev, branchId: e.target.value }))}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    required
+                  >
+                    <option value="">Select an outlet...</option>
+                    {branches.map(branch => (
+                      <option key={branch.id} value={branch.id}>
+                        {branch.name} - {branch.location}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 <div className="flex justify-end space-x-3 pt-4">

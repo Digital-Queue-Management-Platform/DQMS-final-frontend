@@ -31,7 +31,6 @@ const OfficerBranchNotices = React.lazy(() => import("./pages/OfficerBranchNotic
 const ManagerDashboard = React.lazy(() => import("./pages/ManagerDashboard"))
 const ManagerBranches = React.lazy(() => import("./pages/ManagerBranches"))
 const ManagerCompare = React.lazy(() => import("./pages/ManagerCompare"))
-const ManagerQRCodes = React.lazy(() => import("./pages/ManagerQRCodes"))
 const ManagerBreakOversight = React.lazy(() => import("./pages/ManagerBreakOversight"))
 const ManagerAppointments = React.lazy(() => import("./pages/ManagerAppointments"))
 const TeleshopManagerLogin = React.lazy(() => import("./pages/TeleshopManagerLogin"))
@@ -63,9 +62,11 @@ const TeleshopManagerClosureNotices = React.lazy(() => import("./pages/TeleshopM
 const TeleshopManagerAuditLogs = React.lazy(() => import("./pages/TeleshopManagerAuditLogs"))
 const TeleshopManagerOutletDisplay = React.lazy(() => import("./pages/TeleshopManagerOutletDisplay"))
 const TeleshopManagerOutletSetup = React.lazy(() => import("./pages/TeleshopManagerOutletSetup"))
+const TeleshopManagerQRCodes = React.lazy(() => import("./pages/TeleshopManagerQRCodes"))
 const ManagerClosureNotices = React.lazy(() => import("./pages/ManagerClosureNotices"))
 const AdminGMs = React.lazy(() => import("./admin/adminPages/AdminGMs"))
 const AdminDGMs = React.lazy(() => import("./admin/adminPages/AdminDGMs"))
+const AdminTeleshopManagers = React.lazy(() => import("./admin/adminPages/AdminTeleshopManagers"))
 const SystemLogsPage = React.lazy(() => import("./admin/adminPages/SystemLogsPage"))
 const GMLogin = React.lazy(() => import("./pages/GMLogin"))
 const DGMLogin = React.lazy(() => import("./pages/DGMLogin"))
@@ -549,6 +550,10 @@ function App() {
           path="/admin/dgms"
         />
         <Route
+          element={<Layout><ProtectedAdminRoute><AdminTeleshopManagers /></ProtectedAdminRoute></Layout>}
+          path="/admin/teleshop-managers"
+        />
+        <Route
           element={<Layout><ProtectedAdminRoute><SystemLogsPage /></ProtectedAdminRoute></Layout>}
           path="/admin/logs"
         />
@@ -579,10 +584,6 @@ function App() {
         <Route
           element={<Layout><ProtectedManagerRoute><ManagerBranches /></ProtectedManagerRoute></Layout>}
           path="/manager/branches"
-        />
-        <Route
-          element={<Layout><ProtectedManagerRoute><ManagerQRCodes /></ProtectedManagerRoute></Layout>}
-          path="/manager/qr-codes"
         />
         <Route
           element={<Layout><ProtectedManagerRoute><ManagerCompare /></ProtectedManagerRoute></Layout>}
@@ -667,6 +668,10 @@ function App() {
         <Route
           element={<Layout><ProtectedTeleshopManagerRoute><TeleshopManagerOutletSetup /></ProtectedTeleshopManagerRoute></Layout>}
           path="/teleshop-manager/outlet-setup"
+        />
+        <Route
+          element={<Layout><ProtectedTeleshopManagerRoute><TeleshopManagerQRCodes /></ProtectedTeleshopManagerRoute></Layout>}
+          path="/teleshop-manager/qr-codes"
         />
         <Route element={<GMLogin />} path="/gm/login" />
         <Route

@@ -1,22 +1,32 @@
 ﻿import { useState, useEffect } from "react"
-import { Plus, Trash2, Edit2, X, CheckCircle, AlertCircle, Users, MapPin } from "lucide-react"
+import { Plus, Trash2, Edit2, X, CheckCircle, AlertCircle, Users } from "lucide-react"
 import api from "../config/api"
 
-interface Region { id: string; name: string; assignedDgm?: { id: string; name: string } | null }
+interface Region { id: string; name: string; provinces: Province[] }
+interface Province { id: string; name: string; regionId: string }
 interface DGM {
     id: string; name: string; mobileNumber: string; email?: string
-    gmId: string; regionIds: string[]; regionNames?: string[]; isActive: boolean; createdAt: string
+    gmId: string; provinceId?: string; province?: { id: string; name: string; regionId: string }
+    regionIds: string[]; isActive: boolean; createdAt: string
 }
 
 export default function GMManageDGMs() {
     const [dgms, setDGMs] = useState<DGM[]>([])
     const [regions, setRegions] = useState<Region[]>([])
+    const [provinces, setProvinces] = useState<Province[]>([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState("")
     const [success, setSuccess] = useState("")
     const [showForm, setShowForm] = useState(false)
     const [editing, setEditing] = useState<DGM | null>(null)
-    const [form, setForm] = useState({ name: "", mobileNumber: "", email: "", regionIds: [] as string[], isActive: true })
+    const [form, setForm] = useState({ 
+        name: "", 
+        mobileNumber: "", 
+        email: "", 
+        selectedRegionId: "",
+        provinceId: "", 
+        isActive: true 
+    })
     const [submitting, setSubmitting] = useState(false)
 
     const token = localStorage.getItem("gmToken")
@@ -24,12 +34,14 @@ export default function GMManageDGMs() {
     const fetchData = async () => {
         setLoading(true)
         try {
-            const [dgmsRes, regionsRes] = await Promise.all([
+            const [dgmsRes, regionsRes, provincesRes] = await Promise.all([
                 api.get("/gm/dgms", { headers: { Authorization: `Bearer ${token}` } }),
-                api.get("/gm/regions", { headers: { Authorization: `Bearer ${token}` } })
+                api.get("/gm/regions", { headers: { Authorization: `Bearer ${token}` } }),
+                api.get("/gm/provinces", { headers: { Authorization: `Bearer ${token}` } })
             ])
             setDGMs(dgmsRes.data.dgms || [])
             setRegions(regionsRes.data.regions || [])
+            setProvinces(provincesRes.data.provinces || [])
             setError("")
         } catch (err: any) {
             setError(err?.response?.data?.error || "Failed to load data")
@@ -38,17 +50,54 @@ export default function GMManageDGMs() {
 
     useEffect(() => { fetchData() }, [])
 
-    const openCreate = () => { setEditing(null); setForm({ name: "", mobileNumber: "", email: "", regionIds: [], isActive: true }); setShowForm(true); setError(""); setSuccess("") }
-    const openEdit = (d: DGM) => { setEditing(d); setForm({ name: d.name, mobileNumber: d.mobileNumber, email: d.email || "", regionIds: d.regionIds, isActive: d.isActive }); setShowForm(true); setError(""); setSuccess("") }
+    // Filter provinces by selected region
+    const filteredProvinces = provinces.filter(p => p.regionId === form.selectedRegionId)
+
+    const openCreate = () => { 
+        setEditing(null); 
+        setForm({ 
+            name: "", 
+            mobileNumber: "", 
+            email: "", 
+            selectedRegionId: "",
+            provinceId: "", 
+            isActive: true 
+        }); 
+        setShowForm(true); 
+        setError(""); 
+        setSuccess("") 
+    }
+    const openEdit = (d: DGM) => { 
+        setEditing(d); 
+        setForm({ 
+            name: d.name, 
+            mobileNumber: d.mobileNumber, 
+            email: d.email || "", 
+            selectedRegionId: d.province?.regionId || "",
+            provinceId: d.provinceId || "", 
+            isActive: d.isActive 
+        }); 
+        setShowForm(true); 
+        setError(""); 
+        setSuccess("") 
+    }
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault(); setError(""); setSuccess(""); setSubmitting(true)
         try {
+            const submitData = {
+                name: form.name,
+                mobileNumber: form.mobileNumber,
+                email: form.email,
+                provinceId: form.provinceId,
+                isActive: form.isActive
+            }
+
             if (editing) {
-                await api.put(`/gm/dgms/${editing.id}`, form, { headers: { Authorization: `Bearer ${token}` } })
+                await api.put(`/gm/dgms/${editing.id}`, submitData, { headers: { Authorization: `Bearer ${token}` } })
                 setSuccess("DGM updated")
             } else {
-                await api.post("/gm/dgms", form, { headers: { Authorization: `Bearer ${token}` } })
+                await api.post("/gm/dgms/province-assignment", submitData, { headers: { Authorization: `Bearer ${token}` } })
                 setSuccess("DGM created successfully")
             }
             setShowForm(false); fetchData()
@@ -67,16 +116,12 @@ export default function GMManageDGMs() {
         }
     }
 
-    const toggleRegion = (id: string) => setForm(f => ({
-        ...f, regionIds: f.regionIds.includes(id) ? f.regionIds.filter(r => r !== id) : [...f.regionIds, id]
-    }))
-
     return (
         <div className="p-6 max-w-5xl mx-auto">
             <div className="flex items-center justify-between mb-6">
                 <div>
                     <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2"><Users className="w-6 h-6 text-violet-600" />Manage DGMs</h1>
-                    <p className="text-sm text-gray-500 mt-1">Create Deputy General Managers and assign them to regions.</p>
+                    <p className="text-sm text-gray-500 mt-1">Create and manage Deputy General Managers. Assign them to provinces within your region.</p>
                 </div>
                 <button onClick={openCreate} className="flex items-center gap-2 px-4 py-2 bg-violet-600 text-white text-sm font-semibold rounded-xl hover:bg-violet-700 transition-colors">
                     <Plus className="w-4 h-4" /> Add DGM
@@ -108,34 +153,38 @@ export default function GMManageDGMs() {
                                     className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500 focus:outline-none" placeholder="e.g. nimal@slt.lk" />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Assign Regions</label>
-                                <div className="border border-slate-200 rounded-xl p-3 max-h-48 overflow-y-auto space-y-2">
-                                    {regions.length === 0 && <p className="text-sm text-gray-400 text-center py-2">No regions available</p>}
-                                    {regions.map(r => {
-                                        // The region carries global assignedDgm info from the backend
-                                        const isTakenGlobally = r.assignedDgm && r.assignedDgm.id !== editing?.id
-                                        const isTaken = !!isTakenGlobally
-                                        const ownerName = r.assignedDgm?.name || "Unknown DGM"
-                                        const isChecked = form.regionIds.includes(r.id)
-
-                                        return (
-                                            <label key={r.id} title={isTaken ? `Already assigned to ${ownerName}` : undefined}
-                                                className={`flex items-center gap-2 rounded-lg p-1.5 ${isTaken ? "opacity-50 cursor-not-allowed" : "cursor-pointer hover:bg-gray-50"}`}>
-                                                <input type="checkbox" checked={isChecked} disabled={isTaken}
-                                                    onChange={() => !isTaken && toggleRegion(r.id)} className="w-4 h-4 text-violet-600" />
-                                                <span className="text-sm text-gray-700 flex items-center gap-1.5 flex-1">
-                                                    <MapPin className="w-3.5 h-3.5 text-gray-400 shrink-0" />{r.name}
-                                                </span>
-                                                {isTaken && (
-                                                    <span className="text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-medium shrink-0">
-                                                        {ownerName}
-                                                    </span>
-                                                )}
-                                            </label>
-                                        )
-                                    })}
-                                </div>
-                                {form.regionIds.length > 0 && <p className="text-xs text-violet-600 mt-1">{form.regionIds.length} region{form.regionIds.length > 1 ? "s" : ""} selected</p>}
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Region *</label>
+                                <select 
+                                    value={form.selectedRegionId} 
+                                    onChange={e => setForm(f => ({ 
+                                        ...f, 
+                                        selectedRegionId: e.target.value, 
+                                        provinceId: "" // Reset province when region changes
+                                    }))} 
+                                    required
+                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500 focus:outline-none">
+                                    <option value="">Select Region...</option>
+                                    {regions.map(region => 
+                                        <option key={region.id} value={region.id}>{region.name}</option>
+                                    )}
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Province *</label>
+                                <select 
+                                    value={form.provinceId} 
+                                    onChange={e => setForm(f => ({ ...f, provinceId: e.target.value }))} 
+                                    required
+                                    disabled={!form.selectedRegionId}
+                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed">
+                                    <option value="">Select Province...</option>
+                                    {filteredProvinces.map(province => 
+                                        <option key={province.id} value={province.id}>{province.name}</option>
+                                    )}
+                                </select>
+                                {!form.selectedRegionId && (
+                                    <p className="text-xs text-gray-500 mt-1">Select a region first to see provinces</p>
+                                )}
                             </div>
                             {editing && (
                                 <div className="flex items-center gap-2">
@@ -167,7 +216,7 @@ export default function GMManageDGMs() {
                             <tr>
                                 <th className="text-left px-4 py-3 font-semibold text-gray-600">Name</th>
                                 <th className="text-left px-4 py-3 font-semibold text-gray-600">Mobile</th>
-                                <th className="text-left px-4 py-3 font-semibold text-gray-600 hidden md:table-cell">Regions</th>
+                                <th className="text-left px-4 py-3 font-semibold text-gray-600 hidden md:table-cell">Province</th>
                                 <th className="text-left px-4 py-3 font-semibold text-gray-600">Status</th>
                                 <th className="px-4 py-3"></th>
                             </tr>
@@ -178,7 +227,11 @@ export default function GMManageDGMs() {
                                     <td className="px-4 py-3 font-medium text-gray-900">{d.name}</td>
                                     <td className="px-4 py-3 text-gray-600">{d.mobileNumber}</td>
                                     <td className="px-4 py-3 hidden md:table-cell text-gray-500">
-                                        {d.regionNames?.join(", ") || `${d.regionIds.length} region${d.regionIds.length !== 1 ? "s" : ""}`}
+                                        {d.province ? (
+                                            <span className="text-violet-600 font-medium">{d.province.name}</span>
+                                        ) : (
+                                            <span className="text-gray-400">No Province Assigned</span>
+                                        )}
                                     </td>
                                     <td className="px-4 py-3">
                                         <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${d.isActive ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}>

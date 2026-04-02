@@ -4,17 +4,22 @@ import api from "../../config/api"
 
 interface GM {
     id: string; name: string; mobileNumber: string; email?: string
-    isActive: boolean; createdAt: string
+    isActive: boolean; createdAt: string; regionId?: string; region?: { id: string; name: string }
+}
+
+interface Region {
+    id: string; name: string
 }
 
 export default function AdminGMs() {
     const [gms, setGMs] = useState<GM[]>([])
+    const [regions, setRegions] = useState<Region[]>([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState("")
     const [success, setSuccess] = useState("")
     const [showForm, setShowForm] = useState(false)
     const [editingGM, setEditingGM] = useState<GM | null>(null)
-    const [form, setForm] = useState({ name: "", mobileNumber: "", email: "", isActive: true })
+    const [form, setForm] = useState({ name: "", mobileNumber: "", email: "", regionId: "", isActive: true })
     const [submitting, setSubmitting] = useState(false)
 
     const adminToken = localStorage.getItem("adminToken") || localStorage.getItem("dq_jwt")
@@ -22,18 +27,23 @@ export default function AdminGMs() {
     const fetchData = async () => {
         setLoading(true)
         try {
-            const res = await api.get("/admin/gms", { headers: { Authorization: `Bearer ${adminToken}` } })
-            setGMs(res.data.gms || [])
+            const [gmsRes, regionsRes] = await Promise.all([
+                api.get("/admin/gms", { headers: { Authorization: `Bearer ${adminToken}` } }),
+                api.get("/admin/regions", { headers: { Authorization: `Bearer ${adminToken}` } })
+            ])
+            setGMs(gmsRes.data.gms || [])
+            setRegions(regionsRes.data.regions || [])
             setError("")
         } catch (err: any) {
-            setError(err?.response?.data?.error || "Failed to load GMs")
+            console.error("Fetch error:", err)
+            setError(err?.response?.data?.error || "Failed to load data")
         } finally { setLoading(false) }
     }
 
     useEffect(() => { fetchData() }, [])
 
-    const openCreate = () => { setEditingGM(null); setForm({ name: "", mobileNumber: "", email: "", isActive: true }); setShowForm(true); setError(""); setSuccess("") }
-    const openEdit = (gm: GM) => { setEditingGM(gm); setForm({ name: gm.name, mobileNumber: gm.mobileNumber, email: gm.email || "", isActive: gm.isActive }); setShowForm(true); setError(""); setSuccess("") }
+    const openCreate = () => { setEditingGM(null); setForm({ name: "", mobileNumber: "", email: "", regionId: "", isActive: true }); setShowForm(true); setError(""); setSuccess("") }
+    const openEdit = (gm: GM) => { setEditingGM(gm); setForm({ name: gm.name, mobileNumber: gm.mobileNumber, email: gm.email || "", regionId: gm.regionId || "", isActive: gm.isActive }); setShowForm(true); setError(""); setSuccess("") }
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault(); setError(""); setSuccess(""); setSubmitting(true)
@@ -97,6 +107,20 @@ export default function AdminGMs() {
                                 <input type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
                                     className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500 focus:outline-none" placeholder="e.g. kamal@slt.lk" />
                             </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Region {!editingGM && "*"}</label>
+                                <select 
+                                    value={form.regionId} 
+                                    onChange={e => setForm(f => ({ ...f, regionId: e.target.value }))}
+                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500 focus:outline-none bg-white"
+                                    required={!editingGM}
+                                >
+                                    <option value="">Select a region</option>
+                                    {regions.map(region => (
+                                        <option key={region.id} value={region.id}>{region.name}</option>
+                                    ))}
+                                </select>
+                            </div>
                             {editingGM && (
                                 <div className="flex items-center gap-2">
                                     <input type="checkbox" id="gmActive" checked={form.isActive} onChange={e => setForm(f => ({ ...f, isActive: e.target.checked }))} className="w-4 h-4 text-violet-600" />
@@ -128,6 +152,7 @@ export default function AdminGMs() {
                                 <th className="text-left px-4 py-3 font-semibold text-gray-600">Name</th>
                                 <th className="text-left px-4 py-3 font-semibold text-gray-600">Mobile</th>
                                 <th className="text-left px-4 py-3 font-semibold text-gray-600 hidden sm:table-cell">Email</th>
+                                <th className="text-left px-4 py-3 font-semibold text-gray-600 hidden md:table-cell">Region</th>
                                 <th className="text-left px-4 py-3 font-semibold text-gray-600">Status</th>
                                 <th className="px-4 py-3"></th>
                             </tr>
@@ -138,6 +163,9 @@ export default function AdminGMs() {
                                     <td className="px-4 py-3 font-medium text-gray-900">{gm.name}</td>
                                     <td className="px-4 py-3 text-gray-600">{gm.mobileNumber}</td>
                                     <td className="px-4 py-3 text-gray-500 hidden sm:table-cell">{gm.email || "—"}</td>
+                                    <td className="px-4 py-3 text-gray-600 hidden md:table-cell">
+                                        {gm.region?.name || (gm.regionId && regions.find(r => r.id === gm.regionId)?.name) || "—"}
+                                    </td>
                                     <td className="px-4 py-3">
                                         <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${gm.isActive ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}>
                                             {gm.isActive ? "Active" : "Inactive"}
