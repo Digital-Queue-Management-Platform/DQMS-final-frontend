@@ -153,7 +153,7 @@ const AdminTeleshopManagers: React.FC = () => {
                       </div>
                       <div className="lg:hidden mt-1">
                         <div className="text-xs sm:text-sm text-slate-600">
-                          {manager.rtom?.region?.name || 'No region'}
+                          {manager.region?.name || 'No region'}
                         </div>
                       </div>
                       <div className="md:hidden mt-1">
@@ -174,18 +174,15 @@ const AdminTeleshopManagers: React.FC = () => {
                   </td>
                   <td className="py-3 sm:py-4 px-3 sm:px-6 hidden lg:table-cell">
                     <div className="font-medium text-slate-900 text-sm sm:text-base">
-                      {manager.rtom?.region?.name || 'No region'}
+                      {manager.region?.name || 'No region'}
                     </div>
                     <div className="text-xs sm:text-sm text-slate-500">
-                      Province: {manager.rtom?.dgm?.province?.name || 'N/A'}
+                      Province: {manager.branch?.location || manager.region?.name || 'N/A'}
                     </div>
                   </td>
                   <td className="py-3 sm:py-4 px-3 sm:px-6 hidden md:table-cell">
                     <div className="text-slate-700 text-sm sm:text-base">
                       {manager.rtom?.name || 'Not assigned'}
-                    </div>
-                    <div className="text-xs sm:text-sm text-slate-500">
-                      DGM: {manager.rtom?.dgm?.name || 'N/A'}
                     </div>
                   </td>
                   <td className="py-3 sm:py-4 px-3 sm:px-6">

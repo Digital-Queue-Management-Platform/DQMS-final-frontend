@@ -88,6 +88,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed, activePa
   const regionManagerItems: NavigationItem[] = [
     //{ name: 'Home', icon: Home, to: '/' },
     { name: 'Dashboard', icon: LayoutDashboard, to: '/manager/dashboard' },
+    { name: 'Teleshop Analytics', icon: BarChart2, to: '/manager/teleshop-analytics' },
     { name: 'Appointments', icon: Calendar, to: '/manager/appointments' },
     { name: 'Feedback (2-Star)', icon: MessageSquare, to: '/manager/feedback' },
     { name: 'Teleshop Managers', icon: Phone, to: '/manager/teleshop-managers' },

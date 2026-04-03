@@ -426,8 +426,8 @@ const BranchesPage: React.FC = () => {
                       <div key={region.id} className="bg-slate-50 border border-slate-200 rounded-lg p-5 hover:shadow-md transition-all">
                         <div className="flex items-center gap-2 mb-2">
                           <h3 className="font-semibold text-slate-800 text-lg">{region.name}</h3>
-                          {region.gmId || region.gm ? (
-                            <span className="px-2 py-1 bg-emerald-100 text-emerald-700 text-xs font-medium rounded-full">GM Assigned</span>
+                          {region.gm ? (
+                            <span className="px-2 py-1 bg-emerald-100 text-emerald-700 text-xs font-medium rounded-full">GM: {region.gm.name}</span>
                           ) : (
                             <span className="px-2 py-1 bg-orange-100 text-orange-700 text-xs font-medium rounded-full">No GM</span>
                           )}

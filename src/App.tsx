@@ -29,6 +29,7 @@ const OfficerServedCustomers = React.lazy(() => import("./pages/OfficerServedCus
 const OfficerServiceTracking = React.lazy(() => import("./pages/OfficerServiceTracking"))
 const OfficerBranchNotices = React.lazy(() => import("./pages/OfficerBranchNotices"))
 const ManagerDashboard = React.lazy(() => import("./pages/ManagerDashboard"))
+const RTOMTeleshopAnalytics = React.lazy(() => import("./pages/RTOMTeleshopAnalytics"))
 const ManagerBranches = React.lazy(() => import("./pages/ManagerBranches"))
 const ManagerCompare = React.lazy(() => import("./pages/ManagerCompare"))
 const ManagerBreakOversight = React.lazy(() => import("./pages/ManagerBreakOversight"))
@@ -608,6 +609,10 @@ function App() {
         <Route
           element={<Layout><ProtectedManagerRoute><ManagerClosureNotices /></ProtectedManagerRoute></Layout>}
           path="/manager/closure-notices"
+        />
+        <Route
+          element={<Layout><ProtectedManagerRoute><RTOMTeleshopAnalytics /></ProtectedManagerRoute></Layout>}
+          path="/manager/teleshop-analytics"
         />
         <Route
           element={<Layout><TeleshopManagerLogin /></Layout>}

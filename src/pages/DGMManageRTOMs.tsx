@@ -4,7 +4,7 @@ import api from "../config/api"
 
 interface Region {
     id: string; name: string
-    managerId?: string; managerEmail?: string; managerMobile?: string
+    managerId?: string; managerEmail?: string; managerMobile?: string; managerName?: string
     outlets: { id: string; name: string; isActive: boolean }[]
 }
 interface RTOMForm { regionId: string; name: string; mobileNumber: string; email: string }
@@ -44,7 +44,7 @@ export default function DGMManageRTOMs() {
 
     const openEdit = (region: Region) => {
         setEditingRegionId(region.id)
-        setForm({ regionId: region.id, name: region.managerId || "", mobileNumber: region.managerMobile || "", email: region.managerEmail || "" })
+        setForm({ regionId: region.id, name: region.managerName || "", mobileNumber: region.managerMobile || "", email: region.managerEmail || "" })
         setShowForm(true); setError(""); setSuccess("")
     }
 
@@ -224,10 +224,10 @@ export default function DGMManageRTOMs() {
                             {region.managerId ? (
                                 <div className="bg-teal-50 rounded-xl p-3 flex items-center gap-3">
                                     <div className="w-8 h-8 bg-teal-100 rounded-xl flex items-center justify-center text-teal-600 font-semibold text-sm">
-                                        {region.managerId[0]?.toUpperCase()}
+                                        {(region.managerName?.[0] || region.managerId?.[0] || 'R').toUpperCase()}
                                     </div>
                                     <div>
-                                        <p className="text-sm font-medium text-gray-900">{region.managerId}</p>
+                                        <p className="text-sm font-medium text-gray-900">{region.managerName || 'Unknown RTOM'}</p>
                                         <p className="text-xs text-gray-500">{region.managerMobile}{region.managerEmail && ` • ${region.managerEmail}`}</p>
                                     </div>
                                     <span className="ml-auto px-2 py-0.5 bg-green-100 text-green-700 text-xs font-medium rounded-full">Assigned</span>
