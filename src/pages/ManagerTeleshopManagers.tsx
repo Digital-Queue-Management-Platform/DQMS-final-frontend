@@ -31,6 +31,7 @@ interface NewTeleshopManagerForm {
   name: string
   mobileNumber: string
   email: string
+  branchId: string
 }
 
 export default function ManagerTeleshopManagers() {
@@ -45,9 +46,21 @@ export default function ManagerTeleshopManagers() {
   const [formData, setFormData] = useState<NewTeleshopManagerForm>({
     name: "",
     mobileNumber: "",
-    email: ""
+    email: "",
+    branchId: ""
   })
-  const [branches, setBranches] = useState<Array<{ id: string, name: string, location: string }>>([])
+  const [branches, setBranches] = useState<Array<{ 
+    id: string, 
+    name: string, 
+    location: string, 
+    teleshopManagers?: Array<{ id: string, name: string }>
+  }>>([])
+  // Available outlets (outlets without teleshop managers assigned)
+  const [availableOutlets, setAvailableOutlets] = useState<Array<{ 
+    id: string, 
+    name: string, 
+    location: string 
+  }>>([])
   const [showAssignBranchModal, setShowAssignBranchModal] = useState(false)
   const [selectedTeleshopManager, setSelectedTeleshopManager] = useState<TeleshopManager | null>(null)
   const [selectedBranchId, setSelectedBranchId] = useState<string | null>(null)
@@ -69,7 +82,7 @@ export default function ManagerTeleshopManagers() {
         headers: { Authorization: `Bearer ${token}` }
       })
 
-      setTeleshopManagers(response.data)
+      setTeleshopManagers(response.data.teleshopManagers || response.data || [])
     } catch (error: any) {
       console.error("Failed to fetch teleshop managers:", error)
       if (error.response?.status === 401) {
@@ -97,6 +110,12 @@ export default function ManagerTeleshopManagers() {
       const meRes = await api.get('/manager/me', { params })
       const outlets = meRes.data?.manager?.outlets || []
       setBranches(outlets)
+      
+      // Filter outlets that don't have teleshop managers assigned
+      const unassignedOutlets = outlets.filter((outlet: any) => 
+        !outlet.teleshopManagers || outlet.teleshopManagers.length === 0
+      )
+      setAvailableOutlets(unassignedOutlets)
     } catch (error) {
       console.error("Failed to fetch branches:", error)
     }
@@ -119,7 +138,7 @@ export default function ManagerTeleshopManagers() {
       )
 
       if (response.data.success) {
-        setTeleshopManagers(prev => prev.map(tm =>
+        setTeleshopManagers(prev => (Array.isArray(prev) ? prev : []).map(tm =>
           tm.id === selectedTeleshopManager.id
             ? { ...tm, branchId: selectedBranchId ?? undefined, branch: branches.find(b => b.id === selectedBranchId) }
             : tm
@@ -127,6 +146,8 @@ export default function ManagerTeleshopManagers() {
         setShowAssignBranchModal(false)
         setSelectedTeleshopManager(null)
         setSelectedBranchId(null)
+        // Refresh available outlets
+        await fetchBranches()
       }
     } catch (err: any) {
       alert(err.response?.data?.error || "Failed to assign branch")
@@ -150,7 +171,7 @@ export default function ManagerTeleshopManagers() {
       })
 
       if (response.data.success) {
-        setTeleshopManagers(prev => [...prev, response.data.teleshopManager])
+        setTeleshopManagers(prev => [...(Array.isArray(prev) ? prev : []), response.data.teleshopManager])
         setSuccessData({
           name: formData.name,
           mobile: formData.mobileNumber,
@@ -158,7 +179,9 @@ export default function ManagerTeleshopManagers() {
         })
         setShowAddForm(false)
         setShowSuccessDialog(true)
-        setFormData({ name: "", mobileNumber: "", email: "" })
+        setFormData({ name: "", mobileNumber: "", email: "", branchId: "" })
+        // Refresh available outlets
+        await fetchBranches()
       }
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || "Failed to create teleshop manager"
@@ -186,7 +209,7 @@ export default function ManagerTeleshopManagers() {
       })
 
       if (response.data.success) {
-        setTeleshopManagers(prev => prev.filter(tm => tm.id !== teleshopManagerId))
+        setTeleshopManagers(prev => (Array.isArray(prev) ? prev : []).filter(tm => tm.id !== teleshopManagerId))
       }
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || "Failed to delete teleshop manager"
@@ -209,7 +232,7 @@ export default function ManagerTeleshopManagers() {
       )
 
       if (response.data.success) {
-        setTeleshopManagers(prev => prev.map(tm =>
+        setTeleshopManagers(prev => (Array.isArray(prev) ? prev : []).map(tm =>
           tm.id === teleshopManagerId
             ? { ...tm, isActive: !currentStatus }
             : tm
@@ -223,7 +246,7 @@ export default function ManagerTeleshopManagers() {
   }
 
   const resetForm = () => {
-    setFormData({ name: "", mobileNumber: "", email: "" })
+    setFormData({ name: "", mobileNumber: "", email: "", branchId: "" })
     setShowAddForm(false)
     setError("")
   }
@@ -318,6 +341,31 @@ export default function ManagerTeleshopManagers() {
                   </div>
                 </div>
 
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Assign Outlet *
+                  </label>
+                  {availableOutlets.length > 0 ? (
+                    <select
+                      value={formData.branchId}
+                      onChange={(e) => setFormData(prev => ({ ...prev, branchId: e.target.value }))}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      required
+                    >
+                      <option value="">Select an outlet...</option>
+                      {availableOutlets.map(outlet => (
+                        <option key={outlet.id} value={outlet.id}>
+                          {outlet.name} - {outlet.location}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <div className="w-full px-4 py-2 border border-gray-300 rounded-xl bg-gray-50 text-gray-500 text-center">
+                      No outlets available - All outlets in this region already have teleshop managers assigned
+                    </div>
+                  )}
+                </div>
+
                 <div className="flex justify-end space-x-3 pt-4">
                   <button
                     type="button"
@@ -328,7 +376,7 @@ export default function ManagerTeleshopManagers() {
                   </button>
                   <button
                     type="submit"
-                    disabled={formLoading}
+                    disabled={formLoading || availableOutlets.length === 0}
                     className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
                   >
                     {formLoading ? "Creating..." : "Create Manager"}

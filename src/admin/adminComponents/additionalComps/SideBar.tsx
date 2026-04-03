@@ -68,6 +68,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed, activePa
     { name: 'GMs', icon: BriefcaseIcon, to: '/admin/gms' },
     { name: 'DGMs', icon: UserCheckIcon, to: '/admin/dgms' },
     { name: 'RTOMs', icon: Users, to: '/admin/managers' },
+    { name: 'Teleshop Managers', icon: UserPlus, to: '/admin/teleshop-managers' },
     { name: 'Staff Status', icon: UserCog, to: '/admin/all-officers' },
     { name: 'Appointments', icon: Calendar, to: '/admin/appointments' },
     { name: 'Feedbacks ', icon: MessageSquare, to: '/admin/feedback' },
@@ -87,6 +88,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed, activePa
   const regionManagerItems: NavigationItem[] = [
     //{ name: 'Home', icon: Home, to: '/' },
     { name: 'Dashboard', icon: LayoutDashboard, to: '/manager/dashboard' },
+    { name: 'Teleshop Analytics', icon: BarChart2, to: '/manager/teleshop-analytics' },
     { name: 'Appointments', icon: Calendar, to: '/manager/appointments' },
     { name: 'Feedback (2-Star)', icon: MessageSquare, to: '/manager/feedback' },
     { name: 'Teleshop Managers', icon: Phone, to: '/manager/teleshop-managers' },
@@ -94,13 +96,14 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed, activePa
     { name: 'Branch Notices', icon: BellOff, to: '/manager/closure-notices' },
     { name: 'Branches', icon: Building2, to: '/manager/branches' },
     { name: 'Break Oversight', icon: Coffee, to: '/manager/breaks' },
-    { name: 'QR Codes', icon: QrCode, to: '/manager/qr-codes' },
     { name: 'Compare', icon: Scale3D, to: '/manager/compare' },
     { name: 'Service Tracking', icon: MessageSquare, to: '/manager/service-tracking' },
   ]
 
   const teleshopManagerItems: NavigationItem[] = [
     { name: 'Dashboard', icon: LayoutDashboard, to: '/teleshop-manager/dashboard' },
+    { name: 'QR Codes', icon: QrCode, to: '/teleshop-manager/qr-codes' },
+    { name: 'Officer Analytics', icon: BarChart2, to: '/teleshop-manager/officer-analytics' },
     { name: 'Outlet Display', icon: Tv, to: '/teleshop-manager/outlet-display' },
     { name: 'Kiosk Settings', icon: Tablet, to: '/teleshop-manager/kiosk-settings' },
     { name: 'Android TV Setup', icon: Monitor, to: '/teleshop-manager/outlet-setup' },

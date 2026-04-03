@@ -2,11 +2,24 @@
 import { Plus, Edit2, Trash2, X, CheckCircle, AlertCircle, Users, MapPin, Building2, Copy } from "lucide-react"
 import api from "../config/api"
 
-interface Region {
-    id: string; name: string
-    managerId?: string; managerEmail?: string; managerMobile?: string
-    outlets: { id: string; name: string; isActive: boolean }[]
+interface RTOM {
+    id: string
+    name: string
+    email?: string
+    mobileNumber: string
+    isActive: boolean
+    lastLoginAt?: string
+    createdAt: string
+    teleshopManagers: { id: string; name: string; mobileNumber: string; isActive: boolean }[]
 }
+
+interface Region {
+    id: string
+    name: string
+    outlets: { id: string; name: string; isActive: boolean }[]
+    rtoms: RTOM[]
+}
+
 interface RTOMForm { regionId: string; name: string; mobileNumber: string; email: string }
 interface RTOMCredentials { name: string; mobileNumber: string; email?: string; regionName: string }
 
@@ -16,7 +29,7 @@ export default function DGMManageRTOMs() {
     const [error, setError] = useState("")
     const [success, setSuccess] = useState("")
     const [showForm, setShowForm] = useState(false)
-    const [editingRegionId, setEditingRegionId] = useState<string | null>(null)
+    const [editingRTOM, setEditingRTOM] = useState<RTOM | null>(null)
     const [form, setForm] = useState<RTOMForm>({ regionId: "", name: "", mobileNumber: "", email: "" })
     const [submitting, setSubmitting] = useState(false)
     const [createdRTOM, setCreatedRTOM] = useState<RTOMCredentials | null>(null)
@@ -37,14 +50,14 @@ export default function DGMManageRTOMs() {
     useEffect(() => { fetchData() }, [])
 
     const openCreate = (regionId: string) => {
-        setEditingRegionId(null)
+        setEditingRTOM(null)
         setForm({ regionId, name: "", mobileNumber: "", email: "" })
         setShowForm(true); setError(""); setSuccess("")
     }
 
-    const openEdit = (region: Region) => {
-        setEditingRegionId(region.id)
-        setForm({ regionId: region.id, name: region.managerId || "", mobileNumber: region.managerMobile || "", email: region.managerEmail || "" })
+    const openEdit = (rtom: RTOM, regionId: string) => {
+        setEditingRTOM(rtom)
+        setForm({ regionId, name: rtom.name, mobileNumber: rtom.mobileNumber, email: rtom.email || "" })
         setShowForm(true); setError(""); setSuccess("")
     }
 
@@ -52,11 +65,17 @@ export default function DGMManageRTOMs() {
         e.preventDefault(); setError(""); setSuccess(""); setSubmitting(true)
         try {
             const regionName = regions.find(r => r.id === form.regionId)?.name || ""
-            if (editingRegionId) {
-                await api.put(`/dgm/rtoms/${editingRegionId}`, { name: form.name, mobileNumber: form.mobileNumber, email: form.email }, { headers: { Authorization: `Bearer ${token}` } })
+            if (editingRTOM) {
+                // Update existing RTOM
+                await api.put(`/dgm/rtoms/${editingRTOM.id}`, { 
+                    name: form.name, 
+                    mobileNumber: form.mobileNumber, 
+                    email: form.email 
+                }, { headers: { Authorization: `Bearer ${token}` } })
                 setSuccess("RTOM updated successfully")
                 setShowForm(false); fetchData()
             } else {
+                // Create new RTOM
                 await api.post("/dgm/rtoms", form, { headers: { Authorization: `Bearer ${token}` } })
                 // Show credentials popup
                 setCreatedRTOM({ name: form.name, mobileNumber: form.mobileNumber, email: form.email || undefined, regionName })
@@ -67,10 +86,10 @@ export default function DGMManageRTOMs() {
         } finally { setSubmitting(false) }
     }
 
-    const handleRemove = async (regionId: string, regionName: string) => {
-        if (!window.confirm(`Remove RTOM from "${regionName}"?`)) return
+    const handleRemove = async (rtom: RTOM, regionName: string) => {
+        if (!window.confirm(`Remove RTOM "${rtom.name}" from "${regionName}"?`)) return
         try {
-            await api.delete(`/dgm/rtoms/${regionId}`, { headers: { Authorization: `Bearer ${token}` } })
+            await api.delete(`/dgm/rtoms/${rtom.id}`, { headers: { Authorization: `Bearer ${token}` } })
             setSuccess("RTOM removed"); fetchData()
         } catch (err: any) {
             setError(err?.response?.data?.error || "Failed to remove RTOM")
@@ -94,7 +113,7 @@ export default function DGMManageRTOMs() {
                 <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
                     <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 relative">
                         <button onClick={() => setShowForm(false)} className="absolute top-4 right-4 p-1.5 rounded-lg bg-gray-100 hover:bg-gray-200"><X className="w-4 h-4" /></button>
-                        <h2 className="text-lg font-bold text-gray-900 mb-1">{editingRegionId ? "Edit RTOM" : "Assign RTOM"}</h2>
+                        <h2 className="text-lg font-bold text-gray-900 mb-1">{editingRTOM ? "Edit RTOM" : "Add RTOM"}</h2>
                         <p className="text-sm text-gray-500 mb-5">
                             Region: <span className="font-medium text-gray-700">{regions.find(r => r.id === form.regionId)?.name}</span>
                         </p>
@@ -117,7 +136,7 @@ export default function DGMManageRTOMs() {
                             <div className="flex gap-3 justify-end pt-2">
                                 <button type="button" onClick={() => setShowForm(false)} className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800">Cancel</button>
                                 <button type="submit" disabled={submitting} className="px-5 py-2 bg-teal-600 text-white text-sm font-semibold rounded-lg hover:bg-teal-700 transition-colors disabled:opacity-50">
-                                    {submitting ? "Saving…" : editingRegionId ? "Update RTOM" : "Assign RTOM"}
+                                    {submitting ? "Saving…" : editingRTOM ? "Update RTOM" : "Add RTOM"}
                                 </button>
                             </div>
                         </form>
@@ -199,51 +218,72 @@ export default function DGMManageRTOMs() {
                 <div className="space-y-4">
                     {regions.map(region => (
                         <div key={region.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-                            <div className="flex items-start justify-between mb-3">
+                            {/* Region Header */}
+                            <div className="flex items-start justify-between mb-4">
                                 <div className="flex items-center gap-3">
                                     <div className="w-9 h-9 bg-teal-50 rounded-xl flex items-center justify-center">
                                         <MapPin className="w-4 h-4 text-teal-500" />
                                     </div>
                                     <div>
                                         <p className="font-semibold text-gray-900">{region.name}</p>
-                                        <p className="text-xs text-gray-400">{region.outlets.length} outlet{region.outlets.length !== 1 ? "s" : ""}</p>
+                                        <p className="text-xs text-gray-400">
+                                            {region.rtoms.length} RTOM{region.rtoms.length !== 1 ? "s" : ""} • {region.outlets.length} outlet{region.outlets.length !== 1 ? "s" : ""}
+                                        </p>
                                     </div>
                                 </div>
-                                {region.managerId ? (
-                                    <div className="flex items-center gap-2">
-                                        <button onClick={() => openEdit(region)} className="p-1.5 text-gray-400 hover:text-teal-600 hover:bg-teal-50 rounded-lg"><Edit2 className="w-4 h-4" /></button>
-                                        <button onClick={() => handleRemove(region.id, region.name)} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg"><Trash2 className="w-4 h-4" /></button>
-                                    </div>
-                                ) : (
-                                    <button onClick={() => openCreate(region.id)} className="flex items-center gap-1.5 px-3 py-1.5 bg-teal-600 text-white text-xs font-semibold rounded-lg hover:bg-teal-700 transition-colors">
-                                        <Plus className="w-3.5 h-3.5" /> Assign RTOM
-                                    </button>
-                                )}
+                                <button onClick={() => openCreate(region.id)} className="flex items-center gap-1.5 px-3 py-1.5 bg-teal-600 text-white text-xs font-semibold rounded-lg hover:bg-teal-700 transition-colors">
+                                    <Plus className="w-3.5 h-3.5" /> Add RTOM
+                                </button>
                             </div>
 
-                            {region.managerId ? (
-                                <div className="bg-teal-50 rounded-xl p-3 flex items-center gap-3">
-                                    <div className="w-8 h-8 bg-teal-100 rounded-xl flex items-center justify-center text-teal-600 font-semibold text-sm">
-                                        {region.managerId[0]?.toUpperCase()}
-                                    </div>
-                                    <div>
-                                        <p className="text-sm font-medium text-gray-900">{region.managerId}</p>
-                                        <p className="text-xs text-gray-500">{region.managerMobile}{region.managerEmail && ` • ${region.managerEmail}`}</p>
-                                    </div>
-                                    <span className="ml-auto px-2 py-0.5 bg-green-100 text-green-700 text-xs font-medium rounded-full">Assigned</span>
+                            {/* RTOMs List */}
+                            {region.rtoms.length > 0 ? (
+                                <div className="space-y-3">
+                                    {region.rtoms.map(rtom => (
+                                        <div key={rtom.id} className="bg-teal-50 rounded-xl p-3 flex items-center gap-3">
+                                            <div className="w-8 h-8 bg-teal-100 rounded-xl flex items-center justify-center text-teal-600 font-semibold text-sm">
+                                                {rtom.name[0].toUpperCase()}
+                                            </div>
+                                            <div className="flex-1">
+                                                <p className="text-sm font-medium text-gray-900">{rtom.name}</p>
+                                                <p className="text-xs text-gray-500">
+                                                    {rtom.mobileNumber}
+                                                    {rtom.email && ` • ${rtom.email}`}
+                                                    {rtom.teleshopManagers.length > 0 && ` • ${rtom.teleshopManagers.length} manager${rtom.teleshopManagers.length !== 1 ? "s" : ""}`}
+                                                </p>
+                                            </div>
+                                            <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${rtom.isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                                {rtom.isActive ? 'Active' : 'Inactive'}
+                                            </span>
+                                            <div className="flex items-center gap-1">
+                                                <button onClick={() => openEdit(rtom, region.id)} className="p-1.5 text-gray-400 hover:text-teal-600 hover:bg-teal-100 rounded-lg">
+                                                    <Edit2 className="w-4 h-4" />
+                                                </button>
+                                                <button onClick={() => handleRemove(rtom, region.name)} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-100 rounded-lg">
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
                                 </div>
                             ) : (
-                                <div className="bg-slate-50 rounded-xl p-3 text-center text-sm text-gray-400">No RTOM assigned yet</div>
+                                <div className="bg-slate-50 rounded-xl p-3 text-center text-sm text-gray-400">
+                                    No RTOMs assigned to this region yet
+                                </div>
                             )}
 
+                            {/* Outlets List */}
                             {region.outlets.length > 0 && (
-                                <div className="mt-3 flex flex-wrap gap-2">
-                                    {region.outlets.slice(0, 5).map(o => (
-                                        <span key={o.id} className="flex items-center gap-1 px-2 py-1 bg-slate-50 rounded-xl text-xs text-gray-600">
-                                            <Building2 className="w-3 h-3" />{o.name}
-                                        </span>
-                                    ))}
-                                    {region.outlets.length > 5 && <span className="px-2 py-1 text-xs text-gray-400">+{region.outlets.length - 5} more</span>}
+                                <div className="mt-4 pt-3 border-t border-gray-100">
+                                    <p className="text-xs font-medium text-gray-500 mb-2">Outlets in this region:</p>
+                                    <div className="flex flex-wrap gap-2">
+                                        {region.outlets.slice(0, 5).map(outlet => (
+                                            <span key={outlet.id} className="flex items-center gap-1 px-2 py-1 bg-slate-50 rounded-xl text-xs text-gray-600">
+                                                <Building2 className="w-3 h-3" />{outlet.name}
+                                            </span>
+                                        ))}
+                                        {region.outlets.length > 5 && <span className="px-2 py-1 text-xs text-gray-400">+{region.outlets.length - 5} more</span>}
+                                    </div>
                                 </div>
                             )}
                         </div>

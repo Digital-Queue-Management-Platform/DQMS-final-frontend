@@ -3,17 +3,29 @@ import api from '../../config/api'
 
 interface Manager {
   id: string
-  name: string
-  managerId: string
+  name: string // Region name
+  managerId: string // RTOM name
   managerEmail: string
   managerMobile?: string
   createdAt: string
-  outlets: {
+  teleshopManagers?: {
     id: string
     name: string
-    location: string
+    mobileNumber?: string
     isActive: boolean
   }[]
+  dgm?: {
+    id: string
+    name: string
+    gm?: {
+      id: string
+      name: string
+    }
+  }
+  region?: {
+    id: string
+    name: string
+  }
 }
 
 const ManagerManagement: React.FC = () => {
@@ -31,10 +43,27 @@ const ManagerManagement: React.FC = () => {
   const fetchManagers = async () => {
     setLoading(true)
     try {
-      const response = await api.get('/admin/managers')
-      setManagers(response.data.managers || [])
+      const response = await api.get('/admin/rtoms')
+      
+      console.log('RTOM data received:', response.data.rtoms)
+      
+      // Transform RTOM data to match the expected Manager interface
+      const transformedData = response.data.rtoms?.map((rtom: any) => ({
+        id: rtom.id,
+        name: rtom.region?.name || 'Unknown Region',
+        managerId: rtom.name || `RTOM-${rtom.id.substring(0, 8)}`,  // Fallback to short ID if name is missing
+        managerEmail: rtom.email || '',
+        managerMobile: rtom.mobileNumber || '',
+        createdAt: rtom.createdAt,
+        outlets: [], // RTOMs don't directly have outlets, they have teleshop managers
+        teleshopManagers: rtom.teleshopManagers || [],
+        dgm: rtom.dgm,
+        region: rtom.region
+      })) || []
+      
+      setManagers(transformedData)
     } catch (err: any) {
-      console.error('Failed to fetch managers:', err)
+      console.error('Failed to fetch RTOMs:', err)
       setError('Failed to load RTOMs')
     } finally {
       setLoading(false)
@@ -90,7 +119,7 @@ const ManagerManagement: React.FC = () => {
                 <th className="text-left py-3 sm:py-4 px-3 sm:px-6 font-semibold text-slate-700 text-sm sm:text-base">Manager</th>
                 <th className="text-left py-3 sm:py-4 px-3 sm:px-6 font-semibold text-slate-700 text-sm sm:text-base hidden lg:table-cell">Region</th>
                 <th className="text-left py-3 sm:py-4 px-3 sm:px-6 font-semibold text-slate-700 text-sm sm:text-base hidden md:table-cell">Contact</th>
-                <th className="text-left py-3 sm:py-4 px-3 sm:px-6 font-semibold text-slate-700 text-sm sm:text-base">Outlets</th>
+                <th className="text-left py-3 sm:py-4 px-3 sm:px-6 font-semibold text-slate-700 text-sm sm:text-base">Teleshops</th>
                 <th className="text-left py-3 sm:py-4 px-3 sm:px-6 font-semibold text-slate-700 text-sm sm:text-base hidden xl:table-cell">Created</th>
                 <th className="text-left py-3 sm:py-4 px-3 sm:px-6 font-semibold text-slate-700 text-sm sm:text-base">Actions</th>
               </tr>
@@ -101,7 +130,7 @@ const ManagerManagement: React.FC = () => {
                   <td className="py-3 sm:py-4 px-3 sm:px-6">
                     <div>
                       <div className="font-medium text-slate-900 text-sm sm:text-base">
-                        {manager.managerId || 'N/A'}
+                        {manager.managerId || 'Unnamed RTOM'}
                       </div>
                       <div className="text-xs sm:text-sm text-slate-500 truncate max-w-[200px]">{manager.managerEmail}</div>
                       <div className="lg:hidden mt-1">
@@ -122,10 +151,10 @@ const ManagerManagement: React.FC = () => {
                   </td>
                   <td className="py-3 sm:py-4 px-3 sm:px-6">
                     <div className="text-slate-700 text-sm sm:text-base">
-                      {manager.outlets.length} outlet{manager.outlets.length !== 1 ? 's' : ''}
+                      {manager.teleshopManagers?.length || 0} manager{(manager.teleshopManagers?.length || 0) !== 1 ? 's' : ''}
                     </div>
                     <div className="text-xs sm:text-sm text-slate-500">
-                      {manager.outlets.filter(o => o.isActive).length} active
+                      DGM: {manager.dgm?.name || 'Not assigned'}
                     </div>
                   </td>
                   <td className="py-3 sm:py-4 px-3 sm:px-6 hidden xl:table-cell">
@@ -171,7 +200,7 @@ const ManagerManagement: React.FC = () => {
                 
                 <div className="mb-3 sm:mb-4">
                   <p className="text-slate-600 text-sm sm:text-base">
-                    RTOM: <strong>{selectedManager.managerId}</strong>
+                    RTOM: <strong>{selectedManager.managerId || 'Unnamed'}</strong>
                   </p>
                   <p className="text-xs sm:text-sm text-slate-500 truncate">{selectedManager.managerEmail}</p>
                 </div>

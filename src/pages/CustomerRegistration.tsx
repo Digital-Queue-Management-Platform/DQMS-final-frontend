@@ -1287,7 +1287,7 @@ export default function CustomerRegistration() {
                   {/* Bill Payment Path - Collect SLT Number (will verify after OTP) */}
                   {(() => {
                     const requiresSlt = isSltRequiredService(selectedService);
-                    console.log('Step 3 Service Check:', { selectedService, requiresSlt, isSltRequired: isSltRequiredService });
+                    // Removed excessive logging that was causing performance issues
                     return requiresSlt;
                   })() && (
                       <div className="space-y-4">

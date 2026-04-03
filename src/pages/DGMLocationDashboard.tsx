@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react"
-import { AlertCircle } from "lucide-react"
+import { AlertCircle, BarChart3, Users } from "lucide-react"
 import api from "../config/api"
 import BranchDashboardPage from "../admin/adminPages/BranchDashboardPage"
+import RTOMPerformanceDashboard from "../components/RTOMPerformanceDashboard"
 
 interface Region { id: string; name: string; outlets: { id: string; name: string }[] }
 
@@ -10,6 +11,7 @@ export default function DGMLocationDashboard() {
     const [loadingRegions, setLoadingRegions] = useState(true)
     const [regionError, setRegionError] = useState("")
     const [timeframe, setTimeframe] = useState('Today')
+    const [viewMode, setViewMode] = useState<'outlets' | 'rtoms'>('rtoms') // Default to RTOM view
 
     const dgmToken = localStorage.getItem("dgmToken")
 
@@ -35,7 +37,7 @@ export default function DGMLocationDashboard() {
             <AlertCircle className="w-5 h-5 shrink-0" />{regionError}
         </div>
     )
-    if (allOutlets.length === 0) return (
+    if (allOutlets.length === 0 && viewMode === 'outlets') return (
         <div className="p-6 max-w-xl mx-auto mt-12 bg-white rounded-2xl border border-gray-100 text-center text-gray-500">
             No outlets found in your assigned regions yet.
         </div>
@@ -43,16 +45,61 @@ export default function DGMLocationDashboard() {
 
     return (
         <div className="p-4 sm:p-6">
-            <div className="mb-4">
-                <h1 className="text-xl font-bold text-gray-900">Regional Location Dashboard</h1>
-                <p className="text-sm text-gray-500">View live analytics for outlets within your assigned regions.</p>
+            <div className="mb-6">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
+                    <div>
+                        <h1 className="text-xl font-bold text-gray-900">Regional Analytics Dashboard</h1>
+                        <p className="text-sm text-gray-500">Monitor performance across your assigned regions</p>
+                    </div>
+                    
+                    {/* View Toggle */}
+                    <div className="flex items-center bg-gray-100 rounded-lg p-1">
+                        <button
+                            onClick={() => setViewMode('rtoms')}
+                            className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                                viewMode === 'rtoms'
+                                    ? 'bg-white text-blue-600 shadow-sm'
+                                    : 'text-gray-600 hover:text-gray-900'
+                            }`}
+                        >
+                            <Users className="w-4 h-4" />
+                            RTOM Performance
+                        </button>
+                        <button
+                            onClick={() => setViewMode('outlets')}
+                            className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                                viewMode === 'outlets'
+                                    ? 'bg-white text-blue-600 shadow-sm'
+                                    : 'text-gray-600 hover:text-gray-900'
+                            }`}
+                        >
+                            <BarChart3 className="w-4 h-4" />
+                            Teleshop Analytics
+                        </button>
+                    </div>
+                </div>
             </div>
             
-            <BranchDashboardPage 
-                timeframe={timeframe}
-                setTimeframe={setTimeframe}
-                outlets={allOutlets}
-            />
+            {/* Conditional Rendering based on view mode */}
+            {viewMode === 'rtoms' ? (
+                <RTOMPerformanceDashboard 
+                    timeframe={timeframe}
+                    setTimeframe={setTimeframe}
+                />
+            ) : (
+                <>
+                    <div className="mb-4">
+                        <h2 className="text-lg font-semibold text-gray-900">Teleshop Analytics</h2>
+                        <p className="text-sm text-gray-500">View live analytics for teleshop outlets within your assigned regions.</p>
+                    </div>
+                    
+                    <BranchDashboardPage 
+                        timeframe={timeframe}
+                        setTimeframe={setTimeframe}
+                        outlets={allOutlets}
+                    />
+                </>
+            )}
         </div>
     )
 }

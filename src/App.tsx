@@ -29,9 +29,9 @@ const OfficerServedCustomers = React.lazy(() => import("./pages/OfficerServedCus
 const OfficerServiceTracking = React.lazy(() => import("./pages/OfficerServiceTracking"))
 const OfficerBranchNotices = React.lazy(() => import("./pages/OfficerBranchNotices"))
 const ManagerDashboard = React.lazy(() => import("./pages/ManagerDashboard"))
+const RTOMTeleshopAnalytics = React.lazy(() => import("./pages/RTOMTeleshopAnalytics"))
 const ManagerBranches = React.lazy(() => import("./pages/ManagerBranches"))
 const ManagerCompare = React.lazy(() => import("./pages/ManagerCompare"))
-const ManagerQRCodes = React.lazy(() => import("./pages/ManagerQRCodes"))
 const ManagerBreakOversight = React.lazy(() => import("./pages/ManagerBreakOversight"))
 const ManagerAppointments = React.lazy(() => import("./pages/ManagerAppointments"))
 const TeleshopManagerLogin = React.lazy(() => import("./pages/TeleshopManagerLogin"))
@@ -39,7 +39,6 @@ const TeleshopManagerDashboard = React.lazy(() => import("./pages/TeleshopManage
 const TeleshopManagerOfficerRegistration = React.lazy(() => import("./pages/TeleshopManagerOfficerRegistration"))
 const TeleshopManagerOfficers = React.lazy(() => import("./pages/TeleshopManagerOfficers"))
 const TeleshopManagerEditOfficer = React.lazy(() => import("./pages/TeleshopManagerEditOfficer"))
-const TeleshopManagerCompletedServices = React.lazy(() => import("./pages/TeleshopManagerCompletedServices"))
 const TeleshopManagerFeedback = React.lazy(() => import("./pages/TeleshopManagerFeedback"))
 const TeleshopManagerAppointments = React.lazy(() => import("./pages/TeleshopManagerAppointments"))
 const TeleshopManagerServedCustomers = React.lazy(() => import("./pages/TeleshopManagerServedCustomers"))
@@ -63,9 +62,12 @@ const TeleshopManagerClosureNotices = React.lazy(() => import("./pages/TeleshopM
 const TeleshopManagerAuditLogs = React.lazy(() => import("./pages/TeleshopManagerAuditLogs"))
 const TeleshopManagerOutletDisplay = React.lazy(() => import("./pages/TeleshopManagerOutletDisplay"))
 const TeleshopManagerOutletSetup = React.lazy(() => import("./pages/TeleshopManagerOutletSetup"))
+const TeleshopManagerQRCodes = React.lazy(() => import("./pages/TeleshopManagerQRCodes"))
+const TeleshopManagerOfficerAnalytics = React.lazy(() => import("./pages/TeleshopManagerOfficerAnalytics"))
 const ManagerClosureNotices = React.lazy(() => import("./pages/ManagerClosureNotices"))
 const AdminGMs = React.lazy(() => import("./admin/adminPages/AdminGMs"))
 const AdminDGMs = React.lazy(() => import("./admin/adminPages/AdminDGMs"))
+const AdminTeleshopManagers = React.lazy(() => import("./admin/adminPages/AdminTeleshopManagers"))
 const SystemLogsPage = React.lazy(() => import("./admin/adminPages/SystemLogsPage"))
 const GMLogin = React.lazy(() => import("./pages/GMLogin"))
 const DGMLogin = React.lazy(() => import("./pages/DGMLogin"))
@@ -549,6 +551,10 @@ function App() {
           path="/admin/dgms"
         />
         <Route
+          element={<Layout><ProtectedAdminRoute><AdminTeleshopManagers /></ProtectedAdminRoute></Layout>}
+          path="/admin/teleshop-managers"
+        />
+        <Route
           element={<Layout><ProtectedAdminRoute><SystemLogsPage /></ProtectedAdminRoute></Layout>}
           path="/admin/logs"
         />
@@ -581,10 +587,6 @@ function App() {
           path="/manager/branches"
         />
         <Route
-          element={<Layout><ProtectedManagerRoute><ManagerQRCodes /></ProtectedManagerRoute></Layout>}
-          path="/manager/qr-codes"
-        />
-        <Route
           element={<Layout><ProtectedManagerRoute><ManagerCompare /></ProtectedManagerRoute></Layout>}
           path="/manager/compare"
         />
@@ -607,6 +609,10 @@ function App() {
         <Route
           element={<Layout><ProtectedManagerRoute><ManagerClosureNotices /></ProtectedManagerRoute></Layout>}
           path="/manager/closure-notices"
+        />
+        <Route
+          element={<Layout><ProtectedManagerRoute><RTOMTeleshopAnalytics /></ProtectedManagerRoute></Layout>}
+          path="/manager/teleshop-analytics"
         />
         <Route
           element={<Layout><TeleshopManagerLogin /></Layout>}
@@ -637,10 +643,6 @@ function App() {
           path="/teleshop-manager/officers/add"
         />
         <Route
-          element={<Layout><ProtectedTeleshopManagerRoute><TeleshopManagerCompletedServices /></ProtectedTeleshopManagerRoute></Layout>}
-          path="/teleshop-manager/completed-services"
-        />
-        <Route
           element={<Layout><ProtectedTeleshopManagerRoute><TeleshopManagerServedCustomers /></ProtectedTeleshopManagerRoute></Layout>}
           path="/teleshop-manager/served-customers"
         />
@@ -667,6 +669,14 @@ function App() {
         <Route
           element={<Layout><ProtectedTeleshopManagerRoute><TeleshopManagerOutletSetup /></ProtectedTeleshopManagerRoute></Layout>}
           path="/teleshop-manager/outlet-setup"
+        />
+        <Route
+          element={<Layout><ProtectedTeleshopManagerRoute><TeleshopManagerQRCodes /></ProtectedTeleshopManagerRoute></Layout>}
+          path="/teleshop-manager/qr-codes"
+        />
+        <Route
+          element={<Layout><ProtectedTeleshopManagerRoute><TeleshopManagerOfficerAnalytics /></ProtectedTeleshopManagerRoute></Layout>}
+          path="/teleshop-manager/officer-analytics"
         />
         <Route element={<GMLogin />} path="/gm/login" />
         <Route
