@@ -352,11 +352,11 @@ export default function TeleshopManagerDashboard() {
           Add New Officer
         </motion.button>
         <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
-          onClick={() => navigate("/teleshop-manager/completed-services")}
+          onClick={() => navigate("/teleshop-manager/served-customers")}
           className="bg-indigo-600 text-white p-4 rounded-xl hover:bg-indigo-700 flex items-center justify-center font-semibold transition-all shadow-sm"
         >
           <BarChart3 className="w-5 h-5 mr-2" />
-          View Completed Services
+          View Served Customers
         </motion.button>
         <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
           onClick={() => navigate("/teleshop-manager/feedback")}

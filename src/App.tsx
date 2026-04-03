@@ -39,7 +39,6 @@ const TeleshopManagerDashboard = React.lazy(() => import("./pages/TeleshopManage
 const TeleshopManagerOfficerRegistration = React.lazy(() => import("./pages/TeleshopManagerOfficerRegistration"))
 const TeleshopManagerOfficers = React.lazy(() => import("./pages/TeleshopManagerOfficers"))
 const TeleshopManagerEditOfficer = React.lazy(() => import("./pages/TeleshopManagerEditOfficer"))
-const TeleshopManagerCompletedServices = React.lazy(() => import("./pages/TeleshopManagerCompletedServices"))
 const TeleshopManagerFeedback = React.lazy(() => import("./pages/TeleshopManagerFeedback"))
 const TeleshopManagerAppointments = React.lazy(() => import("./pages/TeleshopManagerAppointments"))
 const TeleshopManagerServedCustomers = React.lazy(() => import("./pages/TeleshopManagerServedCustomers"))
@@ -642,10 +641,6 @@ function App() {
         <Route
           element={<Layout><ProtectedTeleshopManagerRoute><TeleshopManagerOfficerRegistration /></ProtectedTeleshopManagerRoute></Layout>}
           path="/teleshop-manager/officers/add"
-        />
-        <Route
-          element={<Layout><ProtectedTeleshopManagerRoute><TeleshopManagerCompletedServices /></ProtectedTeleshopManagerRoute></Layout>}
-          path="/teleshop-manager/completed-services"
         />
         <Route
           element={<Layout><ProtectedTeleshopManagerRoute><TeleshopManagerServedCustomers /></ProtectedTeleshopManagerRoute></Layout>}
