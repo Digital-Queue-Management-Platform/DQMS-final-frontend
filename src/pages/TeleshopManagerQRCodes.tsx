@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
-import { QrCode, Eye, Copy, ExternalLink, Printer, RefreshCw, Download } from "lucide-react"
+import { QrCode, Eye, ExternalLink, RefreshCw, Download } from "lucide-react"
 import api from "../config/api"
 import jsPDF from "jspdf"
 
@@ -23,7 +23,6 @@ interface QRCodeData {
   outletId: string;
   token: string;
   generatedAt: string;
-  expiresAt?: string;
 }
 
 export default function TeleshopManagerQRCodes() {
@@ -61,8 +60,8 @@ export default function TeleshopManagerQRCodes() {
           rating: 0 // TODO: Calculate from feedback
         })
         
-        // Check if QR code already exists
-        loadExistingQRCode(teleshopManager.branch.id)
+        // Load existing QR code from backend
+        await loadExistingQRCode()
       }
     } catch (error: any) {
       console.error("Failed to fetch teleshop branch:", error)
@@ -74,13 +73,15 @@ export default function TeleshopManagerQRCodes() {
     }
   }
 
-  const loadExistingQRCode = (outletId: string) => {
-    const storedQRCodes = localStorage.getItem('managerQRCodes')
-    if (storedQRCodes) {
-      const qrCodesMap = JSON.parse(storedQRCodes)
-      if (qrCodesMap[outletId]) {
-        setQrCode(qrCodesMap[outletId])
+  const loadExistingQRCode = async () => {
+    try {
+      const response = await api.get("/teleshop-manager/qr-code")
+      if (response.data.qrCode) {
+        setQrCode(response.data.qrCode)
       }
+    } catch (error: any) {
+      console.error("Failed to load existing QR code:", error)
+      // If no QR code exists, it's not an error
     }
   }
 
@@ -89,37 +90,18 @@ export default function TeleshopManagerQRCodes() {
     
     try {
       setRefreshingQR(true)
-      const newToken = generateRandomToken()
-      const generatedAt = new Date().toISOString()
-
-      const qrCodeData: QRCodeData = {
-        outletId: branch.id,
-        token: newToken,
-        generatedAt,
+      
+      // Generate QR code using backend endpoint
+      const response = await api.post("/teleshop-manager/generate-qr")
+      
+      if (response.data.success && response.data.qrCode) {
+        setQrCode(response.data.qrCode)
+      } else {
+        throw new Error("Backend did not return QR code data")
       }
-
-      // Save to localStorage
-      const storedQRCodes = localStorage.getItem('managerQRCodes')
-      const qrCodesMap = storedQRCodes ? JSON.parse(storedQRCodes) : {}
-      qrCodesMap[branch.id] = qrCodeData
-      localStorage.setItem('managerQRCodes', JSON.stringify(qrCodesMap))
-
-      // Register with backend
-      try {
-        await api.post("/customer/manager-qr-token", {
-          outletId: branch.id,
-          token: newToken,
-          generatedAt
-        })
-      } catch (apiError) {
-        console.warn("Failed to register QR token with backend:", apiError)
-        // Continue anyway as localStorage is the primary storage
-      }
-
-      setQrCode(qrCodeData)
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to generate QR code:", error)
-      alert("Failed to generate QR code. Please try again.")
+      alert(error.response?.data?.error || "Failed to generate QR code. Please try again.")
     } finally {
       setRefreshingQR(false)
     }
@@ -143,51 +125,22 @@ export default function TeleshopManagerQRCodes() {
     setConfirmError("")
   }
 
-  const generateRandomToken = (): string => {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
-    let result = ''
-    for (let i = 0; i < 32; i++) {
-      result += chars.charAt(Math.floor(Math.random() * chars.length))
-    }
-    return result
-  }
-
   const handleViewQR = () => {
     setShowQRModal(true)
   }
 
-  const handleCopyQRUrl = (type: 'display' | 'registration') => {
+  const handleCopyRegistrationUrl = () => {
     if (!branch || !qrCode) return
 
     const baseUrl = window.location.origin
-    let url: string
-
-    if (type === 'display') {
-      url = `${baseUrl}/qr/${branch.id}`
-    } else {
-      url = `${baseUrl}/register/${branch.id}?qr=${encodeURIComponent(qrCode.token)}`
-    }
+    const url = `${baseUrl}/register/${branch.id}?qr=${encodeURIComponent(qrCode.token)}`
 
     navigator.clipboard.writeText(url).then(() => {
-      setCopySuccess(type === 'display' ? 'QR Display URL copied!' : 'Registration URL copied!')
+      setCopySuccess('Registration URL copied!')
       setTimeout(() => setCopySuccess(''), 3000)
     }).catch(() => {
       alert(`Failed to copy URL: ${url}`)
     })
-  }
-
-  const handlePrintQR = () => {
-    if (!branch) return
-    
-    const qrDisplayUrl = `${window.location.origin}/qr/${branch.id}`
-    const printWindow = window.open(qrDisplayUrl, '_blank')
-    if (printWindow) {
-      printWindow.onload = () => {
-        setTimeout(() => {
-          printWindow.print()
-        }, 1000)
-      }
-    }
   }
 
   const handleDownloadPDF = async () => {
@@ -196,11 +149,17 @@ export default function TeleshopManagerQRCodes() {
     try {
       const pdf = new jsPDF('p', 'mm', 'a4')
       
-      // Header with white background
+      // Header with white background (increased height for better logo spacing)
       pdf.setFillColor(255, 255, 255)
-      pdf.rect(0, 0, 210, 60, 'F')
+      pdf.rect(0, 0, 210, 70, 'F')
       
-      // Add logos (fallback to colored circles if images not found)
+      // Logo specifications for better alignment
+      const logoSize = 30 // Reduced size for better proportion
+      const leftLogoX = 20 // More padding from left edge
+      const rightLogoX = 160 // Better positioned from right edge
+      const logoY = 15 // Consistent Y position for both logos
+      
+      // Add SLT logo (left side)
       try {
         const logoImg = new Image()
         logoImg.src = '/logo.png'
@@ -208,16 +167,18 @@ export default function TeleshopManagerQRCodes() {
           logoImg.onload = resolve
           logoImg.onerror = reject
         })
-        pdf.addImage(logoImg, 'PNG', 15, 15, 35, 35)
+        pdf.addImage(logoImg, 'PNG', leftLogoX, logoY, logoSize, logoSize)
       } catch {
-        // Fallback: SLT blue circle
+        // Fallback: SLT blue circle (matching the increased size)
         pdf.setFillColor(0, 100, 200)
-        pdf.circle(32.5, 32.5, 17.5, 'F')
+        pdf.circle(leftLogoX + logoSize/2, logoY + logoSize/2, logoSize/2, 'F')
         pdf.setTextColor(255, 255, 255)
-        pdf.setFontSize(12)
-        pdf.text('SLT', 25, 36)
+        pdf.setFont('helvetica', 'bold')
+        pdf.setFontSize(14)
+        pdf.text('SLT', leftLogoX + logoSize/2 - 8, logoY + logoSize/2 + 3, { align: 'center' })
       }
 
+      // Add Transzent logo (right side)
       try {
         const transzenttLogoImg = new Image()
         transzenttLogoImg.src = '/Transzent Logo.png'
@@ -225,35 +186,51 @@ export default function TeleshopManagerQRCodes() {
           transzenttLogoImg.onload = resolve
           transzenttLogoImg.onerror = reject
         })
-        pdf.addImage(transzenttLogoImg, 'PNG', 160, 15, 35, 35)
+        pdf.addImage(transzenttLogoImg, 'PNG', rightLogoX, logoY, logoSize, logoSize)
       } catch {
-        // Fallback: Transzent green circle
+        // Fallback: Transzent green circle (matching the increased size)
         pdf.setFillColor(0, 150, 100)
-        pdf.circle(177.5, 32.5, 17.5, 'F')
+        pdf.circle(rightLogoX + logoSize/2, logoY + logoSize/2, logoSize/2, 'F')
         pdf.setTextColor(255, 255, 255)
-        pdf.setFontSize(10)
-        pdf.text('TZ', 172, 36)
+        pdf.setFont('helvetica', 'bold')
+        pdf.setFontSize(12)
+        pdf.text('TZ', rightLogoX + logoSize/2 - 6, logoY + logoSize/2 + 3, { align: 'center' })
       }
 
-      // Company title
-      pdf.setTextColor(0, 100, 200)
+      // Company title section (positioned to align with logo center)
+      pdf.setFont('helvetica', 'bold')
+      pdf.setTextColor(0, 100, 200) // SLT Blue
+      pdf.setFontSize(22)
+      pdf.text('Sri Lanka Telecom PLC', 105, 28, { align: 'center' })
+      
+      pdf.setFont('helvetica', 'normal')
+      pdf.setTextColor(60, 60, 60) // Dark gray
+      pdf.setFontSize(14)
+      pdf.text('Digital Queue Management Platform', 105, 38, { align: 'center' })
+
+      // Horizontal separator line (moved down to provide space)
+      pdf.setDrawColor(200, 200, 200) // Light gray
+      pdf.setLineWidth(0.5)
+      pdf.line(30, 58, 180, 58) // Horizontal line from x:30 to x:180 at y:58
+
+      // Teleshop information section
+      pdf.setFont('helvetica', 'bold')
+      pdf.setTextColor(0, 0, 0) // Black
       pdf.setFontSize(20)
-      pdf.text('Sri Lanka Telecom PLC', 105, 25, { align: 'center' })
+      pdf.text(branch.name, 105, 78, { align: 'center' })
       
-      pdf.setTextColor(0, 0, 0)
-      pdf.setFontSize(16)
-      pdf.text('Digital Queue Management Platform', 105, 35, { align: 'center' })
+      pdf.setFont('helvetica', 'normal')
+      pdf.setTextColor(80, 80, 80) // Medium gray
+      pdf.setFontSize(14)
+      pdf.text(branch.location, 105, 91, { align: 'center' })
 
-      // Teleshop information
-      pdf.setFontSize(24)
-      pdf.text(branch.name, 105, 80, { align: 'center' })
-      
-      pdf.setFontSize(16)
-      pdf.setTextColor(100, 100, 100)
-      pdf.text(branch.location, 105, 95, { align: 'center' })
-
-      // QR Code
+      // QR Code with border
       const registrationUrl = `${window.location.origin}/register/${branch.id}?qr=${encodeURIComponent(qrCode.token)}`
+      
+      // QR Code border (draw before QR code)
+      pdf.setDrawColor(0, 0, 0) // Black border
+      pdf.setLineWidth(2)
+      pdf.rect(40, 105, 130, 130, 'S') // Border around QR code area
       
       try {
         // Try QR Server API first
@@ -267,31 +244,37 @@ export default function TeleshopManagerQRCodes() {
           qrImage.onerror = reject
         })
         
+        // QR Code with padding inside border
         pdf.addImage(qrImage, 'PNG', 45, 110, 120, 120)
       } catch {
-        // Fallback: Simple black rectangle
+        // Fallback: Simple black rectangle with border
         pdf.setFillColor(0, 0, 0)
         pdf.rect(45, 110, 120, 120, 'F')
         
         pdf.setTextColor(255, 255, 255)
+        pdf.setFont('helvetica', 'bold')
+        pdf.setFontSize(16)
+        pdf.text('QR Code', 105, 165, { align: 'center' })
+        pdf.setFont('helvetica', 'normal')
         pdf.setFontSize(12)
-        pdf.text('QR Code', 105, 170, { align: 'center' })
-        pdf.text('(Scan to Register)', 105, 180, { align: 'center' })
+        pdf.text('(Scan to Register)', 105, 175, { align: 'center' })
       }
 
       // Instructions
-      pdf.setTextColor(0, 0, 0)
-      pdf.setFontSize(18)
+      pdf.setFont('helvetica', 'bold')
+      pdf.setTextColor(0, 100, 200) // SLT Blue
+      pdf.setFontSize(16)
       pdf.text('Scan to Join Digital Queue', 105, 250, { align: 'center' })
 
       // Footer
+      pdf.setFont('helvetica', 'normal')
       pdf.setFontSize(10)
-      pdf.setTextColor(128, 128, 128)
+      pdf.setTextColor(120, 120, 120) // Light gray
       const now = new Date()
-      pdf.text(`Generated on: ${now.toLocaleDateString()} at ${now.toLocaleTimeString()}`, 105, 280, { align: 'center' })
+      pdf.text(`Generated on: ${now.toLocaleDateString()} at ${now.toLocaleTimeString()}`, 105, 275, { align: 'center' })
 
       // Save PDF
-      const filename = `QR_Display_${branch.name.replace(/[^a-zA-Z0-9]/g, '_')}_${Date.now()}.pdf`
+      const filename = `QR_Display_${branch.name.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`
       pdf.save(filename)
     } catch (error) {
       console.error('PDF generation error:', error)
@@ -404,23 +387,7 @@ export default function TeleshopManagerQRCodes() {
               </button>
               
               <button
-                onClick={handlePrintQR}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700"
-              >
-                <Printer className="h-4 w-4" />
-                Print
-              </button>
-              
-              <button
-                onClick={() => handleCopyQRUrl('display')}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700"
-              >
-                <Copy className="h-4 w-4" />
-                Copy QR URL
-              </button>
-              
-              <button
-                onClick={() => handleCopyQRUrl('registration')}
+                onClick={handleCopyRegistrationUrl}
                 className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
               >
                 <ExternalLink className="h-4 w-4" />
