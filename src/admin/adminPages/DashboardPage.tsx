@@ -6,7 +6,7 @@ import { BranchTable } from '../adminComponents/dashboardComponents/BranchTable'
 import SriLankaMap from '../adminComponents/dashboardComponents/SriLankaMap';
 import SystemHealthStatus from '../adminComponents/dashboardComponents/SystemHealthStatus';
 import BranchDashboardPage from './BranchDashboardPage';
-import { UsersIcon, ClockIcon, StarIcon, Ticket, BellIcon, Eye, ArrowLeft, Trash2, Loader2, X, BellOff, CheckCircle2, Send, Phone, AlertCircle, AlertTriangle, Info } from 'lucide-react';
+import { UsersIcon, ClockIcon, StarIcon, Ticket, BellIcon, Eye, ArrowLeft, Trash2, Loader2, X, BellOff, CheckCircle2, Send, Phone, AlertCircle, AlertTriangle, Info, Download } from 'lucide-react';
 import { motion } from 'framer-motion';
 import api, { WS_URL } from '../../config/api'
 import type { Alert } from '../../types'
@@ -32,6 +32,12 @@ const DashboardPage: React.FC = () => {
   const [branchData, setBranchData] = useState<BranchData[]>([])
   const [waitingTimeData, setWaitingTimeData] = useState<WaitingTimeData[]>([])
   const [timeframe, setTimeframe] = useState('Today')
+  
+  // Export PDF states
+  const [showExportModal, setShowExportModal] = useState(false)
+  const [exportLoading, setExportLoading] = useState(false)
+  const [exportStartDate, setExportStartDate] = useState('')
+  const [exportEndDate, setExportEndDate] = useState('')
 
   // derived metrics (safely computed from branchData)
   const totalCustomers: number = branchData.reduce((sum, branch) => sum + (branch.customersServed || 0), 0);
@@ -547,6 +553,46 @@ const DashboardPage: React.FC = () => {
     }
   }
 
+  const exportAnalyticsPDF = async () => {
+    if (!exportStartDate || !exportEndDate) {
+      setTestMessage({ type: 'error', message: 'Please select both start and end dates' })
+      return
+    }
+
+    setExportLoading(true)
+    try {
+      // Get HTML content from backend
+      const response = await api.get('/admin/analytics/export-pdf', {
+        params: {
+          startDate: exportStartDate,
+          endDate: exportEndDate,
+          scope: 'Island-wide (All Outlets)'
+        }
+      })
+
+      // Create a temporary window to print/save as PDF
+      const printWindow = window.open('', '_blank')
+      if (printWindow) {
+        printWindow.document.write(response.data)
+        printWindow.document.close()
+        
+        // Wait for content to load then trigger print dialog
+        printWindow.onload = () => {
+          printWindow.print()
+        }
+      }
+
+      setShowExportModal(false)
+      setExportStartDate('')
+      setExportEndDate('')
+    } catch (err: any) {
+      console.error('Export error:', err)
+      setTestMessage({ type: 'error', message: err.response?.data?.error || 'Failed to generate report' })
+    } finally {
+      setExportLoading(false)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-8">
       <div className="mx-auto">
@@ -585,6 +631,18 @@ const DashboardPage: React.FC = () => {
               </div>
             </div>
             <div className="flex items-center space-x-4">
+              {/* Export PDF Button */}
+              <button
+                onClick={() => {
+                  setShowExportModal(true)
+                  setTestMessage(null)
+                }}
+                className="relative flex items-center justify-center p-2 bg-green-100 rounded-md hover:bg-green-200 transition-colors"
+                title="Export Analytics Report (PDF)"
+              >
+                <Download className="w-5 h-5 text-green-700" />
+              </button>
+
               {/* Test SMS Button */}
               <button
                 onClick={() => {
@@ -998,6 +1056,99 @@ const DashboardPage: React.FC = () => {
                     setTestPhone('')
                   }}
                   disabled={testLoading}
+                  className="flex-1 px-4 py-2 border border-slate-200 text-gray-700 rounded-lg font-medium hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Export PDF Modal */}
+      {showExportModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 flex items-center justify-center p-2 sm:p-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="bg-white rounded-xl shadow-2xl w-full max-w-md"
+          >
+            <div className="border-b border-slate-200 p-4 sm:p-6 flex items-center justify-between">
+              <h2 className="text-lg sm:text-xl font-bold text-gray-900 flex items-center gap-2">
+                <Download className="w-5 h-5 text-green-600" />
+                Export Analytics Report
+              </h2>
+              <button
+                onClick={() => {
+                  setShowExportModal(false)
+                  setTestMessage(null)
+                  setExportStartDate('')
+                  setExportEndDate('')
+                }}
+                className="p-1 hover:bg-slate-100 rounded-lg transition-colors text-gray-500 hover:text-gray-700"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-4 sm:p-6 space-y-4">
+              {testMessage && (
+                <div
+                  className={`p-4 rounded-lg ${testMessage.type === 'success'
+                      ? 'bg-green-50 border border-green-200 text-green-700'
+                      : 'bg-red-50 border border-red-200 text-red-700'
+                    }`}
+                >
+                  {testMessage.message}
+                </div>
+              )}
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Start Date</label>
+                <input
+                  type="date"
+                  value={exportStartDate}
+                  onChange={(e) => setExportStartDate(e.target.value)}
+                  className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  disabled={exportLoading}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">End Date</label>
+                <input
+                  type="date"
+                  value={exportEndDate}
+                  onChange={(e) => setExportEndDate(e.target.value)}
+                  min={exportStartDate}
+                  className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  disabled={exportLoading}
+                />
+              </div>
+
+              <p className="text-sm text-gray-600">
+                A comprehensive analytics report will be generated with executive summary, customer satisfaction analysis, 
+                service breakdown, regional performance, and officer efficiency insights for the selected date range.
+              </p>
+
+              <div className="flex gap-3 pt-4">
+                <button
+                  onClick={exportAnalyticsPDF}
+                  disabled={exportLoading || !exportStartDate || !exportEndDate}
+                  className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  {exportLoading ? 'Generating...' : 'Generate Report'}
+                </button>
+                <button
+                  onClick={() => {
+                    setShowExportModal(false)
+                    setTestMessage(null)
+                    setExportStartDate('')
+                    setExportEndDate('')
+                  }}
+                  disabled={exportLoading}
                   className="flex-1 px-4 py-2 border border-slate-200 text-gray-700 rounded-lg font-medium hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   Cancel

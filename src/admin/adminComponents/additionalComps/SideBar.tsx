@@ -103,6 +103,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed, activePa
   const teleshopManagerItems: NavigationItem[] = [
     { name: 'Dashboard', icon: LayoutDashboard, to: '/teleshop-manager/dashboard' },
     { name: 'QR Codes', icon: QrCode, to: '/teleshop-manager/qr-codes' },
+    { name: 'Officer Analytics', icon: BarChart2, to: '/teleshop-manager/officer-analytics' },
     { name: 'Outlet Display', icon: Tv, to: '/teleshop-manager/outlet-display' },
     { name: 'Kiosk Settings', icon: Tablet, to: '/teleshop-manager/kiosk-settings' },
     { name: 'Android TV Setup', icon: Monitor, to: '/teleshop-manager/outlet-setup' },
