@@ -439,15 +439,21 @@ export default function ManagerOfficerAssignment() {
                                 <label className="block text-sm font-medium text-slate-700 mb-2">
                                     Counter Number
                                 </label>
-                                <input
-                                    type="number"
-                                    value={counterNumber}
-                                    onChange={(e) => setCounterNumber(e.target.value)}
-                                    placeholder="Enter counter number (leave empty to unassign)"
-                                    className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                                    min="1"
-                                    max={selectedOfficer.outlet.counterCount || 999}
-                                />
+                                <div className="relative">
+                                    <select
+                                        value={counterNumber}
+                                        onChange={(e) => setCounterNumber(e.target.value)}
+                                        className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent appearance-none bg-white"
+                                    >
+                                        <option value="">-- Unassign (No Counter) --</option>
+                                        {Array.from({ length: selectedOfficer.outlet.counterCount || 0 }, (_, i) => i + 1).map(num => (
+                                            <option key={num} value={num.toString()}>
+                                                Counter {num}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <ChevronDown className="absolute right-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+                                </div>
                                 <p className="mt-2 text-xs text-slate-500">
                                     Available counters: 1 - {selectedOfficer.outlet.counterCount || 'N/A'}
                                 </p>
