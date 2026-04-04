@@ -414,6 +414,7 @@ export default function InsightsPage() {
       if (currentY > pageHeight - 50) { doc.addPage(); addHeader(); currentY = 45; }
       doc.setFontSize(14)
       doc.setFont("helvetica", "bold")
+      doc.setTextColor(SLT_BLUE[0], SLT_BLUE[1], SLT_BLUE[2])
       doc.text("III. Service Utilization Breakdown", 20, currentY)
       const stData = analytics.serviceTypes.map(st => [st.name, st.count.toLocaleString()])
       autoTable(doc, {
@@ -436,6 +437,7 @@ export default function InsightsPage() {
       if (currentY > pageHeight - 50) { doc.addPage(); addHeader(); currentY = 45; }
       doc.setFontSize(14)
       doc.setFont("helvetica", "bold")
+      doc.setTextColor(SLT_BLUE[0], SLT_BLUE[1], SLT_BLUE[2])
       doc.text("IV. Regional Performance Audit", 20, currentY)
       const branchData = analytics.branchPerformance.map(b => [b.name, b.totalTokens.toLocaleString(), `${b.avgWaitTime}m`, `${b.avgServiceTime}m`, b.avgRating.toFixed(1), b.feedbackCount.toLocaleString()])
       autoTable(doc, {
@@ -461,6 +463,7 @@ export default function InsightsPage() {
     if (currentY > pageHeight - 50) { doc.addPage(); addHeader(); currentY = 45; }
     doc.setFontSize(14)
     doc.setFont("helvetica", "bold")
+    doc.setTextColor(SLT_BLUE[0], SLT_BLUE[1], SLT_BLUE[2])
     doc.text("V. Officer Efficiency Insights", 20, currentY)
     const officerData = analytics.officerPerformance.map(perf => [perf.officer?.name || 'Unknown', perf.officer?.outlet?.name || 'N/A', perf.tokensHandled.toLocaleString(), perf.avgRating.toFixed(1), perf.feedbackCount.toLocaleString()])
     autoTable(doc, {
