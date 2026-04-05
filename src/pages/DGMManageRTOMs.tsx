@@ -10,21 +10,27 @@ interface RTOM {
     isActive: boolean
     lastLoginAt?: string
     createdAt: string
-    teleshopManagers: { id: string; name: string; mobileNumber: string; isActive: boolean }[]
-}
-
-interface Region {
-    id: string
-    name: string
-    outlets: { id: string; name: string; isActive: boolean }[]
-    rtoms: RTOM[]
+    region: {
+        id: string
+        name: string
+        outlets: { id: string; name: string; isActive: boolean }[]
+    }
+    teleshopManagers: { 
+        id: string; 
+        name: string; 
+        mobileNumber: string; 
+        isActive: boolean;
+        branchId: string | null;
+        branch: { id: string; name: string; isActive: boolean } | null
+    }[]
 }
 
 interface RTOMForm { regionId: string; name: string; mobileNumber: string; email: string }
 interface RTOMCredentials { name: string; mobileNumber: string; email?: string; regionName: string }
 
 export default function DGMManageRTOMs() {
-    const [regions, setRegions] = useState<Region[]>([])
+    const [rtoms, setRtoms] = useState<RTOM[]>([])
+    const [availableRegions, setAvailableRegions] = useState<{id: string, name: string, outlets: any[]}[]>([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState("")
     const [success, setSuccess] = useState("")
@@ -39,8 +45,12 @@ export default function DGMManageRTOMs() {
     const fetchData = async () => {
         setLoading(true)
         try {
-            const res = await api.get("/dgm/rtoms", { headers: { Authorization: `Bearer ${token}` } })
-            setRegions(res.data.regions || [])
+            const [rtomsRes, regionsRes] = await Promise.all([
+                api.get("/dgm/rtoms", { headers: { Authorization: `Bearer ${token}` } }),
+                api.get("/dgm/regions", { headers: { Authorization: `Bearer ${token}` } })
+            ])
+            setRtoms(rtomsRes.data.rtoms || [])
+            setAvailableRegions(regionsRes.data.regions || [])
             setError("")
         } catch (err: any) {
             setError(err?.response?.data?.error || "Failed to load RTOMs")
@@ -64,7 +74,7 @@ export default function DGMManageRTOMs() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault(); setError(""); setSuccess(""); setSubmitting(true)
         try {
-            const regionName = regions.find(r => r.id === form.regionId)?.name || ""
+            const regionName = availableRegions.find(r => r.id === form.regionId)?.name || ""
             if (editingRTOM) {
                 // Update existing RTOM
                 await api.put(`/dgm/rtoms/${editingRTOM.id}`, { 
@@ -105,6 +115,15 @@ export default function DGMManageRTOMs() {
                 <p className="text-sm text-gray-500 mt-1">Assign Regional Teleshop Operations Managers to your regions.</p>
             </div>
 
+            {/* Add RTOM button */}
+            {availableRegions.length > 0 && (
+                <div className="mb-6">
+                    <button onClick={() => openCreate(availableRegions[0].id)} className="flex items-center gap-2 px-4 py-2.5 bg-teal-600 text-white font-medium rounded-xl hover:bg-teal-700 transition-colors">
+                        <Plus className="w-4 h-4" /> Add RTOM
+                    </button>
+                </div>
+            )}
+
             {error && <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-xl text-sm flex items-center gap-2"><AlertCircle className="w-4 h-4 shrink-0" />{error}</div>}
             {success && <div className="mb-4 p-3 bg-green-50 border border-green-200 text-green-700 rounded-xl text-sm flex items-center gap-2"><CheckCircle className="w-4 h-4 shrink-0" />{success}</div>}
 
@@ -115,7 +134,7 @@ export default function DGMManageRTOMs() {
                         <button onClick={() => setShowForm(false)} className="absolute top-4 right-4 p-1.5 rounded-lg bg-gray-100 hover:bg-gray-200"><X className="w-4 h-4" /></button>
                         <h2 className="text-lg font-bold text-gray-900 mb-1">{editingRTOM ? "Edit RTOM" : "Add RTOM"}</h2>
                         <p className="text-sm text-gray-500 mb-5">
-                            Region: <span className="font-medium text-gray-700">{regions.find(r => r.id === form.regionId)?.name}</span>
+                            Region: <span className="font-medium text-gray-700">{availableRegions.find(r => r.id === form.regionId)?.name}</span>
                         </p>
                         <form onSubmit={handleSubmit} className="space-y-4">
                             <div>
@@ -207,17 +226,17 @@ export default function DGMManageRTOMs() {
                 </div>
             )}
 
-            {/* Regions list */}
+            {/* RTOMs list */}
             {loading ? (
-                <div className="py-16 text-center text-gray-400">Loading regions…</div>
-            ) : regions.length === 0 ? (
+                <div className="py-16 text-center text-gray-400">Loading RTOMs…</div>
+            ) : rtoms.length === 0 ? (
                 <div className="py-16 text-center bg-white rounded-2xl border border-dashed border-slate-200 text-gray-400">
-                    <MapPin className="w-12 h-12 mx-auto mb-3" /><p>No regions assigned to you yet.</p>
+                    <Users className="w-12 h-12 mx-auto mb-3" /><p>No RTOMs assigned to your province yet.</p>
                 </div>
             ) : (
                 <div className="space-y-4">
-                    {regions.map(region => (
-                        <div key={region.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                    {rtoms.map(rtom => (
+                        <div key={rtom.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
                             {/* Region Header */}
                             <div className="flex items-start justify-between mb-4">
                                 <div className="flex items-center gap-3">
@@ -225,67 +244,67 @@ export default function DGMManageRTOMs() {
                                         <MapPin className="w-4 h-4 text-teal-500" />
                                     </div>
                                     <div>
-                                        <p className="font-semibold text-gray-900">{region.name}</p>
+                                        <p className="font-semibold text-gray-900">{rtom.region.name}</p>
                                         <p className="text-xs text-gray-400">
-                                            {region.rtoms.length} RTOM{region.rtoms.length !== 1 ? "s" : ""} • {region.outlets.length} outlet{region.outlets.length !== 1 ? "s" : ""}
+                                            {rtom.region.outlets.length} outlet{rtom.region.outlets.length !== 1 ? "s" : ""}
                                         </p>
                                     </div>
                                 </div>
-                                <button onClick={() => openCreate(region.id)} className="flex items-center gap-1.5 px-3 py-1.5 bg-teal-600 text-white text-xs font-semibold rounded-lg hover:bg-teal-700 transition-colors">
-                                    <Plus className="w-3.5 h-3.5" /> Add RTOM
-                                </button>
                             </div>
 
-                            {/* RTOMs List */}
-                            {region.rtoms.length > 0 ? (
-                                <div className="space-y-3">
-                                    {region.rtoms.map(rtom => (
-                                        <div key={rtom.id} className="bg-teal-50 rounded-xl p-3 flex items-center gap-3">
-                                            <div className="w-8 h-8 bg-teal-100 rounded-xl flex items-center justify-center text-teal-600 font-semibold text-sm">
-                                                {rtom.name[0].toUpperCase()}
-                                            </div>
-                                            <div className="flex-1">
-                                                <p className="text-sm font-medium text-gray-900">{rtom.name}</p>
-                                                <p className="text-xs text-gray-500">
-                                                    {rtom.mobileNumber}
-                                                    {rtom.email && ` • ${rtom.email}`}
-                                                    {rtom.teleshopManagers.length > 0 && ` • ${rtom.teleshopManagers.length} manager${rtom.teleshopManagers.length !== 1 ? "s" : ""}`}
-                                                </p>
-                                            </div>
-                                            <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${rtom.isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                                                {rtom.isActive ? 'Active' : 'Inactive'}
-                                            </span>
-                                            <div className="flex items-center gap-1">
-                                                <button onClick={() => openEdit(rtom, region.id)} className="p-1.5 text-gray-400 hover:text-teal-600 hover:bg-teal-100 rounded-lg">
-                                                    <Edit2 className="w-4 h-4" />
-                                                </button>
-                                                <button onClick={() => handleRemove(rtom, region.name)} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-100 rounded-lg">
-                                                    <Trash2 className="w-4 h-4" />
-                                                </button>
-                                            </div>
-                                        </div>
-                                    ))}
+                            {/* RTOM Details */}
+                            <div className="bg-teal-50 rounded-xl p-3 flex items-center gap-3">
+                                <div className="w-8 h-8 bg-teal-100 rounded-xl flex items-center justify-center text-teal-600 font-semibold text-sm">
+                                    {rtom.name[0].toUpperCase()}
                                 </div>
-                            ) : (
-                                <div className="bg-slate-50 rounded-xl p-3 text-center text-sm text-gray-400">
-                                    No RTOMs assigned to this region yet
+                                <div className="flex-1">
+                                    <p className="text-sm font-medium text-gray-900">{rtom.name}</p>
+                                    <p className="text-xs text-gray-500">
+                                        {rtom.mobileNumber}
+                                        {rtom.email && ` • ${rtom.email}`}
+                                        {rtom.teleshopManagers.length > 0 && ` • ${rtom.teleshopManagers.length} manager${rtom.teleshopManagers.length !== 1 ? "s" : ""}`}
+                                        </p>
                                 </div>
-                            )}
-
-                            {/* Outlets List */}
-                            {region.outlets.length > 0 && (
-                                <div className="mt-4 pt-3 border-t border-gray-100">
-                                    <p className="text-xs font-medium text-gray-500 mb-2">Outlets in this region:</p>
-                                    <div className="flex flex-wrap gap-2">
-                                        {region.outlets.slice(0, 5).map(outlet => (
-                                            <span key={outlet.id} className="flex items-center gap-1 px-2 py-1 bg-slate-50 rounded-xl text-xs text-gray-600">
-                                                <Building2 className="w-3 h-3" />{outlet.name}
-                                            </span>
-                                        ))}
-                                        {region.outlets.length > 5 && <span className="px-2 py-1 text-xs text-gray-400">+{region.outlets.length - 5} more</span>}
+                                <div className="flex items-center gap-2">
+                                    <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${rtom.isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                        {rtom.isActive ? 'Active' : 'Inactive'}
+                                    </span>
+                                    <div className="flex items-center gap-1">
+                                        <button onClick={() => openEdit(rtom, rtom.region.id)} className="p-1.5 text-gray-400 hover:text-teal-600 hover:bg-teal-100 rounded-lg">
+                                            <Edit2 className="w-4 h-4" />
+                                        </button>
+                                        <button onClick={() => handleRemove(rtom, rtom.region.name)} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-100 rounded-lg">
+                                            <Trash2 className="w-4 h-4" />
+                                        </button>
                                     </div>
                                 </div>
-                            )}
+                            </div>
+
+                            {/* Outlets List */}
+                            {(() => {
+                                const assignedOutlets = rtom.teleshopManagers
+                                    .filter(manager => manager.branch)
+                                    .map(manager => manager.branch!)
+                                    .filter((outlet, index, arr) => arr.findIndex(o => o.id === outlet.id) === index) // Remove duplicates
+                                
+                                return assignedOutlets.length > 0 ? (
+                                    <div className="mt-4 pt-3 border-t border-gray-100">
+                                        <p className="text-xs font-medium text-gray-500 mb-2">Assigned outlets:</p>
+                                        <div className="flex flex-wrap gap-2">
+                                            {assignedOutlets.slice(0, 5).map(outlet => (
+                                                <span key={outlet.id} className="flex items-center gap-1 px-2 py-1 bg-slate-50 rounded-xl text-xs text-gray-600">
+                                                    <Building2 className="w-3 h-3" />{outlet.name}
+                                                </span>
+                                            ))}
+                                            {assignedOutlets.length > 5 && <span className="px-2 py-1 text-xs text-gray-400">+{assignedOutlets.length - 5} more</span>}
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="mt-4 pt-3 border-t border-gray-100">
+                                        <p className="text-xs text-gray-400 text-center py-2">No specific outlets assigned yet</p>
+                                    </div>
+                                )
+                            })()}
                         </div>
                     ))}
                 </div>

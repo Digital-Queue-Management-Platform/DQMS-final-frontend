@@ -6,13 +6,23 @@ interface Outlet {
   id: string
   name: string
   location: string
-  region?: any
+  regionName?: string  // Add this field
+  regionId?: string    // Add this field
+  region?: {
+    id: string
+    name: string
+    rtoms?: Array<{id: string, name: string, mobileNumber: string}>
+  }
   province?: any
   provinceId?: string
   rtoms?: Array<{id: string, name: string, mobileNumber: string}>
   dgmName?: string
   counterCount?: number
+  officerCount?: number  // Add this field
   isActive?: boolean
+  _count?: {             // Add this field
+    officers: number
+  }
 }
 
 interface Region {
@@ -23,6 +33,16 @@ interface Region {
   managerMobile?: string
   gmId?: string
   gm?: any
+  provinces?: Array<{    // Add this field
+    id: string
+    name: string
+    dgm?: any
+  }>
+  _count?: {             // Add this field
+    rtoms?: number
+    teleshopManagers?: number
+    outlets?: number
+  }
 }
 
 interface Province {
@@ -269,7 +289,7 @@ const BranchesPage: React.FC = () => {
   const filteredOutlets = outlets.filter(o =>
     o.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     o.location.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    o.region?.name.toLowerCase().includes(searchTerm.toLowerCase())
+    (o.regionName || o.region?.name)?.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
   const filteredRegions = regions.filter(r =>
@@ -434,8 +454,10 @@ const BranchesPage: React.FC = () => {
                         </div>
                         
                         <div className="text-sm text-slate-600 space-y-1 mb-3">
-                          <div>Outlets: <span className="font-medium text-slate-800">{outlets.filter(o => o.region?.id === region.id).length}</span></div>
-                          <div>Provinces: <span className="font-medium text-slate-800">{provinces.filter(p => p.regionId === region.id).length}</span></div>
+                          <div>DGMs: <span className="font-medium text-slate-800">{region.provinces?.filter((p: any) => p.dgm).length || 0}</span></div>
+                          <div>RTOMs: <span className="font-medium text-slate-800">{region._count?.rtoms || 0}</span></div>
+                          <div>Teleshop Managers: <span className="font-medium text-slate-800">{region._count?.teleshopManagers || 0}</span></div>
+                          <div>CSO: <span className="font-medium text-slate-800">{outlets.filter(o => (o.regionId || o.region?.id) === region.id).reduce((sum, outlet) => sum + (outlet.officerCount || outlet._count?.officers || 0), 0)}</span></div>
                         </div>
 
                         <div className="flex gap-2 pt-3 border-t border-slate-200">

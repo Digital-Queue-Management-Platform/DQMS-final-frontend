@@ -5,7 +5,18 @@ import api from "../config/api"
 import BranchDashboardPage from "../admin/adminPages/BranchDashboardPage"
 import { LayoutDashboard, Users, Star, RefreshCw, Globe, MapPin, Building2, Eye, ArrowLeft, TrendingUp, TrendingDown } from "lucide-react"
 
-interface GMProfile { id: string; name: string; email?: string; mobileNumber: string; isActive: boolean; dgmCount: number; regionCount: number; outletCount: number }
+interface GMProfile { 
+    id: string; 
+    name: string; 
+    email?: string; 
+    mobileNumber: string; 
+    isActive: boolean; 
+    dgmCount: number; 
+    regionCount: number; 
+    outletCount: number;
+    regionId?: string;
+    regionName?: string;
+}
 
 export default function GMDashboard() {
     const navigate = useNavigate()
@@ -37,8 +48,15 @@ export default function GMDashboard() {
     const fetchBranchMetrics = async () => {
         setBranchLoading(true)
         try {
-            const res = await api.get('/queue/outlets')
-            const outlets = res.data || []
+            // Use GM-specific outlets endpoint (region-filtered)
+            const res = await api.get('/gm/outlets')
+            console.log('GM outlets response:', res.data)
+            const outlets = res.data?.outlets || []  // Handle {success: true, outlets: [...]} structure
+            
+            if (!Array.isArray(outlets)) {
+                console.error('Expected outlets array, got:', outlets)
+                throw new Error('Invalid outlets data structure')
+            }
             
             const start = new Date()
             const end = new Date()
@@ -54,30 +72,39 @@ export default function GMDashboard() {
                 start.setFullYear(start.getFullYear() - 1); start.setHours(0, 0, 0, 0)
             }
 
-            const metrics = await Promise.all(outlets.map(async (o: any) => {
-                try {
-                    const aRes = await api.get('/gm/analytics', { params: { outletId: o.id, startDate: start.toISOString(), endDate: end.toISOString() } })
-                    const a = aRes.data || {}
-                    const fb = a.feedbackStats || []
-                    const totalFb = fb.reduce((s: number, f: any) => s + (f.count || f._count || 0), 0)
-                    const avgR = totalFb > 0 ? fb.reduce((s: number, f: any) => s + (f.rating * (f.count || f._count || 0)), 0) / totalFb : 0
-                    
-                    return {
-                        id: o.id,
-                        name: o.name,
-                        region: o.region?.name || 'Unassigned',
-                        customersServed: a.totalTokens || 0,
-                        avgWaitingTime: a.avgWaitTime || 0,
-                        rating: Math.round(avgR * 10) / 10,
-                        trend: (a.avgWaitTime || 0) > 15 ? 'up' : 'down'
-                    }
-                } catch {
-                    return { id: o.id, name: o.name, region: o.region?.name || 'Unassigned', customersServed: 0, avgWaitingTime: 0, rating: 0, trend: 'down' }
-                }
+            // Get region-wide analytics once
+            const aRes = await api.get('/gm/analytics', { 
+                params: { 
+                    startDate: start.toISOString(), 
+                    endDate: end.toISOString()
+                } 
+            })
+            const a = aRes.data || {}
+            const fb = a.feedbackStats || []
+            const totalFb = fb.reduce((s: number, f: any) => s + (f.count || f._count || 0), 0)
+            const avgR = totalFb > 0 ? fb.reduce((s: number, f: any) => s + (f.rating * (f.count || f._count || 0)), 0) / totalFb : 0
+            
+            // Distribute region data across outlets
+            const metrics = outlets.map((o: any) => ({
+                id: o.id,
+                name: o.name,
+                region: o.region?.name || 'Unassigned',
+                customersServed: Math.floor((a.totalTokens || 0) / outlets.length), // Distribute region total
+                avgWaitingTime: a.avgWaitTime || 0,
+                rating: Math.round(avgR * 10) / 10,
+                trend: (a.avgWaitTime || 0) > 15 ? 'up' : 'down'
             }))
+            
+            console.log('GM Branch Metrics:', { 
+                totalTokens: a.totalTokens, 
+                avgWaitTime: a.avgWaitTime, 
+                rating: avgR,
+                outletsCount: outlets.length 
+            })
             setBranchData(metrics)
         } catch (err) {
             console.error("Failed to load branch metrics", err)
+            setBranchData([])  // Set empty array on error
         } finally { setBranchLoading(false) }
     }
 
@@ -87,6 +114,13 @@ export default function GMDashboard() {
             fetchBranchMetrics()
         }, 60000)
         return () => clearInterval(interval)
+    }, [])
+
+    // Refetch data when timeframe changes
+    useEffect(() => {
+        if (gm) {  // Only fetch if GM is loaded
+            fetchBranchMetrics()
+        }
     }, [timeframe])
 
     if (loading) return (
@@ -118,8 +152,8 @@ export default function GMDashboard() {
             {/* Stats */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
                 {[
-                    { label: "Scope", value: "Island-wide", icon: Globe, color: "bg-violet-100 text-violet-600" },
-                    { label: "Total Regions", value: gm.regionCount, icon: MapPin, color: "bg-blue-100 text-blue-600" },
+                    { label: "Scope", value: gm.regionName || "Region-wide", icon: MapPin, color: "bg-violet-100 text-violet-600" },
+                    { label: "Assigned Region", value: gm.regionName || "Not Assigned", icon: Globe, color: "bg-blue-100 text-blue-600" },
                     { label: "Total Outlets", value: gm.outletCount, icon: Building2, color: "bg-emerald-100 text-emerald-600" },
                     { label: "Your DGMs", value: gm.dgmCount, icon: Users, color: "bg-orange-100 text-orange-600" },
                 ].map((stat, i) => (

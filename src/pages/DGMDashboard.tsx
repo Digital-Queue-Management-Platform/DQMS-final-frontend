@@ -5,9 +5,27 @@ import api from "../config/api"
 import BranchDashboardPage from "../admin/adminPages/BranchDashboardPage"
 import { LayoutDashboard, Building2, Users, Star, RefreshCw, MapPin, Bell, Eye, ArrowLeft, TrendingUp, TrendingDown } from "lucide-react"
 
-interface Outlet { id: string; name: string; location: string; isActive: boolean; _count?: { officers: number } }
-interface DGMRegion { id: string; name: string; outlets: Outlet[] }
-interface DGMProfile { id: string; name: string; email?: string; mobileNumber: string; gmId: string; regionIds: string[]; regions: DGMRegion[] }
+interface Outlet { 
+    id: string; 
+    name: string; 
+    location: string; 
+    isActive: boolean; 
+    _count?: { officers: number; tokens: number };
+    region?: { name: string };
+}
+
+interface DGMProfile { 
+    id: string; 
+    name: string; 
+    email?: string; 
+    mobileNumber: string; 
+    gmId: string; 
+    provinceId?: string;
+    provinceName?: string;
+    outlets: Outlet[];
+    rtomCount: number;
+    outletCount: number;
+}
 
 export default function DGMDashboard() {
     const navigate = useNavigate()
@@ -39,8 +57,13 @@ export default function DGMDashboard() {
     const fetchBranchMetrics = async (profile: DGMProfile) => {
         setBranchLoading(true)
         try {
-            const outlets = profile.regions.flatMap(r => r.outlets.map(o => ({ ...o, regionName: r.name })))
-            if (outlets.length === 0) return
+            // Use outlets directly from DGM profile (province-based, no more nested regions)
+            const outlets = profile.outlets || []
+            if (outlets.length === 0) {
+                setBranchData([])
+                setBranchLoading(false)
+                return
+            }
 
             const start = new Date()
             const end = new Date()
@@ -67,14 +90,14 @@ export default function DGMDashboard() {
                     return {
                         id: o.id,
                         name: o.name,
-                        region: o.regionName,
+                        region: o.region?.name || profile.provinceName || 'Unassigned',
                         customersServed: a.totalTokens || 0,
                         avgWaitingTime: a.avgWaitTime || 0,
                         rating: Math.round(avgR * 10) / 10,
                         trend: (a.avgWaitTime || 0) > 15 ? 'up' : 'down'
                     }
                 } catch {
-                    return { id: o.id, name: o.name, region: o.regionName, customersServed: 0, avgWaitingTime: 0, rating: 0, trend: 'down' }
+                    return { id: o.id, name: o.name, region: o.region?.name || profile.provinceName || 'Unassigned', customersServed: 0, avgWaitingTime: 0, rating: 0, trend: 'down' }
                 }
             }))
             setBranchData(metrics)
@@ -91,7 +114,7 @@ export default function DGMDashboard() {
         return () => clearInterval(interval)
     }, [timeframe])
 
-    const totalOutlets = dgm?.regions.reduce((sum, r) => sum + r.outlets.length, 0) || 0
+    const totalOutlets = dgm?.outlets?.length || 0
 
     if (loading) return (
         <div className="min-h-screen flex items-center justify-center bg-slate-50">
@@ -122,9 +145,9 @@ export default function DGMDashboard() {
             {/* Stats */}
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-8">
                 {[
-                    { label: "Assigned Regions", value: dgm.regions.length, icon: MapPin, color: "bg-teal-100 text-teal-600" },
+                    { label: "Assigned Province", value: dgm.provinceName || "Not Assigned", icon: MapPin, color: "bg-teal-100 text-teal-600" },
                     { label: "Total Outlets", value: totalOutlets, icon: Building2, color: "bg-emerald-100 text-emerald-600" },
-                    { label: "My RTOMs", value: dgm.regions.length, icon: Users, color: "bg-orange-100 text-orange-600" },
+                    { label: "My RTOMs", value: dgm.rtomCount || 0, icon: Users, color: "bg-orange-100 text-orange-600" },
                 ].map((stat, i) => (
                     <motion.div key={stat.label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.07 }}
                         className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 hover:shadow-md transition-shadow">
@@ -225,23 +248,23 @@ export default function DGMDashboard() {
                 </div>
             </div>
 
-            {/* Regions & Outlets */}
-            <h2 className="text-xl font-semibold text-slate-800 mb-4">Your Regions</h2>
-            {dgm.regions.length === 0 && (
-                <div className="text-center py-12 bg-white rounded-2xl border border-dashed border-slate-200 text-slate-400">No regions assigned yet.</div>
+            {/* Province & Outlets */}
+            <h2 className="text-xl font-semibold text-slate-800 mb-4">Your Province</h2>
+            {!dgm.provinceName && (
+                <div className="text-center py-12 bg-white rounded-2xl border border-dashed border-slate-200 text-slate-400">No province assigned yet.</div>
             )}
-            <div className="space-y-4">
-                {dgm.regions.map((region, ri) => (
-                    <motion.div key={region.id} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 + ri * 0.05 }}
+            {dgm.provinceName && (
+                <div className="space-y-4">
+                    <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}
                         className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
                         <div className="flex items-center gap-3 mb-3">
                             <MapPin className="w-4 h-4 text-teal-500" />
-                            <p className="font-semibold text-slate-900">{region.name}</p>
-                            <span className="text-xs text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">{region.outlets.length} outlet{region.outlets.length !== 1 ? "s" : ""}</span>
+                            <p className="font-semibold text-slate-900">{dgm.provinceName}</p>
+                            <span className="text-xs text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">{totalOutlets} outlet{totalOutlets !== 1 ? "s" : ""}</span>
                         </div>
-                        {region.outlets.length > 0 && (
+                        {dgm.outlets && dgm.outlets.length > 0 && (
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                                {region.outlets.map(outlet => (
+                                {dgm.outlets.map(outlet => (
                                     <div key={outlet.id} className="flex items-center gap-2 bg-slate-50 rounded-xl p-2.5">
                                         <Building2 className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                                         <div className="min-w-0">
@@ -256,8 +279,8 @@ export default function DGMDashboard() {
                             </div>
                         )}
                     </motion.div>
-                ))}
-            </div>
+                </div>
+            )}
 
             {/* Drill-down Branch Dashboard */}
             {showBranchDashboard && (
