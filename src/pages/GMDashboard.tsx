@@ -5,7 +5,17 @@ import api from "../config/api"
 import BranchDashboardPage from "../admin/adminPages/BranchDashboardPage"
 import { LayoutDashboard, Users, Star, RefreshCw, Globe, MapPin, Building2, Eye, ArrowLeft, TrendingUp, TrendingDown } from "lucide-react"
 
-interface GMProfile { id: string; name: string; email?: string; mobileNumber: string; isActive: boolean; dgmCount: number; regionCount: number; outletCount: number }
+interface GMProfile { 
+  id: string; 
+  name: string; 
+  email?: string; 
+  mobileNumber: string; 
+  isActive: boolean; 
+  region?: { id: string; name: string }; 
+  dgmCount: number; 
+  regionCount: number; 
+  outletCount: number 
+}
 
 export default function GMDashboard() {
     const navigate = useNavigate()
@@ -25,6 +35,7 @@ export default function GMDashboard() {
         try {
             const token = localStorage.getItem("gmToken")
             const res = await api.get("/gm/me", { headers: { Authorization: `Bearer ${token}` } })
+            console.log("GM Profile Response:", res.data)
             setGM(res.data.gm)
             // Load branches metrics after profile
             fetchBranchMetrics()
@@ -37,8 +48,8 @@ export default function GMDashboard() {
     const fetchBranchMetrics = async () => {
         setBranchLoading(true)
         try {
-            const res = await api.get('/queue/outlets')
-            const outlets = res.data || []
+            const res = await api.get('/gm/outlets')
+            const outlets = res.data?.outlets || []
             
             const start = new Date()
             const end = new Date()
@@ -65,14 +76,14 @@ export default function GMDashboard() {
                     return {
                         id: o.id,
                         name: o.name,
-                        region: o.region?.name || 'Unassigned',
+                        region: o.regionName || 'Unassigned',
                         customersServed: a.totalTokens || 0,
                         avgWaitingTime: a.avgWaitTime || 0,
                         rating: Math.round(avgR * 10) / 10,
                         trend: (a.avgWaitTime || 0) > 15 ? 'up' : 'down'
                     }
                 } catch {
-                    return { id: o.id, name: o.name, region: o.region?.name || 'Unassigned', customersServed: 0, avgWaitingTime: 0, rating: 0, trend: 'down' }
+                    return { id: o.id, name: o.name, region: o.regionName || 'Unassigned', customersServed: 0, avgWaitingTime: 0, rating: 0, trend: 'down' }
                 }
             }))
             setBranchData(metrics)
@@ -118,7 +129,7 @@ export default function GMDashboard() {
             {/* Stats */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
                 {[
-                    { label: "Scope", value: "Island-wide", icon: Globe, color: "bg-violet-100 text-violet-600" },
+                    { label: "Scope", value: gm?.region?.name || "Not assigned", icon: Globe, color: "bg-violet-100 text-violet-600" },
                     { label: "Total Regions", value: gm.regionCount, icon: MapPin, color: "bg-blue-100 text-blue-600" },
                     { label: "Total Outlets", value: gm.outletCount, icon: Building2, color: "bg-emerald-100 text-emerald-600" },
                     { label: "Your DGMs", value: gm.dgmCount, icon: Users, color: "bg-orange-100 text-orange-600" },
