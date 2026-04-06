@@ -39,12 +39,12 @@ export default function GMClosureNotices() {
         try {
             const [noticesRes, outletsRes] = await Promise.all([
                 api.get("/gm/closure-notices", { headers: { Authorization: `Bearer ${token}` } }),
-                api.get("/queue/outlets")
+                api.get("/gm/outlets")
             ])
             setNotices(noticesRes.data.notices || [])
-            const allOutlets = (outletsRes.data || []).map((o: any) => ({
+            const allOutlets = (outletsRes.data?.outlets || []).map((o: any) => ({
                 id: o.id,
-                name: o.region ? `${o.name} (${o.region.name})` : o.name
+                name: o.regionName ? `${o.name} (${o.regionName})` : o.name
             }))
             setOutlets(allOutlets)
             setError("")

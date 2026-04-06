@@ -37,8 +37,8 @@ export default function GMDashboard() {
     const fetchBranchMetrics = async () => {
         setBranchLoading(true)
         try {
-            const res = await api.get('/queue/outlets')
-            const outlets = res.data || []
+            const res = await api.get('/gm/outlets')
+            const outlets = res.data?.outlets || []
             
             const start = new Date()
             const end = new Date()
@@ -65,14 +65,14 @@ export default function GMDashboard() {
                     return {
                         id: o.id,
                         name: o.name,
-                        region: o.region?.name || 'Unassigned',
+                        region: o.regionName || 'Unassigned',
                         customersServed: a.totalTokens || 0,
                         avgWaitingTime: a.avgWaitTime || 0,
                         rating: Math.round(avgR * 10) / 10,
                         trend: (a.avgWaitTime || 0) > 15 ? 'up' : 'down'
                     }
                 } catch {
-                    return { id: o.id, name: o.name, region: o.region?.name || 'Unassigned', customersServed: 0, avgWaitingTime: 0, rating: 0, trend: 'down' }
+                    return { id: o.id, name: o.name, region: o.regionName || 'Unassigned', customersServed: 0, avgWaitingTime: 0, rating: 0, trend: 'down' }
                 }
             }))
             setBranchData(metrics)
