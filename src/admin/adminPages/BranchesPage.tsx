@@ -9,7 +9,7 @@ interface Outlet {
   region?: any
   province?: any
   provinceId?: string
-  rtoms?: Array<{id: string, name: string, mobileNumber: string}>
+  assignedRtom?: {id: string, name: string, mobileNumber: string} | null
   dgmName?: string
   counterCount?: number
   isActive?: boolean
@@ -512,8 +512,8 @@ const BranchesPage: React.FC = () => {
                           ) : outlet.region && (
                             <div>Region: <span className="font-medium text-slate-800">{outlet.region.name}</span></div>
                           )}
-                          {outlet.rtoms && outlet.rtoms.length > 0 ? (
-                            <div>RTOM: <span className="font-medium text-slate-800">{outlet.rtoms[0].name}</span></div>
+                          {outlet.assignedRtom ? (
+                            <div>RTOM: <span className="font-medium text-slate-800">{outlet.assignedRtom.name}</span></div>
                           ) : (
                             <div>RTOM: <span className="font-medium text-orange-600">Not Assigned</span></div>
                           )}
