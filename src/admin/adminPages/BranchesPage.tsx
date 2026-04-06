@@ -434,7 +434,7 @@ const BranchesPage: React.FC = () => {
                         </div>
                         
                         <div className="text-sm text-slate-600 space-y-1 mb-3">
-                          <div>Outlets: <span className="font-medium text-slate-800">{outlets.filter(o => o.region?.id === region.id).length}</span></div>
+                          <div>Outlets: <span className="font-medium text-slate-800">{(region as any)._count?.outlets ?? outlets.filter(o => o.region?.id === region.id).length}</span></div>
                           <div>Provinces: <span className="font-medium text-slate-800">{provinces.filter(p => p.regionId === region.id).length}</span></div>
                         </div>
 
