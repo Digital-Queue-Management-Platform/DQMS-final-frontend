@@ -10,7 +10,7 @@ interface RTOM {
     isActive: boolean
     lastLoginAt?: string
     createdAt: string
-    teleshopManagers: { id: string; name: string; mobileNumber: string; isActive: boolean }[]
+    teleshopManagers: { id: string; name: string; mobileNumber: string; isActive: boolean; branchId: string | null }[]
 }
 
 interface Region {
@@ -20,7 +20,7 @@ interface Region {
     rtoms: RTOM[]
 }
 
-interface RTOMForm { regionId: string; name: string; mobileNumber: string; email: string }
+interface RTOMForm { regionId: string; name: string; mobileNumber: string; email: string; assignedOutletIds: string[] }
 interface RTOMCredentials { name: string; mobileNumber: string; email?: string; regionName: string }
 
 export default function DGMManageRTOMs() {
@@ -30,7 +30,7 @@ export default function DGMManageRTOMs() {
     const [success, setSuccess] = useState("")
     const [showForm, setShowForm] = useState(false)
     const [editingRTOM, setEditingRTOM] = useState<RTOM | null>(null)
-    const [form, setForm] = useState<RTOMForm>({ regionId: "", name: "", mobileNumber: "", email: "" })
+    const [form, setForm] = useState<RTOMForm>({ regionId: "", name: "", mobileNumber: "", email: "", assignedOutletIds: [] })
     const [submitting, setSubmitting] = useState(false)
     const [createdRTOM, setCreatedRTOM] = useState<RTOMCredentials | null>(null)
 
@@ -51,13 +51,24 @@ export default function DGMManageRTOMs() {
 
     const openCreate = (regionId: string) => {
         setEditingRTOM(null)
-        setForm({ regionId, name: "", mobileNumber: "", email: "" })
+        setForm({ regionId, name: "", mobileNumber: "", email: "", assignedOutletIds: [] })
         setShowForm(true); setError(""); setSuccess("")
     }
 
     const openEdit = (rtom: RTOM, regionId: string) => {
         setEditingRTOM(rtom)
-        setForm({ regionId, name: rtom.name, mobileNumber: rtom.mobileNumber, email: rtom.email || "" })
+        // Load existing outlet assignments from teleshopManagers
+        const assignedOutletIds = rtom.teleshopManagers
+            .map(manager => manager.branchId)
+            .filter(branchId => branchId !== null) as string[]
+        
+        setForm({ 
+            regionId, 
+            name: rtom.name, 
+            mobileNumber: rtom.mobileNumber, 
+            email: rtom.email || "", 
+            assignedOutletIds 
+        })
         setShowForm(true); setError(""); setSuccess("")
     }
 
@@ -70,7 +81,8 @@ export default function DGMManageRTOMs() {
                 await api.put(`/dgm/rtoms/${editingRTOM.id}`, { 
                     name: form.name, 
                     mobileNumber: form.mobileNumber, 
-                    email: form.email 
+                    email: form.email,
+                    assignedOutletIds: form.assignedOutletIds
                 }, { headers: { Authorization: `Bearer ${token}` } })
                 setSuccess("RTOM updated successfully")
                 setShowForm(false); fetchData()
@@ -133,6 +145,79 @@ export default function DGMManageRTOMs() {
                                 <input type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
                                     className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none" placeholder="e.g. suresh@slt.lk" />
                             </div>
+                            
+                            {/* Outlet Assignment Section */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Assign Outlets <span className="text-gray-400 font-normal">(teleshops this RTOM will manage)</span></label>
+                                <div className="border border-gray-300 rounded-lg p-3 max-h-40 overflow-y-auto">
+                                    {(() => {
+                                        const currentRegion = regions.find(r => r.id === form.regionId)
+                                        if (!currentRegion || currentRegion.outlets.length === 0) {
+                                            return <p className="text-sm text-gray-400 text-center py-2">No outlets available in this region</p>
+                                        }
+
+                                        // Get all outlets currently assigned to other RTOMs
+                                        const assignedOutletIds = new Set()
+                                        currentRegion.rtoms.forEach(rtom => {
+                                            // Skip current RTOM when editing
+                                            if (editingRTOM && rtom.id === editingRTOM.id) return
+                                            
+                                            rtom.teleshopManagers.forEach(manager => {
+                                                if (manager.branchId) {
+                                                    assignedOutletIds.add(manager.branchId)
+                                                }
+                                            })
+                                        })
+
+                                        // Filter outlets to show only available ones + currently assigned to this RTOM
+                                        const availableOutlets = currentRegion.outlets.filter(outlet => {
+                                            // Always show if it's currently assigned to this RTOM (for editing)
+                                            if (form.assignedOutletIds.includes(outlet.id)) return true
+                                            // Show if it's not assigned to any other RTOM
+                                            return !assignedOutletIds.has(outlet.id)
+                                        })
+
+                                        if (availableOutlets.length === 0) {
+                                            return <p className="text-sm text-amber-600 text-center py-2">All outlets in this region are already assigned to other RTOMs</p>
+                                        }
+
+                                        return (
+                                            <div className="space-y-2">
+                                                {availableOutlets.map(outlet => {
+                                                    const isAlreadyAssigned = assignedOutletIds.has(outlet.id)
+                                                    return (
+                                                        <label key={outlet.id} className="flex items-center gap-2 p-2 hover:bg-gray-50 rounded cursor-pointer">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={form.assignedOutletIds.includes(outlet.id)}
+                                                                onChange={(e) => {
+                                                                    if (e.target.checked) {
+                                                                        setForm(f => ({ ...f, assignedOutletIds: [...f.assignedOutletIds, outlet.id] }))
+                                                                    } else {
+                                                                        setForm(f => ({ ...f, assignedOutletIds: f.assignedOutletIds.filter(id => id !== outlet.id) }))
+                                                                    }
+                                                                }}
+                                                                className="rounded text-teal-600 focus:ring-teal-500"
+                                                            />
+                                                            <span className="text-sm text-gray-700">{outlet.name}</span>
+                                                            {!outlet.isActive && <span className="text-xs text-red-500">(Inactive)</span>}
+                                                            {isAlreadyAssigned && !form.assignedOutletIds.includes(outlet.id) && 
+                                                                <span className="text-xs text-amber-600">(Already assigned)</span>
+                                                            }
+                                                        </label>
+                                                    )
+                                                })}
+                                            </div>
+                                        )
+                                    })()}
+                                </div>
+                                {form.assignedOutletIds.length > 0 && (
+                                    <p className="text-xs text-gray-500 mt-1">
+                                        {form.assignedOutletIds.length} outlet{form.assignedOutletIds.length !== 1 ? 's' : ''} selected
+                                    </p>
+                                )}
+                            </div>
+                            
                             <div className="flex gap-3 justify-end pt-2">
                                 <button type="button" onClick={() => setShowForm(false)} className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800">Cancel</button>
                                 <button type="submit" disabled={submitting} className="px-5 py-2 bg-teal-600 text-white text-sm font-semibold rounded-lg hover:bg-teal-700 transition-colors disabled:opacity-50">
@@ -251,6 +336,26 @@ export default function DGMManageRTOMs() {
                                                     {rtom.email && ` • ${rtom.email}`}
                                                     {rtom.teleshopManagers.length > 0 && ` • ${rtom.teleshopManagers.length} manager${rtom.teleshopManagers.length !== 1 ? "s" : ""}`}
                                                 </p>
+                                                {/* Assigned Outlets */}
+                                                {(() => {
+                                                    const assignedOutletIds = rtom.teleshopManagers
+                                                        .map(manager => manager.branchId)
+                                                        .filter(branchId => branchId !== null)
+                                                    const assignedOutlets = region.outlets.filter(outlet => assignedOutletIds.includes(outlet.id))
+                                                    
+                                                    if (assignedOutlets.length > 0) {
+                                                        return (
+                                                            <p className="text-xs text-blue-600 mt-1">
+                                                                📍 Manages: {assignedOutlets.map(outlet => outlet.name).join(", ")}
+                                                            </p>
+                                                        )
+                                                    }
+                                                    return (
+                                                        <p className="text-xs text-gray-400 mt-1">
+                                                            📍 No outlets assigned
+                                                        </p>
+                                                    )
+                                                })()}
                                             </div>
                                             <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${rtom.isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
                                                 {rtom.isActive ? 'Active' : 'Inactive'}
