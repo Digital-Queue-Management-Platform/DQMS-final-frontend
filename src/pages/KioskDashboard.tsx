@@ -1072,10 +1072,7 @@ export default function KioskDashboard() {
                 </div>
 
                 <div className="text-left bg-slate-50 rounded-xl p-4 mb-6 space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Customer:</span>
-                    <span className="font-medium">{successToken.customerName}</span>
-                  </div>
+
                   <div className="flex justify-between items-start">
                     <span className="text-gray-600">Services:</span>
                     <div className="text-right">

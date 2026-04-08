@@ -8,7 +8,7 @@ import ServiceName from "../components/ServiceName"
 interface ServedToken {
   id: string
   tokenNumber: number
-  customerName: string
+
   customerMobile?: string | null
   assignedOfficerName?: string | null
   serviceNames: string[]
@@ -47,10 +47,7 @@ const TokenDetailContent = ({ t, caseDetails, loadingCase }: { t: ServedToken, c
             Customer Details
           </h4>
           <dl className="space-y-2 text-xs">
-            <div className="flex justify-between border-b border-slate-50 pb-1">
-              <dt className="font-medium text-gray-500">Name</dt>
-              <dd className="text-gray-900 font-semibold">{t.customerName || '-'}</dd>
-            </div>
+
             <div className="flex justify-between border-b border-slate-50 pb-1">
               <dt className="font-medium text-gray-500">Mobile</dt>
               <dd className="text-gray-900 font-semibold">{t.customerMobile || '-'}</dd>
@@ -358,7 +355,7 @@ export default function OfficerServedCustomers() {
         return {
           id: t.id,
           tokenNumber: t.tokenNumber,
-          customerName: t.customerName || 'Anonymous',
+
           customerMobile: t.customerMobile ?? null,
           assignedOfficerName: t.assignedOfficerName ?? null,
           serviceNames: Array.isArray(t.serviceNames) ? t.serviceNames : [],
@@ -412,7 +409,7 @@ export default function OfficerServedCustomers() {
     const q = appliedQuery.trim().toLowerCase()
     if (q) {
       data = data.filter(t =>
-        t.customerName.toLowerCase().includes(q) ||
+
         String(t.tokenNumber).includes(q) ||
         (t.refNumber || '').toLowerCase().includes(q) ||
         (t.serviceCaseStatus || '').toLowerCase().includes(q) ||
@@ -578,7 +575,7 @@ export default function OfficerServedCustomers() {
                 <thead className="bg-black border-b border-slate-200">
                   <tr>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wider">Token</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wider">Customer</th>
+
                     <th className="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wider">Ref No</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wider">Status</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wider">Services</th>
@@ -614,9 +611,7 @@ export default function OfficerServedCustomers() {
                             </span>
                           </div>
                         </td>
-                        <td className="px-4 py-3 whitespace-nowrap">
-                          <div className="text-sm font-medium text-gray-900">{t.customerName}</div>
-                        </td>
+
                         <td className="px-4 py-3">
                           <div className="text-xs text-gray-700 font-mono">{t.refNumber || '-'}</div>
                         </td>
@@ -688,7 +683,7 @@ export default function OfficerServedCustomers() {
                           {t.serviceCaseStatus || 'N/A'}
                         </span>
                       </div>
-                      <div className="text-sm font-bold text-gray-900">{t.customerName}</div>
+
                       <div className="text-xs text-gray-500">{t.completedAt ? new Date(t.completedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}</div>
                     </div>
                     <div className="flex items-center gap-4">

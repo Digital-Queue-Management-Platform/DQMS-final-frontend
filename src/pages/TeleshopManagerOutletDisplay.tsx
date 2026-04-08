@@ -31,6 +31,7 @@ export default function TeleshopManagerOutletDisplay() {
   const [autoSlide, setAutoSlide] = useState(true)
   const [playTone, setPlayTone] = useState(true)
   const [contentScale, setContentScale] = useState(100)
+  const [videoId, setVideoId] = useState("Iea84C32YHA")
   
   
   // Speaker Test State
@@ -146,6 +147,7 @@ export default function TeleshopManagerOutletDisplay() {
       autoSlide: autoSlide ? "1" : "0",
       playTone: playTone ? "1" : "0",
       scale: String(contentScale),
+      videoId: videoId
     })
     return `${window.location.origin}/display/outlet/${manager.branchId}?${params.toString()}`
   }, [manager?.branchId, refresh, next, services, counters, recent, autoSlide, playTone, contentScale])
@@ -255,6 +257,7 @@ export default function TeleshopManagerOutletDisplay() {
             autoSlide,
             playTone,
             contentScale,
+            videoId,
           }
         },
         { headers: { Authorization: `Bearer ${token}` } }
@@ -330,6 +333,18 @@ export default function TeleshopManagerOutletDisplay() {
                   value={next}
                   onChange={(e) => setNext(Math.max(3, Math.min(20, Number(e.target.value) || 8)))}
                   className="mt-1 w-full px-3 py-2 border border-slate-300 rounded-xl"
+                />
+              </label>
+
+              <label className="block md:col-span-2">
+                <span className="text-sm font-medium text-slate-700">YouTube Video ID</span>
+                <p className="text-[10px] text-slate-500 mb-1">Enter the characters after 'v=' in the YouTube URL (e.g. aqz-KE-BPKQ)</p>
+                <input
+                  type="text"
+                  value={videoId}
+                  onChange={(e) => setVideoId(e.target.value)}
+                  placeholder="Enter YouTube Video ID"
+                  className="mt-1 w-full px-3 py-2 border border-slate-300 rounded-xl font-mono text-sm focus:ring-2 focus:ring-sky-500 outline-none"
                 />
               </label>
             </div>

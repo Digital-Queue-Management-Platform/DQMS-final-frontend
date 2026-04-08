@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import logo from "../assets/logo.png"
 import { useParams, useSearchParams } from "react-router-dom"
-import { Clock3, Users, Ticket, Layers, AlertTriangle, Sparkles, CalendarDays, Coffee, Volume2, VolumeX } from "lucide-react"
+import { Ticket, AlertTriangle, Sparkles, Volume2, VolumeX } from "lucide-react"
 import api, { API_URL } from "../config/api"
 import { useWebSocket } from "../hooks/useWebSocket"
 import type { Token } from "../types"
@@ -14,24 +14,7 @@ type QueuePayload = {
   totalWaiting: number
 }
 
-type CounterRow = {
-  number: number | null
-  isStaffed: boolean
-  officer: {
-    id: string
-    name: string
-    status: "available" | "serving" | "on_break" | string
-    services?: string[]
-  } | null
-}
 
-type CalledRecord = {
-  id: string
-  tokenNumber: number
-  counterNumber?: number | null
-  calledAt?: string
-  serviceTypes?: string[]
-}
 
 const toInt = (value: string | null, fallback: number) => {
   if (!value) return fallback
@@ -45,35 +28,7 @@ const toBool = (value: string | null, fallback: boolean) => {
   return value === "1" || value === "true"
 }
 
-const MARQUEE_PIXELS_PER_SECOND = 70
 
-const useUniformMarqueeSpeed = (deps: unknown[]) => {
-  const trackRef = useRef<HTMLDivElement | null>(null)
-  const [duration, setDuration] = useState(40)
-
-  useEffect(() => {
-    const updateDuration = () => {
-      const track = trackRef.current
-      if (!track) return
-
-      const loopDistance = track.scrollWidth / 2
-      if (loopDistance <= 0) return
-
-      const nextDuration = Math.max(12, loopDistance / MARQUEE_PIXELS_PER_SECOND)
-      setDuration(nextDuration)
-    }
-
-    const raf = window.requestAnimationFrame(updateDuration)
-    window.addEventListener("resize", updateDuration)
-
-    return () => {
-      window.cancelAnimationFrame(raf)
-      window.removeEventListener("resize", updateDuration)
-    }
-  }, deps)
-
-  return { trackRef, duration }
-}
 
 export default function OutletQueueDisplay() {
   const { outletId } = useParams()
@@ -91,15 +46,14 @@ export default function OutletQueueDisplay() {
   }, [])
 
   const [refreshSeconds, setRefreshSeconds] = useState(() => Math.max(5, Math.min(60, toInt(query.get("refresh"), 10))))
-  const [nextLimit, setNextLimit] = useState(() => Math.max(3, Math.min(20, toInt(query.get("next"), 8))))
   const [showService, setShowService] = useState(() => toBool(query.get("services"), false))
-  const [showCounters, setShowCounters] = useState(() => toBool(query.get("counters"), false))
-  const [showRecent, setShowRecent] = useState(() => toBool(query.get("recent"), false))
-  const [autoSlide, setAutoSlide] = useState(() => toBool(query.get("autoSlide"), true))
   const [playTone, setPlayTone] = useState(() => toBool(query.get("playTone"), true))
 
   // Zoom scale state (%)
   const [zoomScale, setZoomScale] = useState(() => toInt(query.get("scale"), 100))
+
+  // YouTube Video ID
+  const [videoId, setVideoId] = useState(() => query.get("videoId") || "Iea84C32YHA") // More stable nature video resource
 
   // Voice Announcement State
   const [voiceEnabled, setVoiceEnabled] = useState(true)
@@ -125,51 +79,43 @@ export default function OutletQueueDisplay() {
   const audioContextRef = useRef<AudioContext | null>(null)
 
   const [queue, setQueue] = useState<QueuePayload | null>(null)
-  const [counters, setCounters] = useState<CounterRow[]>([])
   const [now, setNow] = useState(new Date())
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
   const [outletMeta, setOutletMeta] = useState<{ name: string; location: string } | null>(null)
   const [notice, setNotice] = useState<{ title: string; message: string } | null>(null)
-  const [recentCalled, setRecentCalled] = useState<CalledRecord[]>([])
 
   const fetchAll = async () => {
     if (!outletId) return
 
     try {
-      const [queueRes, counterRes, statusRes] = await Promise.all([
+      const [queueRes, statusRes] = await Promise.all([
         api.get(`/queue/outlet/${outletId}`),
-        api.get(`/queue/outlet/${outletId}/counters`),
         api.get(`/branch-status/${outletId}`),
       ])
 
       const queueData: any = queueRes.data
       setQueue(queueData)
-      setCounters(Array.isArray(counterRes.data) ? counterRes.data : [])
 
       // Update display settings from backend if available
       if (queueData.displaySettings) {
         const s = queueData.displaySettings
         if (s.refresh) setRefreshSeconds(Math.max(5, Math.min(60, Number(s.refresh))))
-        if (s.next) setNextLimit(Math.max(3, Math.min(20, Number(s.next))))
         if (s.services !== undefined) setShowService(!!s.services)
-        if (s.counters !== undefined) setShowCounters(!!s.counters)
-        if (s.recent !== undefined) setShowRecent(!!s.recent)
-        if (s.autoSlide !== undefined) setAutoSlide(!!s.autoSlide)
+
         if (s.playTone !== undefined) {
           const val = (s.playTone === "0" || s.playTone === 0 || s.playTone === false) ? false : true
           setPlayTone(val)
         }
         if (s.contentScale) setZoomScale(Number(s.contentScale))
+        if (s.videoId) setVideoId(s.videoId)
       }
 
       if (queueData.outletMeta) {
         setOutletMeta(queueData.outletMeta)
       }
 
-      if (queueData.recentlyCalled) {
-        setRecentCalled(queueData.recentlyCalled.slice(0, 30))
-      }
+
 
       const waiting = queueData.waiting || []
       const inService = queueData.inService || []
@@ -325,18 +271,15 @@ export default function OutletQueueDisplay() {
   })
 
   const servingByCounter = useMemo(() => {
-    const serving = (queue?.inService || []).slice()
+    const serving = (queue?.inService || []).slice(0, 4)
     return serving.sort((a, b) => (a.counterNumber || 999) - (b.counterNumber || 999))
   }, [queue])
 
   const upNext = useMemo(() => {
-    return (queue?.waiting || []).slice(0, nextLimit)
-  }, [queue, nextLimit])
+    return (queue?.waiting || []).slice(0, 6)
+  }, [queue])
 
-  const { trackRef: servingTrackRef, duration: servingDuration } = useUniformMarqueeSpeed([servingByCounter.length, showService, autoSlide])
-  const { trackRef: upNextTrackRef, duration: upNextDuration } = useUniformMarqueeSpeed([upNext.length, showService, autoSlide])
-  const { trackRef: recentTrackRef, duration: recentDuration } = useUniformMarqueeSpeed([recentCalled.length, autoSlide])
-  const { trackRef: counterTrackRef, duration: counterDuration } = useUniformMarqueeSpeed([counters.length, autoSlide])
+
 
   // Audio Context Management - ensures audio works after browser suspension
   const ensureAudioContextActive = async (): Promise<boolean> => {
@@ -706,60 +649,44 @@ export default function OutletQueueDisplay() {
   }
 
   return (
-    <div className={`h-screen bg-slate-50 text-slate-900 flex flex-col overflow-hidden select-none ${zoomScale > 150 ? 'gap-0' : ''}`}
+    <div className={`h-screen bg-[#f8fafc] text-slate-900 flex flex-col overflow-hidden select-none ${zoomScale > 150 ? 'gap-0' : ''}`}
       style={{
-        backgroundImage: "radial-gradient(circle at 20% 10%, rgba(16,185,129,0.08), transparent 35%), radial-gradient(circle at 80% 20%, rgba(59,130,246,0.08), transparent 40%)",
+        backgroundImage: "radial-gradient(circle at 10% 10%, rgba(0, 51, 102, 0.03), transparent 40%), radial-gradient(circle at 90% 90%, rgba(14, 165, 233, 0.05), transparent 40%)",
         fontSize: `${zoomScale}%`
       }}
     >
       <div
         className={`flex-1 flex flex-col max-w-screen-2xl mx-auto w-full overflow-hidden ${zoomScale > 150 ? 'p-1 sm:p-2' : 'p-2 sm:p-4 md:p-6 lg:p-8'}`}
       >
-        <header className="flex-shrink-0 grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-3 items-start 2xl:items-center mb-4 sm:mb-6">
-          <div>
-            <h1
-              className="font-extrabold tracking-tight leading-tight text-slate-900"
-              style={{ fontSize: `calc(clamp(1.6rem, 4vw, 2.25rem) * ${zoomScale / 100})` }}
-            >
-              {outletMeta?.name || "Outlet Queue Display"}
-            </h1>
-            <p className="text-slate-600 mt-1 text-sm md:text-base">{outletMeta?.location || "Customer queue information"}</p>
-          </div>
-
-          <div className="flex md:justify-end 2xl:justify-center">
-            <div className="inline-flex items-center gap-4 px-4 py-2 rounded-2xl border shadow-sm bg-white border-slate-200">
-              <span className="inline-flex items-center gap-2 text-slate-700">
-                <CalendarDays className="w-5 h-5 text-sky-400" />
-                <span className="font-semibold text-sm md:text-base">{now.toLocaleDateString()}</span>
-              </span>
-              <span className="inline-flex items-center gap-2 border-l pl-4 text-slate-700 border-slate-200">
-                <Clock3 className="w-5 h-5 text-emerald-400" />
-                <span className="font-semibold text-base sm:text-lg tabular-nums">{now.toLocaleTimeString()}</span>
-              </span>
+        <header className="flex-shrink-0 flex items-center justify-between mb-6 border-b-[4px] border-[#003366] pb-6 bg-white/50 backdrop-blur-sm -mx-8 px-8">
+          <div className="flex items-center gap-6">
+            <img src={logo} alt="SLT Logo" className="h-[100px] w-auto object-contain" />
+            <div>
+              <h1
+                className="font-bold tracking-tight leading-none text-[#1e1b4b] capitalize"
+                style={{ fontSize: `calc(clamp(3rem, 6vw, 5rem) * ${zoomScale / 100})` }}
+              >
+                {outletMeta?.name?.toLowerCase() || "Sri Lanka Telecom"}
+              </h1>
+              <p className="text-indigo-600 font-semibold uppercase tracking-[0.2em] text-lg mt-3 flex items-center gap-3">
+                <span className="w-6 h-0.5 bg-indigo-600 rounded-full" />
+                {outletMeta?.location || "Outlet Service Portal"}
+              </p>
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-2 md:col-span-2 2xl:col-span-1">
-            <div className="rounded-2xl border p-3 text-center bg-emerald-50 border-emerald-200">
-              <p className="text-[14px] font-black uppercase tracking-widest opacity-80 text-emerald-700">Waiting</p>
-              <p
-                className="font-black text-slate-900"
-                style={{ fontSize: `calc(1.5rem * ${zoomScale / 100})` }}
-              >{queue?.totalWaiting || 0}</p>
+          <div className="flex flex-col items-end gap-3">
+            <div className="flex items-center gap-2 bg-emerald-50 px-4 py-1.5 rounded-full border border-emerald-200 shadow-sm">
+              <div className="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
+              <span className="text-emerald-700 font-bold text-xs tracking-widest uppercase">Live Sync</span>
             </div>
-            <div className="rounded-2xl border p-3 text-center bg-sky-50 border-sky-200">
-              <p className="text-[14px] font-black uppercase tracking-widest opacity-80 text-sky-700">Serving</p>
-              <p
-                className="font-black text-slate-900"
-                style={{ fontSize: `calc(1.5rem * ${zoomScale / 100})` }}
-              >{queue?.inService?.length || 0}</p>
-            </div>
-            <div className="rounded-2xl border p-3 text-center bg-indigo-50 border-indigo-200">
-              <p className="text-[14px] font-black uppercase tracking-widest opacity-80 text-indigo-700">Counters</p>
-              <p
-                className="font-black text-slate-900"
-                style={{ fontSize: `calc(1.5rem * ${zoomScale / 100})` }}
-              >{queue?.availableOfficers || 0}</p>
+            <div className="bg-[#1e1b4b] text-white px-8 py-4 rounded-2xl shadow-xl flex flex-col items-center min-w-[320px] border border-white/10">
+              <div className="text-6xl font-bold tabular-nums tracking-tight mb-0.5">
+                {now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+              </div>
+              <div className="text-lg font-medium tracking-wide text-indigo-200">
+                {now.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
+              </div>
             </div>
           </div>
         </header>
@@ -781,295 +708,143 @@ export default function OutletQueueDisplay() {
             </div>
           )}
 
-          <div className={`flex-1 min-h-0 overflow-hidden ${(!showRecent && !showCounters) ? "flex flex-col gap-2 sm:gap-3" : "grid grid-cols-1 2xl:grid-cols-3 gap-2 sm:gap-3"}`}>
-            <section className={`${(!showRecent && !showCounters) ? "flex-1" : "2xl:col-span-2"} rounded-3xl border shadow-sm p-2 sm:p-4 flex flex-col min-h-0 bg-white border-slate-200 overflow-hidden`}>
-              <div className="flex items-center gap-2 mb-2 flex-shrink-0">
-                <Sparkles className="w-5 h-5 text-emerald-400" />
-                <h2 className="text-base sm:text-lg md:text-xl font-bold text-slate-900">Now Serving</h2>
+          <div className="flex-1 flex gap-8 min-h-0 overflow-hidden">
+            <section className="flex-[7] flex flex-col gap-6 overflow-hidden">
+              {/* Now Serving Strip (Top 60%) */}
+              <div className="flex-[6] bg-white rounded-[2.5rem] border-4 border-slate-100 shadow-xl overflow-hidden flex flex-col p-8">
+                <div className="flex items-center gap-4 mb-6 border-b border-slate-50 pb-4">
+                  <Sparkles className="w-10 h-10 text-indigo-500" />
+                  <h2 className="text-4xl font-bold text-slate-800 tracking-tight">Now Serving</h2>
+                </div>
+
+                {servingByCounter.length === 0 ? (
+                  <div className="flex-1 flex items-center justify-center bg-slate-50 rounded-2xl">
+                    <p className="text-3xl font-medium text-slate-400">No active tokens</p>
+                  </div>
+                ) : (
+                  <div className={`flex-1 grid gap-8 overflow-hidden ${
+                    servingByCounter.length === 1 ? 'grid-cols-1' :
+                    servingByCounter.length === 2 ? 'grid-cols-2' :
+                    'grid-cols-4'
+                  }`}>
+                    {servingByCounter.slice(0, 4).map((token) => (
+                      <div
+                        key={token.id}
+                        className="bg-gradient-to-br from-[#1e1b4b] to-[#312e81] rounded-3xl shadow-xl flex flex-col items-stretch overflow-hidden border border-white/5 animate-in zoom-in duration-500"
+                      >
+                        {/* Token Part */}
+                        <div className="flex-[6] flex flex-col items-center justify-center p-6 border-b border-white/5">
+                          <span className="text-indigo-300 text-sm font-semibold uppercase tracking-widest mb-1">Token</span>
+                          <span className="text-7xl lg:text-8xl font-black text-white tracking-tight drop-shadow-xl">
+                            {token.tokenNumber}
+                          </span>
+                        </div>
+                        
+                        {/* Counter Part */}
+                        <div className="flex-[4] bg-white/5 flex items-center justify-center p-4">
+                          <span className="text-3xl lg:text-4xl font-black text-yellow-400 uppercase tracking-tight">
+                            Counter {token.counterNumber ?? token.officer?.counterNumber ?? '0'}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
-              {servingByCounter.length === 0 ? (
-                <div className="rounded-2xl p-6 border bg-slate-50 border-slate-200 text-slate-600">
-                  No token is currently in service.
+              {/* YouTube Video Section (Bottom 40%) */}
+              <div className="flex-[4] bg-black rounded-[2.5rem] shadow-xl overflow-hidden border-4 border-slate-100 relative group">
+                <iframe
+                  src={`https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&loop=1&playlist=${videoId}&controls=0&modestbranding=1&showinfo=0&rel=0`}
+                  title="Promotion"
+                  className="absolute inset-0 w-full h-full object-cover"
+                  allow="autoplay; encrypted-media"
+                  allowFullScreen
+                />
+                <div className="absolute inset-0 pointer-events-none border-[12px] border-white/5 rounded-[2rem]"></div>
+              </div>
+            </section>
+
+            {/* Sidebar Up Next (Right 30%) */}
+            <aside className="flex-[3] bg-slate-900 rounded-[3rem] shadow-2xl overflow-hidden flex flex-col border-4 border-blue-900/30">
+              <div className="bg-blue-900/50 p-8 border-b border-white/10">
+                <div className="flex items-center gap-4">
+                  <Ticket className="w-10 h-10 text-indigo-300" />
+                  <h2 className="text-4xl font-bold text-white tracking-tight">Up Next</h2>
                 </div>
-              ) : (
-                <div className={`relative w-full ${!autoSlide ? 'overflow-x-auto custom-scrollbar' : 'overflow-hidden'}`}>
-                  <div
-                    ref={servingTrackRef}
-                    className={`flex gap-4 py-2 ${autoSlide ? 'animate-marquee whitespace-nowrap' : 'w-max flex-wrap'}`}
-                    style={autoSlide ? { animationDuration: `${servingDuration}s`, animationDelay: '0s' } : {}}
-                  >
-                    {(autoSlide
-                      ? (servingByCounter.length < 6
-                        ? [...servingByCounter, { id: 'spacer', isSpacer: true }, ...servingByCounter, { id: 'spacer-2', isSpacer: true }]
-                        : [...servingByCounter, ...servingByCounter])
-                      : servingByCounter
-                    ).map((token: any, idx) => token.isSpacer ? (
-                      <div key={`spacer-${idx}`} className="flex-shrink-0 w-[40vw]" />
-                    ) : (
+              </div>
+
+              <div className="flex-1 overflow-hidden p-6 space-y-4">
+                {upNext.length === 0 ? (
+                  <div className="h-full flex items-center justify-center text-slate-500 italic text-2xl">
+                    No pending tokens
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-4 h-full">
+                    {upNext.map((token, idx) => (
                       <div
-                        key={`${token.id}-${idx}`}
-                        className={`flex-shrink-0 w-[min(72vw,230px)] sm:min-w-[210px] rounded-xl border transition-colors bg-emerald-50 border-emerald-200 flex items-center justify-between shadow-sm ${zoomScale > 150 ? 'py-1 px-2' : 'py-2 px-3'}`}
+                        key={token.id}
+                        className={`p-6 rounded-[2rem] flex items-center justify-between border-2 transition-all h-[15%] min-h-[100px] ${
+                          idx === 0 ? 'bg-white border-sky-500 shadow-[0_0_30px_rgba(14,165,233,0.3)]' : 'bg-[#002244] border-white/10'
+                        }`}
                       >
-                        <div className="flex-1 flex flex-col justify-center min-w-0">
-                          <div className="flex items-center justify-between gap-2 mb-0.5 sm:mb-1">
-                            <p className="text-[16px] opacity-90 font-bold text-emerald-800 truncate">
-                              {token.counterNumber ? `Counter #${token.counterNumber}` : "Staff Station"}
-                            </p>
-                            {showService && token.serviceTypes?.length && (
-                              <div className="text-[11px] px-2 py-0.5 rounded-md border bg-white border-emerald-100 text-emerald-600 font-bold truncate max-w-[90px] sm:max-w-[110px]">
-                                <ServiceName serviceType={token.serviceTypes[0]} />
+                        <div className="flex items-center gap-8">
+                          <div className={`text-6xl font-bold tabular-nums ${idx === 0 ? 'text-[#1e1b4b]' : 'text-slate-100'}`}>
+                            {token.tokenNumber}
+                          </div>
+                          <div className="flex flex-col">
+                            <span className={`text-xl font-semibold tracking-wide ${idx === 0 ? 'text-slate-600' : 'text-slate-400'}`}>
+                              Queue Position: {idx + 1}
+                            </span>
+                            {showService && (
+                              <div className="mt-2 flex gap-2">
+                                {token.serviceTypes?.map(s => (
+                                  <span key={s} className={`${idx === 0 ? 'text-indigo-600' : 'text-indigo-400'} text-xl font-bold`}>
+                                    <ServiceName serviceType={s} />
+                                  </span>
+                                ))}
                               </div>
                             )}
                           </div>
-                          <p
-                            className={`font-black tracking-wider leading-tight text-slate-900`}
-                            style={{ fontSize: `calc(clamp(1.2rem, 8vw, 2.5rem) * ${zoomScale / 100})` }}
-                          >
-                            {String(token.tokenNumber).padStart(3, "0")}
-                          </p>
                         </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </section>
-
-            <section className={`${(!showRecent && !showCounters) ? "flex-1" : ""} rounded-3xl border shadow-sm p-2 sm:p-4 flex flex-col min-h-0 bg-white border-slate-200 overflow-hidden`}>
-              <div className="flex items-center gap-2 mb-2 flex-shrink-0">
-                <Ticket className="w-5 h-5 text-sky-400" />
-                <h2 className="text-base sm:text-lg md:text-xl font-bold text-slate-900">Up Next</h2>
-              </div>
-
-              {upNext.length === 0 && <p className={`text-slate-600 font-medium`}>No waiting tokens right now.</p>}
-
-              {upNext.length > 0 && (
-                <div className={`relative w-full ${!autoSlide ? 'overflow-x-auto custom-scrollbar' : 'overflow-hidden'}`}>
-                  <div
-                    ref={upNextTrackRef}
-                    className={`flex gap-4 whitespace-nowrap py-2 ${autoSlide ? 'animate-marquee' : 'w-max flex-wrap whitespace-normal'}`}
-                    style={autoSlide ? { animationDuration: `${upNextDuration}s`, animationDelay: '0s' } : {}}
-                  >
-                    {(autoSlide
-                      ? (upNext.length < 6
-                        ? [...upNext, { id: 'spacer', isSpacer: true }, ...upNext, { id: 'spacer-2', isSpacer: true }]
-                        : [...upNext, ...upNext])
-                      : upNext
-                    ).map((token: any, idx) => token.isSpacer ? (
-                      <div key={`spacer-${idx}`} className="flex-shrink-0 w-[40vw]" />
-                    ) : (
-                      <div
-                        key={`${token.id}-${idx}`}
-                        className={`flex-shrink-0 w-[min(72vw,230px)] sm:min-w-[210px] rounded-xl border flex items-center justify-between shadow-sm transition-colors bg-slate-50 border-slate-200 ${zoomScale > 150 ? 'py-1 px-2' : 'py-2 px-3'}`}
-                      >
-                        <div className="flex-1 flex flex-col justify-center min-w-0">
-                          <div className="flex items-center justify-between gap-2 mb-0.5 sm:mb-1">
-                            <p className="text-[14px] opacity-90 font-bold text-slate-700 truncate">Queue #{upNext.findIndex(t => t.id === token.id) + 1}</p>
-                            {showService && token.serviceTypes?.[0] && (
-                              <span className="text-[11px] px-2 py-0.5 rounded-md border bg-white border-sky-100 text-sky-600 font-bold truncate max-w-[90px] sm:max-w-[110px]">
-                                <ServiceName serviceType={token.serviceTypes[0]} />
-                              </span>
-                            )}
+                        {idx === 0 && (
+                          <div className="bg-indigo-600 text-white px-6 py-2 rounded-full font-bold text-sm tracking-wide animate-pulse">
+                            Please Prepare
                           </div>
-                          <p
-                            className={`font-black tracking-wider leading-tight text-slate-900`}
-                            style={{ fontSize: `calc(clamp(1.2rem, 8vw, 2.5rem) * ${zoomScale / 100})` }}
-                          >
-                            {String(token.tokenNumber).padStart(3, "0")}
-                          </p>
-                        </div>
+                        )}
                       </div>
                     ))}
                   </div>
+                )}
+              </div>
+              
+              {/* Compact High-Visibility Queue Stats */}
+              <div className="bg-white/5 p-6 border-t border-white/10 mt-auto">
+                <div className="grid grid-cols-3 gap-4">
+                  {/* Waiting Metric */}
+                  <div className="bg-indigo-600/20 rounded-2xl p-4 border border-indigo-500/20 flex flex-col items-center">
+                    <span className="text-indigo-300 text-xs font-semibold uppercase tracking-widest mb-1">Waiting</span>
+                    <span className="text-white text-4xl font-bold tracking-tight">{queue?.totalWaiting || 0}</span>
+                  </div>
+
+                  {/* Serving Metric */}
+                  <div className="bg-emerald-600/20 rounded-2xl p-4 border border-emerald-500/20 flex flex-col items-center">
+                    <span className="text-emerald-300 text-xs font-semibold uppercase tracking-widest mb-1">Serving</span>
+                    <span className="text-white text-4xl font-bold tracking-tight">{queue?.inService?.length || 0}</span>
+                  </div>
+
+                  {/* Counters Metric */}
+                  <div className="bg-blue-600/20 rounded-2xl p-4 border border-blue-500/20 flex flex-col items-center">
+                    <span className="text-blue-300 text-xs font-semibold uppercase tracking-widest mb-1">Counters</span>
+                    <span className="text-white text-4xl font-bold tracking-tight">{queue?.availableOfficers || 0}</span>
+                  </div>
                 </div>
-              )}
-            </section>
+              </div>
+            </aside>
           </div>
-
-          {(showRecent || showCounters) && (
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mt-6">
-              {showRecent && (
-                <section className="rounded-3xl border shadow-sm p-4 sm:p-6 overflow-hidden relative min-w-0 bg-white border-slate-200 text-slate-900">
-                  <div className="absolute top-0 right-0 p-8 opacity-[0.03] pointer-events-none">
-                    <Ticket className="w-32 h-32" />
-                  </div>
-                  <div className="flex items-center gap-2 mb-4">
-                    <div className="p-2 rounded-xl bg-indigo-50">
-                      <Layers className="w-5 h-5 text-indigo-600" />
-                    </div>
-                    <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-900">Recently Called</h2>
-                  </div>
-
-                  {recentCalled.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-8 opacity-40">
-                      <Ticket className={`w-12 h-12 mb-2 text-slate-300`} />
-                      <p className={`text-slate-600 font-medium`}>No recent calls yet.</p>
-                    </div>
-                  ) : (
-                    <div className={`relative w-full ${!autoSlide ? 'overflow-x-auto custom-scrollbar' : 'overflow-hidden'}`}>
-                      <div
-                        ref={recentTrackRef}
-                        className={`flex gap-4 whitespace-nowrap py-2 ${autoSlide ? 'animate-marquee' : 'w-max flex-wrap whitespace-normal'}`}
-                        style={autoSlide ? { animationDuration: `${recentDuration}s` } : {}}
-                      >
-                        {(autoSlide
-                          ? (recentCalled.length < 6
-                            ? [...recentCalled, { id: 'spacer', isSpacer: true }, ...recentCalled, { id: 'spacer-2', isSpacer: true }]
-                            : [...recentCalled, ...recentCalled])
-                          : recentCalled
-                        ).map((item: any, idx) => item.isSpacer ? (
-                          <div key={`spacer-${idx}`} className="flex-shrink-0 w-[50vw]" />
-                        ) : (
-                          <div
-                            key={`${item.id}-${idx}`}
-                            className="flex-shrink-0 w-[min(56vw,10rem)] sm:w-40 rounded-2xl p-3 border text-center transition-all duration-300 bg-indigo-50/50 border-indigo-100 hover:bg-white hover:shadow-xl hover:shadow-indigo-100/50"
-                          >
-                            <p
-                              className={`font-black tracking-wider drop-shadow-sm leading-tight text-slate-900`}
-                              style={{ fontSize: `calc(clamp(1.5rem, 10vw, 3rem) * ${zoomScale / 100})` }}
-                            >
-                              {String(item.tokenNumber).padStart(3, "0")}
-                            </p>
-                            <div className="flex items-center justify-center gap-1.5 mt-1.5">
-                              <p className="text-sm font-bold text-slate-600">
-                                {item.counterNumber ? `Counter #${item.counterNumber}` : "Staff Station"}
-                              </p>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </section>
-              )}
-
-              {showCounters && (
-                <section className="rounded-3xl border shadow-sm p-4 sm:p-6 overflow-hidden relative min-w-0 bg-white border-slate-200">
-                  <div className="absolute top-0 right-0 p-8 opacity-[0.03] pointer-events-none">
-                    <Users className="w-32 h-32" />
-                  </div>
-                  <div className="flex items-center gap-2 mb-4">
-                    <div className="p-2 rounded-xl bg-emerald-50">
-                      <Users className="w-5 h-5 text-emerald-600" />
-                    </div>
-                    <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-900">Counter Status</h2>
-                  </div>
-
-                  <div className={`relative w-full ${!autoSlide ? 'overflow-x-auto custom-scrollbar' : 'overflow-hidden'}`}>
-                    <div
-                      ref={counterTrackRef}
-                      className={`flex gap-4 whitespace-nowrap py-2 ${autoSlide ? 'animate-marquee' : 'w-max flex-wrap whitespace-normal'}`}
-                      style={autoSlide ? { animationDuration: `${counterDuration}s` } : {}}
-                    >
-                      {/* Filter and double the counters for seamless looping, using spacers for short lists */}
-                      {(() => {
-                        const activeCounters = counters.filter((c) => c.number !== null);
-                        const itemsToDisplay = autoSlide
-                          ? (activeCounters.length > 0 && activeCounters.length < 6)
-                            ? [...activeCounters, { id: 'spacer', isSpacer: true }, ...activeCounters, { id: 'spacer-2', isSpacer: true }]
-                            : [...activeCounters, ...activeCounters]
-                          : activeCounters;
-
-                        return itemsToDisplay.map((counter: any, idx) => {
-                          if (counter.isSpacer) return <div key={`spacer-${idx}`} className="flex-shrink-0 w-[50vw]" />;
-
-                          const status = counter.officer?.status;
-                          const isOffline = !counter.isStaffed || !status || status === 'offline';
-                          const isOnBreak = status === 'on_break' || status === 'break';
-                          const isServing = status === 'serving';
-                          const isOnline = status === 'available' || (counter.isStaffed && !isOffline && !isOnBreak && !isServing);
-
-                          return (
-                            <div
-                              key={`${String(counter.number)}-${idx}`}
-                              className={`flex-shrink-0 w-[min(86vw,16rem)] sm:w-64 group rounded-2xl p-3 sm:p-4 border-2 transition-all duration-300 flex items-center justify-between ${isOffline
-                                ? 'border-slate-100 bg-slate-50/50 grayscale-[0.5]'
-                                : isServing
-                                  ? 'border-sky-100 bg-sky-50 shadow-sm'
-                                  : isOnBreak
-                                    ? 'border-amber-100 bg-amber-50 shadow-sm'
-                                    : 'border-emerald-100 bg-emerald-50 shadow-sm'
-                                }`}
-                            >
-                              <div className="flex items-center gap-3">
-                                <div className={`w-14 h-14 rounded-xl flex items-center justify-center font-black text-3xl shadow-sm ${isOffline ? 'bg-slate-200 text-slate-500' :
-                                  isServing ? 'bg-sky-500 text-white' :
-                                    isOnBreak ? 'bg-amber-500 text-white' :
-                                      'bg-emerald-500 text-white'
-                                  }`}>
-                                  {counter.number}
-                                </div>
-                                <div className="text-left">
-                                  <p className={`font-bold text-lg leading-none ${isOffline ? 'text-slate-500' : 'text-slate-600'}`}>Counter #{counter.number}</p>
-                                  <div className="flex items-center gap-1.5 mt-1.5">
-                                    {isOffline ? (
-                                      <div className="flex items-center gap-1">
-                                        <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
-                                        <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">Offline</span>
-                                      </div>
-                                    ) : isServing ? (
-                                      <div className="flex items-center gap-1">
-                                        <span className="w-1.5 h-1.5 rounded-full bg-sky-500 animate-pulse" />
-                                        <span className="text-[10px] font-black uppercase tracking-wider text-sky-600">Now Serving</span>
-                                      </div>
-                                    ) : isOnBreak ? (
-                                      <div className="flex items-center gap-1">
-                                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-                                        <span className="text-[10px] font-black uppercase tracking-wider text-amber-600">On Break</span>
-                                      </div>
-                                    ) : isOnline ? (
-                                      <div className="flex items-center gap-1">
-                                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
-                                        <span className="text-[10px] font-black uppercase tracking-wider text-emerald-600">Online</span>
-                                      </div>
-                                    ) : null}
-                                  </div>
-                                </div>
-                              </div>
-
-                              {!isOffline && (
-                                <div className="w-8 h-8 rounded-full flex items-center justify-center bg-white shadow-sm">
-                                  {isServing ? <Sparkles className="w-4 h-4 text-sky-400" /> :
-                                    isOnBreak ? <Coffee className="w-4 h-4 text-amber-400" /> :
-                                      <div className="w-2 h-2 rounded-full bg-emerald-400" />}
-                                </div>
-                              )}
-                            </div>
-                          );
-                        });
-                      })()}
-                    </div>
-                  </div>
-                </section>
-              )}
-            </div>
-          )}
         </div>
 
-        <footer className="flex-shrink-0 mt-1 pt-1 border-t border-slate-200 bg-white/50">
-          {/* Centered content with left/right aligned logos - ultra compact */}
-          <div className="flex flex-col items-center justify-center">
-            {/* Grouped content with logos close to text */}
-            <div className="flex items-center justify-center space-x-3">
-              {/* Left: SLT Logo */}
-              <img src={logo} alt="SLT-Mobitel Logo" className="h-8 sm:h-10 lg:h-12 object-contain py-1" />
-              
-              {/* Center: Platform Title */}
-              <p className="text-sm sm:text-base font-bold leading-tight text-slate-800">
-                Digital Queue Management Platform
-              </p>
-              
-              {/* Right: Transzent Logo */}
-              <img src="/Transzent Logo.png" alt="Transzent Logo" className="h-10 sm:h-12 lg:h-14 object-contain py-1" />
-            </div>
-            
-            {/* Centered Copyright Text - aligned to same center as above */}
-            <p className="text-[11px] sm:text-xs text-slate-500 pb-1 -mt-1 text-center">
-              © 2026 SLT-Mobitel Digital Platforms Section
-            </p>
-          </div>
-        </footer>
+        {/* Footer Removed */}
       </div>
 
 
@@ -1152,23 +927,26 @@ export default function OutletQueueDisplay() {
           0% { transform: translateX(0); }
           100% { transform: translateX(-50%); }
         }
-        .animate-marquee:hover {
-          animation-play-state: paused;
+        .animate-marquee-slow {
+          animation: marquee-slow 30s linear infinite;
         }
-        .custom-scrollbar::-webkit-scrollbar {
-          height: 6px;
-          width: 6px;
+        @keyframes marquee-slow {
+          0% { transform: translateX(0); }
+          100% { transform: translateX(-100%); }
         }
-        .custom-scrollbar::-webkit-scrollbar-track {
-          background: rgba(0,0,0,0.05);
+        .custom-scrollbar-dark::-webkit-scrollbar {
+          width: 8px;
+        }
+        .custom-scrollbar-dark::-webkit-scrollbar-track {
+          background: rgba(255,255,255,0.05);
           border-radius: 10px;
         }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: rgba(0,0,0,0.2);
+        .custom-scrollbar-dark::-webkit-scrollbar-thumb {
+          background: rgba(255,255,255,0.1);
           border-radius: 10px;
         }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: rgba(0,0,0,0.3);
+        .custom-scrollbar-dark::-webkit-scrollbar-thumb:hover {
+          background: rgba(255,255,255,0.2);
         }
 
         /* Fallbacks for older Smart TV browsers (Chromium < 70) */

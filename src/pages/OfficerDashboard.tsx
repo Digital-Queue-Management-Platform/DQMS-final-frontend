@@ -22,7 +22,7 @@ export default function OfficerDashboard() {
   const [activeTab, setActiveTab] = useState<'served' | 'breaks' | 'feedback'>('served')
   const [servedSummary, setServedSummary] = useState<{ total: number; avgHandleMinutes: number; tokens: Token[] } | null>(null)
   const [breaksSummary, setBreaksSummary] = useState<{ totalBreaks: number; totalMinutes: number; breaks: any[]; activeBreak?: any } | null>(null)
-  const [feedbackSummary, setFeedbackSummary] = useState<{ total: number; avgRating: number; feedback: { tokenId: string; tokenNumber: number; rating: number; comment: string; customerName: string; createdAt: string }[] } | null>(null)
+  const [feedbackSummary, setFeedbackSummary] = useState<{ total: number; avgRating: number; feedback: { tokenId: string; tokenNumber: number; rating: number; comment: string; createdAt: string }[] } | null>(null)
   const [feedbackView, setFeedbackView] = useState<'list' | 'chart'>('list')
   const [breaksLimit, setBreaksLimit] = useState<number>(10)
   const [currentDateTime, setCurrentDateTime] = useState(new Date())
@@ -539,7 +539,7 @@ export default function OfficerDashboard() {
                           {t.tokenNumber}
                         </div>
                         <div className="min-w-0">
-                          <div className="font-bold text-slate-900 truncate">{t.customer.name}</div>
+                          <div className="font-bold text-slate-900 truncate">Token #{t.tokenNumber}</div>
                           <div className="text-xs text-slate-500">{t.customer.mobileNumber}</div>
                         </div>
                       </div>
@@ -655,11 +655,7 @@ export default function OfficerDashboard() {
                     <div key={f.tokenId} className="p-4 border border-slate-100 rounded-xl bg-slate-50/50">
                       <div className="flex flex-col sm:flex-row items-start justify-between gap-2">
                         <div className="min-w-0">
-                          <div className="font-bold text-gray-900 flex flex-wrap items-center gap-x-2">
                             <span>Token #{f.tokenNumber}</span>
-                            <span className="text-slate-400 font-normal hidden sm:inline">•</span>
-                            <span className="truncate">{f.customerName}</span>
-                          </div>
                           <div className="text-sm text-amber-500 flex items-center gap-0.5 mt-1">
                             {[...Array(5)].map((_, i) => (
                               <Star 

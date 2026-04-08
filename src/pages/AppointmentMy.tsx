@@ -213,7 +213,7 @@ export default function AppointmentMy() {
       cancelling: 'Cancelling…',
       cancelConfirm: 'Are you sure you want to cancel this appointment?',
       cancelSuccess: 'Appointment cancelled successfully',
-      customerName: 'Customer Name',
+
       mobileNumber: 'Mobile Number',
       inQueueNow: 'You\'re in the Queue!',
       tokenNumber: 'Token Number',
@@ -261,7 +261,7 @@ export default function AppointmentMy() {
       cancelling: 'අවලංගු කරමින්…',
       cancelConfirm: 'මෙම හමුව අවලංගු කිරීමට ඔබට විශ්වාසද?',
       cancelSuccess: 'හමුව සාර්ථකව අවලංගු කරන ලදී',
-      customerName: 'පාරිභෝගික නම',
+
       mobileNumber: 'ජංගම අංකය',
       inQueueNow: 'ඔබ පෝලිමේ සිටී!',
       tokenNumber: 'ටෝකන් අංකය',
@@ -309,7 +309,7 @@ export default function AppointmentMy() {
       cancelling: 'ரத்துசெய்கிறது…',
       cancelConfirm: 'இந்த சந்திப்பை ரத்து செய்ய விரும்புகிறீர்களா?',
       cancelSuccess: 'சந்திப்பு வெற்றிகரமாக ரத்து செய்யப்பட்டது',
-      customerName: 'வாடிக்கையாளர் பெயர்',
+
       mobileNumber: 'கைபேசி எண்',
       inQueueNow: 'நீங்கள் வரிசையில் உள்ளீர்கள்!',
       tokenNumber: 'டோக்கன் எண்',

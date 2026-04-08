@@ -23,7 +23,7 @@ export default function CustomerRegistration() {
   const [selectedOutlet, setSelectedOutlet] = useState(outletId || "")
 
   // Initialize all form fields to empty strings - NEVER use cached values
-  const [name, setName] = useState("")
+
   const [mobileNumber, setMobileNumber] = useState("")
   const [selectedService, setSelectedService] = useState<string>("")
   // Optional fields section toggle
@@ -83,7 +83,7 @@ export default function CustomerRegistration() {
   // Force clear all form fields whenever component mounts (every time page loads)
   const clearAllFormData = () => {
     console.log('clearAllFormData called - clearing selectedService from:', selectedService)
-    setName("")
+
     setMobileNumber("")
     setSelectedService("")
     setNicNumber("")
@@ -630,7 +630,7 @@ export default function CustomerRegistration() {
 
       // Log the request data for debugging
       const requestData = {
-        name: name.trim() || 'Customer',
+        name: 'Customer',
         mobileNumber,
         nicNumber: nicNumber || undefined,
         email: email || undefined,
@@ -720,7 +720,7 @@ export default function CustomerRegistration() {
 
   // Check if user can receive OTP (basic details only)
   const canReceiveOtp = () => {
-    return name.trim().length >= 2 && isValidMobile(mobileNumber)
+    return isValidMobile(mobileNumber)
   }
 
   // Check if user can proceed from Step 3 (including SLT for bill payment)
@@ -736,7 +736,7 @@ export default function CustomerRegistration() {
     en: {
       title: "Digital Queue Platform",
       subtitle: "Register to join the queue",
-      name: "Full Name",
+
       mobile: "Mobile Number",
       optionalDetails: "Optional details",
       outlet: "Outlet",

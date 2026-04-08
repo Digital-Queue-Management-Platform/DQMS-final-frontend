@@ -1,4 +1,4 @@
-﻿import React from "react"
+import React from "react"
 import { useSearchParams } from "react-router-dom"
 import { Search, Filter, RefreshCcw, ChevronDown, ChevronUp } from "lucide-react"
 import api from "../config/api"
@@ -7,7 +7,7 @@ import { AnimatedDropdown } from "../components/AnimatedDropdown"
 interface ServedToken {
   id: string
   tokenNumber: number
-  customerName: string
+
   customerMobile?: string | null
   assignedOfficerName?: string | null
   serviceNames: string[]
@@ -181,7 +181,7 @@ export default function TeleshopManagerServedCustomers() {
         return {
           id: t.id,
           tokenNumber: t.tokenNumber,
-          customerName: t.customerName || t.customer?.name || 'Anonymous',
+
           customerMobile: t.customerMobile || t.customer?.mobileNumber || null,
           assignedOfficerName: t.assignedOfficerName || t.officer?.name || null,
           serviceNames: t.serviceNames || (t.serviceTypes || []) || ['General Service'],
@@ -233,7 +233,7 @@ export default function TeleshopManagerServedCustomers() {
     const q = appliedQuery.trim().toLowerCase()
     if (q) {
       data = data.filter(t =>
-        t.customerName.toLowerCase().includes(q) ||
+
         String(t.tokenNumber).includes(q) ||
         (t.refNumber || '').toLowerCase().includes(q) ||
         (t.serviceCaseStatus || '').toLowerCase().includes(q) ||
@@ -414,7 +414,7 @@ export default function TeleshopManagerServedCustomers() {
               <thead className="bg-black/10 border-b border-slate-200">
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider">Token</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider">Customer</th>
+
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider">Ref No</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider">Status</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider">Services</th>
@@ -450,9 +450,7 @@ export default function TeleshopManagerServedCustomers() {
                           </span>
                         </div>
                       </td>
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        <div className="text-sm font-medium text-gray-900">{t.customerName}</div>
-                      </td>
+
                       <td className="px-4 py-3">
                         <div className="text-xs text-gray-700 font-mono">{t.refNumber || '-'}</div>
                       </td>
@@ -501,10 +499,7 @@ export default function TeleshopManagerServedCustomers() {
                                 <div>
                                   <h4 className="text-sm font-semibold text-gray-900 mb-2">Customer Details</h4>
                                   <dl className="space-y-1 text-xs">
-                                    <div className="flex gap-2">
-                                      <dt className="font-medium text-gray-600">Name:</dt>
-                                      <dd className="text-gray-900">{t.customerName || '-'}</dd>
-                                    </div>
+
                                     <div className="flex gap-2">
                                       <dt className="font-medium text-gray-600">Mobile:</dt>
                                       <dd className="text-gray-900">{t.customerMobile || '-'}</dd>
