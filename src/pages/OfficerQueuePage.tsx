@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { motion } from "framer-motion"
-import { User, Clock, Phone, FileText, Users, RefreshCwIcon, Calendar, AlertTriangle, CheckCircle2, CircleDashed, Banknote, CreditCard, Landmark, Volume2, Play, Star } from "lucide-react"
+import { Clock, Phone, FileText, Users, RefreshCwIcon, Calendar, AlertTriangle, CheckCircle2, Volume2, Play, Star } from "lucide-react"
 // OfficerTopBar is provided globally from Layout for officer routes
 import api, { WS_URL } from "../config/api"
 import type { Officer, Token } from "../types"
@@ -663,17 +663,7 @@ export default function OfficerQueuePage() {
 
                   {/* Customer Details Card */}
                   <div className="bg-slate-50 rounded-2xl p-4 mb-4 space-y-3">
-                    <div className="flex items-center gap-3 pb-3 border-b border-slate-200">
-                      <div className="w-8 h-8 bg-white rounded-xl border border-slate-200 flex items-center justify-center">
-                        <User className="w-4 h-4 text-gray-700" />
-                      </div>
-                      <div className="flex-1">
-                        <div className="text-xs text-gray-500">Customer Name</div>
-                        <div className="text-sm font-semibold text-gray-900">
-                          {currentToken.customer?.name || 'Name not available'}
-                        </div>
-                      </div>
-                    </div>
+                    {/* Customer Name hidden for privacy */}
 
                     <div className="flex items-center gap-3 pb-3 border-b border-slate-200">
                       <div className="w-8 h-8 bg-white rounded-xl border border-slate-200 flex items-center justify-center">
@@ -734,7 +724,7 @@ export default function OfficerQueuePage() {
                     )}
                   </div>
 
-                  {/* Bill Payment Info Card — shown when serving a bill payment customer */}
+                  {/* Bill Payment Info Card — show simplified SLT Number, Account Name, and Bill Status */}
                   {(currentToken.serviceTypes.includes('SVC002') || currentToken.serviceTypes.includes('BILL_PAYMENT')) && (
                     <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 mb-4">
                       <div className="flex items-center gap-2 mb-3">
@@ -742,296 +732,49 @@ export default function OfficerQueuePage() {
                         <h3 className="text-sm font-bold text-amber-900">Bill Payment Details</h3>
                       </div>
 
-                      {/* Multiple Bills Support */}
-                      {multipleBills.length > 0 ? (
-                        <>
-                          {/* Multiple SLT Accounts Display */}
-                          {multipleBills.map((bill, index) => (
-                            <div key={bill.telephoneNumber} className={`${index > 0 ? 'border-t border-amber-200 pt-3 mt-3' : ''}`}>
-                              <div className="flex justify-between items-center text-sm mb-2">
-                                <span className="text-gray-500 text-xs">SLT Number</span>
-                                <span className="font-mono font-semibold text-gray-800">{bill.telephoneNumber}</span>
-                              </div>
-                              
+                      <div className="space-y-3">
+                        {multipleBills.length > 0 ? (
+                          multipleBills.map((bill) => (
+                            <div key={bill.telephoneNumber} className="bg-white rounded-md p-2 border border-slate-200">
                               <div className="flex justify-between items-center mb-1">
-                                <span className="text-xs text-gray-500">Account Name</span>
+                                <span className="text-gray-500 text-[10px] uppercase font-bold tracking-wider">SLT Number</span>
+                                <span className="font-mono font-semibold text-gray-800 text-sm">{bill.telephoneNumber}</span>
+                              </div>
+                              <div className="flex justify-between items-center mb-1">
+                                <span className="text-gray-500 text-[10px] uppercase font-bold tracking-wider">Account Name</span>
                                 <span className="text-sm font-semibold text-gray-800">{bill.accountName}</span>
                               </div>
-                              
-                              <div className="flex justify-between items-center mb-2">
-                                <span className="text-xs text-gray-500">Due Amount</span>
-                                <span className="text-lg font-bold text-red-600">Rs. {bill.currentBill.toFixed(2)}</span>
-                              </div>
-                              
-                              <div className="flex justify-between items-center mb-2">
-                                <span className="text-xs text-gray-500">Bill Status</span>
-                                <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${bill.status === 'paid' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                              <div className="flex justify-between items-center">
+                                <span className="text-gray-500 text-[10px] uppercase font-bold tracking-wider">Bill Status</span>
+                                <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${bill.status === 'paid' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
                                   {bill.status.toUpperCase()}
                                 </span>
                               </div>
                             </div>
-                          ))}
-
-                          {/* Total Amount for Multiple Bills */}
-                          <div className="border-t border-amber-300 pt-3 mt-3 bg-amber-100 -mx-4 px-4 -mb-4 pb-4 rounded-b-2xl">
-                            <div className="flex justify-between items-center mb-2">
-                              <span className="text-sm font-bold text-amber-900">Total Due Amount</span>
-                              <span className="text-xl font-bold text-red-700">
-                                Rs. {multipleBills.reduce((sum, bill) => sum + bill.currentBill, 0).toFixed(2)}
+                          ))
+                        ) : billInfo ? (
+                          <div className="bg-white rounded-md p-2 border border-slate-200">
+                            <div className="flex justify-between items-center mb-1">
+                              <span className="text-gray-500 text-[10px] uppercase font-bold tracking-wider">SLT Number</span>
+                              <span className="font-mono font-semibold text-gray-800 text-sm">{currentToken.sltTelephoneNumber}</span>
+                            </div>
+                            <div className="flex justify-between items-center mb-1">
+                              <span className="text-gray-500 text-[10px] uppercase font-bold tracking-wider">Account Name</span>
+                              <span className="text-sm font-semibold text-gray-800">{billInfo.accountName}</span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <span className="text-gray-500 text-[10px] uppercase font-bold tracking-wider">Bill Status</span>
+                              <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${billInfo.status === 'paid' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
+                                {billInfo.status.toUpperCase()}
                               </span>
                             </div>
                           </div>
-
-                          {/* Customer Payment Intent for Multiple Bills */}
-                          <div className="border-t border-amber-200 pt-3 mt-1">
-                            <div className="text-xs text-gray-500 mb-2">Customer's Payment Plan</div>
-                            {currentToken.billPaymentIntent === 'full' ? (
-                              <>
-                                <div className="flex items-center gap-2 bg-green-100 text-green-800 px-3 py-2 rounded-xl mb-2">
-                                  <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
-                                  <span className="text-sm font-bold">Full Payment</span>
-                                  <span className="ml-auto text-sm font-bold">
-                                    Rs. {multipleBills.reduce((sum, bill) => sum + bill.currentBill, 0).toFixed(2)}
-                                  </span>
-                                </div>
-                                <div className="text-xs text-gray-600 space-y-1">
-                                  <div className="font-medium">Payment breakdown:</div>
-                                  {multipleBills.map((bill) => (
-                                    <div key={bill.telephoneNumber} className="flex justify-between">
-                                      <span>{bill.telephoneNumber}</span>
-                                      <span>Rs. {bill.currentBill.toFixed(2)}</span>
-                                    </div>
-                                  ))}
-                                </div>
-                              </>
-                            ) : currentToken.billPaymentIntent === 'partial' ? (
-                              <>
-                                <div className="flex items-center gap-2 bg-blue-100 text-blue-800 px-3 py-2 rounded-xl mb-2">
-                                  <CircleDashed className="w-4 h-4 flex-shrink-0" />
-                                  <span className="text-sm font-bold">Partial Payment</span>
-                                  <span className="ml-auto text-base font-bold">Rs. {(currentToken.billPaymentAmount ?? 0).toFixed(2)}</span>
-                                </div>
-                                
-                                {/* Enhanced: Show per-account payment details */}
-                                <div className="bg-blue-50 rounded-lg p-3 mb-2">
-                                  <div className="text-xs font-semibold text-blue-900 mb-2">Payment Distribution Details:</div>
-                                  {multipleBills.map((bill) => {
-                                    // Use actual customer-entered amounts if available, otherwise fall back to estimation
-                                    const customAmounts = currentToken.billPaymentCustomAmounts as Record<string, string> | null
-                                    const customerAmount = customAmounts ? parseFloat(customAmounts[bill.telephoneNumber] || '0') : null
-                                    
-                                    let actualPayment: number
-                                    let isEstimated = false
-                                    
-                                    if (customerAmount !== null && !isNaN(customerAmount)) {
-                                      // Use actual customer-entered amount
-                                      actualPayment = customerAmount
-                                    } else {
-                                      // Fallback to proportional estimation
-                                      const totalDue = multipleBills.reduce((sum, b) => sum + b.currentBill, 0)
-                                      const totalPayment = currentToken.billPaymentAmount ?? 0
-                                      actualPayment = totalDue > 0 ? (totalPayment * (bill.currentBill / totalDue)) : 0
-                                      isEstimated = true
-                                    }
-                                    
-                                    const remaining = Math.max(0, bill.currentBill - actualPayment)
-                                    
-                                    return (
-                                      <div key={bill.telephoneNumber} className="bg-white rounded-md p-2 mb-2 last:mb-0 border border-blue-200">
-                                        <div className="flex justify-between items-center mb-1">
-                                          <span className="font-semibold text-sm text-gray-900">{bill.telephoneNumber}</span>
-                                          <span className="text-xs text-gray-500">{bill.accountName}</span>
-                                        </div>
-                                        <div className="space-y-1 text-xs">
-                                          <div className="flex justify-between">
-                                            <span className="text-gray-600">Total Due:</span>
-                                            <span className="font-medium">Rs. {bill.currentBill.toFixed(2)}</span>
-                                          </div>
-                                          <div className="flex justify-between">
-                                            <span className="text-blue-700">Customer Payment:</span>
-                                            <span className="font-bold text-blue-700">
-                                              Rs. {actualPayment.toFixed(2)}
-                                              {isEstimated && <span className="text-xs opacity-75"> (est.)</span>}
-                                            </span>
-                                          </div>
-                                          <div className="flex justify-between">
-                                            <span className="text-orange-600">Remaining:</span>
-                                            <span className="font-medium text-orange-600">Rs. {remaining.toFixed(2)}</span>
-                                          </div>
-                                        </div>
-                                      </div>
-                                    )
-                                  })}
-                                  {/* Show note only if any amounts are estimated */}
-                                  {multipleBills.some(bill => {
-                                    const customAmounts = currentToken.billPaymentCustomAmounts as Record<string, string> | null
-                                    const customerAmount = customAmounts ? parseFloat(customAmounts[bill.telephoneNumber] || '0') : null
-                                    return customerAmount === null || isNaN(customerAmount)
-                                  }) && (
-                                    <div className="text-xs text-blue-600 mt-2 italic">
-                                      * Some payment amounts are estimated proportionally (marked with "est.")
-                                    </div>
-                                  )}
-                                </div>
-                              </>
-                            ) : (
-                              <div className="bg-gray-100 text-gray-500 px-3 py-2 rounded-xl text-sm italic">
-                                Customer did not specify payment amount
-                              </div>
-                            )}
-                            
-                            {/* Summary for partial payment */}
-                            {currentToken.billPaymentIntent === 'partial' && (
-                              <div className="bg-orange-50 border border-orange-200 rounded-lg p-2">
-                                <div className="flex justify-between items-center text-sm">
-                                  <span className="flex items-center gap-1 text-orange-700 font-medium">
-                                    <AlertTriangle className="w-3 h-3" />
-                                    Total Remaining:
-                                  </span>
-                                  <span className="font-bold text-orange-700">
-                                    Rs. {Math.max(0, multipleBills.reduce((sum, bill) => sum + bill.currentBill, 0) - (currentToken.billPaymentAmount ?? 0)).toFixed(2)}
-                                  </span>
-                                </div>
-                              </div>
-                            )}
-                            
-                            {currentToken.billPaymentMethod && (
-                              <div className="mt-2 flex items-center gap-2 bg-slate-100 text-slate-700 px-3 py-2 rounded-xl">
-                                {currentToken.billPaymentMethod === 'cash' ? <Banknote className="w-4 h-4" /> :
-                                 currentToken.billPaymentMethod === 'card' ? <CreditCard className="w-4 h-4" /> :
-                                 currentToken.billPaymentMethod === 'cheque' ? <FileText className="w-4 h-4" /> :
-                                 <Landmark className="w-4 h-4" />}
-                                <span className="text-xs text-gray-500">Payment Method</span>
-                                <span className="ml-auto text-sm font-semibold capitalize">
-                                  {currentToken.billPaymentMethod === 'bank_transfer' ? 'Bank Transfer' : currentToken.billPaymentMethod.charAt(0).toUpperCase() + currentToken.billPaymentMethod.slice(1)}
-                                </span>
-                              </div>
-                            )}
-                          </div>
-                        </>
-                      ) : (
-                        <>
-                          {/* Legacy Single Bill Support */}
-                          {currentToken.sltTelephoneNumber && (
-                            <div className="flex justify-between items-center text-sm mb-2">
-                              <span className="text-gray-500 text-xs">SLT Number</span>
-                              <span className="font-mono font-semibold text-gray-800">{currentToken.sltTelephoneNumber}</span>
-                            </div>
-                          )}
-
-                          {/* Bill Due Amount from DB */}
-                          {billInfo ? (
-                            <>
-                              <div className="flex justify-between items-center mb-1">
-                                <span className="text-xs text-gray-500">Account Name</span>
-                                <span className="text-sm font-semibold text-gray-800">{billInfo.accountName}</span>
-                              </div>
-                              <div className="flex justify-between items-center mb-2">
-                                <span className="text-xs text-gray-500">Due Amount</span>
-                                <span className="text-lg font-bold text-red-600">Rs. {billInfo.currentBill.toFixed(2)}</span>
-                              </div>
-                              <div className="flex justify-between items-center mb-3">
-                                <span className="text-xs text-gray-500">Bill Status</span>
-                                <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${billInfo.status === 'paid' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                                  {billInfo.status.toUpperCase()}
-                                </span>
-                              </div>
-                            </>
-                          ) : currentToken.sltTelephoneNumber ? (
-                            <p className="text-xs text-amber-700 italic mb-2">Fetching bill details...</p>
-                          ) : null}
-
-                          {/* Customer Payment Intent for Single Bill */}
-                          <div className="border-t border-amber-200 pt-3 mt-1">
-                            <div className="text-xs text-gray-500 mb-2">Customer's Payment Plan</div>
-                            {currentToken.billPaymentIntent === 'full' ? (
-                              <>
-                                <div className="flex items-center gap-2 bg-green-100 text-green-800 px-3 py-2 rounded-xl mb-2">
-                                  <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
-                                  <span className="text-sm font-bold">Full Payment</span>
-                                  {billInfo && (
-                                    <span className="ml-auto text-sm font-bold">Rs. {billInfo.currentBill.toFixed(2)}</span>
-                                  )}
-                                </div>
-                                {billInfo && (
-                                  <div className="text-xs text-gray-600 bg-green-50 rounded p-2">
-                                    <div className="flex justify-between">
-                                      <span>Account: {billInfo.accountName}</span>
-                                      <span>Complete payment for full amount due</span>
-                                    </div>
-                                  </div>
-                                )}
-                              </>
-                            ) : currentToken.billPaymentIntent === 'partial' ? (
-                              <>
-                                <div className="flex items-center gap-2 bg-blue-100 text-blue-800 px-3 py-2 rounded-xl mb-2">
-                                  <CircleDashed className="w-4 h-4 flex-shrink-0" />
-                                  <span className="text-sm font-bold">Partial Payment</span>
-                                  <span className="ml-auto text-base font-bold">Rs. {(currentToken.billPaymentAmount ?? 0).toFixed(2)}</span>
-                                </div>
-                                
-                                {billInfo && (
-                                  <div className="bg-blue-50 rounded-lg p-3 mb-2">
-                                    <div className="text-xs font-semibold text-blue-900 mb-2">Payment Details:</div>
-                                    <div className="bg-white rounded-md p-2 border border-blue-200">
-                                      <div className="flex justify-between items-center mb-1">
-                                        <span className="font-semibold text-sm text-gray-900">{currentToken.sltTelephoneNumber}</span>
-                                        <span className="text-xs text-gray-500">{billInfo.accountName}</span>
-                                      </div>
-                                      <div className="space-y-1 text-xs">
-                                        <div className="flex justify-between">
-                                          <span className="text-gray-600">Total Due:</span>
-                                          <span className="font-medium">Rs. {billInfo.currentBill.toFixed(2)}</span>
-                                        </div>
-                                        <div className="flex justify-between">
-                                          <span className="text-blue-700">Customer Payment:</span>
-                                          <span className="font-bold text-blue-700">Rs. {(currentToken.billPaymentAmount ?? 0).toFixed(2)}</span>
-                                        </div>
-                                        <div className="flex justify-between">
-                                          <span className="text-orange-600">Remaining:</span>
-                                          <span className="font-medium text-orange-600">Rs. {Math.max(0, billInfo.currentBill - (currentToken.billPaymentAmount ?? 0)).toFixed(2)}</span>
-                                        </div>
-                                      </div>
-                                    </div>
-                                  </div>
-                                )}
-                              </>
-                            ) : (
-                              <div className="bg-gray-100 text-gray-500 px-3 py-2 rounded-xl text-sm italic">
-                                Customer did not specify payment amount
-                              </div>
-                            )}
-                            
-                            {/* Summary for partial payment */}
-                            {currentToken.billPaymentIntent === 'partial' && billInfo && (
-                              <div className="bg-orange-50 border border-orange-200 rounded-lg p-2">
-                                <div className="flex justify-between items-center text-sm">
-                                  <span className="flex items-center gap-1 text-orange-700 font-medium">
-                                    <AlertTriangle className="w-3 h-3" />
-                                    Remaining Balance:
-                                  </span>
-                                  <span className="font-bold text-orange-700">
-                                    Rs. {Math.max(0, billInfo.currentBill - (currentToken.billPaymentAmount ?? 0)).toFixed(2)}
-                                  </span>
-                                </div>
-                              </div>
-                            )}
-                            
-                            {currentToken.billPaymentMethod && (
-                              <div className="mt-2 flex items-center gap-2 bg-slate-100 text-slate-700 px-3 py-2 rounded-xl">
-                                {currentToken.billPaymentMethod === 'cash' ? <Banknote className="w-4 h-4" /> :
-                                 currentToken.billPaymentMethod === 'card' ? <CreditCard className="w-4 h-4" /> :
-                                 currentToken.billPaymentMethod === 'cheque' ? <FileText className="w-4 h-4" /> :
-                                 <Landmark className="w-4 h-4" />}
-                                <span className="text-xs text-gray-500">Payment Method</span>
-                                <span className="ml-auto text-sm font-semibold capitalize">
-                                  {currentToken.billPaymentMethod === 'bank_transfer' ? 'Bank Transfer' : currentToken.billPaymentMethod.charAt(0).toUpperCase() + currentToken.billPaymentMethod.slice(1)}
-                                </span>
-                              </div>
-                            )}
-                          </div>
-                        </>
-                      )}
+                        ) : currentToken.sltTelephoneNumber ? (
+                          <p className="text-xs text-amber-700 italic">Fetching bill details...</p>
+                        ) : (
+                          <p className="text-xs text-gray-500 italic">No bill details available</p>
+                        )}
+                      </div>
                     </div>
                   )}
 
@@ -1157,13 +900,12 @@ export default function OfficerQueuePage() {
                 ) : (
                   <>
                     {/* Table Head */}
-                    <div className="hidden lg:grid grid-cols-12 gap-4 px-4 py-2.5 bg-slate-800 border-b text-xs font-semibold text-slate-200 rounded-xl tracking-wide mb-3 uppercase">
-                      <div className="col-span-1">No</div>
-                      <div className={showServiceTypeInQueue ? "col-span-2" : "col-span-3"}>Customer</div>
-                      {showServiceTypeInQueue && <div className="col-span-2">Service</div>}
-                      <div className="col-span-2">Wait Time</div>
+                    <div className="hidden lg:grid grid-cols-12 gap-4 px-4 py-2.5 bg-slate-800 border-b text-xs font-semibold text-slate-200 rounded-xl tracking-wide mb-3 uppercase text-center">
+                      <div className="col-span-2 text-left">No</div>
+                      {showServiceTypeInQueue && <div className="col-span-3 text-left">Service</div>}
+                      <div className={showServiceTypeInQueue ? "col-span-2" : "col-span-5"}>Wait Time</div>
                       <div className="col-span-2">Status</div>
-                      <div className="col-span-2">Action</div>
+                      <div className="col-span-3 text-right">Action</div>
                     </div>
 
                     <div className="space-y-3">
@@ -1174,27 +916,17 @@ export default function OfficerQueuePage() {
                         return (
                           <div key={t.id} className={`lg:grid lg:grid-cols-12 flex flex-col gap-4 px-4 py-4 hover:bg-slate-50 transition-colors border rounded-xl ${isSkipped ? 'bg-orange-50/50 border-orange-100' : isPriority ? 'bg-yellow-50/50 border-yellow-200' : 'bg-white border-slate-100 shadow-sm'}`}>
                             {/* Mobile Layout Headers are shown through labels or flex items */}
-                            <div className="lg:col-span-1 flex items-center justify-between lg:justify-start gap-2">
+                            <div className="lg:col-span-2 flex items-center justify-between lg:justify-start gap-2">
                               <span className="lg:hidden text-[10px] font-bold text-slate-400 uppercase">Token</span>
-                              <span className={`inline-flex items-center px-2 py-1 rounded-lg text-sm font-bold ${isPriority ? 'bg-yellow-100 text-yellow-800 ring-1 ring-yellow-200' : 'bg-slate-100 text-slate-700 border border-slate-200'}`}>
+                              <span className={`inline-flex items-center px-3 py-1.5 rounded-lg text-sm font-black ${isPriority ? 'bg-yellow-100 text-yellow-800 ring-1 ring-yellow-200' : 'bg-slate-100 text-slate-700 border border-slate-200'}`}>
                                 {t.tokenNumber} {isPriority && '★'}
                               </span>
                             </div>
                             
-                            <div className={`${showServiceTypeInQueue ? "lg:col-span-2" : "lg:col-span-3"} flex items-center justify-between lg:justify-start gap-2`}>
-                              <span className="lg:hidden text-[10px] font-bold text-slate-400 uppercase">Customer</span>
-                              <div className="flex flex-col min-w-0">
-                                <span className={`font-bold truncate ${isSkipped ? 'text-slate-400' : 'text-slate-900'}`}>{t.customer.name}</span>
-                                {(t as any)?.fromAppointment && (
-                                  <span className="text-[10px] font-bold text-indigo-600 flex items-center gap-1 mt-0.5">
-                                    <Calendar className="w-3 h-3" /> Appointment
-                                  </span>
-                                )}
-                              </div>
-                            </div>
+                            {/* Customer column removed for privacy */}
 
                             {showServiceTypeInQueue && (
-                              <div className="lg:col-span-2 flex items-center justify-between lg:justify-start gap-2">
+                              <div className="lg:col-span-3 flex items-center justify-between lg:justify-start gap-2">
                                 <span className="lg:hidden text-[10px] font-bold text-slate-400 uppercase">Service</span>
                                 {Array.isArray(t.serviceTypes) && t.serviceTypes.length > 0 ? (
                                   <div className="flex flex-wrap gap-1">
@@ -1210,7 +942,7 @@ export default function OfficerQueuePage() {
                               </div>
                             )}
 
-                            <div className="lg:col-span-2 flex items-center justify-between lg:justify-start gap-2">
+                            <div className={`${showServiceTypeInQueue ? "lg:col-span-2" : "lg:col-span-5"} flex items-center justify-between lg:justify-center gap-2`}>
                               <span className="lg:hidden text-[10px] font-bold text-slate-400 uppercase">Wait Time</span>
                               <div className="flex items-center gap-1.5 text-xs font-bold text-slate-600 bg-slate-100/50 px-2 py-1 rounded-lg">
                                 <Clock className="w-3 h-3 text-slate-400" />
@@ -1218,7 +950,7 @@ export default function OfficerQueuePage() {
                               </div>
                             </div>
 
-                            <div className="lg:col-span-2 flex items-center justify-between lg:justify-start gap-2">
+                            <div className="lg:col-span-2 flex items-center justify-between lg:justify-center gap-2">
                               <span className="lg:hidden text-[10px] font-bold text-slate-400 uppercase">Status</span>
                               <span className={`inline-flex items-center px-2 py-1 rounded-lg text-[10px] font-bold uppercase ${isSkipped
                                 ? 'bg-orange-100 text-orange-800'
@@ -1228,7 +960,7 @@ export default function OfficerQueuePage() {
                               </span>
                             </div>
 
-                            <div className="lg:col-span-2 flex items-center justify-between lg:justify-end gap-2 mt-2 lg:mt-0 pt-3 lg:pt-0 border-t lg:border-t-0 border-slate-100">
+                            <div className="lg:col-span-3 flex items-center justify-between lg:justify-end gap-2 mt-2 lg:mt-0 pt-3 lg:pt-0 border-t lg:border-t-0 border-slate-100">
                               <span className="lg:hidden text-[10px] font-bold text-slate-400 uppercase">Actions</span>
                               <div className="flex gap-2">
                                 {isSkipped ? (
@@ -1288,11 +1020,10 @@ export default function OfficerQueuePage() {
                     
                     <div className="hidden lg:grid grid-cols-12 gap-4 px-4 py-2.5 bg-indigo-900 border-b text-xs font-semibold text-white rounded-xl mb-3 tracking-wide uppercase">
                       <div className="col-span-2">Token</div>
-                      <div className="col-span-2">Customer</div>
-                      <div className="col-span-2">Service</div>
+                      <div className="col-span-3">Service</div>
                       <div className="col-span-2">Total Wait</div>
-                      <div className="col-span-2">Origin</div>
-                      <div className="col-span-2">Action</div>
+                      <div className="col-span-3">Origin</div>
+                      <div className="col-span-2 text-right">Action</div>
                     </div>
 
                     <div className="space-y-3">
@@ -1311,12 +1042,9 @@ export default function OfficerQueuePage() {
                               </span>
                             </div>
 
-                            <div className="lg:col-span-2 flex items-center justify-between lg:justify-start gap-2">
-                              <span className="lg:hidden text-[10px] font-bold text-slate-400 uppercase">Customer</span>
-                              <span className="font-bold text-slate-900 truncate">{t.customer.name}</span>
-                            </div>
+                            {/* Customer column removed for privacy */}
 
-                            <div className="lg:col-span-2 flex items-center justify-between lg:justify-start gap-2">
+                            <div className="lg:col-span-3 flex items-center justify-between lg:justify-start gap-2">
                               <span className="lg:hidden text-[10px] font-bold text-slate-400 uppercase">Services</span>
                               <div className="flex flex-wrap gap-1">
                                 {t.serviceTypes.map((stype: string) => (
@@ -1334,7 +1062,7 @@ export default function OfficerQueuePage() {
                               </div>
                             </div>
 
-                            <div className="lg:col-span-2 flex items-center justify-between lg:justify-start gap-2">
+                            <div className="lg:col-span-3 flex items-center justify-between lg:justify-start gap-2">
                               <span className="lg:hidden text-[10px] font-bold text-slate-400 uppercase">Origin</span>
                               {(t as any).counterNumber ? (
                                 <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded-lg">
@@ -1396,13 +1124,12 @@ export default function OfficerQueuePage() {
                 ) : (
                   <>
                     {/* Table Header */}
-                    <div className="hidden lg:grid grid-cols-12 gap-4 px-4 py-2.5 bg-slate-800 border-b text-xs font-semibold text-slate-200 rounded-xl tracking-wide mb-3 uppercase">
-                      <div className="col-span-2">Token</div>
-                      <div className="col-span-2">Customer</div>
-                      <div className="col-span-2">Service</div>
+                    <div className="hidden lg:grid grid-cols-12 gap-4 px-4 py-2.5 bg-slate-800 border-b text-xs font-semibold text-slate-200 rounded-xl tracking-wide mb-3 uppercase text-center">
+                      <div className="col-span-2 text-left">Token</div>
+                      <div className="col-span-3 text-left">Service</div>
                       <div className="col-span-2">Wait Time</div>
                       <div className="col-span-2">Status</div>
-                      <div className="col-span-2">Action</div>
+                      <div className="col-span-3 text-right">Action</div>
                     </div>
 
                     <div className="space-y-3">
@@ -1427,12 +1154,9 @@ export default function OfficerQueuePage() {
                               </div>
                             </div>
                             
-                            <div className="lg:col-span-2 flex items-center justify-between lg:justify-start gap-2">
-                              <span className="lg:hidden text-[10px] font-bold text-slate-400 uppercase">Customer</span>
-                              <span className={`font-bold truncate ${isSkipped ? 'text-slate-400' : 'text-slate-900'}`}>{t.customer.name}</span>
-                            </div>
+                            {/* Customer column removed for privacy */}
 
-                            <div className="lg:col-span-2 flex items-center justify-between lg:justify-start gap-2">
+                            <div className="lg:col-span-3 flex items-center justify-between lg:justify-start gap-2">
                               <span className="lg:hidden text-[10px] font-bold text-slate-400 uppercase">Service</span>
                               <div className="flex flex-wrap gap-1">
                                 {t.serviceTypes.map((stype: string) => (
@@ -1443,14 +1167,14 @@ export default function OfficerQueuePage() {
                               </div>
                             </div>
 
-                            <div className="lg:col-span-2 flex items-center justify-between lg:justify-start gap-2">
+                            <div className="lg:col-span-2 flex items-center justify-between lg:justify-center gap-2">
                               <span className="lg:hidden text-[10px] font-bold text-slate-400 uppercase">Wait Time</span>
                               <div className="text-xs font-bold text-slate-600 bg-slate-100/50 px-2 py-1 rounded-lg">
                                 {waitTime} min
                               </div>
                             </div>
 
-                            <div className="lg:col-span-2 flex items-center justify-between lg:justify-start gap-2">
+                            <div className="lg:col-span-2 flex items-center justify-between lg:justify-center gap-2">
                               <span className="lg:hidden text-[10px] font-bold text-slate-400 uppercase">Status</span>
                               <span className={`inline-flex items-center px-2 py-1 rounded-lg text-[10px] font-bold uppercase ${isSkipped
                                 ? 'bg-orange-100 text-orange-800'
@@ -1460,7 +1184,8 @@ export default function OfficerQueuePage() {
                               </span>
                             </div>
 
-                            <div className="lg:col-span-2 flex items-center justify-between lg:justify-end gap-2 mt-2 lg:mt-0 pt-3 lg:pt-0 border-t lg:border-t-0 border-slate-100">
+                            <div className="lg:col-span-3 flex items-center justify-between lg:justify-end gap-2 mt-2 lg:mt-0 pt-3 lg:pt-0 border-t lg:border-t-0 border-slate-100">
+
                               <span className="lg:hidden text-[10px] font-bold text-slate-400 uppercase">Action</span>
                               <div className="flex gap-2">
                                 {isSkipped ? (

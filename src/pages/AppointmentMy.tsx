@@ -437,11 +437,7 @@ export default function AppointmentMy() {
                   </div>
                   
                   {/* Customer Details */}
-                  {a.name && (
-                    <div className="text-sm text-gray-700 font-medium mt-2">
-                      {t.customerName || 'Customer'}: {a.name}
-                    </div>
-                  )}
+                  {/* Customer name removed for privacy */}
                   {a.mobileNumber && (
                     <div className="text-xs text-gray-500">
                       {t.mobileNumber || 'Mobile'}: {a.mobileNumber}

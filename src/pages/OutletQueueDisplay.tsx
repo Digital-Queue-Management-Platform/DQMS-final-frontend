@@ -491,20 +491,16 @@ export default function OutletQueueDisplay() {
     const eventType = tokenData.eventType || 'TOKEN_CALLED'
     const lang = tokenData.lang || (Array.isArray(tokenData.preferredLanguages) && tokenData.preferredLanguages[0]) || 'en'
 
-    // Get customer name, use first name for a more personal touch
-    const customerName = tokenData.customer?.name || ""
-    const firstName = customerName.split(' ')[0] || ""
-
     let text = ""
 
     if (eventType === 'TOKEN_CALLED') {
-      if (lang === 'si') text = `${firstName}. ටෝකන් අංක ${num}, කරුණාකර කවුන්ටර අංක ${counter} වෙත පැමිණෙන්න.`
-      else if (lang === 'ta') text = `${firstName}. அடையாள எண் ${num}, தயவுசெய்து கவுண்டர் எண் ${counter} க்கு செல்லவும்.`
-      else text = `${firstName}. Token number ${num}, please proceed to counter number ${counter}.`
+      if (lang === 'si') text = `ටෝකන් අංක ${num}, කරුණාකර කවුන්ටර අංක ${counter} වෙත පැමිණෙන්න.`
+      else if (lang === 'ta') text = `அடையாள எண் ${num}, தயவுசெய்து கவுண்டர் எண் ${counter} க்கு செல்லவும்.`
+      else text = `Token number ${num}, please proceed to counter number ${counter}.`
     } else if (eventType === 'TOKEN_RECALLED') {
-      if (lang === 'si') text = `${firstName}. ටෝකන් අංක ${num} නැවත කැඳවනු ලැබේ. කරුණාකර වහාම කවුන්ටරය ${counter} වෙත පැමිණෙන්න.`
-      else if (lang === 'ta') text = `${firstName}. அடையாள எண் ${num} மீண்டும் அழைக்கப்படுகிறது. உடனடியாக கவுண்டர் ${counter} க்கு வரவும்.`
-      else text = `${firstName}. Token number ${num} is being recalled. Please proceed to counter number ${counter} immediately.`
+      if (lang === 'si') text = `ටෝකන් අංක ${num} නැවත කැඳවනු ලැබේ. කරුණාකර වහාම කවුන්ටරය ${counter} වෙත පැමිණෙන්න.`
+      else if (lang === 'ta') text = `அடையாள எண் ${num} மீண்டும் அழைக்கப்படுகிறது. உடனடியாக கவுண்டர் ${counter} க்கு வரவும்.`
+      else text = `Token number ${num} is being recalled. Please proceed to counter number ${counter} immediately.`
     } else if (eventType === 'TEST_SOUND') {
       text = tokenData.text || ""
     }

@@ -332,7 +332,6 @@ const MultiTelephoneNumberInput: React.FC<MultiTelephoneNumberInputProps> = ({
 
           <div className="space-y-2 max-h-96 overflow-y-auto">
             {telephoneNumbers.map((number) => {
-              const bill = getBillForNumber(number)
               const status = getVerificationStatus(number)
               const error = errors[number]
 
@@ -375,25 +374,7 @@ const MultiTelephoneNumberInput: React.FC<MultiTelephoneNumberInputProps> = ({
                       </button>
                     </div>
 
-                    {/* Bill information */}
-                    {bill && (
-                      <div className="pl-6 text-sm text-gray-600 space-y-1">
-                        <p><strong>Account:</strong> {bill.accountName}</p>
-                        <p><strong>Current Bill:</strong> LKR {bill.currentBill.toFixed(2)}</p>
-                        <p><strong>Due Date:</strong> {new Date(bill.dueDate).toLocaleDateString()}</p>
-                        <p><strong>Status:</strong> 
-                          <span className={`ml-1 px-2 py-1 text-xs rounded ${
-                            bill.status === 'paid' ? 'bg-green-100 text-green-800' :
-                            bill.status === 'overdue' ? 'bg-red-100 text-red-800' :
-                            'bg-yellow-100 text-yellow-800'
-                          }`}>
-                            {bill.status}
-                          </span>
-                        </p>
-                      </div>
-                    )}
-
-                    {/* Error message */}
+                    {/* Bill information and summary removed as per user request */}
                     {error && (
                       <p className="pl-6 text-sm text-red-600 flex items-center gap-1">
                         <AlertCircle className="h-3 w-3" />
@@ -405,17 +386,6 @@ const MultiTelephoneNumberInput: React.FC<MultiTelephoneNumberInputProps> = ({
               )
             })}
           </div>
-
-          {/* Summary */}
-          {bills.length > 0 && (
-            <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
-              <h4 className="text-sm font-medium text-blue-900 mb-2">Bill Summary</h4>
-              <div className="text-sm text-blue-800">
-                <p>Total verified bills: {bills.length}</p>
-                <p>Total amount: LKR {bills.reduce((sum, bill) => sum + bill.currentBill, 0).toFixed(2)}</p>
-              </div>
-            </div>
-          )}
         </div>
       )}
 

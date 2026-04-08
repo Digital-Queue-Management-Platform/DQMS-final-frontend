@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react"
 import { useParams, useNavigate } from "react-router-dom"
 import { motion, AnimatePresence } from "framer-motion"
-import { Users, CheckCircle, AlertTriangle, XCircle, Trash2, ArrowLeft, Banknote, CreditCard, FileText, Landmark } from "lucide-react"
+import { Users, CheckCircle, AlertTriangle, XCircle, Trash2, ArrowLeft, Banknote, CreditCard, FileText, Landmark, Clock } from "lucide-react"
 import api, { WS_URL } from "../config/api"
 import type { Token } from "../types"
 import ServiceName from "../components/ServiceName"
@@ -13,6 +13,7 @@ export default function QueueStatus() {
   const navigate = useNavigate()
   const [token, setToken] = useState<Token | null>(null)
   const [position, setPosition] = useState(0)
+  const [estimatedWait, setEstimatedWait] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
   const [cancelling, setCancelling] = useState(false)
   const [showCancelConfirm, setShowCancelConfirm] = useState(false)
@@ -49,6 +50,8 @@ export default function QueueStatus() {
       cancelledTitle: "Token Cancelled",
       cancelledMessage: "This token has been cancelled. If this was a mistake, please register again.",
       name: "Name",
+      avgWaitTime: "Average Wait Time",
+      min: "min",
       mobile: "Mobile",
       serviceTypes: "Service Types",
       registeredAt: "Registered At",
@@ -96,6 +99,8 @@ export default function QueueStatus() {
       cancelledTitle: "ටෝකනය අවලංගු කරන ලදි",
       cancelledMessage: "මෙම ටෝකනය අවලංගු කර ඇත. මෙය වැරදීමක් නම්, කරුණාකර නැවත ලියාපදිංචි වන්න.",
       name: "නම",
+      avgWaitTime: "සාමාන්‍ය රැඳී සිටීමේ කාලය",
+      min: "විනාඩි",
       mobile: "ජංගම දුරකථනය",
       serviceTypes: "සේවා වර්ග",
       registeredAt: "ලියාපදිංචි වූ වේලාව",
@@ -143,6 +148,8 @@ export default function QueueStatus() {
       cancelledTitle: "டோக்கன் ரத்து செய்யப்பட்டது",
       cancelledMessage: "இந்த டோக்கன் ரத்து செய்யப்பட்டுள்ளது. தவறாக நடந்தால், மீண்டும் பதிவு செய்யவும்.",
       name: "பெயர்",
+      avgWaitTime: "சராசரி காத்திருப்பு நேரம்",
+      min: "நிமிடம்",
       mobile: "மொபைல்",
       serviceTypes: "சேவை வகைகள்",
       registeredAt: "பதிவு செய்யப்பட்ட நேரம்",
@@ -210,6 +217,7 @@ export default function QueueStatus() {
       const response = await api.get(`/customer/token/${tokenId}`)
       setToken(response.data.token)
       setPosition(response.data.position)
+      setEstimatedWait(response.data.estimatedWaitMinutes)
 
       if (response.data.token.status === "completed") {
         navigate(`/feedback/${tokenId}`)
@@ -502,13 +510,33 @@ export default function QueueStatus() {
         {/* Customer Details Footer */}
         <div className="bg-slate-50 p-8 border-t border-gray-100">
           <div className="grid grid-cols-2 gap-y-6 gap-x-4">
-            <div className="space-y-1">
-              <p className="text-[10px] text-gray-400 uppercase font-black tracking-widest">{t.name}</p>
-              <p className="font-bold text-gray-900 text-sm truncate">{token.customer.name}</p>
+            <div className="col-span-2">
+              <motion.div 
+                animate={{ scale: [1, 1.02, 1] }} 
+                transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                className="bg-blue-50 border border-blue-100 rounded-2xl p-4 flex items-center justify-between"
+              >
+                <div>
+                  <p className="text-[10px] text-blue-600 uppercase font-black tracking-widest mb-0.5">{t.avgWaitTime}</p>
+                  <p className="text-2xl font-black text-blue-900 leading-none">
+                    {estimatedWait ?? '--'} <span className="text-xs font-bold opacity-70">{t.min}</span>
+                  </p>
+                </div>
+                <div className="bg-blue-600/10 p-2.5 rounded-xl text-blue-600">
+                  <Clock className="w-6 h-6 animate-spin-slow" style={{ animationDuration: '8s' }} />
+                </div>
+              </motion.div>
             </div>
+
             <div className="space-y-1">
               <p className="text-[10px] text-gray-400 uppercase font-black tracking-widest">{t.mobile}</p>
               <p className="font-bold text-gray-900 text-sm">{token.customer.mobileNumber}</p>
+            </div>
+            <div className="space-y-1">
+              <p className="text-[10px] text-gray-400 uppercase font-black tracking-widest">{t.registeredAt}</p>
+              <p className="font-bold text-gray-900 text-sm">
+                {new Date(token.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}
+              </p>
             </div>
             <div className="space-y-2 col-span-2">
               <p className="text-[10px] text-gray-400 uppercase font-black tracking-widest">{t.serviceTypes}</p>
@@ -531,12 +559,6 @@ export default function QueueStatus() {
                   <span className="text-xs text-gray-400">---</span>
                 )}
               </div>
-            </div>
-            <div className="space-y-1 col-span-2">
-              <p className="text-[10px] text-gray-400 uppercase font-black tracking-widest">{t.registeredAt}</p>
-              <p className="font-bold text-gray-900 text-sm">
-                {new Date(token.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}
-              </p>
             </div>
           </div>
         </div>
