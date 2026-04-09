@@ -649,23 +649,24 @@ export default function OutletQueueDisplay() {
   }
 
   return (
-    <div className={`h-screen bg-[#f8fafc] text-slate-900 flex flex-col overflow-hidden select-none ${zoomScale > 150 ? 'gap-0' : ''}`}
+    <div className="h-screen bg-[#f8fafc] text-slate-900 flex flex-col overflow-hidden select-none"
       style={{
-        backgroundImage: "radial-gradient(circle at 10% 10%, rgba(0, 51, 102, 0.03), transparent 40%), radial-gradient(circle at 90% 90%, rgba(14, 165, 233, 0.05), transparent 40%)",
-        fontSize: `${zoomScale}%`
+        backgroundImage: "radial-gradient(circle at 10% 10%, rgba(0, 51, 102, 0.03), transparent 40%), radial-gradient(circle at 90% 90%, rgba(14, 165, 233, 0.05), transparent 40%)"
       }}
     >
       <div
-        className={`flex-1 flex flex-col max-w-screen-2xl mx-auto w-full overflow-hidden ${zoomScale > 150 ? 'p-1 sm:p-2' : 'p-2 sm:p-4 md:p-6 lg:p-8'}`}
+        className="flex-1 flex flex-col mx-auto w-full overflow-hidden transition-all duration-500 ease-in-out"
+        style={{ 
+          zoom: zoomScale / 100,
+          maxWidth: zoomScale > 100 ? 'none' : '1536px',
+          padding: zoomScale > 100 ? '1.5rem' : '2rem'
+        }}
       >
         <header className="flex-shrink-0 flex items-center justify-between mb-6 border-b-[4px] border-[#003366] pb-6 bg-white/50 backdrop-blur-sm -mx-8 px-8">
           <div className="flex items-center gap-6">
             <img src={logo} alt="SLT Logo" className="h-[100px] w-auto object-contain" />
             <div>
-              <h1
-                className="font-bold tracking-tight leading-none text-[#1e1b4b] capitalize"
-                style={{ fontSize: `calc(clamp(3rem, 6vw, 5rem) * ${zoomScale / 100})` }}
-              >
+              <h1 className="font-bold tracking-tight leading-none text-[#1e1b4b] capitalize text-7xl">
                 {outletMeta?.name?.toLowerCase() || "Sri Lanka Telecom"}
               </h1>
               <p className="text-indigo-600 font-semibold uppercase tracking-[0.2em] text-lg mt-3 flex items-center gap-3">

@@ -24,11 +24,7 @@ export default function TeleshopManagerOutletDisplay() {
   const [saveSuccess, setSaveSuccess] = useState(false)
 
   const [refresh, setRefresh] = useState(10)
-  const [next, setNext] = useState(8)
   const [services, setServices] = useState(false)
-  const [counters, setCounters] = useState(false)
-  const [recent, setRecent] = useState(false)
-  const [autoSlide, setAutoSlide] = useState(true)
   const [playTone, setPlayTone] = useState(true)
   const [contentScale, setContentScale] = useState(100)
   const [videoId, setVideoId] = useState("Iea84C32YHA")
@@ -114,11 +110,7 @@ export default function TeleshopManagerOutletDisplay() {
           const s = settingsRes.data?.settings
           if (s) {
             if (s.refresh) setRefresh(s.refresh)
-            if (s.next) setNext(s.next)
             if (s.services !== undefined) setServices(!!s.services)
-            if (s.counters !== undefined) setCounters(!!s.counters)
-            if (s.recent !== undefined) setRecent(!!s.recent)
-            if (s.autoSlide !== undefined) setAutoSlide(!!s.autoSlide)
             if (s.playTone !== undefined) setPlayTone(!!s.playTone)
             if (s.contentScale) setContentScale(Number(s.contentScale))
             if (s.videoId) setVideoId(s.videoId)
@@ -140,17 +132,13 @@ export default function TeleshopManagerOutletDisplay() {
     if (!manager?.branchId) return ""
     const params = new URLSearchParams({
       refresh: String(refresh),
-      next: String(next),
       services: services ? "1" : "0",
-      counters: counters ? "1" : "0",
-      recent: recent ? "1" : "0",
-      autoSlide: autoSlide ? "1" : "0",
       playTone: playTone ? "1" : "0",
       scale: String(contentScale),
       videoId: videoId
     })
     return `${window.location.origin}/display/outlet/${manager.branchId}?${params.toString()}`
-  }, [manager?.branchId, refresh, next, services, counters, recent, autoSlide, playTone, contentScale, videoId])
+  }, [manager?.branchId, refresh, services, playTone, contentScale, videoId])
 
   const openDisplay = () => {
     if (displayUrl) window.open(displayUrl, "_blank")
@@ -250,11 +238,7 @@ export default function TeleshopManagerOutletDisplay() {
         {
           settings: {
             refresh,
-            next,
             services,
-            counters,
-            recent,
-            autoSlide,
             playTone,
             contentScale,
             videoId,
@@ -324,18 +308,6 @@ export default function TeleshopManagerOutletDisplay() {
                 />
               </label>
 
-              <label className="block">
-                <span className="text-sm font-medium text-slate-700">Up-next token count</span>
-                <input
-                  type="number"
-                  min={3}
-                  max={20}
-                  value={next}
-                  onChange={(e) => setNext(Math.max(3, Math.min(20, Number(e.target.value) || 8)))}
-                  className="mt-1 w-full px-3 py-2 border border-slate-300 rounded-xl"
-                />
-              </label>
-
               <label className="block md:col-span-2">
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-sm font-medium text-slate-700">YouTube Video ID</span>
@@ -381,29 +353,6 @@ export default function TeleshopManagerOutletDisplay() {
               <label className="flex items-center justify-between rounded-xl border border-slate-200 px-4 py-3">
                 <span className="text-sm text-slate-800">Show service names</span>
                 <input type="checkbox" checked={services} onChange={(e) => setServices(e.target.checked)} />
-              </label>
-
-              <label className="flex items-center justify-between rounded-xl border border-slate-200 px-4 py-3">
-                <span className="text-sm text-slate-800">Show counter status panel</span>
-                <input type="checkbox" checked={counters} onChange={(e) => setCounters(e.target.checked)} />
-              </label>
-
-              <label className="flex items-center justify-between rounded-xl border border-slate-200 px-4 py-3">
-                <span className="text-sm text-slate-800">Show recently called tokens</span>
-                <input type="checkbox" checked={recent} onChange={(e) => setRecent(e.target.checked)} />
-              </label>
-
-              <label className="flex items-center justify-between rounded-xl border border-slate-200 px-4 py-3 bg-indigo-50/50 border-indigo-100">
-                <div className="flex flex-col">
-                  <span className="text-sm font-bold text-slate-800">Enable Auto-Sliding</span>
-                  <span className="text-xs text-slate-500">Automatically scroll lists (Up Next, Recently Called, etc.)</span>
-                </div>
-                <input 
-                  type="checkbox" 
-                  checked={autoSlide} 
-                  onChange={(e) => setAutoSlide(e.target.checked)} 
-                  className="w-5 h-5 accent-indigo-600"
-                />
               </label>
 
               <label className="flex items-center justify-between rounded-xl border border-slate-200 px-4 py-3 bg-amber-50/50 border-amber-100">
