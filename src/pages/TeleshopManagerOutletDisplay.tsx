@@ -121,7 +121,7 @@ export default function TeleshopManagerOutletDisplay() {
             if (s.autoSlide !== undefined) setAutoSlide(!!s.autoSlide)
             if (s.playTone !== undefined) setPlayTone(!!s.playTone)
             if (s.contentScale) setContentScale(Number(s.contentScale))
-            
+            if (s.videoId) setVideoId(s.videoId)
           }
         } catch (se) {
           console.warn("Could not load persisted display settings", se)
@@ -150,7 +150,7 @@ export default function TeleshopManagerOutletDisplay() {
       videoId: videoId
     })
     return `${window.location.origin}/display/outlet/${manager.branchId}?${params.toString()}`
-  }, [manager?.branchId, refresh, next, services, counters, recent, autoSlide, playTone, contentScale])
+  }, [manager?.branchId, refresh, next, services, counters, recent, autoSlide, playTone, contentScale, videoId])
 
   const openDisplay = () => {
     if (displayUrl) window.open(displayUrl, "_blank")
@@ -337,15 +337,43 @@ export default function TeleshopManagerOutletDisplay() {
               </label>
 
               <label className="block md:col-span-2">
-                <span className="text-sm font-medium text-slate-700">YouTube Video ID</span>
-                <p className="text-[10px] text-slate-500 mb-1">Enter the characters after 'v=' in the YouTube URL (e.g. aqz-KE-BPKQ)</p>
-                <input
-                  type="text"
-                  value={videoId}
-                  onChange={(e) => setVideoId(e.target.value)}
-                  placeholder="Enter YouTube Video ID"
-                  className="mt-1 w-full px-3 py-2 border border-slate-300 rounded-xl font-mono text-sm focus:ring-2 focus:ring-sky-500 outline-none"
-                />
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-sm font-medium text-slate-700">YouTube Video ID</span>
+                  <span className="text-[10px] font-bold text-sky-600 bg-sky-50 px-2 py-0.5 rounded-full border border-sky-100">Live Preview Below</span>
+                </div>
+                <p className="text-[10px] text-slate-500 mb-2">Pasting a full YouTube URL will automatically extract the ID (e.g. aqz-KE-BPKQ)</p>
+                <div className="flex gap-3 items-start">
+                  <div className="flex-1">
+                    <input
+                      type="text"
+                      value={videoId}
+                      onChange={(e) => {
+                        const val = e.target.value
+                        // Extract ID if a URL is pasted
+                        const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/
+                        const match = val.match(regExp)
+                        if (match && match[2].length === 11) {
+                          setVideoId(match[2])
+                        } else {
+                          setVideoId(val)
+                        }
+                      }}
+                      placeholder="Enter YouTube Video ID"
+                      className="w-full px-3 py-2 border border-slate-300 rounded-xl font-mono text-sm focus:ring-2 focus:ring-sky-500 outline-none"
+                    />
+                  </div>
+                  <div className="w-32 h-[72px] bg-black rounded-lg overflow-hidden border border-slate-200 shadow-sm grow-0 shrink-0">
+                    {videoId ? (
+                      <iframe
+                        src={`https://www.youtube-nocookie.com/embed/${videoId}?controls=0&modestbranding=1&showinfo=0&rel=0&iv_load_policy=3&disablekb=1&fs=0`}
+                        className="w-full h-full border-none pointer-events-none"
+                        title="Small Preview"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center bg-slate-100 italic text-[10px] text-slate-400">No Video</div>
+                    )}
+                  </div>
+                </div>
               </label>
             </div>
 

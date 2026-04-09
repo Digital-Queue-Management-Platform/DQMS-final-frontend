@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import logo from "../assets/logo.png"
 import { useParams, useSearchParams } from "react-router-dom"
-import { Ticket, AlertTriangle, Sparkles, Volume2, VolumeX } from "lucide-react"
+import { Ticket, AlertTriangle, Sparkles, Volume2, VolumeX, Play } from "lucide-react"
 import api, { API_URL } from "../config/api"
 import { useWebSocket } from "../hooks/useWebSocket"
 import type { Token } from "../types"
@@ -710,8 +710,12 @@ export default function OutletQueueDisplay() {
 
           <div className="flex-1 flex gap-8 min-h-0 overflow-hidden">
             <section className="flex-[7] flex flex-col gap-6 overflow-hidden">
-              {/* Now Serving Strip (Top 60%) */}
-              <div className="flex-[6] bg-white rounded-[2.5rem] border-4 border-slate-100 shadow-xl overflow-hidden flex flex-col p-8">
+              {/* Now Serving Strip (Dynamic size) */}
+              <div 
+                className={`transition-all duration-700 ease-in-out bg-white rounded-[2.5rem] border-4 border-slate-100 shadow-xl overflow-hidden flex flex-col ${
+                  servingByCounter.length === 0 ? 'flex-0 h-0 p-0 border-0 mb-0 opacity-0' : 'flex-[6] p-8 mb-0 opacity-100'
+                }`}
+              >
                 <div className="flex items-center gap-4 mb-6 border-b border-slate-50 pb-4">
                   <Sparkles className="w-10 h-10 text-indigo-500" />
                   <h2 className="text-4xl font-bold text-slate-800 tracking-tight">Now Serving</h2>
@@ -752,16 +756,29 @@ export default function OutletQueueDisplay() {
                 )}
               </div>
 
-              {/* YouTube Video Section (Bottom 40%) */}
-              <div className="flex-[4] bg-black rounded-[2.5rem] shadow-xl overflow-hidden border-4 border-slate-100 relative group">
-                <iframe
-                  src={`https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&loop=1&playlist=${videoId}&controls=0&modestbranding=1&showinfo=0&rel=0`}
-                  title="Promotion"
-                  className="absolute inset-0 w-full h-full object-cover"
-                  allow="autoplay; encrypted-media"
-                  allowFullScreen
-                />
-                <div className="absolute inset-0 pointer-events-none border-[12px] border-white/5 rounded-[2rem]"></div>
+              {/* YouTube Video Section (Expands when needed) */}
+              <div className={`transition-all duration-700 ease-in-out bg-black rounded-[2.5rem] shadow-xl overflow-hidden border-4 border-slate-100 relative group ${
+                servingByCounter.length === 0 ? 'flex-1' : 'flex-[4]'
+              }`}>
+                {videoId ? (
+                  <>
+                    <iframe
+                      src={`https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&mute=1&loop=1&playlist=${videoId}&controls=0&modestbranding=1&showinfo=0&rel=0&iv_load_policy=3&disablekb=1&fs=0&autohide=1`}
+                      title="Promotion"
+                      className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full aspect-video min-h-full min-w-full object-cover scale-[1.01] pointer-events-none"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                    />
+                    <div className="absolute inset-0 pointer-events-none border-[12px] border-white/5 rounded-[2rem]"></div>
+                  </>
+                ) : (
+                  <div className="absolute inset-0 flex items-center justify-center bg-slate-900">
+                    <div className="text-center">
+                      <Play className="w-16 h-16 text-slate-700 mx-auto mb-4" />
+                      <p className="text-slate-500 font-medium italic">No promotion video configured</p>
+                    </div>
+                  </div>
+                )}
               </div>
             </section>
 
