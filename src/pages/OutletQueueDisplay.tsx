@@ -901,11 +901,11 @@ export default function OutletQueueDisplay() {
                     {upNext.map((token, idx) => (
                       <div
                         key={token.id}
-                        className={`p-6 rounded-[2rem] flex items-center justify-between border-2 transition-all h-[15%] min-h-[100px] ${
+                        className={`p-6 rounded-[2rem] flex items-center border-2 transition-all h-[15%] min-h-[100px] ${
                           idx === 0 ? 'bg-white border-sky-500 shadow-[0_0_30px_rgba(14,165,233,0.3)]' : 'bg-[#002244] border-white/10'
                         }`}
                       >
-                        <div className="flex items-center gap-8">
+                        <div className="flex items-center gap-8 flex-1 min-w-0">
                           <div className={`text-6xl font-bold tabular-nums ${idx === 0 ? 'text-[#1e1b4b]' : 'text-slate-100'}`}>
                             {token.tokenNumber}
                           </div>
@@ -924,11 +924,13 @@ export default function OutletQueueDisplay() {
                             )}
                           </div>
                         </div>
-                        {idx === 0 && (
-                          <div className="bg-indigo-600 text-white px-6 py-2 rounded-full font-bold text-sm tracking-wide animate-pulse">
-                            Please Prepare
-                          </div>
-                        )}
+                        <div className="ml-auto pl-6 flex items-center justify-end min-w-[170px]">
+                          {idx === 0 && (
+                            <div className="inline-flex items-center justify-center bg-indigo-600 text-white px-6 py-2 rounded-full font-bold text-sm tracking-wide leading-none whitespace-nowrap">
+                              Please Prepare
+                            </div>
+                          )}
+                        </div>
                       </div>
                     ))}
                   </div>
