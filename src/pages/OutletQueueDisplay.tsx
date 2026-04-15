@@ -28,6 +28,52 @@ const toBool = (value: string | null, fallback: boolean) => {
   return value === "1" || value === "true"
 }
 
+const parsePromoMediaUrls = (raw: string): string[] => {
+  if (!raw.trim()) return []
+
+  return raw
+    .split(/[\n,;]+/)
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .filter((value) => {
+      const v = value.toLowerCase()
+      const isHttp = v.startsWith("http://") || v.startsWith("https://")
+      const isDirect = v.includes(".m3u8") || v.includes(".mpd") || v.includes(".mp4") || v.includes(".webm")
+      return isHttp && isDirect
+    })
+}
+
+const extractYouTubeId = (raw: string): string => {
+  const trimmed = raw.trim()
+  if (!trimmed) return ""
+
+  const directIdPattern = /^[a-zA-Z0-9_-]{11}$/
+  if (directIdPattern.test(trimmed)) return trimmed
+
+  try {
+    const url = new URL(trimmed)
+    if (url.hostname.includes("youtu.be")) {
+      const id = url.pathname.replace("/", "")
+      return directIdPattern.test(id) ? id : ""
+    }
+
+    if (url.hostname.includes("youtube.com")) {
+      const watchId = url.searchParams.get("v")
+      if (watchId && directIdPattern.test(watchId)) return watchId
+
+      const parts = url.pathname.split("/").filter(Boolean)
+      const embedIndex = parts.findIndex((p) => p === "embed")
+      if (embedIndex >= 0 && parts[embedIndex + 1] && directIdPattern.test(parts[embedIndex + 1])) {
+        return parts[embedIndex + 1]
+      }
+    }
+  } catch {
+    return ""
+  }
+
+  return ""
+}
+
 
 
 export default function OutletQueueDisplay() {
@@ -54,6 +100,17 @@ export default function OutletQueueDisplay() {
 
   // YouTube Video ID
   const [videoId, setVideoId] = useState(() => query.get("videoId") || "Iea84C32YHA") // More stable nature video resource
+  const directPromoUrls = useMemo(() => parsePromoMediaUrls(videoId), [videoId])
+  const youtubeVideoId = useMemo(() => extractYouTubeId(videoId), [videoId])
+  const [promoIndex, setPromoIndex] = useState(0)
+
+  useEffect(() => {
+    setPromoIndex(0)
+  }, [videoId])
+
+  const currentPromoUrl = directPromoUrls.length > 0
+    ? directPromoUrls[promoIndex % directPromoUrls.length]
+    : ""
 
   // Voice Announcement State
   const [voiceEnabled, setVoiceEnabled] = useState(true)
@@ -761,10 +818,28 @@ export default function OutletQueueDisplay() {
               <div className={`transition-all duration-700 ease-in-out bg-black rounded-[2.5rem] shadow-xl overflow-hidden border-4 border-slate-100 relative group ${
                 servingByCounter.length === 0 ? 'flex-1' : 'flex-[4]'
               }`}>
-                {videoId ? (
+                {currentPromoUrl ? (
+                  <>
+                    <video
+                      key={currentPromoUrl}
+                      src={currentPromoUrl}
+                      className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full object-cover"
+                      autoPlay
+                      muted
+                      playsInline
+                      loop={directPromoUrls.length <= 1}
+                      onEnded={() => {
+                        if (directPromoUrls.length > 1) {
+                          setPromoIndex((prev) => (prev + 1) % directPromoUrls.length)
+                        }
+                      }}
+                    />
+                    <div className="absolute inset-0 pointer-events-none border-[12px] border-white/5 rounded-[2rem]"></div>
+                  </>
+                ) : youtubeVideoId ? (
                   <>
                     <iframe
-                      src={`https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&mute=1&loop=1&playlist=${videoId}&controls=0&modestbranding=1&showinfo=0&rel=0&iv_load_policy=3&disablekb=1&fs=0&autohide=1`}
+                      src={`https://www.youtube-nocookie.com/embed/${youtubeVideoId}?autoplay=1&mute=1&loop=1&playlist=${youtubeVideoId}&controls=0&modestbranding=1&showinfo=0&rel=0&iv_load_policy=3&disablekb=1&fs=0&autohide=1`}
                       title="Promotion"
                       className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full aspect-video min-h-full min-w-full object-cover scale-[1.01] pointer-events-none"
                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"

@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState, type ChangeEvent, type DragEvent } from "react"
 import { useNavigate } from "react-router-dom"
-import { ExternalLink, Copy, Monitor, SlidersHorizontal, CheckCircle2, Save, Loader2, Volume2, Play, Music, Bell, Mic } from "lucide-react"
+import { ExternalLink, Copy, Monitor, SlidersHorizontal, CheckCircle2, Save, Loader2, Volume2, Play, Music, Bell, Mic, UploadCloud } from "lucide-react"
 import api from "../config/api"
 
 type TeleshopManagerMe = {
@@ -14,6 +14,21 @@ type TeleshopManagerMe = {
   } | null
 }
 
+const parsePromoMediaUrls = (raw: string): string[] => {
+  if (!raw.trim()) return []
+
+  return raw
+    .split(/[\n,;]+/)
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .filter((value) => {
+      const v = value.toLowerCase()
+      const isHttp = v.startsWith("http://") || v.startsWith("https://")
+      const isDirect = v.includes(".m3u8") || v.includes(".mpd") || v.includes(".mp4") || v.includes(".webm")
+      return isHttp && isDirect
+    })
+}
+
 export default function TeleshopManagerOutletDisplay() {
   const navigate = useNavigate()
   const [manager, setManager] = useState<TeleshopManagerMe | null>(null)
@@ -22,12 +37,16 @@ export default function TeleshopManagerOutletDisplay() {
   const [copied, setCopied] = useState(false)
   const [saving, setSaving] = useState(false)
   const [saveSuccess, setSaveSuccess] = useState(false)
+  const [uploadingVideo, setUploadingVideo] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState(0)
+  const [dragOverUpload, setDragOverUpload] = useState(false)
+  const uploadInputRef = useRef<HTMLInputElement | null>(null)
 
   const [refresh, setRefresh] = useState(10)
   const [services, setServices] = useState(false)
   const [playTone, setPlayTone] = useState(true)
   const [contentScale, setContentScale] = useState(100)
-  const [videoId, setVideoId] = useState("Iea84C32YHA")
+  const [videoId, setVideoId] = useState("https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4")
   
   
   // Speaker Test State
@@ -139,6 +158,68 @@ export default function TeleshopManagerOutletDisplay() {
     })
     return `${window.location.origin}/display/outlet/${manager.branchId}?${params.toString()}`
   }, [manager?.branchId, refresh, services, playTone, contentScale, videoId])
+
+  const previewUrl = useMemo(() => parsePromoMediaUrls(videoId)[0] || "", [videoId])
+
+  const uploadPromoVideo = async (file: File) => {
+    const isMp4Mime = file.type.toLowerCase() === "video/mp4"
+    const isMp4Name = file.name.toLowerCase().endsWith(".mp4")
+    if (!isMp4Mime && !isMp4Name) {
+      setError("Only MP4 files are supported for drag-and-drop upload.")
+      return
+    }
+
+    setError("")
+    setUploadingVideo(true)
+    setUploadProgress(0)
+
+    try {
+      const formData = new FormData()
+      formData.append("file", file)
+
+      const res = await api.post("/teleshop-manager/upload-promo-video", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+        onUploadProgress: (event) => {
+          if (!event.total) return
+          setUploadProgress(Math.round((event.loaded * 100) / event.total))
+        },
+      })
+
+      const uploadedUrl = res.data?.url
+      if (!uploadedUrl) {
+        throw new Error("Upload completed but no URL was returned")
+      }
+
+      setVideoId((prev) => {
+        const trimmed = prev.trim()
+        if (!trimmed) return uploadedUrl
+        if (trimmed.includes(uploadedUrl)) return trimmed
+        return `${trimmed}\n${uploadedUrl}`
+      })
+      setUploadProgress(100)
+    } catch (e: any) {
+      setError(e?.response?.data?.error || e?.message || "Failed to upload promo video")
+    } finally {
+      setUploadingVideo(false)
+      setTimeout(() => setUploadProgress(0), 600)
+    }
+  }
+
+  const onSelectPromoFile = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    await uploadPromoVideo(file)
+    e.target.value = ""
+  }
+
+  const onDropPromoFile = async (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setDragOverUpload(false)
+    const file = e.dataTransfer.files?.[0]
+    if (!file) return
+    await uploadPromoVideo(file)
+  }
 
   const openDisplay = () => {
     if (displayUrl) window.open(displayUrl, "_blank")
@@ -310,39 +391,75 @@ export default function TeleshopManagerOutletDisplay() {
 
               <label className="block md:col-span-2">
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-sm font-medium text-slate-700">YouTube Video ID</span>
+                  <span className="text-sm font-medium text-slate-700">Promo Media URL(s)</span>
                   <span className="text-[10px] font-bold text-sky-600 bg-sky-50 px-2 py-0.5 rounded-full border border-sky-100">Live Preview Below</span>
                 </div>
-                <p className="text-[10px] text-slate-500 mb-2">Pasting a full YouTube URL will automatically extract the ID (e.g. aqz-KE-BPKQ)</p>
+                <p className="text-[10px] text-slate-500 mb-2">Use direct MP4/HLS/DASH/WebM links. Multiple links are supported with comma, semicolon, or new line separators.</p>
                 <div className="flex gap-3 items-start">
                   <div className="flex-1">
                     <input
                       type="text"
                       value={videoId}
-                      onChange={(e) => {
-                        const val = e.target.value
-                        // Extract ID if a URL is pasted
-                        const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/
-                        const match = val.match(regExp)
-                        if (match && match[2].length === 11) {
-                          setVideoId(match[2])
-                        } else {
-                          setVideoId(val)
-                        }
-                      }}
-                      placeholder="Enter YouTube Video ID"
+                      onChange={(e) => setVideoId(e.target.value)}
+                      placeholder="https://example.com/promo.m3u8, https://example.com/fallback.mp4"
                       className="w-full px-3 py-2 border border-slate-300 rounded-xl font-mono text-sm focus:ring-2 focus:ring-sky-500 outline-none"
                     />
+
+                    <input
+                      ref={uploadInputRef}
+                      type="file"
+                      accept="video/mp4,.mp4"
+                      onChange={onSelectPromoFile}
+                      className="hidden"
+                    />
+
+                    <div
+                      onDragOver={(e) => {
+                        e.preventDefault()
+                        setDragOverUpload(true)
+                      }}
+                      onDragLeave={() => setDragOverUpload(false)}
+                      onDrop={onDropPromoFile}
+                      className={`mt-2 rounded-xl border-2 border-dashed px-3 py-3 transition-colors ${
+                        dragOverUpload ? "border-sky-500 bg-sky-50" : "border-slate-300 bg-slate-50"
+                      }`}
+                    >
+                      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="flex items-center gap-2 text-xs text-slate-600">
+                          <UploadCloud className="w-4 h-4 text-slate-500" />
+                          <span>Drag and drop MP4 here, or upload from device</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => uploadInputRef.current?.click()}
+                          disabled={uploadingVideo}
+                          className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100 disabled:opacity-50"
+                        >
+                          {uploadingVideo ? "Uploading..." : "Select MP4"}
+                        </button>
+                      </div>
+                      {uploadingVideo && (
+                        <div className="mt-2 h-2 w-full rounded-full bg-slate-200 overflow-hidden">
+                          <div
+                            className="h-full bg-sky-600 transition-all"
+                            style={{ width: `${uploadProgress}%` }}
+                          />
+                        </div>
+                      )}
+                    </div>
                   </div>
                   <div className="w-32 h-[72px] bg-black rounded-lg overflow-hidden border border-slate-200 shadow-sm grow-0 shrink-0">
-                    {videoId ? (
-                      <iframe
-                        src={`https://www.youtube-nocookie.com/embed/${videoId}?controls=0&modestbranding=1&showinfo=0&rel=0&iv_load_policy=3&disablekb=1&fs=0`}
-                        className="w-full h-full border-none pointer-events-none"
-                        title="Small Preview"
+                    {previewUrl ? (
+                      <video
+                        src={previewUrl}
+                        className="w-full h-full object-cover"
+                        muted
+                        autoPlay
+                        loop
+                        playsInline
                       />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-slate-100 italic text-[10px] text-slate-400">No Video</div>
+                      <div className="w-full h-full flex items-center justify-center bg-slate-100 italic text-[10px] text-slate-400">No valid URL</div>
                     )}
                   </div>
                 </div>
