@@ -52,6 +52,17 @@ const normalizeUploadedPromoUrl = (urlValue: string): string => {
   return raw
 }
 
+const normalizePromoVideoField = (raw: string): string => {
+  if (!raw.trim()) return ""
+
+  return raw
+    .split(/[\n,;]+/)
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .map((item) => normalizeUploadedPromoUrl(item))
+    .join("\n")
+}
+
 export default function TeleshopManagerOutletDisplay() {
   const navigate = useNavigate()
   const [manager, setManager] = useState<TeleshopManagerMe | null>(null)
@@ -70,6 +81,7 @@ export default function TeleshopManagerOutletDisplay() {
   const [playTone, setPlayTone] = useState(true)
   const [contentScale, setContentScale] = useState(100)
   const [videoId, setVideoId] = useState("https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4")
+  const normalizedVideoId = useMemo(() => normalizePromoVideoField(videoId), [videoId])
   
   
   // Speaker Test State
@@ -155,7 +167,7 @@ export default function TeleshopManagerOutletDisplay() {
             if (s.services !== undefined) setServices(!!s.services)
             if (s.playTone !== undefined) setPlayTone(!!s.playTone)
             if (s.contentScale) setContentScale(Number(s.contentScale))
-            if (s.videoId) setVideoId(s.videoId)
+            if (s.videoId) setVideoId(normalizePromoVideoField(s.videoId))
           }
         } catch (se) {
           console.warn("Could not load persisted display settings", se)
@@ -177,12 +189,12 @@ export default function TeleshopManagerOutletDisplay() {
       services: services ? "1" : "0",
       playTone: playTone ? "1" : "0",
       scale: String(contentScale),
-      videoId: videoId
+      videoId: normalizedVideoId
     })
     return `${window.location.origin}/display/outlet/${manager.branchId}?${params.toString()}`
-  }, [manager?.branchId, refresh, services, playTone, contentScale, videoId])
+  }, [manager?.branchId, refresh, services, playTone, contentScale, normalizedVideoId])
 
-  const previewUrl = useMemo(() => parsePromoMediaUrls(videoId)[0] || "", [videoId])
+  const previewUrl = useMemo(() => parsePromoMediaUrls(normalizedVideoId)[0] || "", [normalizedVideoId])
 
   const uploadPromoVideo = async (file: File) => {
     const isMp4Mime = file.type.toLowerCase() === "video/mp4"
@@ -346,6 +358,8 @@ export default function TeleshopManagerOutletDisplay() {
     setError("")
     try {
       const token = localStorage.getItem("teleshopManagerToken")
+      const sanitizedVideoId = normalizePromoVideoField(videoId)
+      setVideoId(sanitizedVideoId)
       await api.post("/teleshop-manager/display-settings",
         {
           settings: {
@@ -353,7 +367,7 @@ export default function TeleshopManagerOutletDisplay() {
             services,
             playTone,
             contentScale,
-            videoId,
+            videoId: sanitizedVideoId,
           }
         },
         { headers: { Authorization: `Bearer ${token}` } }
