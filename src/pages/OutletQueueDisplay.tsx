@@ -833,6 +833,12 @@ export default function OutletQueueDisplay() {
                           setPromoIndex((prev) => (prev + 1) % directPromoUrls.length)
                         }
                       }}
+                      onError={() => {
+                        // Match APK behavior: if one URL fails, try the next playlist URL.
+                        if (directPromoUrls.length > 1) {
+                          setPromoIndex((prev) => (prev + 1) % directPromoUrls.length)
+                        }
+                      }}
                     />
                     <div className="absolute inset-0 pointer-events-none border-[12px] border-white/5 rounded-[2rem]"></div>
                   </>
