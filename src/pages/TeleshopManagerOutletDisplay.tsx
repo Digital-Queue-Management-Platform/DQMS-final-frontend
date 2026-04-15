@@ -236,12 +236,7 @@ export default function TeleshopManagerOutletDisplay() {
 
       const normalizedUrl = normalizeUploadedPromoUrl(uploadedRelativeUrl || uploadedUrl)
 
-      setVideoId((prev) => {
-        const trimmed = prev.trim()
-        if (!trimmed) return normalizedUrl
-        if (trimmed.includes(normalizedUrl)) return trimmed
-        return `${trimmed}\n${normalizedUrl}`
-      })
+      setVideoId(normalizedUrl)
       setUploadProgress(100)
     } catch (e: any) {
       const status = e?.response?.status
@@ -444,20 +439,12 @@ export default function TeleshopManagerOutletDisplay() {
 
               <label className="block md:col-span-2">
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-sm font-medium text-slate-700">Promo Media URL(s)</span>
-                  <span className="text-[10px] font-bold text-sky-600 bg-sky-50 px-2 py-0.5 rounded-full border border-sky-100">Live Preview Below</span>
+                  <span className="text-sm font-medium text-slate-700">Promo Video Upload</span>
+                  <span className="text-[10px] font-bold text-sky-600 bg-sky-50 px-2 py-0.5 rounded-full border border-sky-100">Local MP4 Only</span>
                 </div>
-                <p className="text-[10px] text-slate-500 mb-2">Use direct MP4/HLS/DASH/WebM links. Multiple links are supported with comma, semicolon, or new line separators.</p>
+                <p className="text-[10px] text-slate-500 mb-2">Upload an MP4 from this device. The last uploaded video replaces the current promo video.</p>
                 <div className="flex gap-3 items-start">
                   <div className="flex-1">
-                    <input
-                      type="text"
-                      value={videoId}
-                      onChange={(e) => setVideoId(e.target.value)}
-                      placeholder="https://example.com/promo.m3u8, https://example.com/fallback.mp4"
-                      className="w-full px-3 py-2 border border-slate-300 rounded-xl font-mono text-sm focus:ring-2 focus:ring-sky-500 outline-none"
-                    />
-
                     <input
                       ref={uploadInputRef}
                       type="file"
@@ -499,6 +486,16 @@ export default function TeleshopManagerOutletDisplay() {
                           />
                         </div>
                       )}
+                    </div>
+
+                    <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs font-bold uppercase tracking-widest text-slate-500">Current Promo Video</span>
+                        <span className="text-[10px] text-slate-400">Saved automatically when you click Save Configuration</span>
+                      </div>
+                      <div className="max-h-28 overflow-auto rounded-lg bg-white border border-slate-200 p-2 text-xs font-mono text-slate-700 break-all whitespace-pre-wrap">
+                        {previewUrl || videoId.trim() || "No promo video uploaded yet"}
+                      </div>
                     </div>
                   </div>
                   <div className="w-32 h-[72px] bg-black rounded-lg overflow-hidden border border-slate-200 shadow-sm grow-0 shrink-0">
