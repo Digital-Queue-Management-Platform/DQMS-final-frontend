@@ -29,6 +29,29 @@ const parsePromoMediaUrls = (raw: string): string[] => {
     })
 }
 
+const normalizeUploadedPromoUrl = (urlValue: string): string => {
+  const raw = urlValue.trim()
+  if (!raw) return raw
+
+  if (raw.startsWith("/")) {
+    return `${window.location.origin}${raw}`
+  }
+
+  try {
+    const parsed = new URL(raw)
+    const isLocalHost = parsed.hostname === "127.0.0.1" || parsed.hostname === "localhost"
+    const isMixedContent = window.location.protocol === "https:" && parsed.protocol === "http:"
+
+    if (isLocalHost || isMixedContent) {
+      return `${window.location.origin}${parsed.pathname}${parsed.search}${parsed.hash}`
+    }
+  } catch {
+    return raw
+  }
+
+  return raw
+}
+
 export default function TeleshopManagerOutletDisplay() {
   const navigate = useNavigate()
   const [manager, setManager] = useState<TeleshopManagerMe | null>(null)
@@ -186,19 +209,27 @@ export default function TeleshopManagerOutletDisplay() {
       })
 
       const uploadedUrl = res.data?.url
+      const uploadedRelativeUrl = res.data?.relativeUrl
       if (!uploadedUrl) {
         throw new Error("Upload completed but no URL was returned")
       }
 
+      const normalizedUrl = normalizeUploadedPromoUrl(uploadedRelativeUrl || uploadedUrl)
+
       setVideoId((prev) => {
         const trimmed = prev.trim()
-        if (!trimmed) return uploadedUrl
-        if (trimmed.includes(uploadedUrl)) return trimmed
-        return `${trimmed}\n${uploadedUrl}`
+        if (!trimmed) return normalizedUrl
+        if (trimmed.includes(normalizedUrl)) return trimmed
+        return `${trimmed}\n${normalizedUrl}`
       })
       setUploadProgress(100)
     } catch (e: any) {
-      setError(e?.response?.data?.error || e?.message || "Failed to upload promo video")
+      const status = e?.response?.status
+      if (status === 413) {
+        setError("Upload failed: file is too large for server/proxy limits. Try a smaller MP4 (for example under 50MB) or increase reverse-proxy upload size.")
+      } else {
+        setError(e?.response?.data?.error || e?.message || "Failed to upload promo video")
+      }
     } finally {
       setUploadingVideo(false)
       setTimeout(() => setUploadProgress(0), 600)
