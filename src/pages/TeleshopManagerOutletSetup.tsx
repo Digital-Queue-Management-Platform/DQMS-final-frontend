@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Monitor, QrCode, Smartphone, CheckCircle, AlertCircle, Settings, Wifi } from 'lucide-react';
 import QRScanner from '../components/QRScanner';
@@ -33,11 +33,7 @@ const TeleshopManagerOutletSetup: React.FC = () => {
   const [success, setSuccess] = useState<string | null>(null);
   const [configuring, setConfiguring] = useState(false);
 
-  useEffect(() => {
-    fetchLinkedDevices();
-  }, []);
-
-  const fetchLinkedDevices = async () => {
+  const fetchLinkedDevices = useCallback(async () => {
     try {
       const token = localStorage.getItem('teleshopManagerToken');
       const response = await axios.get(`${API_URL}/teleshop-manager/outlet-devices`, {
@@ -50,9 +46,13 @@ const TeleshopManagerOutletSetup: React.FC = () => {
       console.error('Failed to fetch linked devices:', err);
       // Don't show error for this as it's not critical
     }
-  };
+  }, []);
 
-  const handleQRScan = async (deviceInfo: DeviceInfo) => {
+  useEffect(() => {
+    fetchLinkedDevices();
+  }, [fetchLinkedDevices]);
+
+  const handleQRScan = useCallback(async (deviceInfo: DeviceInfo) => {
     setConfiguring(true);
     setError(null);
 
@@ -95,7 +95,7 @@ const TeleshopManagerOutletSetup: React.FC = () => {
     } finally {
       setConfiguring(false);
     }
-  };
+  }, [fetchLinkedDevices]);
 
   const removeDevice = async (deviceId: string) => {
     if (!confirm('Are you sure you want to remove this device configuration? After removal, this TV display will be available for configuration by any teleshop manager.')) return;
