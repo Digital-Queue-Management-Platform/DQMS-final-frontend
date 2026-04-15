@@ -31,10 +31,28 @@ const toBool = (value: string | null, fallback: boolean) => {
 const parsePromoMediaUrls = (raw: string): string[] => {
   if (!raw.trim()) return []
 
+  const normalizePromoMediaUrl = (input: string): string => {
+    const value = input.trim()
+    if (!value) return value
+
+    try {
+      const parsed = new URL(value)
+      if (parsed.pathname.startsWith("/uploads/")) {
+        parsed.pathname = `/api${parsed.pathname}`
+        return parsed.toString()
+      }
+    } catch {
+      return value
+    }
+
+    return value
+  }
+
   return raw
     .split(/[\n,;]+/)
     .map((item) => item.trim())
     .filter(Boolean)
+    .map((value) => normalizePromoMediaUrl(value))
     .filter((value) => {
       const v = value.toLowerCase()
       const isHttp = v.startsWith("http://") || v.startsWith("https://")

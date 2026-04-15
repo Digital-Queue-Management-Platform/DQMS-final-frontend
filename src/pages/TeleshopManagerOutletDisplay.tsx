@@ -34,6 +34,9 @@ const normalizeUploadedPromoUrl = (urlValue: string): string => {
   if (!raw) return raw
 
   if (raw.startsWith("/")) {
+    if (raw.startsWith("/uploads/")) {
+      return `${window.location.origin}/api${raw}`
+    }
     return `${window.location.origin}${raw}`
   }
 
@@ -41,6 +44,11 @@ const normalizeUploadedPromoUrl = (urlValue: string): string => {
     const parsed = new URL(raw)
     const isLocalHost = parsed.hostname === "127.0.0.1" || parsed.hostname === "localhost"
     const isMixedContent = window.location.protocol === "https:" && parsed.protocol === "http:"
+
+    if (parsed.pathname.startsWith("/uploads/")) {
+      parsed.pathname = `/api${parsed.pathname}`
+      return parsed.toString()
+    }
 
     if (isLocalHost || isMixedContent) {
       return `${window.location.origin}${parsed.pathname}${parsed.search}${parsed.hash}`
