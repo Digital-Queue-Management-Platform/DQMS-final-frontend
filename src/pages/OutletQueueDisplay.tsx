@@ -516,7 +516,7 @@ export default function OutletQueueDisplay() {
       else if (lang === 'ta') text = `அடையாள எண் ${num}, தயவுசெய்து கவுண்டர் எண் ${counter} க்கு செல்லவும்.`
       else text = `Token number ${num}, please proceed to counter number ${counter}.`
     } else if (eventType === 'TOKEN_RECALLED') {
-      if (lang === 'si') text = `ටෝකන් අංක ${num} නැවත කැඳවනු ලැබේ. කරුණාකර වහාම කවුන්ටරය ${counter} වෙත පැමිණෙන්න.`
+      if (lang === 'si') text = `ටෝකන් අංක ${num} නැවත කැඳවනු ලැබේ. කරුණාකර වහාම කවුන්ටර අංක ${counter} වෙත පැමිණෙන්න.`
       else if (lang === 'ta') text = `அடையாள எண் ${num} மீண்டும் அழைக்கப்படுகிறது. உடனடியாக கவுண்டர் ${counter} க்கு வரவும்.`
       else text = `Token number ${num} is being recalled. Please proceed to counter number ${counter} immediately.`
     } else if (eventType === 'TEST_SOUND') {
