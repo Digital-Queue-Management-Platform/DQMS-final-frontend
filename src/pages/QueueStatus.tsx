@@ -1,9 +1,9 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
+import { useState, useEffect } from "react"
 import { useParams, useNavigate } from "react-router-dom"
 import { motion, AnimatePresence } from "framer-motion"
-import { Users, CheckCircle, AlertTriangle, XCircle, Trash2, ArrowLeft, Banknote, CreditCard, FileText, Landmark, Clock } from "lucide-react"
+import { Users, CheckCircle, AlertTriangle, XCircle, Trash2, ArrowLeft, Clock } from "lucide-react"
 import api, { WS_URL } from "../config/api"
 import type { Token } from "../types"
 import ServiceName from "../components/ServiceName"
@@ -17,14 +17,6 @@ export default function QueueStatus() {
   const [loading, setLoading] = useState(true)
   const [cancelling, setCancelling] = useState(false)
   const [showCancelConfirm, setShowCancelConfirm] = useState(false)
-
-  // Bill payment states — shown when token is in_service for bill payment services
-  const [billData, setBillData] = useState<any>(null)
-  const [paymentIntent, setPaymentIntent] = useState<'full' | 'partial' | null>(null)
-  const [paymentCustomAmount, setPaymentCustomAmount] = useState("")
-  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card' | 'cheque' | 'bank_transfer' | null>(null)
-  const [paymentSubmitting, setPaymentSubmitting] = useState(false)
-  const [paymentConfirmed, setPaymentConfirmed] = useState(false)
   const [language, setLanguage] = useState<'en' | 'si' | 'ta'>(() => {
     try {
       const saved = localStorage.getItem('dq_lang') as 'en' | 'si' | 'ta' | null
@@ -243,43 +235,6 @@ export default function QueueStatus() {
     }
   }
 
-  // Determine if this token requires bill payment selection
-  const isBillPaymentToken = (t: Token) =>
-    Array.isArray(t.serviceTypes) &&
-    t.serviceTypes.some((s) => s === 'BILL_PAYMENT' || s === 'SVC002') &&
-    !!t.sltTelephoneNumber
-
-  // Fetch bill data when token transitions to in_service (for bill payment)
-  useEffect(() => {
-    if (token?.status === 'in_service' && isBillPaymentToken(token) && !billData && !paymentConfirmed) {
-      api.get(`/bills/verify/${token.sltTelephoneNumber}`)
-        .then((res) => { if (res.data?.success && res.data?.bill) setBillData(res.data.bill) })
-        .catch(() => { /* bill data not critical, continue */ })
-    }
-  }, [token?.status, token?.sltTelephoneNumber])
-
-  // Initialise confirmed state from token if already set
-  useEffect(() => {
-    if (token?.billPaymentMethod) setPaymentConfirmed(true)
-  }, [token?.billPaymentMethod])
-
-  const handleConfirmPayment = async () => {
-    if (!paymentIntent || !paymentMethod || !tokenId) return
-    setPaymentSubmitting(true)
-    try {
-      await api.patch(`/customer/token/${tokenId}/payment-method`, {
-        billPaymentIntent: paymentIntent,
-        billPaymentAmount: paymentIntent === 'partial' ? parseFloat(paymentCustomAmount) || undefined : undefined,
-        billPaymentMethod: paymentMethod,
-      })
-      setPaymentConfirmed(true)
-    } catch (err: any) {
-      console.error("Failed to save payment method:", err)
-    } finally {
-      setPaymentSubmitting(false)
-    }
-  }
-
   const handleCancel = async () => {
     if (!tokenId) return
     try {
@@ -391,96 +346,6 @@ export default function QueueStatus() {
                   <div className="mt-8 pt-6 border-t border-green-100">
                     <p className="text-xs text-green-600 uppercase font-black tracking-widest mb-1">{t.servingOfficer}</p>
                     <p className="text-lg font-bold text-green-900">{token.officer.name}</p>
-                  </div>
-                )}
-
-                {/* Bill Payment method selection — shown after officer calls the customer */}
-                {isBillPaymentToken(token) && !paymentConfirmed && (
-                  <div className="mt-8 pt-6 border-t border-green-100 text-left">
-                    <div className="flex items-center gap-2 mb-4">
-                      <div className="w-2 h-2 rounded-full bg-amber-500"></div>
-                      <h3 className="text-sm font-semibold text-amber-900">{t.paymentIntentTitle}</h3>
-                    </div>
-
-                    {billData && (
-                      <div className="bg-white rounded-xl p-3 border border-amber-100 mb-4">
-                        <div className="flex justify-between items-center">
-                          <span className="text-xs text-gray-500">Due Amount</span>
-                          <span className="text-base font-bold text-red-600">Rs. {Number(billData.currentBill).toFixed(2)}</span>
-                        </div>
-                      </div>
-                    )}
-
-                    <div className="flex flex-col gap-2 mb-4">
-                      <button
-                        type="button"
-                        onClick={() => { setPaymentIntent('full'); setPaymentCustomAmount('') }}
-                        className={`py-3 px-4 rounded-xl border-2 text-sm font-semibold transition-all text-left ${paymentIntent === 'full' ? 'border-green-600 bg-green-600 text-white' : 'border-green-300 bg-white text-green-700 hover:border-green-500'}`}
-                      >
-                        ✓ {t.payFullAmount}{billData ? ` — Rs. ${Number(billData.currentBill).toFixed(2)}` : ''}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setPaymentIntent('partial')}
-                        className={`py-3 px-4 rounded-xl border-2 text-sm font-semibold transition-all text-left ${paymentIntent === 'partial' ? 'border-blue-600 bg-blue-600 text-white' : 'border-blue-300 bg-white text-blue-700 hover:border-blue-500'}`}
-                      >
-                        ◑ {t.payPartialAmount}
-                      </button>
-                      {paymentIntent === 'partial' && (
-                        <div className="mt-1 space-y-1">
-                          <label className="block text-xs font-medium text-gray-700">{t.partialAmountLabel}</label>
-                          <input
-                            type="number"
-                            value={paymentCustomAmount}
-                            onChange={(e) => setPaymentCustomAmount(e.target.value)}
-                            min="1"
-                            step="0.01"
-                            className="w-full px-3 py-2.5 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            placeholder={t.partialAmountPlaceholder}
-                          />
-                          {billData && <p className="text-xs text-gray-500">{t.partialAmountHint} {Number(billData.currentBill).toFixed(2)}</p>}
-                        </div>
-                      )}
-                    </div>
-
-                    {paymentIntent && (
-                      <div className="space-y-2 mb-4">
-                        <div className="text-xs font-semibold text-amber-900">{t.paymentMethodTitle}</div>
-                        <div className="grid grid-cols-2 gap-2">
-                          {(['cash', 'card', 'cheque', 'bank_transfer'] as const).map((method) => {
-                            const labels: Record<string, string> = { cash: t.payByCash, card: t.payByCard, cheque: t.payByCheque, bank_transfer: t.payByBankTransfer }
-                            const icons: Record<string, React.ReactNode> = { cash: <Banknote className="w-4 h-4" />, card: <CreditCard className="w-4 h-4" />, cheque: <FileText className="w-4 h-4" />, bank_transfer: <Landmark className="w-4 h-4" /> }
-                            return (
-                              <button
-                                key={method}
-                                type="button"
-                                onClick={() => setPaymentMethod(method)}
-                                className={`py-2.5 px-3 rounded-xl border-2 text-sm font-semibold transition-all flex items-center gap-2 ${paymentMethod === method ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-indigo-200 bg-white text-indigo-700 hover:border-indigo-400'}`}
-                              >
-                                <span>{icons[method]}</span>
-                                <span>{labels[method]}</span>
-                              </button>
-                            )
-                          })}
-                        </div>
-                      </div>
-                    )}
-
-                    {paymentIntent && paymentMethod && (
-                      <button
-                        onClick={handleConfirmPayment}
-                        disabled={paymentSubmitting || (paymentIntent === 'partial' && !paymentCustomAmount)}
-                        className="w-full py-3 bg-amber-500 text-white rounded-2xl font-black shadow-lg hover:bg-amber-600 transition-all disabled:opacity-50"
-                      >
-                        {paymentSubmitting ? t.submittingPayment : t.confirmPayment}
-                      </button>
-                    )}
-                  </div>
-                )}
-
-                {isBillPaymentToken(token) && paymentConfirmed && (
-                  <div className="mt-6 pt-5 border-t border-green-100">
-                    <p className="text-sm font-semibold text-green-700">{t.paymentConfirmedMsg}</p>
                   </div>
                 )}
               </div>
