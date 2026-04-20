@@ -4,7 +4,7 @@ import type React from "react"
 
 import { useState, useEffect, useRef } from "react"
 import { useParams, useNavigate, useLocation } from "react-router-dom"
-import { User, Phone, Eye, EyeOff, Check, Banknote, CreditCard, FileText, Landmark, Send, MessageSquare, CheckCircle } from "lucide-react"
+import { User, Phone, Eye, EyeOff } from "lucide-react"
 import api from "../config/api"
 import type { Outlet } from "../types"
 import OTPInput from "../components/OTPInput"
@@ -23,7 +23,7 @@ export default function CustomerRegistration() {
   const [selectedOutlet, setSelectedOutlet] = useState(outletId || "")
 
   // Initialize all form fields to empty strings - NEVER use cached values
-  const [name, setName] = useState("")
+
   const [mobileNumber, setMobileNumber] = useState("")
   const [selectedService, setSelectedService] = useState<string>("")
   // Optional fields section toggle
@@ -63,16 +63,10 @@ export default function CustomerRegistration() {
     lastPaymentDate?: string;
     mobileNumber?: string;  // Add mobile number property
   }>>([])
-  const [sltTelephoneNumber, setSltTelephoneNumber] = useState("")
+  // Removed unused single SLT phone number state
   const [_billData, setBillData] = useState<any>(null)
   const [sltVerified, setSltVerified] = useState(false)
-  const [billPaymentIntent, setBillPaymentIntent] = useState<'full' | 'partial' | null>(null)
-  const [billPaymentCustomAmount, setBillPaymentCustomAmount] = useState("")
-  const [billPaymentCustomAmounts, setBillPaymentCustomAmounts] = useState<{[sltNumber: string]: string}>({}) // Per-account amounts
-  const [billPaymentMethod, setBillPaymentMethod] = useState<'cash' | 'card' | 'cheque' | 'bank_transfer' | null>(null)
-  const [notificationSent, setNotificationSent] = useState(false)
-  const [notificationMessage, setNotificationMessage] = useState("")
-  const [isOwnerOfAccount, setIsOwnerOfAccount] = useState(false)
+  // Payment intent and method states removed to simplify flow
   const [shouldAutoSubmit, setShouldAutoSubmit] = useState(false)
 
   // Multi-step form state
@@ -89,7 +83,7 @@ export default function CustomerRegistration() {
   // Force clear all form fields whenever component mounts (every time page loads)
   const clearAllFormData = () => {
     console.log('clearAllFormData called - clearing selectedService from:', selectedService)
-    setName("")
+
     setMobileNumber("")
     setSelectedService("")
     setNicNumber("")
@@ -108,17 +102,10 @@ export default function CustomerRegistration() {
     // Reset bill payment state
     setSltTelephoneNumbers([])
     setVerifiedBills([])
-    setSltTelephoneNumber("")
     setBillData(null)
     setError("")
     setSltVerified(false)
-    setBillPaymentIntent(null)
-    setBillPaymentCustomAmount("")
-    setBillPaymentCustomAmounts({}) // Reset per-account amounts
-    setBillPaymentMethod(null)
-    setNotificationSent(false)
-    setNotificationMessage("")
-    setIsOwnerOfAccount(false)
+    // Payment intents removed
     setShouldAutoSubmit(false)
 
     // Additional browser form clearing
@@ -397,58 +384,23 @@ export default function CustomerRegistration() {
     }
   }, [shouldAutoSubmit, otpStep, otpToken])
 
-  // Auto-submit for non-bill services after OTP verification
+  // Auto-submit detection for all services after verification
   useEffect(() => {
-    if (selectedService !== 'SVC002' && selectedService !== 'BILL_PAYMENT' && currentStep === 4 && otpStep === 'verified' && otpToken) {
-      setShouldAutoSubmit(true)
-    } else {
+    if (currentStep !== 4 || otpStep !== 'verified' || !otpToken) {
       setShouldAutoSubmit(false)
+      return
     }
-  }, [selectedService, currentStep, otpStep, otpToken])
 
-  // Auto-submit detection for bill payment (sets flag only)
-  useEffect(() => {
-    // Debug logging for bill payment auto-submit
-    console.log('Bill Payment Auto-Submit Check:', {
-      selectedService,
-      isBillService: selectedService === 'SVC002' || selectedService === 'BILL_PAYMENT',
-      sltVerified,
-      otpStep,
-      billPaymentIntent,
-      billPaymentMethod,
-      billPaymentCustomAmount
-    })
-    
-    if (selectedService !== 'SVC002' && selectedService !== 'BILL_PAYMENT') {
-      setShouldAutoSubmit(false)
-      return
-    }
-    if (!sltVerified || otpStep !== 'verified') {
-      console.log('FAILED: Bill Payment: SLT or OTP not verified', { sltVerified, otpStep })
-      setShouldAutoSubmit(false)
-      return
-    }
-    if (!billPaymentIntent || !billPaymentMethod) {
-      console.log('FAILED: Bill Payment: Missing payment intent or method', { billPaymentIntent, billPaymentMethod })
-      setShouldAutoSubmit(false)
-      return
-    }
-    if (billPaymentIntent === 'partial') {
-      // Check if all verified bills have valid amounts entered
-      const hasValidAmounts = verifiedBills.every(bill => {
-        const amount = parseFloat(billPaymentCustomAmounts[bill.telephoneNumber] || '0')
-        return !isNaN(amount) && amount > 0
-      })
-      
-      if (!hasValidAmounts) {
-        console.log('FAILED: Bill Payment: Invalid or missing per-account amounts', { billPaymentCustomAmounts })
+    if (selectedService === 'SVC002' || selectedService === 'BILL_PAYMENT') {
+      if (!sltVerified) {
         setShouldAutoSubmit(false)
         return
       }
     }
-    console.log('SUCCESS: Bill Payment: All conditions met, setting auto-submit')
+    
+    console.log('SUCCESS: All conditions met, setting auto-submit')
     setShouldAutoSubmit(true)
-  }, [billPaymentIntent, billPaymentMethod, billPaymentCustomAmount, billPaymentCustomAmounts, otpStep, selectedService, sltVerified, verifiedBills])
+  }, [selectedService, currentStep, otpStep, otpToken, sltVerified])
 
   // Separate useEffect to handle the actual submission when flag is set
   useEffect(() => {
@@ -464,14 +416,7 @@ export default function CustomerRegistration() {
     }
   }, [shouldAutoSubmit])
 
-  // Helper function to check if partial payment amounts are valid
-  const isPartialAmountValid = () => {
-    if (billPaymentIntent !== 'partial') return true
-    return verifiedBills.every(bill => {
-      const amount = parseFloat(billPaymentCustomAmounts[bill.telephoneNumber] || '0')
-      return !isNaN(amount) && amount > 0
-    })
-  }
+  // Partial payment validation removed
 
 
   // Handle service selection
@@ -562,7 +507,8 @@ export default function CustomerRegistration() {
           await verifyAllSltNumbers()
         }
 
-        // Auto-submit disabled
+        // Auto-submit enabled for all services
+        setShouldAutoSubmit(true)
 
         return res.data.verifiedMobileToken as string
 
@@ -596,7 +542,7 @@ export default function CustomerRegistration() {
       for (const sltNumber of sltTelephoneNumbers) {
         console.log('Verifying SLT number:', sltNumber)
         try {
-          const response = await api.get(`/bills/verify/${sltNumber}?force=true`)
+          const response = await api.get(`/bills/verify/${sltNumber}?force=true&mobileNumber=${encodeURIComponent(mobileNumber)}`)
           if (response.data.success && response.data.bill) {
             const bill = response.data.bill
             allBills.push({
@@ -635,23 +581,8 @@ export default function CustomerRegistration() {
         // Set verification as successful
         setSltVerified(true)
         setVerifiedBills(allBills)
-        setSltTelephoneNumber(successfulVerifications[0].sltNumber) // Set first successful one for compatibility
         
         // Generate combined notification message
-        const maskedMobileNumbers = successfulVerifications.map(result => {
-          if (result.mobileNumber) {
-            return result.mobileNumber.replace(/(\d{6})\d{3}(\d+)/, '$1***$2')
-          }
-          return 'unknown'
-        })
-        
-        const sltNumbers = successfulVerifications.map(result => result.sltNumber)
-        
-        setNotificationSent(true)
-        setNotificationMessage(
-          `Bill notification has been sent to the registered mobile number(s) ${maskedMobileNumbers.join(', ')} of the SLT account(s) ${sltNumbers.join(', ')}.`
-        )
-        
         setError("")
         console.log('SUCCESS: All SLT verifications completed:', successfulVerifications.length, 'successful')
       } else {
@@ -681,9 +612,6 @@ export default function CustomerRegistration() {
     console.log('SUBMIT: Form submission started', {
       selectedService,
       sltVerified,
-      billPaymentIntent,
-      billPaymentMethod,
-      billPaymentCustomAmounts,
       verifiedBills: verifiedBills.length,
       otpStep,
       otpToken: !!otpToken
@@ -698,36 +626,11 @@ export default function CustomerRegistration() {
         tokenForSubmit = vt
       }
 
-      // Validate bill payment intent for SLT services
-      if (isSltRequiredService(selectedService) && sltVerified) {
-        if (!billPaymentIntent) {
-          setError('Please select your payment preference (full or partial payment)')
-          setLoading(false)
-          return
-        }
-        if (billPaymentIntent === 'partial') {
-          // Validate per-account amounts
-          const hasValidAmounts = verifiedBills.every(bill => {
-            const amount = parseFloat(billPaymentCustomAmounts[bill.telephoneNumber] || '0')
-            return !isNaN(amount) && amount > 0
-          })
-          
-          if (!hasValidAmounts) {
-            setError('Please enter a valid payment amount for each account')
-            setLoading(false)
-            return
-          }
-        }
-        if (!billPaymentMethod) {
-          setError('Please select a payment method')
-          setLoading(false)
-          return
-        }
-      }
+      // Payment intent validation removed to simplify flow
 
       // Log the request data for debugging
       const requestData = {
-        name,
+        name: 'Customer',
         mobileNumber,
         nicNumber: nicNumber || undefined,
         email: email || undefined,
@@ -737,18 +640,11 @@ export default function CustomerRegistration() {
         verifiedMobileToken: tokenForSubmit,
         preferredLanguages: preferredLanguage ? [preferredLanguage] : undefined,
         sltTelephoneNumber: isSltRequiredService(selectedService) && sltTelephoneNumbers.length > 0 ? sltTelephoneNumbers[0] : undefined, // Send first SLT number for backward compatibility
-        billPaymentIntent: isSltRequiredService(selectedService) && verifiedBills.length > 0 ? billPaymentIntent : undefined,
-        billPaymentAmount: (() => {
-          if (!isSltRequiredService(selectedService) || billPaymentIntent !== 'partial') return undefined
-          // Calculate total amount from per-account amounts
-          const total = Object.values(billPaymentCustomAmounts).reduce((sum, amount) => {
-            const numAmount = parseFloat(amount || '0')
-            return sum + (isNaN(numAmount) ? 0 : numAmount)
-          }, 0)
-          return total > 0 ? total : undefined
-        })(),
-        billPaymentCustomAmounts: isSltRequiredService(selectedService) && billPaymentIntent === 'partial' ? billPaymentCustomAmounts : undefined,
-        billPaymentMethod: isSltRequiredService(selectedService) && verifiedBills.length > 0 ? billPaymentMethod : undefined,
+        sltTelephoneNumbers: isSltRequiredService(selectedService) ? sltTelephoneNumbers : undefined,
+        billPaymentIntent: undefined,
+        billPaymentAmount: undefined,
+        billPaymentCustomAmounts: undefined,
+        billPaymentMethod: undefined,
       }
       
       console.log('SUBMIT: Request data being sent to backend:', JSON.stringify(requestData, null, 2))
@@ -802,7 +698,7 @@ export default function CustomerRegistration() {
 
   // Step navigation functions
   const goToNextStep = () => {
-    const newStep = Math.min(currentStep + 1, 4)
+    const newStep = Math.min(currentStep + 1, 3)
     console.log(`Step progression: ${currentStep} → ${newStep}`)
     setCurrentStep(newStep)
   }
@@ -825,12 +721,12 @@ export default function CustomerRegistration() {
 
   // Check if user can receive OTP (basic details only)
   const canReceiveOtp = () => {
-    return name.trim().length >= 2 && isValidMobile(mobileNumber)
+    return isValidMobile(mobileNumber)
   }
 
   // Check if user can proceed from Step 3 (including SLT for bill payment)
   const canProceedFromStep3 = () => {
-    const validDetails = name.trim().length >= 2 && isValidMobile(mobileNumber)
+    const validDetails = isValidMobile(mobileNumber)
     if (selectedService === 'BILL_PAYMENT' || isSltRequiredService(selectedService)) {
       return validDetails && sltTelephoneNumbers.length > 0 && sltTelephoneNumbers.every(num => isValidSlt(num))
     }
@@ -841,7 +737,7 @@ export default function CustomerRegistration() {
     en: {
       title: "Digital Queue Platform",
       subtitle: "Register to join the queue",
-      name: "Full Name",
+
       mobile: "Mobile Number",
       optionalDetails: "Optional details",
       outlet: "Outlet",
@@ -1141,7 +1037,7 @@ export default function CustomerRegistration() {
             {/* Progress Indicator */}
             <div className="mb-6">
               <div className="flex items-center justify-center gap-2 mb-2">
-                {[1, 2, 3, 4].map((step) => (
+                {[1, 2, 3].map((step) => (
                   <div key={step} className="flex items-center">
                     <div
                       className={`w-8 h-8 rounded-xl flex items-center justify-center text-sm font-semibold transition-colors ${currentStep >= step
@@ -1151,7 +1047,7 @@ export default function CustomerRegistration() {
                     >
                       {step}
                     </div>
-                    {step < 4 && (
+                    {step < 3 && (
                       <div
                         className={`w-8 sm:w-12 h-1 mx-1 transition-colors ${currentStep > step ? 'bg-blue-600' : 'bg-gray-200'
                           }`}
@@ -1161,7 +1057,7 @@ export default function CustomerRegistration() {
                 ))}
               </div>
               <p className="text-xs text-center text-gray-500">
-                {t.step} {currentStep} {t.of} 4
+                {t.step} {currentStep} {t.of} 3
               </p>
             </div>
 
@@ -1252,8 +1148,8 @@ export default function CustomerRegistration() {
                     <p className="text-xs text-gray-500 mt-2">{t.selectServiceTypesSubtitle}</p>
                   </div>
 
-                  {/* Auto-submit feedback — spinner shown once all bill payment selections are made */}
-                  {shouldAutoSubmit && otpStep === 'verified' && (isSltRequiredService(selectedService) ? (sltVerified && billPaymentIntent && billPaymentMethod && isPartialAmountValid()) : true) && (
+                  {/* Auto-submit feedback — spinner shown once all details are verified */}
+                  {shouldAutoSubmit && otpStep === 'verified' && (isSltRequiredService(selectedService) ? sltVerified : true) && (
                     <div className="w-full bg-blue-50 border border-blue-200 text-blue-700 py-3 rounded-xl text-sm font-medium flex items-center justify-center gap-2">
                       <svg className="animate-spin h-4 w-4 text-blue-600" viewBox="0 0 24 24">
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
@@ -1308,25 +1204,7 @@ export default function CustomerRegistration() {
                       </div>
                     )}
 
-                  {/* Manual Entry Path - Always show name/mobile fields */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">{t.name}</label>
-                    <div className="relative">
-                      <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                      <input
-                        type="text"
-                        value={name}
-                        onChange={(e) => setName(e.target.value.replace(/[^a-zA-Z\s\-'.]/g, ''))}
-                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent rounded-xl"
-                        placeholder={t.name}
-                        maxLength={100}
-                        required
-                      />
-                    </div>
-                    {name.length > 0 && name.trim().length < 2 && (
-                      <p className="text-xs text-red-500 mt-1">{t.invalidName}</p>
-                    )}
-                  </div>
+                  {/* Name field removed as per user request to simplify flow */}
 
                   {/* Mobile Number Input */}
                   <div>
@@ -1401,7 +1279,7 @@ export default function CustomerRegistration() {
                     </>
                   )}
 
-                  <div className="flex gap-3">
+                  <div className="flex gap-3 mt-6">
                     <button
                       type="button"
                       onClick={goToPreviousStep}
@@ -1409,226 +1287,23 @@ export default function CustomerRegistration() {
                     >
                       {t.back}
                     </button>
-                    <button
-                      type="button"
-                      onClick={goToNextStep}
-                      disabled={!canProceedFromStep3()}
-                      className={`flex-1 ${autoSendingOtp ? 'bg-indigo-600' : 'bg-blue-600'} text-white py-3 rounded-lg font-semibold hover:opacity-90 transition-all disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2`}
-                    >
-                      {autoSendingOtp ? (
-                        <>
-                          <svg className="animate-spin h-5 w-5 text-white" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
-                          </svg>
-                          <span>Sending OTP...</span>
-                        </>
-                      ) : t.next}
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* STEP 4: OTP Verification & Submit */}
-              {currentStep === 4 && (
-                <div className="space-y-6">
-                  <div className="text-center">
-                    <h2 className="text-xl font-bold text-gray-900 mb-2">{t.step4Title}</h2>
-                    <p className="text-sm text-gray-600">{t.step4Subtitle}</p>
-                  </div>
-
-                  {/* Summary */}
-                  <div className="bg-slate-50 rounded-xl p-4 space-y-3">
-                    <div>
-                      <span className="text-xs font-medium text-gray-500 uppercase">{t.preferredLanguage}</span>
-                      <p className="text-sm font-medium text-gray-900">
-                        {preferredLanguage === 'en' ? t.english : preferredLanguage === 'si' ? t.sinhala : t.tamil}
-                      </p>
-                    </div>
-                    <div>
-                      <span className="text-xs font-medium text-gray-500 uppercase">{t.serviceType}</span>
-                      <p className="text-sm font-medium text-gray-900">
-                        {getServiceTitle(selectedService)}
-                      </p>
-                    </div>
-                    {isSltRequiredService(selectedService) && sltTelephoneNumber && (
-                      <div>
-                        <span className="text-xs font-medium text-gray-500 uppercase">{t.sltTelephone}</span>
-                        <p className="text-sm font-medium text-gray-900">{sltTelephoneNumber}</p>
-                      </div>
+                    {otpStep === 'idle' && (
+                      <button
+                        type="button"
+                        onClick={sendOtp}
+                        disabled={!qrValid || otpSending || !canProceedFromStep3() || !selectedOutlet || !selectedService}
+                        className="flex-1 bg-indigo-600 text-white py-3 rounded-xl font-semibold hover:bg-indigo-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+                      >
+                        {otpSending ? t.sendingOTP : t.verify}
+                      </button>
                     )}
-                    <div>
-                      <span className="text-xs font-medium text-gray-500 uppercase">{t.name}</span>
-                      <p className="text-sm font-medium text-gray-900">{name}</p>
-                    </div>
-                    <div>
-                      <span className="text-xs font-medium text-gray-500 uppercase">{t.mobile}</span>
-                      <p className="text-sm font-medium text-gray-900">{mobileNumber}</p>
-                    </div>
                   </div>
-                  {/* Bill Notification - Show after SLT verified */}
-                  {isSltRequiredService(selectedService) && sltVerified && notificationSent && (
-                    <div className={`rounded-lg p-4 border ${
-                      isOwnerOfAccount ? 'bg-green-50 border-green-200' : 'bg-blue-50 border-blue-200'
-                    }`}>
-                      <div className="flex items-center gap-2 mb-2">
-                        <div className={`w-2 h-2 rounded-full ${isOwnerOfAccount ? 'bg-green-500' : 'bg-blue-500'}`}></div>
-                        <span className={`text-sm font-semibold ${isOwnerOfAccount ? 'text-green-700' : 'text-blue-700'}`}>
-                          {isOwnerOfAccount
-                            ? <><CheckCircle className="w-3 h-3 inline-block mr-1" />Bill Confirmed</>
-                            : <><Send className="w-3 h-3 inline-block mr-1" />{t.notificationSent}</>
-                          }
-                        </span>
-                      </div>
-                      <p className="text-sm text-gray-700 mb-2 font-medium">{notificationMessage}</p>
-                      {!isOwnerOfAccount && (
-                        <p className="text-xs text-gray-600 bg-white p-2 rounded border border-slate-200 mb-2 flex items-start gap-2">
-                          <MessageSquare className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                          <span>The bill details have been sent as an SMS notification to the account holder.</span>
-                        </p>
-                      )}
-                      <p className="text-xs text-gray-600">{t.continueWithYourNumber}</p>
-                    </div>
-                  )}
 
-                  {/* Bill Payment Intent Selection — shown after SLT verified + OTP verified */}
-                  {isSltRequiredService(selectedService) && sltVerified && otpStep === 'verified' && (
-                    <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 space-y-4">
-                      <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-amber-500"></div>
-                        <h3 className="text-sm font-semibold text-amber-900">{t.paymentIntentTitle}</h3>
-                      </div>
-                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                        <p className="text-xs text-blue-800"> {t.dueAmountNote}</p>
-                      </div>
-                      <div className="flex flex-col gap-2">
-                        <button
-                          type="button"
-                          onClick={() => { setBillPaymentIntent('full'); setBillPaymentCustomAmount('') }}
-                          className={`py-3 px-4 rounded-xl border-2 text-sm font-semibold transition-all ${
-                            billPaymentIntent === 'full'
-                              ? 'border-green-600 bg-green-600 text-white'
-                              : 'border-green-300 bg-white text-green-700 hover:border-green-500'
-                          }`}
-                        >
-                          ✓ {t.payFullAmount}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setBillPaymentIntent('partial')}
-                          className={`py-3 px-4 rounded-xl border-2 text-sm font-semibold transition-all ${
-                            billPaymentIntent === 'partial'
-                              ? 'border-blue-600 bg-blue-600 text-white'
-                              : 'border-blue-300 bg-white text-blue-700 hover:border-blue-500'
-                          }`}
-                        >
-                          ◑ {t.payPartialAmount}
-                        </button>
-                        {billPaymentIntent === 'partial' && (
-                          <div className="mt-1 space-y-3">
-                            {/* Show individual amount inputs for each SLT account */}
-                            {verifiedBills.length > 0 && (
-                              <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl">
-                                <div className="text-xs font-medium text-amber-900 mb-3">
-                                  Enter payment amount for each account:
-                                </div>
-                                <div className="space-y-3">
-                                  {verifiedBills.map((bill, index) => (
-                                    <div key={index} className="bg-white p-3 rounded-lg border border-amber-200">
-                                      <div className="flex items-center justify-between mb-2">
-                                        <span className="text-sm font-medium text-gray-900">
-                                          {bill.telephoneNumber}
-                                        </span>
-                                        <span className="text-xs text-gray-600">
-                                          Account: {bill.accountName || 'N/A'}
-                                        </span>
-                                      </div>
-                                      <div className="space-y-1">
-                                        <label className="block text-xs font-medium text-gray-700">
-                                          Amount to pay (Rs.)
-                                        </label>
-                                        <input
-                                          type="number"
-                                          value={billPaymentCustomAmounts[bill.telephoneNumber] || ""}
-                                          onChange={(e) => setBillPaymentCustomAmounts(prev => ({
-                                            ...prev,
-                                            [bill.telephoneNumber]: e.target.value
-                                          }))}
-                                          min="1"
-                                          step="0.01"
-                                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                          placeholder={`Enter amount for ${bill.telephoneNumber}`}
-                                        />
-                                      </div>
-                                      {bill.currentBill && (
-                                        <div className="text-xs text-gray-600 mt-1">
-                                          Total due: Rs. {bill.currentBill.toFixed(2)}
-                                        </div>
-                                      )}
-                                    </div>
-                                  ))}
-                                </div>
-                                <div className="text-xs text-amber-700 mt-2">
-                                  You can pay different amounts for each account
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Payment Method — shown after intent chosen */}
-                      {billPaymentIntent && (
-                        <div className="space-y-2">
-                          <div className="text-xs font-semibold text-amber-900">{t.paymentMethodTitle}</div>
-                          <div className="grid grid-cols-2 gap-2">
-                            {(['cash', 'card', 'cheque', 'bank_transfer'] as const).map((method) => {
-                              const labels: Record<string, string> = { cash: t.payByCash, card: t.payByCard, cheque: t.payByCheque, bank_transfer: t.payByBankTransfer }
-                              const icons: Record<string, React.ReactNode> = { cash: <Banknote className="w-4 h-4" />, card: <CreditCard className="w-4 h-4" />, cheque: <FileText className="w-4 h-4" />, bank_transfer: <Landmark className="w-4 h-4" /> }
-                              return (
-                                <button
-                                  key={method}
-                                  type="button"
-                                  onClick={() => setBillPaymentMethod(method)}
-                                  className={`py-2.5 px-3 rounded-xl border-2 text-sm font-semibold transition-all flex items-center gap-2 ${
-                                    billPaymentMethod === method
-                                      ? 'border-indigo-600 bg-indigo-600 text-white'
-                                      : 'border-indigo-200 bg-white text-indigo-700 hover:border-indigo-400'
-                                  }`}
-                                >
-                                  <span>{icons[method]}</span>
-                                  <span>{labels[method]}</span>
-                                </button>
-                              )
-                            })}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Bill payment summary message when ready */}
-                      {billPaymentIntent && billPaymentMethod && isPartialAmountValid() && !loading && (
-                        <div className="w-full bg-green-50 border border-green-200 text-green-700 py-3 rounded-xl text-center text-sm font-medium">
-                          {t.readyToRegister || 'Ready to generate your token'}
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* OTP Verification */}
-                  {otpStep === 'idle' && (
-                    <button
-                      type="button"
-                      onClick={sendOtp}
-                      disabled={!qrValid || otpSending || !mobileNumber || !selectedOutlet || !selectedService}
-                      className="w-full bg-indigo-600 text-white py-3 rounded-lg font-semibold hover:bg-indigo-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
-                    >
-                      {otpSending ? t.sendingOTP : t.verify}
-                    </button>
-                  )}
-
-                  {otpStep === 'sent' && (
-                    <div className="space-y-4">
-                      <div className="p-4 border rounded-lg bg-gray-50">
+                  {/* OTP Verification & Submit elements natively shown in Step 3 */}
+                  <div className="space-y-4">
+                    {/* verification alerts removed as per user request to streamline flow */}
+                    {otpStep === 'sent' && (
+                      <div className="mt-4 p-4 border rounded-lg bg-gray-50">
                         <OTPInput
                           value={otpCode}
                           onChange={setOtpCode}
@@ -1648,54 +1323,34 @@ export default function CustomerRegistration() {
                           </button>
                         </div>
                       </div>
-                    </div>
-                  )}
+                    )}
 
-                  {otpStep === 'verified' && (
-                    <div className="space-y-4">
-                      <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
-                        <p className="flex items-center justify-center gap-1.5 text-green-700 font-medium mb-1"><Check className="w-4 h-4" /> {t.verified || 'Phone Verified'}</p>
-                        {otpCode && devOtpCode && (
-                          <p className="text-xs text-green-600">Auto-verified for your convenience</p>
-                        )}
+                    {shouldAutoSubmit && otpStep === 'verified' && (isSltRequiredService(selectedService) ? sltVerified : true) && (
+                      <div className="w-full mt-4 bg-blue-50 border border-blue-200 text-blue-700 py-3 rounded-xl text-sm font-medium flex items-center justify-center gap-2">
+                        <svg className="animate-spin h-4 w-4 text-blue-600" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                        </svg>
+                        {loading ? t.registering : t.registering}
                       </div>
-                    </div>
-                  )}
+                    )}
 
-
-
-                  {(otpStep === 'sent' || otpStep === 'verified') && (
-                    <button
-                      type="submit"
-                      disabled={
-                        !qrValid || 
-                        loading || 
-                        !selectedOutlet || 
-                        !selectedService || 
-                        (otpStep === 'sent' && otpCode.length !== 4) ||
-                        (otpStep === 'verified' && isSltRequiredService(selectedService) && (!billPaymentIntent || !isPartialAmountValid() || !billPaymentMethod))
-                      }
-                      className="w-full bg-blue-600 text-white py-3 rounded-xl font-semibold hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
-                    >
-                      {loading ? t.registering : t.register}
-                    </button>
-                  )}
-
-                  <div className="flex gap-3">
-                    <button
-                      type="button"
-                      onClick={goToPreviousStep}
-                      className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-xl font-semibold hover:bg-gray-300 transition-colors"
-                    >
-                      {t.back}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={clearAllFormData}
-                      className="flex-1 bg-gray-500 text-white py-3 rounded-lg font-medium hover:bg-gray-600 transition-colors"
-                    >
-                      {t.clearForm}
-                    </button>
+                    {!shouldAutoSubmit && (otpStep === 'sent' || otpStep === 'verified') && (
+                      <button
+                        type="submit"
+                        disabled={
+                          !qrValid || 
+                          loading || 
+                          !selectedOutlet || 
+                          !selectedService || 
+                          (otpStep === 'sent' && otpCode.length !== 4) ||
+                          (otpStep === 'verified' && isSltRequiredService(selectedService) && !sltVerified)
+                        }
+                        className="w-full mt-4 bg-blue-600 text-white py-3 rounded-xl font-semibold hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+                      >
+                        {loading ? t.registering : t.register}
+                      </button>
+                    )}
                   </div>
                 </div>
               )}

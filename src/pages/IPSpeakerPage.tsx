@@ -13,24 +13,24 @@ const LANGUAGE_CODES = {
 // Announcement templates in different languages
 const ANNOUNCEMENT_TEMPLATES = {
   en: {
-    call: (tokenNumber: number, firstName: string, counterNumber?: number) => 
-      `${firstName}. Token number ${tokenNumber}, please proceed to counter ${counterNumber || 'assigned'}.`,
+    call: (tokenNumber: number, _firstName: string, counterNumber?: number) => 
+      `Token number ${tokenNumber}, please proceed to counter ${counterNumber || 'assigned'}.`,
     welcome: 'Welcome to our service center.',
     next: 'Next customer, please.',
     wait: 'Please wait for your turn.',
     test: 'This is a test announcement. IP speaker is working correctly.'
   },
   si: {
-    call: (tokenNumber: number, firstName: string, counterNumber?: number) => 
-      `${firstName}. ටෝකන් අංක ${tokenNumber}, කරුණාකර කවුන්ටර අංක ${counterNumber || 'නියම කළ'} වෙත පැමිණෙන්න.`,
+    call: (tokenNumber: number, _firstName: string, counterNumber?: number) => 
+      `ටෝකන් අංක ${tokenNumber}, කරුණාකර කවුන්ටර අංක ${counterNumber || 'නියම කළ'} වෙත පැමිණෙන්න.`,
     welcome: 'අපගේ සේවා මධ්‍යස්ථානයට සාදරයෙන් පිළිගනිමු.',
     next: 'ඊළඟ පාරිභෝගිකයා කරුණාකර.',
     wait: 'කරුණාකර ඔබේ වාරය සඳහා රැඳී සිටින්න.',
     test: 'මෙය පරීක්ෂණ නිවේදනයකි. IP ස්පීකර් නිවැරදිව ක්‍රියා කරයි.'
   },
   ta: {
-    call: (tokenNumber: number, firstName: string, counterNumber?: number) => 
-      `${firstName}. அடையாள எண் ${tokenNumber}, தயவுசெய்து கவுண்டர் எண் ${counterNumber || 'ஒதுக்கப்பட்ட'} க்கு செல்லவும்.`,
+    call: (tokenNumber: number, _firstName: string, counterNumber?: number) => 
+      `அடையாள எண் ${tokenNumber}, தயவுசெய்து கவுண்டர் எண் ${counterNumber || 'ஒதுக்கப்பட்ட'} க்கு செல்லவும்.`,
     welcome: 'எங்கள் சேவை மையத்திற்கு வரவேற்கிறோம்.',
     next: 'அடுத்த வாடிக்கையாளர், தயவுசெய்து.',
     wait: 'தயவுசெய்து உங்கள் முறைக்கு காத்திருங்கள்.',

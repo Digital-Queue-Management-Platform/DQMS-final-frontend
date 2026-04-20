@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState, type ChangeEvent, type DragEvent } from "react"
 import { useNavigate } from "react-router-dom"
-import { ExternalLink, Copy, Monitor, SlidersHorizontal, CheckCircle2, Save, Loader2, Volume2, Play, Music, Bell, Mic } from "lucide-react"
+import { ExternalLink, Copy, Monitor, SlidersHorizontal, CheckCircle2, Save, Loader2, Volume2, Play, Music, Bell, Mic, UploadCloud } from "lucide-react"
 import api from "../config/api"
 
 type TeleshopManagerMe = {
@@ -14,6 +14,63 @@ type TeleshopManagerMe = {
   } | null
 }
 
+const parsePromoMediaUrls = (raw: string): string[] => {
+  if (!raw.trim()) return []
+
+  return raw
+    .split(/[\n,;]+/)
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .filter((value) => {
+      const v = value.toLowerCase()
+      const isHttp = v.startsWith("http://") || v.startsWith("https://")
+      const isDirect = v.includes(".m3u8") || v.includes(".mpd") || v.includes(".mp4") || v.includes(".webm")
+      return isHttp && isDirect
+    })
+}
+
+const normalizeUploadedPromoUrl = (urlValue: string): string => {
+  const raw = urlValue.trim()
+  if (!raw) return raw
+
+  if (raw.startsWith("/")) {
+    if (raw.startsWith("/uploads/")) {
+      return `${window.location.origin}/api${raw}`
+    }
+    return `${window.location.origin}${raw}`
+  }
+
+  try {
+    const parsed = new URL(raw)
+    const isLocalHost = parsed.hostname === "127.0.0.1" || parsed.hostname === "localhost"
+    const isMixedContent = window.location.protocol === "https:" && parsed.protocol === "http:"
+
+    if (parsed.pathname.startsWith("/uploads/")) {
+      parsed.pathname = `/api${parsed.pathname}`
+      return parsed.toString()
+    }
+
+    if (isLocalHost || isMixedContent) {
+      return `${window.location.origin}${parsed.pathname}${parsed.search}${parsed.hash}`
+    }
+  } catch {
+    return raw
+  }
+
+  return raw
+}
+
+const normalizePromoVideoField = (raw: string): string => {
+  if (!raw.trim()) return ""
+
+  return raw
+    .split(/[\n,;]+/)
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .map((item) => normalizeUploadedPromoUrl(item))
+    .join("\n")
+}
+
 export default function TeleshopManagerOutletDisplay() {
   const navigate = useNavigate()
   const [manager, setManager] = useState<TeleshopManagerMe | null>(null)
@@ -22,15 +79,17 @@ export default function TeleshopManagerOutletDisplay() {
   const [copied, setCopied] = useState(false)
   const [saving, setSaving] = useState(false)
   const [saveSuccess, setSaveSuccess] = useState(false)
+  const [uploadingVideo, setUploadingVideo] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState(0)
+  const [dragOverUpload, setDragOverUpload] = useState(false)
+  const uploadInputRef = useRef<HTMLInputElement | null>(null)
 
   const [refresh, setRefresh] = useState(10)
-  const [next, setNext] = useState(8)
   const [services, setServices] = useState(false)
-  const [counters, setCounters] = useState(false)
-  const [recent, setRecent] = useState(false)
-  const [autoSlide, setAutoSlide] = useState(true)
   const [playTone, setPlayTone] = useState(true)
   const [contentScale, setContentScale] = useState(100)
+  const [videoId, setVideoId] = useState("https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4")
+  const normalizedVideoId = useMemo(() => normalizePromoVideoField(videoId), [videoId])
   
   
   // Speaker Test State
@@ -113,14 +172,10 @@ export default function TeleshopManagerOutletDisplay() {
           const s = settingsRes.data?.settings
           if (s) {
             if (s.refresh) setRefresh(s.refresh)
-            if (s.next) setNext(s.next)
             if (s.services !== undefined) setServices(!!s.services)
-            if (s.counters !== undefined) setCounters(!!s.counters)
-            if (s.recent !== undefined) setRecent(!!s.recent)
-            if (s.autoSlide !== undefined) setAutoSlide(!!s.autoSlide)
             if (s.playTone !== undefined) setPlayTone(!!s.playTone)
             if (s.contentScale) setContentScale(Number(s.contentScale))
-            
+            if (s.videoId) setVideoId(normalizePromoVideoField(s.videoId))
           }
         } catch (se) {
           console.warn("Could not load persisted display settings", se)
@@ -139,16 +194,78 @@ export default function TeleshopManagerOutletDisplay() {
     if (!manager?.branchId) return ""
     const params = new URLSearchParams({
       refresh: String(refresh),
-      next: String(next),
       services: services ? "1" : "0",
-      counters: counters ? "1" : "0",
-      recent: recent ? "1" : "0",
-      autoSlide: autoSlide ? "1" : "0",
       playTone: playTone ? "1" : "0",
       scale: String(contentScale),
+      videoId: normalizedVideoId
     })
     return `${window.location.origin}/display/outlet/${manager.branchId}?${params.toString()}`
-  }, [manager?.branchId, refresh, next, services, counters, recent, autoSlide, playTone, contentScale])
+  }, [manager?.branchId, refresh, services, playTone, contentScale, normalizedVideoId])
+
+  const previewUrl = useMemo(() => parsePromoMediaUrls(normalizedVideoId)[0] || "", [normalizedVideoId])
+
+  const uploadPromoVideo = async (file: File) => {
+    const isMp4Mime = file.type.toLowerCase() === "video/mp4"
+    const isMp4Name = file.name.toLowerCase().endsWith(".mp4")
+    if (!isMp4Mime && !isMp4Name) {
+      setError("Only MP4 files are supported for drag-and-drop upload.")
+      return
+    }
+
+    setError("")
+    setUploadingVideo(true)
+    setUploadProgress(0)
+
+    try {
+      const formData = new FormData()
+      formData.append("file", file)
+
+      const res = await api.post("/teleshop-manager/upload-promo-video", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+        onUploadProgress: (event) => {
+          if (!event.total) return
+          setUploadProgress(Math.round((event.loaded * 100) / event.total))
+        },
+      })
+
+      const uploadedUrl = res.data?.url
+      const uploadedRelativeUrl = res.data?.relativeUrl
+      if (!uploadedUrl) {
+        throw new Error("Upload completed but no URL was returned")
+      }
+
+      const normalizedUrl = normalizeUploadedPromoUrl(uploadedRelativeUrl || uploadedUrl)
+
+      setVideoId(normalizedUrl)
+      setUploadProgress(100)
+    } catch (e: any) {
+      const status = e?.response?.status
+      if (status === 413) {
+        setError("Upload failed: file is too large for server/proxy limits. Try a smaller MP4 (for example under 50MB) or increase reverse-proxy upload size.")
+      } else {
+        setError(e?.response?.data?.error || e?.message || "Failed to upload promo video")
+      }
+    } finally {
+      setUploadingVideo(false)
+      setTimeout(() => setUploadProgress(0), 600)
+    }
+  }
+
+  const onSelectPromoFile = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    await uploadPromoVideo(file)
+    e.target.value = ""
+  }
+
+  const onDropPromoFile = async (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setDragOverUpload(false)
+    const file = e.dataTransfer.files?.[0]
+    if (!file) return
+    await uploadPromoVideo(file)
+  }
 
   const openDisplay = () => {
     if (displayUrl) window.open(displayUrl, "_blank")
@@ -244,17 +361,16 @@ export default function TeleshopManagerOutletDisplay() {
     setError("")
     try {
       const token = localStorage.getItem("teleshopManagerToken")
+      const sanitizedVideoId = normalizePromoVideoField(videoId)
+      setVideoId(sanitizedVideoId)
       await api.post("/teleshop-manager/display-settings",
         {
           settings: {
             refresh,
-            next,
             services,
-            counters,
-            recent,
-            autoSlide,
             playTone,
             contentScale,
+            videoId: sanitizedVideoId,
           }
         },
         { headers: { Authorization: `Bearer ${token}` } }
@@ -321,16 +437,82 @@ export default function TeleshopManagerOutletDisplay() {
                 />
               </label>
 
-              <label className="block">
-                <span className="text-sm font-medium text-slate-700">Up-next token count</span>
-                <input
-                  type="number"
-                  min={3}
-                  max={20}
-                  value={next}
-                  onChange={(e) => setNext(Math.max(3, Math.min(20, Number(e.target.value) || 8)))}
-                  className="mt-1 w-full px-3 py-2 border border-slate-300 rounded-xl"
-                />
+              <label className="block md:col-span-2">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-sm font-medium text-slate-700">Promo Video Upload</span>
+                  <span className="text-[10px] font-bold text-sky-600 bg-sky-50 px-2 py-0.5 rounded-full border border-sky-100">Local MP4 Only</span>
+                </div>
+                <p className="text-[10px] text-slate-500 mb-2">Upload an MP4 from this device. The last uploaded video replaces the current promo video.</p>
+                <div className="flex gap-3 items-start">
+                  <div className="flex-1">
+                    <input
+                      ref={uploadInputRef}
+                      type="file"
+                      accept="video/mp4,.mp4"
+                      onChange={onSelectPromoFile}
+                      className="hidden"
+                    />
+
+                    <div
+                      onDragOver={(e) => {
+                        e.preventDefault()
+                        setDragOverUpload(true)
+                      }}
+                      onDragLeave={() => setDragOverUpload(false)}
+                      onDrop={onDropPromoFile}
+                      className={`mt-2 rounded-xl border-2 border-dashed px-3 py-3 transition-colors ${
+                        dragOverUpload ? "border-sky-500 bg-sky-50" : "border-slate-300 bg-slate-50"
+                      }`}
+                    >
+                      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="flex items-center gap-2 text-xs text-slate-600">
+                          <UploadCloud className="w-4 h-4 text-slate-500" />
+                          <span>Drag and drop MP4 here, or upload from device</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => uploadInputRef.current?.click()}
+                          disabled={uploadingVideo}
+                          className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100 disabled:opacity-50"
+                        >
+                          {uploadingVideo ? "Uploading..." : "Select MP4"}
+                        </button>
+                      </div>
+                      {uploadingVideo && (
+                        <div className="mt-2 h-2 w-full rounded-full bg-slate-200 overflow-hidden">
+                          <div
+                            className="h-full bg-sky-600 transition-all"
+                            style={{ width: `${uploadProgress}%` }}
+                          />
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs font-bold uppercase tracking-widest text-slate-500">Current Promo Video</span>
+                        <span className="text-[10px] text-slate-400">Saved automatically when you click Save Configuration</span>
+                      </div>
+                      <div className="max-h-28 overflow-auto rounded-lg bg-white border border-slate-200 p-2 text-xs font-mono text-slate-700 break-all whitespace-pre-wrap">
+                        {previewUrl || videoId.trim() || "No promo video uploaded yet"}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="w-32 h-[72px] bg-black rounded-lg overflow-hidden border border-slate-200 shadow-sm grow-0 shrink-0">
+                    {previewUrl ? (
+                      <video
+                        src={previewUrl}
+                        className="w-full h-full object-cover"
+                        muted
+                        autoPlay
+                        loop
+                        playsInline
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center bg-slate-100 italic text-[10px] text-slate-400">No valid URL</div>
+                    )}
+                  </div>
+                </div>
               </label>
             </div>
 
@@ -338,29 +520,6 @@ export default function TeleshopManagerOutletDisplay() {
               <label className="flex items-center justify-between rounded-xl border border-slate-200 px-4 py-3">
                 <span className="text-sm text-slate-800">Show service names</span>
                 <input type="checkbox" checked={services} onChange={(e) => setServices(e.target.checked)} />
-              </label>
-
-              <label className="flex items-center justify-between rounded-xl border border-slate-200 px-4 py-3">
-                <span className="text-sm text-slate-800">Show counter status panel</span>
-                <input type="checkbox" checked={counters} onChange={(e) => setCounters(e.target.checked)} />
-              </label>
-
-              <label className="flex items-center justify-between rounded-xl border border-slate-200 px-4 py-3">
-                <span className="text-sm text-slate-800">Show recently called tokens</span>
-                <input type="checkbox" checked={recent} onChange={(e) => setRecent(e.target.checked)} />
-              </label>
-
-              <label className="flex items-center justify-between rounded-xl border border-slate-200 px-4 py-3 bg-indigo-50/50 border-indigo-100">
-                <div className="flex flex-col">
-                  <span className="text-sm font-bold text-slate-800">Enable Auto-Sliding</span>
-                  <span className="text-xs text-slate-500">Automatically scroll lists (Up Next, Recently Called, etc.)</span>
-                </div>
-                <input 
-                  type="checkbox" 
-                  checked={autoSlide} 
-                  onChange={(e) => setAutoSlide(e.target.checked)} 
-                  className="w-5 h-5 accent-indigo-600"
-                />
               </label>
 
               <label className="flex items-center justify-between rounded-xl border border-slate-200 px-4 py-3 bg-amber-50/50 border-amber-100">

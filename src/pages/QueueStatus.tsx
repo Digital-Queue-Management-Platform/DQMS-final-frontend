@@ -1,9 +1,9 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
+import { useState, useEffect } from "react"
 import { useParams, useNavigate } from "react-router-dom"
 import { motion, AnimatePresence } from "framer-motion"
-import { Users, CheckCircle, AlertTriangle, XCircle, Trash2, ArrowLeft, Banknote, CreditCard, FileText, Landmark } from "lucide-react"
+import { Users, CheckCircle, AlertTriangle, XCircle, Trash2, ArrowLeft, Clock } from "lucide-react"
 import api, { WS_URL } from "../config/api"
 import type { Token } from "../types"
 import ServiceName from "../components/ServiceName"
@@ -13,17 +13,10 @@ export default function QueueStatus() {
   const navigate = useNavigate()
   const [token, setToken] = useState<Token | null>(null)
   const [position, setPosition] = useState(0)
+  const [estimatedWait, setEstimatedWait] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
   const [cancelling, setCancelling] = useState(false)
   const [showCancelConfirm, setShowCancelConfirm] = useState(false)
-
-  // Bill payment states — shown when token is in_service for bill payment services
-  const [billData, setBillData] = useState<any>(null)
-  const [paymentIntent, setPaymentIntent] = useState<'full' | 'partial' | null>(null)
-  const [paymentCustomAmount, setPaymentCustomAmount] = useState("")
-  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card' | 'cheque' | 'bank_transfer' | null>(null)
-  const [paymentSubmitting, setPaymentSubmitting] = useState(false)
-  const [paymentConfirmed, setPaymentConfirmed] = useState(false)
   const [language, setLanguage] = useState<'en' | 'si' | 'ta'>(() => {
     try {
       const saved = localStorage.getItem('dq_lang') as 'en' | 'si' | 'ta' | null
@@ -49,6 +42,8 @@ export default function QueueStatus() {
       cancelledTitle: "Token Cancelled",
       cancelledMessage: "This token has been cancelled. If this was a mistake, please register again.",
       name: "Name",
+      avgWaitTime: "Average Wait Time",
+      min: "min",
       mobile: "Mobile",
       serviceTypes: "Service Types",
       registeredAt: "Registered At",
@@ -81,7 +76,10 @@ export default function QueueStatus() {
       newService: "New Service",
       serviceComplaint: "Service Complaint",
       billDispute: "Bill Dispute",
-      other: "Other Services"
+      other: "Other Services",
+      dueAmount: "Due Amount",
+      telephone: "Telephone",
+      checkSmsForAmount: "Details sent via SMS"
     },
     si: {
       yourToken: "ඔබේ ටෝකන් අංකය",
@@ -96,6 +94,8 @@ export default function QueueStatus() {
       cancelledTitle: "ටෝකනය අවලංගු කරන ලදි",
       cancelledMessage: "මෙම ටෝකනය අවලංගු කර ඇත. මෙය වැරදීමක් නම්, කරුණාකර නැවත ලියාපදිංචි වන්න.",
       name: "නම",
+      avgWaitTime: "සාමාන්‍ය රැඳී සිටීමේ කාලය",
+      min: "විනාඩි",
       mobile: "ජංගම දුරකථනය",
       serviceTypes: "සේවා වර්ග",
       registeredAt: "ලියාපදිංචි වූ වේලාව",
@@ -128,7 +128,10 @@ export default function QueueStatus() {
       newService: "නව සේවාව",
       serviceComplaint: "සේවා පැමිණිල්ල",
       billDispute: "බිල්පත් ආරවුල",
-      other: "වෙනත් සේවා"
+      other: "වෙනත් සේවා",
+      dueAmount: "ගෙවිය යුතු මුදල",
+      telephone: "දුරකථන අංකය",
+      checkSmsForAmount: "SMS මගින් විස්තර යවා ඇත"
     },
     ta: {
       yourToken: "உங்கள் டோக்கன் எண்",
@@ -143,6 +146,8 @@ export default function QueueStatus() {
       cancelledTitle: "டோக்கன் ரத்து செய்யப்பட்டது",
       cancelledMessage: "இந்த டோக்கன் ரத்து செய்யப்பட்டுள்ளது. தவறாக நடந்தால், மீண்டும் பதிவு செய்யவும்.",
       name: "பெயர்",
+      avgWaitTime: "சராசரி காத்திருப்பு நேரம்",
+      min: "நிமிடம்",
       mobile: "மொபைல்",
       serviceTypes: "சேவை வகைகள்",
       registeredAt: "பதிவு செய்யப்பட்ட நேரம்",
@@ -175,7 +180,10 @@ export default function QueueStatus() {
       newService: "புதிய சேவை",
       serviceComplaint: "சேவை புகார்",
       billDispute: "பில் சர்ச்சை",
-      other: "மற்ற சேவைகள்"
+      other: "மற்ற சேவைகள்",
+      dueAmount: "நிலுவைத் தொகை",
+      telephone: "தொலைபேசி எண்",
+      checkSmsForAmount: "SMS மூலம் விவரங்கள் அனுப்பப்பட்டன"
     }
   }
 
@@ -210,6 +218,7 @@ export default function QueueStatus() {
       const response = await api.get(`/customer/token/${tokenId}`)
       setToken(response.data.token)
       setPosition(response.data.position)
+      setEstimatedWait(response.data.estimatedWaitMinutes)
 
       if (response.data.token.status === "completed") {
         navigate(`/feedback/${tokenId}`)
@@ -232,43 +241,6 @@ export default function QueueStatus() {
       console.error("Failed to fetch token status:", err)
     } finally {
       setLoading(false)
-    }
-  }
-
-  // Determine if this token requires bill payment selection
-  const isBillPaymentToken = (t: Token) =>
-    Array.isArray(t.serviceTypes) &&
-    t.serviceTypes.some((s) => s === 'BILL_PAYMENT' || s === 'SVC002') &&
-    !!t.sltTelephoneNumber
-
-  // Fetch bill data when token transitions to in_service (for bill payment)
-  useEffect(() => {
-    if (token?.status === 'in_service' && isBillPaymentToken(token) && !billData && !paymentConfirmed) {
-      api.get(`/bills/verify/${token.sltTelephoneNumber}`)
-        .then((res) => { if (res.data?.success && res.data?.bill) setBillData(res.data.bill) })
-        .catch(() => { /* bill data not critical, continue */ })
-    }
-  }, [token?.status, token?.sltTelephoneNumber])
-
-  // Initialise confirmed state from token if already set
-  useEffect(() => {
-    if (token?.billPaymentMethod) setPaymentConfirmed(true)
-  }, [token?.billPaymentMethod])
-
-  const handleConfirmPayment = async () => {
-    if (!paymentIntent || !paymentMethod || !tokenId) return
-    setPaymentSubmitting(true)
-    try {
-      await api.patch(`/customer/token/${tokenId}/payment-method`, {
-        billPaymentIntent: paymentIntent,
-        billPaymentAmount: paymentIntent === 'partial' ? parseFloat(paymentCustomAmount) || undefined : undefined,
-        billPaymentMethod: paymentMethod,
-      })
-      setPaymentConfirmed(true)
-    } catch (err: any) {
-      console.error("Failed to save payment method:", err)
-    } finally {
-      setPaymentSubmitting(false)
     }
   }
 
@@ -385,96 +357,6 @@ export default function QueueStatus() {
                     <p className="text-lg font-bold text-green-900">{token.officer.name}</p>
                   </div>
                 )}
-
-                {/* Bill Payment method selection — shown after officer calls the customer */}
-                {isBillPaymentToken(token) && !paymentConfirmed && (
-                  <div className="mt-8 pt-6 border-t border-green-100 text-left">
-                    <div className="flex items-center gap-2 mb-4">
-                      <div className="w-2 h-2 rounded-full bg-amber-500"></div>
-                      <h3 className="text-sm font-semibold text-amber-900">{t.paymentIntentTitle}</h3>
-                    </div>
-
-                    {billData && (
-                      <div className="bg-white rounded-xl p-3 border border-amber-100 mb-4">
-                        <div className="flex justify-between items-center">
-                          <span className="text-xs text-gray-500">Due Amount</span>
-                          <span className="text-base font-bold text-red-600">Rs. {Number(billData.currentBill).toFixed(2)}</span>
-                        </div>
-                      </div>
-                    )}
-
-                    <div className="flex flex-col gap-2 mb-4">
-                      <button
-                        type="button"
-                        onClick={() => { setPaymentIntent('full'); setPaymentCustomAmount('') }}
-                        className={`py-3 px-4 rounded-xl border-2 text-sm font-semibold transition-all text-left ${paymentIntent === 'full' ? 'border-green-600 bg-green-600 text-white' : 'border-green-300 bg-white text-green-700 hover:border-green-500'}`}
-                      >
-                        ✓ {t.payFullAmount}{billData ? ` — Rs. ${Number(billData.currentBill).toFixed(2)}` : ''}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setPaymentIntent('partial')}
-                        className={`py-3 px-4 rounded-xl border-2 text-sm font-semibold transition-all text-left ${paymentIntent === 'partial' ? 'border-blue-600 bg-blue-600 text-white' : 'border-blue-300 bg-white text-blue-700 hover:border-blue-500'}`}
-                      >
-                        ◑ {t.payPartialAmount}
-                      </button>
-                      {paymentIntent === 'partial' && (
-                        <div className="mt-1 space-y-1">
-                          <label className="block text-xs font-medium text-gray-700">{t.partialAmountLabel}</label>
-                          <input
-                            type="number"
-                            value={paymentCustomAmount}
-                            onChange={(e) => setPaymentCustomAmount(e.target.value)}
-                            min="1"
-                            step="0.01"
-                            className="w-full px-3 py-2.5 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            placeholder={t.partialAmountPlaceholder}
-                          />
-                          {billData && <p className="text-xs text-gray-500">{t.partialAmountHint} {Number(billData.currentBill).toFixed(2)}</p>}
-                        </div>
-                      )}
-                    </div>
-
-                    {paymentIntent && (
-                      <div className="space-y-2 mb-4">
-                        <div className="text-xs font-semibold text-amber-900">{t.paymentMethodTitle}</div>
-                        <div className="grid grid-cols-2 gap-2">
-                          {(['cash', 'card', 'cheque', 'bank_transfer'] as const).map((method) => {
-                            const labels: Record<string, string> = { cash: t.payByCash, card: t.payByCard, cheque: t.payByCheque, bank_transfer: t.payByBankTransfer }
-                            const icons: Record<string, React.ReactNode> = { cash: <Banknote className="w-4 h-4" />, card: <CreditCard className="w-4 h-4" />, cheque: <FileText className="w-4 h-4" />, bank_transfer: <Landmark className="w-4 h-4" /> }
-                            return (
-                              <button
-                                key={method}
-                                type="button"
-                                onClick={() => setPaymentMethod(method)}
-                                className={`py-2.5 px-3 rounded-xl border-2 text-sm font-semibold transition-all flex items-center gap-2 ${paymentMethod === method ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-indigo-200 bg-white text-indigo-700 hover:border-indigo-400'}`}
-                              >
-                                <span>{icons[method]}</span>
-                                <span>{labels[method]}</span>
-                              </button>
-                            )
-                          })}
-                        </div>
-                      </div>
-                    )}
-
-                    {paymentIntent && paymentMethod && (
-                      <button
-                        onClick={handleConfirmPayment}
-                        disabled={paymentSubmitting || (paymentIntent === 'partial' && !paymentCustomAmount)}
-                        className="w-full py-3 bg-amber-500 text-white rounded-2xl font-black shadow-lg hover:bg-amber-600 transition-all disabled:opacity-50"
-                      >
-                        {paymentSubmitting ? t.submittingPayment : t.confirmPayment}
-                      </button>
-                    )}
-                  </div>
-                )}
-
-                {isBillPaymentToken(token) && paymentConfirmed && (
-                  <div className="mt-6 pt-5 border-t border-green-100">
-                    <p className="text-sm font-semibold text-green-700">{t.paymentConfirmedMsg}</p>
-                  </div>
-                )}
               </div>
             )}
 
@@ -502,13 +384,33 @@ export default function QueueStatus() {
         {/* Customer Details Footer */}
         <div className="bg-slate-50 p-8 border-t border-gray-100">
           <div className="grid grid-cols-2 gap-y-6 gap-x-4">
-            <div className="space-y-1">
-              <p className="text-[10px] text-gray-400 uppercase font-black tracking-widest">{t.name}</p>
-              <p className="font-bold text-gray-900 text-sm truncate">{token.customer.name}</p>
+            <div className="col-span-2">
+              <motion.div 
+                animate={{ scale: [1, 1.02, 1] }} 
+                transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                className="bg-blue-50 border border-blue-100 rounded-2xl p-4 flex items-center justify-between"
+              >
+                <div>
+                  <p className="text-[10px] text-blue-600 uppercase font-black tracking-widest mb-0.5">{t.avgWaitTime}</p>
+                  <p className="text-2xl font-black text-blue-900 leading-none">
+                    {estimatedWait ?? '--'} <span className="text-xs font-bold opacity-70">{t.min}</span>
+                  </p>
+                </div>
+                <div className="bg-blue-600/10 p-2.5 rounded-xl text-blue-600">
+                  <Clock className="w-6 h-6 animate-spin-slow" style={{ animationDuration: '8s' }} />
+                </div>
+              </motion.div>
             </div>
+
             <div className="space-y-1">
               <p className="text-[10px] text-gray-400 uppercase font-black tracking-widest">{t.mobile}</p>
               <p className="font-bold text-gray-900 text-sm">{token.customer.mobileNumber}</p>
+            </div>
+            <div className="space-y-1">
+              <p className="text-[10px] text-gray-400 uppercase font-black tracking-widest">{t.registeredAt}</p>
+              <p className="font-bold text-gray-900 text-sm">
+                {new Date(token.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}
+              </p>
             </div>
             <div className="space-y-2 col-span-2">
               <p className="text-[10px] text-gray-400 uppercase font-black tracking-widest">{t.serviceTypes}</p>
@@ -532,12 +434,34 @@ export default function QueueStatus() {
                 )}
               </div>
             </div>
-            <div className="space-y-1 col-span-2">
-              <p className="text-[10px] text-gray-400 uppercase font-black tracking-widest">{t.registeredAt}</p>
-              <p className="font-bold text-gray-900 text-sm">
-                {new Date(token.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}
-              </p>
-            </div>
+
+            {token.tokenBills && token.tokenBills.length > 0 && (
+              <div className="space-y-4 col-span-2 pt-6 border-t border-gray-100 mt-2">
+                <p className="text-[10px] text-blue-600 uppercase font-black tracking-widest">{t.dueAmount}</p>
+                <div className="space-y-3">
+                  {token.tokenBills.map((tb) => (
+                    <div key={tb.id} className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm flex items-center justify-between group hover:border-blue-200 transition-all">
+                      <div>
+                        <p className="text-[10px] text-gray-400 uppercase font-black tracking-widest leading-none mb-1.5">{t.telephone}</p>
+                        <p className="font-bold text-slate-800 text-base">{tb.telephoneNumber}</p>
+                      </div>
+                      <div className="text-right">
+                        {tb.sltBill?.currentBill && tb.sltBill.currentBill > 0 ? (
+                          <p className="text-2xl font-black text-blue-900">
+                            <span className="text-xs font-bold mr-1 opacity-60 font-sans">Rs.</span>
+                            {tb.sltBill.currentBill.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </p>
+                        ) : (
+                          <p className="text-sm font-bold text-blue-600 bg-blue-50 px-3 py-1 rounded-lg">
+                            {t.checkSmsForAmount}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </motion.div>

@@ -20,12 +20,24 @@ interface DeviceInfo {
 const QRScanner: React.FC<QRScannerProps> = ({ onScan, onClose, isOpen }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const scannerRef = useRef<QrScanner | null>(null);
+  const onScanRef = useRef(onScan);
+  const isProcessingRef = useRef(false);
+  const hasScannedRef = useRef(false);
+  const pendingScanTimeoutRef = useRef<number | null>(null);
   const [scanning, setScanning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [deviceInfo, setDeviceInfo] = useState<DeviceInfo | null>(null);
   const [scanResult, setScanResult] = useState<'success' | 'error' | null>(null);
 
+  useEffect(() => {
+    onScanRef.current = onScan;
+  }, [onScan]);
+
   const handleScan = useCallback((result: QrScanner.ScanResult) => {
+    if (isProcessingRef.current || hasScannedRef.current) {
+      return;
+    }
+
     try {
       console.log('QR Code scanned:', result.data);
       const data = JSON.parse(result.data);
@@ -33,6 +45,8 @@ const QRScanner: React.FC<QRScannerProps> = ({ onScan, onClose, isOpen }) => {
       // Validate QR code format
       if (data.type === 'dqmp_outlet_setup' && data.deviceId && data.setupCode) {
         console.log('Valid QR code detected:', data);
+        isProcessingRef.current = true;
+        hasScannedRef.current = true;
         setDeviceInfo(data);
         setScanResult('success');
         
@@ -40,11 +54,12 @@ const QRScanner: React.FC<QRScannerProps> = ({ onScan, onClose, isOpen }) => {
         if (scannerRef.current) {
           scannerRef.current.stop();
         }
+        setScanning(false);
         
-        // Auto-proceed after 2 seconds on successful scan
-        setTimeout(() => {
-          onScan(data);
-        }, 2000);
+        // Auto-proceed after short delay so user sees success state.
+        pendingScanTimeoutRef.current = window.setTimeout(() => {
+          onScanRef.current(data);
+        }, 600);
       } else {
         console.log('Invalid QR code format:', data);
         setError('Invalid QR code format. Please scan a DQMP Android TV setup code.');
@@ -66,10 +81,10 @@ const QRScanner: React.FC<QRScannerProps> = ({ onScan, onClose, isOpen }) => {
         setScanResult(null);
       }, 3000);
     }
-  }, [onScan]);
+  }, []);
 
   const startScanner = useCallback(async () => {
-    if (!videoRef.current || scannerRef.current) return;
+    if (!videoRef.current || scannerRef.current || isProcessingRef.current || hasScannedRef.current) return;
 
     try {
       console.log('Starting QR scanner...');
@@ -101,6 +116,11 @@ const QRScanner: React.FC<QRScannerProps> = ({ onScan, onClose, isOpen }) => {
       scannerRef.current.destroy();
       scannerRef.current = null;
       setScanning(false);
+    }
+
+    if (pendingScanTimeoutRef.current !== null) {
+      window.clearTimeout(pendingScanTimeoutRef.current);
+      pendingScanTimeoutRef.current = null;
     }
   }, []);
 
@@ -149,12 +169,16 @@ const QRScanner: React.FC<QRScannerProps> = ({ onScan, onClose, isOpen }) => {
 
   useEffect(() => {
     if (isOpen) {
+      isProcessingRef.current = false;
+      hasScannedRef.current = false;
       startScanner();
     } else {
       stopScanner();
       setDeviceInfo(null);
       setScanResult(null);
       setError(null);
+      isProcessingRef.current = false;
+      hasScannedRef.current = false;
     }
 
     return () => {
