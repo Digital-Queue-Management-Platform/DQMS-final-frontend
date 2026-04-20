@@ -542,7 +542,7 @@ export default function CustomerRegistration() {
       for (const sltNumber of sltTelephoneNumbers) {
         console.log('Verifying SLT number:', sltNumber)
         try {
-          const response = await api.get(`/bills/verify/${sltNumber}?force=true`)
+          const response = await api.get(`/bills/verify/${sltNumber}?force=true&mobileNumber=${encodeURIComponent(mobileNumber)}`)
           if (response.data.success && response.data.bill) {
             const bill = response.data.bill
             allBills.push({
@@ -640,6 +640,7 @@ export default function CustomerRegistration() {
         verifiedMobileToken: tokenForSubmit,
         preferredLanguages: preferredLanguage ? [preferredLanguage] : undefined,
         sltTelephoneNumber: isSltRequiredService(selectedService) && sltTelephoneNumbers.length > 0 ? sltTelephoneNumbers[0] : undefined, // Send first SLT number for backward compatibility
+        sltTelephoneNumbers: isSltRequiredService(selectedService) ? sltTelephoneNumbers : undefined,
         billPaymentIntent: undefined,
         billPaymentAmount: undefined,
         billPaymentCustomAmounts: undefined,

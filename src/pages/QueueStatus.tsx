@@ -76,7 +76,10 @@ export default function QueueStatus() {
       newService: "New Service",
       serviceComplaint: "Service Complaint",
       billDispute: "Bill Dispute",
-      other: "Other Services"
+      other: "Other Services",
+      dueAmount: "Due Amount",
+      telephone: "Telephone",
+      checkSmsForAmount: "Details sent via SMS"
     },
     si: {
       yourToken: "ඔබේ ටෝකන් අංකය",
@@ -125,7 +128,10 @@ export default function QueueStatus() {
       newService: "නව සේවාව",
       serviceComplaint: "සේවා පැමිණිල්ල",
       billDispute: "බිල්පත් ආරවුල",
-      other: "වෙනත් සේවා"
+      other: "වෙනත් සේවා",
+      dueAmount: "ගෙවිය යුතු මුදල",
+      telephone: "දුරකථන අංකය",
+      checkSmsForAmount: "SMS මගින් විස්තර යවා ඇත"
     },
     ta: {
       yourToken: "உங்கள் டோக்கன் எண்",
@@ -174,7 +180,10 @@ export default function QueueStatus() {
       newService: "புதிய சேவை",
       serviceComplaint: "சேவை புகார்",
       billDispute: "பில் சர்ச்சை",
-      other: "மற்ற சேவைகள்"
+      other: "மற்ற சேவைகள்",
+      dueAmount: "நிலுவைத் தொகை",
+      telephone: "தொலைபேசி எண்",
+      checkSmsForAmount: "SMS மூலம் விவரங்கள் அனுப்பப்பட்டன"
     }
   }
 
@@ -425,6 +434,34 @@ export default function QueueStatus() {
                 )}
               </div>
             </div>
+
+            {token.tokenBills && token.tokenBills.length > 0 && (
+              <div className="space-y-4 col-span-2 pt-6 border-t border-gray-100 mt-2">
+                <p className="text-[10px] text-blue-600 uppercase font-black tracking-widest">{t.dueAmount}</p>
+                <div className="space-y-3">
+                  {token.tokenBills.map((tb) => (
+                    <div key={tb.id} className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm flex items-center justify-between group hover:border-blue-200 transition-all">
+                      <div>
+                        <p className="text-[10px] text-gray-400 uppercase font-black tracking-widest leading-none mb-1.5">{t.telephone}</p>
+                        <p className="font-bold text-slate-800 text-base">{tb.telephoneNumber}</p>
+                      </div>
+                      <div className="text-right">
+                        {tb.sltBill?.currentBill && tb.sltBill.currentBill > 0 ? (
+                          <p className="text-2xl font-black text-blue-900">
+                            <span className="text-xs font-bold mr-1 opacity-60 font-sans">Rs.</span>
+                            {tb.sltBill.currentBill.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </p>
+                        ) : (
+                          <p className="text-sm font-bold text-blue-600 bg-blue-50 px-3 py-1 rounded-lg">
+                            {t.checkSmsForAmount}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </motion.div>

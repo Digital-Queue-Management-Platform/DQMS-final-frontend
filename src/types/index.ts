@@ -33,6 +33,29 @@ export interface Token {
   calledAt?: string
   startedAt?: string
   completedAt?: string
+  tokenBills?: TokenBill[]
+}
+
+export interface TokenBill {
+  id: string
+  tokenId: string
+  telephoneNumber: string
+  billPaymentIntent?: string | null
+  billPaymentAmount?: number | null
+  createdAt: string
+  sltBill?: SltBill
+}
+
+export interface SltBill {
+  id: string
+  telephoneNumber: string
+  accountName: string
+  accountAddress?: string | null
+  currentBill: number
+  dueDate: string
+  status: string
+  lastPaymentDate?: string | null
+  updatedAt: string
 }
 
 export interface Officer {

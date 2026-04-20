@@ -563,7 +563,8 @@ export default function AppointmentBooking() {
     setError("")
     try {
       const response = await api.post('/bills/verify-multiple', {
-        telephoneNumbers: sltTelephoneNumbers
+        telephoneNumbers: sltTelephoneNumbers,
+        mobileNumber: mobileNumber
       })
       
       if (response.data.success) {
