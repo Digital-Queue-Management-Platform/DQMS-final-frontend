@@ -20,6 +20,8 @@ const ServicesPage: React.FC = () => {
   const [advanceApptLoading, setAdvanceApptLoading] = useState(false)
   const [showServiceTypeEnabled, setShowServiceTypeEnabled] = useState(false)
   const [showServiceTypeLoading, setShowServiceTypeLoading] = useState(false)
+  const [otpVerificationEnabled, setOtpVerificationEnabled] = useState(true)
+  const [otpVerificationLoading, setOtpVerificationLoading] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [searchTerm, setSearchTerm] = useState('')
@@ -38,6 +40,7 @@ const ServicesPage: React.FC = () => {
     fetchPriorityFeatureSetting()
     fetchAdvanceApptSetting()
     fetchShowServiceTypeSetting()
+    fetchOtpVerificationSetting()
     fetchServices()
   }, [])
 
@@ -68,6 +71,16 @@ const ServicesPage: React.FC = () => {
     } catch (err) {
       console.error(err)
       setShowServiceTypeEnabled(false)
+    }
+  }
+
+  const fetchOtpVerificationSetting = async () => {
+    try {
+      const res = await api.get('/queue/settings/otp-verification')
+      setOtpVerificationEnabled(res.data?.enabled !== false)
+    } catch (err) {
+      console.error(err)
+      setOtpVerificationEnabled(true)
     }
   }
 
@@ -184,6 +197,20 @@ const ServicesPage: React.FC = () => {
     }
   }
 
+  const handleOtpVerificationToggle = async (enabled: boolean) => {
+    setOtpVerificationLoading(true)
+    setError('')
+    try {
+      const res = await api.patch('/queue/settings/otp-verification', { enabled })
+      setOtpVerificationEnabled(res.data?.enabled === true)
+    } catch (err: any) {
+      console.error(err)
+      setError(err?.response?.data?.error || 'Failed to update OTP verification setting')
+    } finally {
+      setOtpVerificationLoading(false)
+    }
+  }
+
   const resetForm = () => {
     setCode('')
     setTitle('')
@@ -284,7 +311,7 @@ const ServicesPage: React.FC = () => {
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 sm:p-6 flex flex-col justify-between md:col-span-2">
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 sm:p-6 flex flex-col justify-between">
             <div>
               <h2 className="text-lg font-semibold text-gray-900">Queue Display Settings</h2>
               <p className="text-sm text-gray-600 mt-1 mb-4">
@@ -307,6 +334,28 @@ const ServicesPage: React.FC = () => {
                 className={`px-4 py-2 rounded-xl text-sm font-semibold transition-colors disabled:opacity-60 ${showServiceTypeEnabled ? 'bg-gray-900 text-white hover:bg-gray-800' : 'bg-blue-600 text-white hover:bg-blue-700'}`}
               >
                 {showServiceTypeLoading ? 'Saving...' : showServiceTypeEnabled ? 'Hide Service Type' : 'Show Service Type'}
+              </button>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 sm:p-6 flex flex-col justify-between">
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">OTP Verification</h2>
+              <p className="text-sm text-gray-600 mt-1 mb-4">
+                When <strong>enabled</strong>, customers must enter their mobile number and verify it via a one-time password (OTP) before their token is generated — across QR, Kiosk, and Online Appointment flows. When <strong>disabled</strong>, the customer journey is streamlined to just <em>Language → Service → Token</em> with no mobile collection.
+              </p>
+            </div>
+            <div className="flex items-center justify-between gap-3 mt-auto">
+              <span className={`px-3 py-1 rounded-full text-xs font-semibold ${otpVerificationEnabled ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
+                {otpVerificationEnabled ? 'Required' : 'Disabled'}
+              </span>
+              <button
+                type="button"
+                onClick={() => handleOtpVerificationToggle(!otpVerificationEnabled)}
+                disabled={otpVerificationLoading}
+                className={`px-4 py-2 rounded-xl text-sm font-semibold transition-colors disabled:opacity-60 ${otpVerificationEnabled ? 'bg-gray-900 text-white hover:bg-gray-800' : 'bg-blue-600 text-white hover:bg-blue-700'}`}
+              >
+                {otpVerificationLoading ? 'Saving...' : otpVerificationEnabled ? 'Disable OTP' : 'Enable OTP'}
               </button>
             </div>
           </div>
