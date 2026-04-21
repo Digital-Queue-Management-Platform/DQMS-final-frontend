@@ -106,6 +106,22 @@ export default function OutletQueueDisplay() {
     console.log(`[OutletQueueDisplay] Component mounted [Instance: ${instanceIdRef.current}] for outlet: ${outletId}`)
     return () => {
       console.log(`[OutletQueueDisplay] Component unmounting [Instance: ${instanceIdRef.current}]`)
+      // Stop any active speech on unmount
+      if ((window as any).__activeSpeech) {
+        try {
+          (window as any).__activeSpeech.pause()
+          (window as any).__activeSpeech.src = ""
+        } catch (e) {}
+      }
+      if ((window as any).__activeChime) {
+        try {
+          (window as any).__activeChime.pause()
+          (window as any).__activeChime.src = ""
+        } catch (e) {}
+      }
+      if (window.speechSynthesis) {
+        window.speechSynthesis.cancel()
+      }
     }
   }, [])
 
@@ -145,6 +161,7 @@ export default function OutletQueueDisplay() {
 
   const [announcementQueue, setAnnouncementQueue] = useState<any[]>([])
   const [isSpeaking, setIsSpeaking] = useState(false)
+  const isProcessingRef = useRef(false) // Mutex to prevent overlapping announcements
   const [audioUnlocked, setAudioUnlocked] = useState(false)
   
   // Deduplication: Track recent announcements to prevent duplicates
@@ -652,20 +669,31 @@ export default function OutletQueueDisplay() {
   }
 
   useEffect(() => {
-    if (voiceEnabled && announcementQueue.length > 0 && !isSpeaking) {
-      const processQueue = async () => {
+    // Only start a new process if we are not already processing and there are items in the queue
+    if (voiceEnabled && announcementQueue.length > 0 && !isProcessingRef.current) {
+      const processNext = async () => {
+        if (isProcessingRef.current) return
+        
+        isProcessingRef.current = true
         setIsSpeaking(true)
+        
         const nextToken = announcementQueue[0]
+        if (!nextToken) {
+          isProcessingRef.current = false
+          setIsSpeaking(false)
+          return
+        }
+
         let retryCount = 0
         const maxRetries = 2
-        
         let success = false
+        
         while (!success && retryCount <= maxRetries) {
           try {
-            console.log(`[Voice] Processing announcement for token ${nextToken.tokenNumber} (attempt ${retryCount + 1}/${maxRetries + 1})`)
+            console.log(`[Voice] Processing announcement for token ${nextToken.tokenNumber} (attempt ${retryCount + 1}/${maxRetries + 1}) [Instance: ${instanceIdRef.current}]`)
             
             if (playTone) {
-              await playChime(100) // Use MAX volume for regular announcements (100% is maximum for chimes)
+              await playChime(100) // Use MAX volume for regular announcements
               await new Promise(r => setTimeout(r, 600)) // Pause after chime
             }
             
@@ -677,40 +705,27 @@ export default function OutletQueueDisplay() {
             console.error(`[Voice] Announcement failed (attempt ${retryCount}):`, err)
             
             if (retryCount <= maxRetries) {
-              // Retry with exponential backoff
               await new Promise(r => setTimeout(r, 1000 * retryCount))
-              
-              // Try to reset audio context on retry
-              try {
-                await ensureAudioContextActive()
-              } catch {}
+              try { await ensureAudioContextActive() } catch {}
             } else {
-              console.error(`[Voice] Failed after ${maxRetries} retries, skipping announcement for token:`, nextToken.tokenNumber)
-              
-              // Log failure to backend for diagnostics (optional)
-              try {
-                api.post('/logs/voice-failure', {
-                  tokenNumber: nextToken.tokenNumber,
-                  lang: nextToken.lang || 'unknown',
-                  error: (err as Error)?.message || 'Unknown error',
-                  timestamp: new Date().toISOString()
-                }).catch(() => {
-                  // Silently fail if logging fails - don't break the queue
-                })
-              } catch {}
+              console.error(`[Voice] Failed after ${maxRetries} retries, skipping token:`, nextToken.tokenNumber)
             }
           }
         }
         
+        // Remove the processed item from queue
         setAnnouncementQueue(prev => prev.slice(1))
-        // Add a small pause between consecutive announcements so they are clear
-        await new Promise(r => setTimeout(r, 1000))
+        
+        // Force a small pause between consecutive announcements for clarity
+        await new Promise(r => setTimeout(r, 1200))
+        
+        isProcessingRef.current = false
         setIsSpeaking(false)
       }
       
-      processQueue()
+      processNext()
     }
-  }, [voiceEnabled, announcementQueue, isSpeaking, playTone])
+  }, [voiceEnabled, announcementQueue, playTone])
 
   if (loading) {
     return (
