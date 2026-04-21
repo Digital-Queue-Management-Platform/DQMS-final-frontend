@@ -669,63 +669,83 @@ export default function OutletQueueDisplay() {
   }
 
   useEffect(() => {
-    // Only start a new process if we are not already processing and there are items in the queue
+    // Only start a new process loop if we are not already processing
     if (voiceEnabled && announcementQueue.length > 0 && !isProcessingRef.current) {
-      const processNext = async () => {
+      const runProcessor = async () => {
         if (isProcessingRef.current) return
         
         isProcessingRef.current = true
         setIsSpeaking(true)
         
-        const nextToken = announcementQueue[0]
-        if (!nextToken) {
-          isProcessingRef.current = false
-          setIsSpeaking(false)
-          return
-        }
+        console.log(`[Voice] Starting announcement processor loop [Instance: ${instanceIdRef.current}]`)
 
-        let retryCount = 0
-        const maxRetries = 2
-        let success = false
-        
-        while (!success && retryCount <= maxRetries) {
-          try {
-            console.log(`[Voice] Processing announcement for token ${nextToken.tokenNumber} (attempt ${retryCount + 1}/${maxRetries + 1}) [Instance: ${instanceIdRef.current}]`)
-            
-            if (playTone) {
-              await playChime(100) // Use MAX volume for regular announcements
-              await new Promise(r => setTimeout(r, 600)) // Pause after chime
-            }
-            
-            await speakSentence(nextToken)
-            success = true
-            
-          } catch (err) {
-            retryCount++
-            console.error(`[Voice] Announcement failed (attempt ${retryCount}):`, err)
-            
-            if (retryCount <= maxRetries) {
-              await new Promise(r => setTimeout(r, 1000 * retryCount))
-              try { await ensureAudioContextActive() } catch {}
-            } else {
-              console.error(`[Voice] Failed after ${maxRetries} retries, skipping token:`, nextToken.tokenNumber)
+        // Keep processing while there are items in the queue
+        // We use a local loop to avoid being skipped by the React render cycle
+        while (true) {
+          // Get the next item from the latest state using a setter-callback trick or just looking at the queue
+          // However, since we want to be 100% sure we have the latest, we'll check the queue length
+          let nextToken = null
+          
+          // This is a way to "peak" at the next item and remove it atomically in React
+          let queueEmpty = false
+          await new Promise<void>(resolve => {
+            setAnnouncementQueue(prev => {
+              if (prev.length === 0) {
+                queueEmpty = true
+              } else {
+                nextToken = prev[0]
+              }
+              resolve()
+              return prev
+            })
+          })
+
+          if (queueEmpty || !nextToken) break
+
+          let retryCount = 0
+          const maxRetries = 2
+          let success = false
+          
+          while (!success && retryCount <= maxRetries) {
+            try {
+              console.log(`[Voice] Processing announcement for token ${(nextToken as any).tokenNumber} (attempt ${retryCount + 1}/${maxRetries + 1})`)
+              
+              if (playTone) {
+                await playChime(100)
+                await new Promise(r => setTimeout(r, 600))
+              }
+              
+              await speakSentence(nextToken)
+              success = true
+              
+            } catch (err) {
+              retryCount++
+              console.error(`[Voice] Announcement failed (attempt ${retryCount}):`, err)
+              if (retryCount <= maxRetries) {
+                await new Promise(r => setTimeout(r, 1000 * retryCount))
+                try { await ensureAudioContextActive() } catch {}
+              }
             }
           }
+          
+          // Remove the actual item we just processed from the state
+          setAnnouncementQueue(prev => prev.slice(1))
+          
+          // Force a clear pause between consecutive announcements
+          await new Promise(r => setTimeout(r, 1200))
+
+          // Re-check if voice was disabled while we were speaking
+          if (!voiceEnabledRef.current) break
         }
         
-        // Remove the processed item from queue
-        setAnnouncementQueue(prev => prev.slice(1))
-        
-        // Force a small pause between consecutive announcements for clarity
-        await new Promise(r => setTimeout(r, 1200))
-        
+        console.log(`[Voice] Processor loop finished [Instance: ${instanceIdRef.current}]`)
         isProcessingRef.current = false
         setIsSpeaking(false)
       }
       
-      processNext()
+      runProcessor()
     }
-  }, [voiceEnabled, announcementQueue, playTone])
+  }, [voiceEnabled, announcementQueue.length > 0, playTone])
 
   if (loading) {
     return (
