@@ -440,12 +440,15 @@ export default function CustomerRegistration() {
     // Check if this specific service requires OTP
     const service = services.find(s => s.code === serviceCode)
     const serviceRequiresOtp = service?.requireOtp === true
+    const isBillPayment = isSltRequiredService(serviceCode)
     
-    if (!otpRequired && !serviceRequiresOtp) {
-      // OTP disabled globally AND for this service: submit token directly
+    // If OTP is disabled globally AND for this service, AND it's NOT a bill payment service,
+    // we can submit directly. Otherwise, we go to Step 3 to collect info (Mobile/SLT numbers).
+    if (!otpRequired && !serviceRequiresOtp && !isBillPayment) {
+      // Submit token directly after brief visual feedback
       setTimeout(() => submitDirectRegistration(serviceCode), 300)
     } else {
-      // OTP enabled either globally or for this service: proceed to next step (mobile + OTP)
+      // Proceed to Step 3 (Mobile + SLT numbers + optional OTP)
       setTimeout(() => goToNextStep(), 300)
     }
   }
@@ -670,9 +673,6 @@ export default function CustomerRegistration() {
     try {
       // When OTP is disabled globally AND for the service, skip OTP verification
       let tokenForSubmit: string | undefined = undefined
-      const service = services.find(s => s.code === selectedService)
-      const serviceRequiresOtp = service?.requireOtp === true
-      const effectiveOtpRequired = otpRequired || serviceRequiresOtp
 
       if (effectiveOtpRequired) {
         let tok = otpToken
@@ -682,6 +682,11 @@ export default function CustomerRegistration() {
           tok = vt
         }
         tokenForSubmit = tok
+      } else if (isSltRequiredService(selectedService) && !sltVerified) {
+        // If OTP is disabled but SLT is required, verify SLT numbers now (to send due amount SMS)
+        console.log('OTP disabled but SLT required - verifying SLT numbers before registration...')
+        await verifyAllSltNumbers()
+        // We don't block if SLT fails, but we try to send it
       }
 
       // Payment intent validation removed to simplify flow
@@ -1042,6 +1047,10 @@ export default function CustomerRegistration() {
 
   const t = translations[language]
 
+  const selectedServiceData = services.find(s => s.code === selectedService)
+  const serviceRequiresOtp = selectedServiceData?.requireOtp === true
+  const effectiveOtpRequired = otpRequired || serviceRequiresOtp
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-3 sm:p-4 lg:p-6">
       {/* Branch Closed Modal – non-dismissable */}
@@ -1347,12 +1356,12 @@ export default function CustomerRegistration() {
                     </button>
                     {otpStep === 'idle' && (
                       <button
-                        type="button"
-                        onClick={sendOtp}
-                        disabled={!qrValid || otpSending || !canProceedFromStep3() || !selectedOutlet || !selectedService}
+                        type={effectiveOtpRequired ? "button" : "submit"}
+                        onClick={effectiveOtpRequired ? sendOtp : undefined}
+                        disabled={!qrValid || loading || !canProceedFromStep3() || !selectedOutlet || !selectedService}
                         className="flex-1 bg-indigo-600 text-white py-3 rounded-xl font-semibold hover:bg-indigo-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
                       >
-                        {otpSending ? t.sendingOTP : t.verify}
+                        {effectiveOtpRequired ? (otpSending ? t.sendingOTP : t.verify) : (loading ? t.registering : t.register)}
                       </button>
                     )}
                   </div>
