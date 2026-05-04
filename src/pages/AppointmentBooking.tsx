@@ -101,11 +101,9 @@ export default function AppointmentBooking() {
     lastPaymentDate?: string;
     mobileNumber?: string;  // Add mobile number property
   }>>([])
-  // Legacy state variables (keeping for potential backward compatibility)
-  // const [sltTelephoneNumber, setSltTelephoneNumber] = useState("")
-  // Removed unused billData state
-  // Removed unused billData state
-  // Payment intent state variables removed
+  const [billPaymentIntent, setBillPaymentIntent] = useState<'full' | 'partial' | ''>("")
+  const [billPaymentAmount, setBillPaymentAmount] = useState<string>("")
+  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card' | 'cheque' | 'bank_transfer' | ''>("")
 
   // Multi-step form state
   const [currentStep, setCurrentStep] = useState(1)
@@ -339,7 +337,8 @@ export default function AppointmentBooking() {
       payByCard: "Card",
       payByCheque: "Cheque",
       payByBankTransfer: "Bank Transfer",
-      dueAmountNote: "Please ask the account holder to confirm the due amount with the officer at the counter."
+      dueAmountNote: "Please ask the account holder to confirm the due amount with the officer at the counter.",
+      verifySltAccountNote: "We will verify your SLT account once you verify your mobile number"
     },
     si: {
       title: 'වේලාවක් වෙන්කරන්න',
@@ -410,7 +409,8 @@ export default function AppointmentBooking() {
       payByCard: "කාඩ්",
       payByCheque: "චෙක්",
       payByBankTransfer: "බැංකු හැරීම",
-      dueAmountNote: "ගිණුම් හිමිකරුගෙන් ගෙවිය යුතු නිවැරදි මුදල ශාලාවේ නිලධාරීට ලබා දෙන ලෙස කරුණාකර ඉල්ලා සිටින්න."
+      dueAmountNote: "ගිණුම් හිමිකරුගෙන් ගෙවිය යුතු නිවැරදි මුදල ශාලාවේ නිලධාරීට ලබා දෙන ලෙස කරුණාකර ඉල්ලා සිටින්න.",
+      verifySltAccountNote: "ඔබ ජංගම දුරකථන අංකය තහවුරු කළ පසු අපි ඔබේ SLT ගිණුම තහවුරු කරන්නෙමු"
     },
     ta: {
       title: 'ஒரு நேரம் பதிவு செய்யவும்',
@@ -481,7 +481,8 @@ export default function AppointmentBooking() {
       payByCard: "அட்டை",
       payByCheque: "காசோலை",
       payByBankTransfer: "வங்கி பரிமாற்றம்",
-      dueAmountNote: "கணக்கு வைத்திருப்பவர் கவுண்டரில் உள்ள அதிகாரியிடம் நிலுவைத் தொகையை உறுதிப்படுத்துமாறு கேட்கவும்."
+      dueAmountNote: "கணக்கு வைத்திருப்பவர் கவுண்டரில் உள்ள அதிகாரியிடம் நிலுவைத் தொகையை உறுதிப்படுத்துமாறு கேட்கவும்.",
+      verifySltAccountNote: "உங்கள் மொபைல் எண்ணைச் சரிபார்த்த பிறகு உங்கள் SLT கணக்கை நாங்கள் சரிபார்ப்போம்"
     },
   } as const
 
@@ -638,10 +639,9 @@ export default function AppointmentBooking() {
         appointmentAt: appointmentAt.toISOString(),
         verifiedMobileToken: tokenForSubmit,
         sltTelephoneNumbers: isSltRequiredService(selectedService) ? sltTelephoneNumbers : undefined,
-        billPaymentIntent: undefined,
-        billPaymentAmount: undefined,
-        billPaymentMethod: undefined,
-        billPaymentCustomAmounts: undefined,
+        billPaymentIntent: isSltRequiredService(selectedService) ? billPaymentIntent || undefined : undefined,
+        billPaymentAmount: isSltRequiredService(selectedService) && billPaymentIntent === 'partial' ? billPaymentAmount : undefined,
+        billPaymentMethod: isSltRequiredService(selectedService) ? paymentMethod || undefined : undefined,
       })
 
       if (res.data?.success) {
@@ -966,31 +966,105 @@ export default function AppointmentBooking() {
                 )}
               </div>
 
-              {/* Customer Details - only shown when OTP is required */}
-              {serviceRequiresOtp && (
-                <div className="space-y-4">
-                  {/* Name field removed as per user request */}
+              {/* Customer Details - always shown for appointments */}
+              <div className="space-y-4">
+                {/* Bill Payment Path - Collect SLT Number */}
+                {isSltRequiredService(selectedService) && (
+                    <div className="space-y-4 mb-4">
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <h3 className="text-sm font-semibold text-blue-900 mb-3">{t.enterSltNumber}</h3>
+                        <MultiTelephoneNumberInput
+                          telephoneNumbers={sltTelephoneNumbers}
+                          onTelephoneNumbersChange={setSltTelephoneNumbers}
+                          verifiedBills={verifiedBills}
+                          onVerifiedBillsChange={setVerifiedBills}
+                          language={language}
+                          autoVerify={false}
+                          maxNumbers={10}
+                          disabled={false}
+                        />
+                        <p className="text-xs text-blue-600 mt-2">{t.verifySltAccountNote}</p>
+                      </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">{t.mobile}</label>
-                    <div className="relative">
-                      <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                      <input
-                        type="tel"
-                        value={mobileNumber}
-                        onChange={(e) => setMobileNumber(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                        placeholder={t.mobilePh}
-                        maxLength={10}
-                        required
-                      />
+                      {/* Payment Intent (Full/Partial) */}
+                      <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-4 shadow-sm">
+                        <label className="block text-sm font-medium text-gray-700">{t.paymentIntentTitle}</label>
+                        <div className="grid grid-cols-2 gap-3">
+                          <button
+                            type="button"
+                            onClick={() => setBillPaymentIntent('full')}
+                            className={`py-2 px-3 rounded-lg text-sm font-medium border-2 transition-all ${billPaymentIntent === 'full' ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-gray-200 text-gray-600 hover:border-blue-200'}`}
+                          >
+                            {t.payFullAmount}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setBillPaymentIntent('partial')}
+                            className={`py-2 px-3 rounded-lg text-sm font-medium border-2 transition-all ${billPaymentIntent === 'partial' ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-gray-200 text-gray-600 hover:border-blue-200'}`}
+                          >
+                            {t.payPartialAmount}
+                          </button>
+                        </div>
+
+                        {billPaymentIntent === 'partial' && (
+                          <div className="animate-in fade-in slide-in-from-top-1 duration-200">
+                            <label className="block text-xs font-medium text-gray-500 mb-1">{t.partialAmountLabel}</label>
+                            <input
+                              type="number"
+                              value={billPaymentAmount}
+                              onChange={(e) => setBillPaymentAmount(e.target.value)}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                              placeholder={t.partialAmountPlaceholder}
+                            />
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Payment Method */}
+                      <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-3 shadow-sm">
+                        <label className="block text-sm font-medium text-gray-700">{t.paymentMethodTitle}</label>
+                        <div className="grid grid-cols-2 gap-2">
+                          {[
+                            { id: 'cash', label: t.payByCash },
+                            { id: 'card', label: t.payByCard },
+                            { id: 'cheque', label: t.payByCheque },
+                            { id: 'bank_transfer', label: t.payByBankTransfer }
+                          ].map((m) => (
+                            <button
+                              key={m.id}
+                              type="button"
+                              onClick={() => setPaymentMethod(m.id as any)}
+                              className={`py-2 px-2 rounded-lg text-xs font-medium border-2 transition-all ${paymentMethod === m.id ? 'border-indigo-600 bg-indigo-50 text-indigo-700' : 'border-gray-100 text-gray-500 hover:border-indigo-100'}`}
+                            >
+                              {m.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
                     </div>
-                    {mobileNumber.length > 0 && !isValidMobile(mobileNumber) && (
-                      <p className="text-xs text-red-500 mt-1">Enter a valid 10-digit number starting with 07 or 01</p>
-                    )}
+                  )}
+
+                <div className="mt-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">{t.mobile}</label>
+                  <div className="relative">
+                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <input
+                      type="tel"
+                      value={mobileNumber}
+                      onChange={(e) => setMobileNumber(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                      placeholder={t.mobilePh}
+                      maxLength={10}
+                      required
+                    />
                   </div>
+                  {mobileNumber.length > 0 && !isValidMobile(mobileNumber) && (
+                    <p className="text-xs text-red-500 mt-1">Enter a valid 10-digit number starting with 07 or 01</p>
+                  )}
                 </div>
-              )}
+              </div>
+
+
 
               {/* Closed-date error */}
               {closedOnDateError && (

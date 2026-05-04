@@ -71,6 +71,9 @@ export default function KioskDashboard() {
   // Legacy state variables (keeping for potential backward compatibility)
   // const [sltTelephoneNumber, setSltTelephoneNumber] = useState("")
   const [sltVerified, setSltVerified] = useState(false)
+  const [billPaymentIntent, setBillPaymentIntent] = useState<'full' | 'partial' | ''>("")
+  const [billPaymentAmount, setBillPaymentAmount] = useState<string>("")
+  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card' | 'cheque' | 'bank_transfer' | ''>("")
   const [shouldAutoSubmit, setShouldAutoSubmit] = useState(false)
   // Removed unused billData state
   // Payment intent states removed
@@ -175,12 +178,13 @@ export default function KioskDashboard() {
     setSelectedService(serviceCode)
     const selectedServiceData = services.find(s => s.code === serviceCode)
     const serviceRequiresOtp = selectedServiceData?.requireOtp !== false
+    const sltRequired = isSltRequiredService(serviceCode)
 
-    if (!serviceRequiresOtp) {
-      // OTP disabled for this service: submit token directly after brief visual feedback
+    if (!serviceRequiresOtp && !sltRequired) {
+      // OTP disabled and NOT a bill payment service: submit token directly after brief visual feedback
       setTimeout(() => submitTokenDirect(serviceCode), 300)
     } else {
-      // OTP enabled for this service: proceed to step 3 (mobile + OTP)
+      // Proceed to step 3 (mobile, OTP, and/or Bill Payment details)
       setTimeout(() => goToNextStep(), 300)
     }
   }
@@ -401,6 +405,9 @@ export default function KioskDashboard() {
         preferredLanguages: preferredLanguage ? [preferredLanguage] : undefined,
         verifiedMobileToken: verifiedToken,
         sltTelephoneNumbers: isSltRequiredService(serviceCode) ? sltTelephoneNumbers : undefined,
+        billPaymentIntent: isSltRequiredService(serviceCode) ? billPaymentIntent || undefined : undefined,
+        billPaymentAmount: isSltRequiredService(serviceCode) && billPaymentIntent === 'partial' ? billPaymentAmount : undefined,
+        billPaymentMethod: isSltRequiredService(serviceCode) ? paymentMethod || undefined : undefined,
       }),
     })
 
@@ -421,6 +428,9 @@ export default function KioskDashboard() {
     setOtpStep('idle')
     setOtpCode('')
     setOtpToken('')
+    setBillPaymentIntent('')
+    setBillPaymentAmount('')
+    setPaymentMethod('')
   }
 
   const handleLogout = () => {
@@ -446,6 +456,9 @@ export default function KioskDashboard() {
     setSltTelephoneNumbers([])
     setVerifiedBills([])
     setSltVerified(false)
+    setBillPaymentIntent('')
+    setBillPaymentAmount('')
+    setPaymentMethod('')
     setCurrentStep(1)
   }
 
@@ -530,7 +543,8 @@ export default function KioskDashboard() {
       invalidMobile: "Enter a valid 10-digit number starting with 07 or 01",
       invalidSltNumber: "Enter a valid 10-digit SLT number (e.g. 011XXXXXXX)",
       invalidName: "Please enter your full name (at least 2 characters)",
-      verifySltAccountNote: "We'll verify your SLT account after you verify your mobile number"
+      verifySltAccountNote: "We'll verify your SLT account after you verify your mobile number",
+      pleaseWait: "Please wait..."
     },
     si: {
       title: "ඩිජිටල් පෝලිම වේදිකාව",
@@ -612,7 +626,8 @@ export default function KioskDashboard() {
       invalidMobile: "07 හෝ 01 න් ආරම්භ වන වලංගු අංක 10 කින් යුත් අංකයක් ඇතුළත් කරන්න",
       invalidSltNumber: "වලංගු අංක 10 කින් යුත් SLT දුරකථන අංකයක් ඇතුළත් කරන්න (උදා: 011XXXXXXX)",
       invalidName: "කරුණාකර ඔබගේ සම්පූර්ණ නම ඇතුළත් කරන්න (අඩුම තරමින් අකුරු 2ක්)",
-      verifySltAccountNote: "ඔබ ජංගම දුරකථන අංකය තහවුරු කළ පසු අපි ඔබේ SLT ගිණුම තහවුරු කරන්නෙමු"
+      verifySltAccountNote: "ඔබ ජංගම දුරකථන අංකය තහවුරු කළ පසු අපි ඔබේ SLT ගිණුම තහවුරු කරන්නෙමු",
+      pleaseWait: "කරුණාකර රැඳී සිටින්න..."
     },
     ta: {
       title: "டிஜிட்டல் வரிசை தளம்",
@@ -694,7 +709,8 @@ export default function KioskDashboard() {
       invalidMobile: "07 அல்லது 01 இல் ஆரம்பிக்கும் சரியான 10 இலக்க எண்ணை உள்ளிடவும்",
       invalidSltNumber: "சரியான 10 இலக்க SLT எண்ணை உள்ளிடவும் (உதாரணமாக 011XXXXXXX)",
       invalidName: "தயவுசெய்து உங்கள் முழு பெயரை உள்ளிடவும் (குறைந்தது 2 எழுத்துக்கள்)",
-      verifySltAccountNote: "உங்கள் மொபைல் எண்ணை சரிபார்த்த பிறகு உங்கள் SLT கணக்கை சரிபார்ப்போம்"
+      verifySltAccountNote: "உங்கள் மொபைல் எண்ணை சரிபார்த்த பிறகு உங்கள் SLT கணக்கை சரிபார்ப்போம்",
+      pleaseWait: "தயவுசெய்து காத்திருக்கவும்..."
     }
   }
 
@@ -772,7 +788,8 @@ export default function KioskDashboard() {
                 {(() => {
                   const selectedServiceData = services.find(s => s.code === selectedService)
                   const serviceRequiresOtp = selectedServiceData?.requireOtp !== false
-                  const totalSteps = serviceRequiresOtp ? 3 : 2
+                  const sltRequired = isSltRequiredService(selectedService)
+                  const totalSteps = (serviceRequiresOtp || sltRequired) ? 3 : 2
 
                   return Array.from({ length: totalSteps }, (_, i) => i + 1).map((step) => (
                     <div key={step} className="flex items-center">
@@ -798,7 +815,8 @@ export default function KioskDashboard() {
                 {(() => {
                   const selectedServiceData = services.find(s => s.code === selectedService)
                   const serviceRequiresOtp = selectedServiceData?.requireOtp !== false
-                  const totalSteps = serviceRequiresOtp ? 3 : 2
+                  const sltRequired = isSltRequiredService(selectedService)
+                  const totalSteps = (serviceRequiresOtp || sltRequired) ? 3 : 2
                   return `${t.step} ${currentStep} ${t.of} ${totalSteps}`
                 })()}
               </p>
@@ -847,8 +865,6 @@ export default function KioskDashboard() {
                     </div>
                     <p className="text-xs text-gray-500 mt-2">{t.preferredLanguageSubtitle}</p>
                   </div>
-
-                  {/* Next button removed as per user request for auto-advance */}
                 </div>
               )}
 
@@ -896,20 +912,19 @@ export default function KioskDashboard() {
                     >
                       {t.back}
                     </button>
-                    {/* Next button removed as per user request for auto-advance */}
                   </div>
                 </div>
               )}
 
-              {/* STEP 3: Customer Information — only shown when OTP is required */}
-              {currentStep === 3 && serviceRequiresOtp && (
+              {/* STEP 3: Customer Information — only shown when OTP or SLT details are required */}
+              {currentStep === 3 && (serviceRequiresOtp || isSltRequiredService(selectedService)) && (
                 <div className="space-y-6">
                   <div className="text-center">
                     <h2 className="text-xl font-bold text-gray-900 mb-2">{t.step3Title}</h2>
                     <p className="text-sm text-gray-600">{t.step3Subtitle}</p>
                   </div>
 
-                  {/* Bill Payment Path - Collect SLT Numbers (will verify after OTP) */}
+                  {/* Bill Payment Path - Collect SLT Numbers, Intent, and Method */}
                   {isSltRequiredService(selectedService) && (
                     <div className="space-y-4">
                       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
@@ -925,6 +940,62 @@ export default function KioskDashboard() {
                           disabled={false}
                         />
                         <p className="text-xs text-blue-600 mt-2">{t.verifySltAccountNote}</p>
+                      </div>
+
+                      {/* Payment Intent (Full/Partial) */}
+                      <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-4 shadow-sm">
+                        <label className="block text-sm font-medium text-gray-700">{t.paymentIntentTitle}</label>
+                        <div className="grid grid-cols-2 gap-3">
+                          <button
+                            type="button"
+                            onClick={() => setBillPaymentIntent('full')}
+                            className={`py-3 px-4 rounded-xl text-sm font-semibold border-2 transition-all ${billPaymentIntent === 'full' ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-gray-200 text-gray-600 hover:border-blue-200'}`}
+                          >
+                            {t.payFullAmount}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setBillPaymentIntent('partial')}
+                            className={`py-3 px-4 rounded-xl text-sm font-semibold border-2 transition-all ${billPaymentIntent === 'partial' ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-gray-200 text-gray-600 hover:border-blue-200'}`}
+                          >
+                            {t.payPartialAmount}
+                          </button>
+                        </div>
+
+                        {billPaymentIntent === 'partial' && (
+                          <div className="animate-in fade-in slide-in-from-top-1 duration-200">
+                            <label className="block text-xs font-medium text-gray-500 mb-1">{t.partialAmountLabel}</label>
+                            <input
+                              type="number"
+                              value={billPaymentAmount}
+                              onChange={(e) => setBillPaymentAmount(e.target.value)}
+                              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
+                              placeholder={t.partialAmountPlaceholder}
+                            />
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Payment Method */}
+                      <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-3 shadow-sm">
+                        <label className="block text-sm font-medium text-gray-700">{t.paymentMethodTitle}</label>
+                        <div className="grid grid-cols-2 gap-2">
+                          {[
+                            { id: 'cash', label: t.payByCash },
+                            { id: 'card', label: t.payByCard },
+                            { id: 'cheque', label: t.payByCheque },
+                            { id: 'bank_transfer', label: t.payByBankTransfer }
+                          ].map((m) => (
+                            <button
+                              key={m.id}
+                              type="button"
+                              onClick={() => setPaymentMethod(m.id as any)}
+                              className={`py-3 px-2 rounded-xl text-xs font-bold border-2 transition-all ${paymentMethod === m.id ? 'border-indigo-600 bg-indigo-50 text-indigo-700' : 'border-gray-100 text-gray-500 hover:border-indigo-100'}`}
+                            >
+                              {m.label}
+                            </button>
+                          ))}
+                        </div>
                       </div>
                     </div>
                   )}
@@ -1015,11 +1086,11 @@ export default function KioskDashboard() {
                     {otpStep === 'idle' && (
                       <button
                         type="button"
-                        onClick={sendOtp}
-                        disabled={otpSending || !canProceedFromStep3() || !selectedService}
+                        onClick={serviceRequiresOtp ? sendOtp : () => generateToken(selectedService, mobileNumber)}
+                        disabled={submitting || (serviceRequiresOtp ? otpSending : false) || !canProceedFromStep3() || !selectedService}
                         className="flex-1 bg-indigo-600 text-white py-3 rounded-xl font-semibold hover:bg-indigo-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
                       >
-                        {otpSending ? t.sendingOTP : t.verify}
+                        {serviceRequiresOtp ? (otpSending ? t.sendingOTP : t.verify) : (submitting ? t.pleaseWait : t.generateToken)}
                       </button>
                     )}
                   </div>
