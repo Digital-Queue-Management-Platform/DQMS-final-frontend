@@ -21,6 +21,7 @@ interface Service {
   description?: string
   isActive?: boolean
   isPriorityService?: boolean
+  requireOtp?: boolean
 }
 
 export default function AppointmentBooking() {
@@ -85,8 +86,7 @@ export default function AppointmentBooking() {
   const [shouldAutoSubmit, setShouldAutoSubmit] = useState(false)
   const formRef = useRef<HTMLFormElement>(null)
 
-  // Admin OTP setting
-  const [otpRequired, setOtpRequired] = useState(true)
+
 
   // Bill payment specific states
   const [sltTelephoneNumbers, setSltTelephoneNumbers] = useState<string[]>([])
@@ -486,6 +486,8 @@ export default function AppointmentBooking() {
   } as const
 
   const t = translations[language]
+  const selectedServiceData = services.find(s => s.code === selectedService)
+  const serviceRequiresOtp = selectedServiceData?.requireOtp !== false
 
   const sendOtpWithCheck = async () => {
     setClosedOnDateError(null)
@@ -600,9 +602,6 @@ export default function AppointmentBooking() {
     setLoading(true)
     try {
       // Only enforce OTP when the specific service requires it
-      const selectedServiceData = services.find(s => s.code === selectedService)
-      const serviceRequiresOtp = selectedServiceData?.requireOtp !== false
-
       let tokenForSubmit: string | undefined = undefined
       if (serviceRequiresOtp) {
         let tok = otpToken
@@ -968,7 +967,7 @@ export default function AppointmentBooking() {
               </div>
 
               {/* Customer Details - only shown when OTP is required */}
-              {otpRequired && (
+              {serviceRequiresOtp && (
                 <div className="space-y-4">
                   {/* Name field removed as per user request */}
 
@@ -1009,7 +1008,7 @@ export default function AppointmentBooking() {
                 >
                   {t.back}
                 </button>
-                {!otpRequired ? (
+                {!serviceRequiresOtp ? (
                   <button
                     type="submit"
                     disabled={loading || !outletId || !datetime || !isValidAppointmentTime(datetime) || !!closedOnDateError}

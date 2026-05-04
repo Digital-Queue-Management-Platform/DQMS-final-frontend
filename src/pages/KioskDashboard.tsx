@@ -18,6 +18,7 @@ interface Service {
   title: string
   description: string | null
   isPriorityService?: boolean
+  requireOtp?: boolean
 }
 
 export default function KioskDashboard() {
@@ -50,8 +51,7 @@ export default function KioskDashboard() {
   const [showOtpPopup, setShowOtpPopup] = useState(false)
   const [devOtpCode, setDevOtpCode] = useState<string>("")
 
-  // Admin OTP setting
-  const [otpRequired, setOtpRequired] = useState(true)
+
 
   // Service dropdown states
 
@@ -699,6 +699,8 @@ export default function KioskDashboard() {
   }
 
   const t = translations[language]
+  const selectedServiceData = services.find(s => s.code === selectedService)
+  const serviceRequiresOtp = selectedServiceData?.requireOtp !== false
 
   if (loading) {
     return (
@@ -900,7 +902,7 @@ export default function KioskDashboard() {
               )}
 
               {/* STEP 3: Customer Information — only shown when OTP is required */}
-              {currentStep === 3 && otpRequired && (
+              {currentStep === 3 && serviceRequiresOtp && (
                 <div className="space-y-6">
                   <div className="text-center">
                     <h2 className="text-xl font-bold text-gray-900 mb-2">{t.step3Title}</h2>
