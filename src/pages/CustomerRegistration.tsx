@@ -49,8 +49,7 @@ export default function CustomerRegistration() {
   const [autoSendingOtp, setAutoSendingOtp] = useState(false)
   const formRef = useRef<HTMLFormElement>(null)
 
-  // Admin OTP setting
-  const [otpRequired, setOtpRequired] = useState(true)
+
 
 
   // Bill payment specific states
@@ -180,7 +179,6 @@ export default function CustomerRegistration() {
     // Always fetch outlets and services first
     fetchOutlets()
     fetchServices()
-    fetchOtpSetting()
 
     // Clear any previous customer session data that might interfere
     // Keep only QR-related data
@@ -356,14 +354,7 @@ export default function CustomerRegistration() {
     }
   }
 
-  const fetchOtpSetting = async () => {
-    try {
-      const res = await api.get('/queue/settings/otp-verification')
-      setOtpRequired(res.data?.enabled !== false)
-    } catch {
-      setOtpRequired(true)
-    }
-  }
+
 
   // Auto-send OTP when mobile number is 10 digits (but don't auto-advance for bill payment services)
   useEffect(() => {
@@ -447,9 +438,9 @@ export default function CustomerRegistration() {
     const serviceRequiresOtp = service?.requireOtp === true
     const isBillPayment = isSltRequiredService(serviceCode)
     
-    // If OTP is disabled globally AND for this service, AND it's NOT a bill payment service,
+    // If OTP is disabled for this service, AND it's NOT a bill payment service,
     // we can submit directly. Otherwise, we go to Step 3 to collect info (Mobile/SLT numbers).
-    if (!otpRequired && !serviceRequiresOtp && !isBillPayment) {
+    if (!serviceRequiresOtp && !isBillPayment) {
       // Submit token directly after brief visual feedback
       setTimeout(() => submitDirectRegistration(serviceCode), 300)
     } else {

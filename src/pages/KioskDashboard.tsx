@@ -98,7 +98,6 @@ export default function KioskDashboard() {
 
     setOutlet(JSON.parse(outletData))
     loadInitialData()
-    loadOtpSetting()
   }, [navigate])
 
   // Auto-submit form after OTP verification
@@ -165,14 +164,7 @@ export default function KioskDashboard() {
     }
   }
 
-  const loadOtpSetting = async () => {
-    try {
-      const res = await api.get('/queue/settings/otp-verification')
-      setOtpRequired(res.data?.enabled !== false)
-    } catch {
-      setOtpRequired(true) // Default to requiring OTP if fetch fails
-    }
-  }
+
 
   const isSltRequiredService = (code: string) => {
     // SVC002 and BILL_PAYMENT require SLT telephone number
@@ -181,11 +173,14 @@ export default function KioskDashboard() {
 
   const handleServiceSelect = (serviceCode: string) => {
     setSelectedService(serviceCode)
-    if (!otpRequired) {
-      // OTP disabled: submit token directly after brief visual feedback
+    const selectedServiceData = services.find(s => s.code === serviceCode)
+    const serviceRequiresOtp = selectedServiceData?.requireOtp !== false
+
+    if (!serviceRequiresOtp) {
+      // OTP disabled for this service: submit token directly after brief visual feedback
       setTimeout(() => submitTokenDirect(serviceCode), 300)
     } else {
-      // OTP enabled: proceed to step 3 (mobile + OTP)
+      // OTP enabled for this service: proceed to step 3 (mobile + OTP)
       setTimeout(() => goToNextStep(), 300)
     }
   }
@@ -349,8 +344,11 @@ export default function KioskDashboard() {
 
     try {
       // When OTP is required, verify OTP if not already verified
+      const selectedServiceData = services.find(s => s.code === selectedService)
+      const serviceRequiresOtp = selectedServiceData?.requireOtp !== false
+
       let tokenForSubmit = otpToken
-      if (otpRequired) {
+      if (serviceRequiresOtp) {
         if (otpStep !== 'verified' || !tokenForSubmit) {
           const vt = await verifyOtp()
           if (!vt) {
@@ -769,27 +767,38 @@ export default function KioskDashboard() {
             {/* Progress Indicator */}
             <div className="mb-6">
               <div className="flex items-center justify-center gap-2 mb-2">
-                {(otpRequired ? [1, 2, 3] : [1, 2]).map((step) => (
-                  <div key={step} className="flex items-center">
-                    <div
-                      className={`w-8 h-8 rounded-xl flex items-center justify-center text-sm font-semibold transition-colors ${currentStep >= step
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-gray-200 text-gray-500'
-                        }`}
-                    >
-                      {step}
-                    </div>
-                    {step < (otpRequired ? 3 : 2) && (
+                {(() => {
+                  const selectedServiceData = services.find(s => s.code === selectedService)
+                  const serviceRequiresOtp = selectedServiceData?.requireOtp !== false
+                  const totalSteps = serviceRequiresOtp ? 3 : 2
+
+                  return Array.from({ length: totalSteps }, (_, i) => i + 1).map((step) => (
+                    <div key={step} className="flex items-center">
                       <div
-                        className={`w-8 sm:w-12 h-1 mx-1 transition-colors ${currentStep > step ? 'bg-blue-600' : 'bg-gray-200'
+                        className={`w-8 h-8 rounded-xl flex items-center justify-center text-sm font-semibold transition-colors ${currentStep >= step
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-gray-200 text-gray-500'
                           }`}
-                      />
-                    )}
-                  </div>
-                ))}
+                      >
+                        {step}
+                      </div>
+                      {step < totalSteps && (
+                        <div
+                          className={`w-8 sm:w-12 h-1 mx-1 transition-colors ${currentStep > step ? 'bg-blue-600' : 'bg-gray-200'
+                            }`}
+                        />
+                      )}
+                    </div>
+                  ))
+                })()}
               </div>
               <p className="text-xs text-center text-gray-500">
-                {t.step} {currentStep} {t.of} {otpRequired ? 3 : 2}
+                {(() => {
+                  const selectedServiceData = services.find(s => s.code === selectedService)
+                  const serviceRequiresOtp = selectedServiceData?.requireOtp !== false
+                  const totalSteps = serviceRequiresOtp ? 3 : 2
+                  return `${t.step} ${currentStep} ${t.of} ${totalSteps}`
+                })()}
               </p>
             </div>
 

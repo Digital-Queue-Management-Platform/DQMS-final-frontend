@@ -121,7 +121,6 @@ export default function AppointmentBooking() {
     fetchOutlets()
     fetchServices()
     fetchAdvanceApptSetting()
-    fetchOtpSetting()
   }, [])
 
   const fetchAdvanceApptSetting = async () => {
@@ -233,14 +232,7 @@ export default function AppointmentBooking() {
     }
   }
 
-  const fetchOtpSetting = async () => {
-    try {
-      const res = await api.get('/queue/settings/otp-verification')
-      setOtpRequired(res.data?.enabled !== false)
-    } catch {
-      setOtpRequired(true)
-    }
-  }
+
 
   const isSltRequiredService = (code: string) => {
     // SVC002 and BILL_PAYMENT require SLT telephone number
@@ -607,13 +599,19 @@ export default function AppointmentBooking() {
     setSuccess("")
     setLoading(true)
     try {
-      // Only enforce OTP when the admin setting requires it
+      // Only enforce OTP when the specific service requires it
+      const selectedServiceData = services.find(s => s.code === selectedService)
+      const serviceRequiresOtp = selectedServiceData?.requireOtp !== false
+
       let tokenForSubmit: string | undefined = undefined
-      if (otpRequired) {
+      if (serviceRequiresOtp) {
         let tok = otpToken
         if (otpStep !== 'verified' || !tok) {
           const vt = await verifyOtp()
-          if (!vt) return
+          if (!vt) {
+            setLoading(false)
+            return
+          }
           tok = vt
         }
         tokenForSubmit = tok
@@ -634,7 +632,7 @@ export default function AppointmentBooking() {
 
       const res = await api.post('/appointment/book', {
         name: 'Customer',
-        mobileNumber: otpRequired ? mobileNumber : undefined,
+        mobileNumber: mobileNumber || undefined,
         outletId,
         serviceTypes: [selectedService],
         preferredLanguage,
@@ -651,7 +649,7 @@ export default function AppointmentBooking() {
         setSuccess('Appointment booked successfully! You will be auto-added to the queue on the day.')
         // Navigate to "My Appointments" page (only when mobile was collected)
         setTimeout(() => {
-          if (otpRequired && mobileNumber) {
+          if (mobileNumber) {
             navigate(`/appointment/my?mobileNumber=${mobileNumber}`)
           } else {
             navigate('/')
