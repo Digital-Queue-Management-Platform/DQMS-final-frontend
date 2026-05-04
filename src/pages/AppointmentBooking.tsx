@@ -133,7 +133,7 @@ export default function AppointmentBooking() {
 
   // Auto-advance from step 3 when mobile number is complete
   useEffect(() => {
-    if (currentStep === 3 && isValidMobile(mobileNumber) && canProceedFromStep3() && otpStep === 'idle' && !otpSending && !autoSendingOtp) {
+    if (currentStep === 3 && isValidMobile(mobileNumber) && canProceedFromStep3() && serviceRequiresOtp && otpStep === 'idle' && !otpSending && !autoSendingOtp) {
       setAutoSendingOtp(true);
       const timer = setTimeout(async () => {
         await goToNextStep();

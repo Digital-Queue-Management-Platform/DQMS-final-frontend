@@ -139,7 +139,7 @@ export default function KioskDashboard() {
   useEffect(() => {
     if (currentStep === 3 && mobileNumber.length === 10 && (mobileNumber.startsWith('07') || mobileNumber.startsWith('01'))) {
       const canProceed = canProceedFromStep3();
-      if (canProceed && otpStep === 'idle' && !otpSending && !autoSendingOtp) {
+      if (canProceed && serviceRequiresOtp && otpStep === 'idle' && !otpSending && !autoSendingOtp) {
         setAutoSendingOtp(true);
         const timer = setTimeout(() => {
           goToNextStep();
