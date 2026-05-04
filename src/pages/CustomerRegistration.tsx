@@ -699,7 +699,7 @@ export default function CustomerRegistration() {
       // Log the request data for debugging
       const requestData = {
         name: 'Customer',
-        mobileNumber: effectiveOtpRequired ? mobileNumber : undefined,
+        mobileNumber: mobileNumber || undefined,
         nicNumber: nicNumber || undefined,
         email: email || undefined,
         serviceTypes: [selectedService],
