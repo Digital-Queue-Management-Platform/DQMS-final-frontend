@@ -42,7 +42,7 @@ type CaseData = {
     preferredLanguages?: string[]
     accountRef?: string | null
     sltTelephoneNumber?: string | null
-    billPaymentIntent?: boolean | null
+    billPaymentIntent?: string | null
     billPaymentAmount?: number | null
     billPaymentMethod?: string | null
     createdAt: string
@@ -261,9 +261,20 @@ export default function OfficerServiceTracking() {
                   <div><span className="text-gray-400 block">SLT Number</span>{data.token.sltTelephoneNumber}</div>
                 )}
                 {data.token.billPaymentIntent && (
-                  <div><span className="text-gray-400 block">Bill Payment</span>
-                    {data.token.billPaymentAmount != null ? `Rs. ${data.token.billPaymentAmount.toLocaleString()}` : 'Yes'}
-                    {data.token.billPaymentMethod && ` (${data.token.billPaymentMethod})`}
+                  <div><span className="text-gray-400 block">Payment Intent</span>
+                    <span className="font-semibold text-blue-600 uppercase">
+                      {data.token.billPaymentIntent === 'full' ? 'Full Payment' : 'Partial Payment'}
+                    </span>
+                  </div>
+                )}
+                {data.token.billPaymentAmount != null && (
+                  <div><span className="text-gray-400 block">Planned Amount</span>
+                    <span className="font-semibold text-green-700">LKR {data.token.billPaymentAmount.toLocaleString()}</span>
+                  </div>
+                )}
+                {data.token.billPaymentMethod && (
+                  <div><span className="text-gray-400 block">Payment Method</span>
+                    <span className="font-semibold text-slate-700 uppercase">{data.token.billPaymentMethod.replace('_', ' ')}</span>
                   </div>
                 )}
                 {data.token.calledAt && (

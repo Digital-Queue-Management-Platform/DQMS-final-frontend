@@ -732,6 +732,30 @@ export default function OfficerQueuePage() {
                         <h3 className="text-sm font-bold text-amber-900">Bill Payment Details</h3>
                       </div>
 
+                      {/* Summary of Payment Intent & Method */}
+                      {(currentToken.billPaymentIntent || currentToken.billPaymentMethod) && (
+                        <div className="mb-4 p-3 bg-white/60 border border-amber-200 rounded-xl space-y-2">
+                          <div className="flex justify-between items-center text-xs">
+                            <span className="text-amber-800 font-medium">Payment Plan:</span>
+                            <span className="font-bold uppercase text-amber-900">
+                              {currentToken.billPaymentIntent === 'full' ? 'Full Payment' : 'Partial Payment'}
+                            </span>
+                          </div>
+                          {currentToken.billPaymentAmount && (
+                            <div className="flex justify-between items-center text-xs">
+                              <span className="text-amber-800 font-medium">Planned Amount:</span>
+                              <span className="font-bold text-amber-900">LKR {currentToken.billPaymentAmount.toLocaleString()}</span>
+                            </div>
+                          )}
+                          {currentToken.billPaymentMethod && (
+                            <div className="flex justify-between items-center text-xs">
+                              <span className="text-amber-800 font-medium">Payment Method:</span>
+                              <span className="font-bold uppercase text-amber-900">{currentToken.billPaymentMethod.replace('_', ' ')}</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
                       <div className="space-y-3">
                         {multipleBills.length > 0 ? (
                           multipleBills.map((bill) => (

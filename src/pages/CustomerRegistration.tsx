@@ -69,7 +69,9 @@ export default function CustomerRegistration() {
   // Removed unused single SLT phone number state
   const [_billData, setBillData] = useState<any>(null)
   const [sltVerified, setSltVerified] = useState(false)
-  // Payment intent and method states removed to simplify flow
+  const [billPaymentIntent, setBillPaymentIntent] = useState<'full' | 'partial' | ''>("")
+  const [billPaymentAmount, setBillPaymentAmount] = useState<string>("")
+  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card' | 'cheque' | 'bank_transfer' | ''>("")
   const [shouldAutoSubmit, setShouldAutoSubmit] = useState(false)
 
   // Multi-step form state
@@ -108,7 +110,9 @@ export default function CustomerRegistration() {
     setBillData(null)
     setError("")
     setSltVerified(false)
-    // Payment intents removed
+    setBillPaymentIntent("")
+    setBillPaymentAmount("")
+    setPaymentMethod("")
     setShouldAutoSubmit(false)
 
     // Additional browser form clearing
@@ -704,10 +708,9 @@ export default function CustomerRegistration() {
         preferredLanguages: preferredLanguage ? [preferredLanguage] : undefined,
         sltTelephoneNumber: isSltRequiredService(selectedService) && sltTelephoneNumbers.length > 0 ? sltTelephoneNumbers[0] : undefined, // Send first SLT number for backward compatibility
         sltTelephoneNumbers: isSltRequiredService(selectedService) ? sltTelephoneNumbers : undefined,
-        billPaymentIntent: undefined,
-        billPaymentAmount: undefined,
-        billPaymentCustomAmounts: undefined,
-        billPaymentMethod: undefined,
+        billPaymentIntent: isSltRequiredService(selectedService) ? billPaymentIntent : undefined,
+        billPaymentAmount: isSltRequiredService(selectedService) && billPaymentIntent === 'partial' ? billPaymentAmount : undefined,
+        billPaymentMethod: isSltRequiredService(selectedService) ? paymentMethod : undefined,
       }
       
       console.log('SUBMIT: Request data being sent to backend:', JSON.stringify(requestData, null, 2))
@@ -791,7 +794,9 @@ export default function CustomerRegistration() {
   const canProceedFromStep3 = () => {
     const validDetails = isValidMobile(mobileNumber)
     if (selectedService === 'BILL_PAYMENT' || isSltRequiredService(selectedService)) {
-      return validDetails && sltTelephoneNumbers.length > 0 && sltTelephoneNumbers.every(num => isValidSlt(num))
+      const basicSltValid = validDetails && sltTelephoneNumbers.length > 0 && sltTelephoneNumbers.every(num => isValidSlt(num))
+      const paymentValid = !!billPaymentIntent && (billPaymentIntent === 'full' || (billPaymentIntent === 'partial' && !!billPaymentAmount)) && !!paymentMethod
+      return basicSltValid && paymentValid
     }
     return validDetails
   }
@@ -1248,11 +1253,7 @@ export default function CustomerRegistration() {
                   </div>
 
                   {/* Bill Payment Path - Collect SLT Number (will verify after OTP) */}
-                  {(() => {
-                    const requiresSlt = isSltRequiredService(selectedService);
-                    // Removed excessive logging that was causing performance issues
-                    return requiresSlt;
-                  })() && (
+                  {isSltRequiredService(selectedService) && (
                       <div className="space-y-4">
                         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                           <h3 className="text-sm font-semibold text-blue-900 mb-3">{t.enterSltNumber}</h3>
@@ -1267,6 +1268,62 @@ export default function CustomerRegistration() {
                             disabled={false}
                           />
                           <p className="text-xs text-blue-600 mt-2">{t.verifySltAccountNote}</p>
+                        </div>
+
+                        {/* Payment Intent (Full/Partial) */}
+                        <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-4">
+                          <label className="block text-sm font-medium text-gray-700">{t.paymentIntentTitle}</label>
+                          <div className="grid grid-cols-2 gap-3">
+                            <button
+                              type="button"
+                              onClick={() => setBillPaymentIntent('full')}
+                              className={`py-2 px-3 rounded-lg text-sm font-medium border-2 transition-all ${billPaymentIntent === 'full' ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-gray-200 text-gray-600 hover:border-blue-200'}`}
+                            >
+                              {t.payFullAmount}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setBillPaymentIntent('partial')}
+                              className={`py-2 px-3 rounded-lg text-sm font-medium border-2 transition-all ${billPaymentIntent === 'partial' ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-gray-200 text-gray-600 hover:border-blue-200'}`}
+                            >
+                              {t.payPartialAmount}
+                            </button>
+                          </div>
+
+                          {billPaymentIntent === 'partial' && (
+                            <div className="animate-in fade-in slide-in-from-top-1 duration-200">
+                              <label className="block text-xs font-medium text-gray-500 mb-1">{t.partialAmountLabel}</label>
+                              <input
+                                type="number"
+                                value={billPaymentAmount}
+                                onChange={(e) => setBillPaymentAmount(e.target.value)}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                                placeholder={t.partialAmountPlaceholder}
+                              />
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Payment Method */}
+                        <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-3">
+                          <label className="block text-sm font-medium text-gray-700">{t.paymentMethodTitle}</label>
+                          <div className="grid grid-cols-2 gap-2">
+                            {[
+                              { id: 'cash', label: t.payByCash },
+                              { id: 'card', label: t.payByCard },
+                              { id: 'cheque', label: t.payByCheque },
+                              { id: 'bank_transfer', label: t.payByBankTransfer }
+                            ].map((m) => (
+                              <button
+                                key={m.id}
+                                type="button"
+                                onClick={() => setPaymentMethod(m.id as any)}
+                                className={`py-2 px-2 rounded-lg text-xs font-medium border-2 transition-all ${paymentMethod === m.id ? 'border-indigo-600 bg-indigo-50 text-indigo-700' : 'border-gray-100 text-gray-500 hover:border-indigo-100'}`}
+                              >
+                                {m.label}
+                              </button>
+                            ))}
+                          </div>
                         </div>
                       </div>
                     )}
