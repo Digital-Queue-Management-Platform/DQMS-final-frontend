@@ -905,25 +905,7 @@ export default function AppointmentBooking() {
                 <p className="text-sm text-gray-600">{t.step3Subtitle}</p>
               </div>
 
-              {/* Bill Payment - Collect SLT Numbers (will verify after mobile OTP) */}
-              {isSltRequiredService(selectedService) && (
-                <div className="space-y-4">
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                    <h3 className="text-sm font-semibold text-blue-900 mb-3">{t.enterSltNumber}</h3>
-                    <MultiTelephoneNumberInput
-                      telephoneNumbers={sltTelephoneNumbers}
-                      onTelephoneNumbersChange={setSltTelephoneNumbers}
-                      verifiedBills={verifiedBills}
-                      onVerifiedBillsChange={setVerifiedBills}
-                      language={language}
-                      autoVerify={false}
-                      maxNumbers={10}
-                      disabled={false}
-                    />
-                    <p className="text-xs text-blue-600 mt-2">{t.enterSltNumber}</p>
-                  </div>
-                </div>
-              )}
+
 
               {/* Outlet Selection */}
               <div>
