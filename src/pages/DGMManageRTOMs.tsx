@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from "react"
+import { useState, useEffect } from "react"
 import { Plus, Edit2, Trash2, X, CheckCircle, AlertCircle, Users, MapPin, Building2, Copy } from "lucide-react"
 import api from "../config/api"
 
@@ -11,7 +11,9 @@ interface RTOM {
     lastLoginAt?: string
     createdAt: string
     teleshopManagers: { id: string; name: string; mobileNumber: string; isActive: boolean; branchId: string | null }[]
+    outlets: { id: string; name: string; isActive: boolean }[]
 }
+
 
 interface Region {
     id: string
@@ -58,9 +60,8 @@ export default function DGMManageRTOMs() {
     const openEdit = (rtom: RTOM, regionId: string) => {
         setEditingRTOM(rtom)
         // Load existing outlet assignments from teleshopManagers
-        const assignedOutletIds = rtom.teleshopManagers
-            .map(manager => manager.branchId)
-            .filter(branchId => branchId !== null) as string[]
+        const assignedOutletIds = rtom.outlets.map(o => o.id)
+
         
         setForm({ 
             regionId, 
@@ -162,11 +163,10 @@ export default function DGMManageRTOMs() {
                                             // Skip current RTOM when editing
                                             if (editingRTOM && rtom.id === editingRTOM.id) return
                                             
-                                            rtom.teleshopManagers.forEach(manager => {
-                                                if (manager.branchId) {
-                                                    assignedOutletIds.add(manager.branchId)
-                                                }
+                                            rtom.outlets.forEach(outlet => {
+                                                assignedOutletIds.add(outlet.id)
                                             })
+
                                         })
 
                                         // Filter outlets to show only available ones + currently assigned to this RTOM
@@ -338,10 +338,7 @@ export default function DGMManageRTOMs() {
                                                 </p>
                                                 {/* Assigned Outlets */}
                                                 {(() => {
-                                                    const assignedOutletIds = rtom.teleshopManagers
-                                                        .map(manager => manager.branchId)
-                                                        .filter(branchId => branchId !== null)
-                                                    const assignedOutlets = region.outlets.filter(outlet => assignedOutletIds.includes(outlet.id))
+                                                    const assignedOutlets = rtom.outlets
                                                     
                                                     if (assignedOutlets.length > 0) {
                                                         return (
@@ -356,6 +353,7 @@ export default function DGMManageRTOMs() {
                                                         </p>
                                                     )
                                                 })()}
+
                                             </div>
                                             <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${rtom.isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
                                                 {rtom.isActive ? 'Active' : 'Inactive'}

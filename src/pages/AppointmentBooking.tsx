@@ -85,6 +85,9 @@ export default function AppointmentBooking() {
   const [shouldAutoSubmit, setShouldAutoSubmit] = useState(false)
   const formRef = useRef<HTMLFormElement>(null)
 
+  // Admin OTP setting
+  const [otpRequired, setOtpRequired] = useState(true)
+
   // Bill payment specific states
   const [sltTelephoneNumbers, setSltTelephoneNumbers] = useState<string[]>([])
   const [verifiedBills, setVerifiedBills] = useState<Array<{
@@ -118,6 +121,7 @@ export default function AppointmentBooking() {
     fetchOutlets()
     fetchServices()
     fetchAdvanceApptSetting()
+    fetchOtpSetting()
   }, [])
 
   const fetchAdvanceApptSetting = async () => {
@@ -229,6 +233,15 @@ export default function AppointmentBooking() {
     }
   }
 
+  const fetchOtpSetting = async () => {
+    try {
+      const res = await api.get('/queue/settings/otp-verification')
+      setOtpRequired(res.data?.enabled !== false)
+    } catch {
+      setOtpRequired(true)
+    }
+  }
+
   const isSltRequiredService = (code: string) => {
     // SVC002 and BILL_PAYMENT require SLT telephone number
     return code === 'SVC002' || code === 'BILL_PAYMENT'
@@ -236,7 +249,7 @@ export default function AppointmentBooking() {
 
   const handleServiceSelect = (code: string) => {
     setSelectedService(code)
-    // Auto advance to next step after a tiny delay for visual feedback
+    // Always advance to step 3 (booking details) regardless of OTP setting
     setTimeout(() => goToNextStep(), 300)
   }
 
@@ -594,11 +607,16 @@ export default function AppointmentBooking() {
     setSuccess("")
     setLoading(true)
     try {
-      let tokenForSubmit = otpToken
-      if (otpStep !== 'verified' || !tokenForSubmit) {
-        const vt = await verifyOtp()
-        if (!vt) return
-        tokenForSubmit = vt
+      // Only enforce OTP when the admin setting requires it
+      let tokenForSubmit: string | undefined = undefined
+      if (otpRequired) {
+        let tok = otpToken
+        if (otpStep !== 'verified' || !tok) {
+          const vt = await verifyOtp()
+          if (!vt) return
+          tok = vt
+        }
+        tokenForSubmit = tok
       }
 
       // Convert datetime-local to ISO
@@ -616,7 +634,7 @@ export default function AppointmentBooking() {
 
       const res = await api.post('/appointment/book', {
         name: 'Customer',
-        mobileNumber,
+        mobileNumber: otpRequired ? mobileNumber : undefined,
         outletId,
         serviceTypes: [selectedService],
         preferredLanguage,
@@ -631,9 +649,13 @@ export default function AppointmentBooking() {
 
       if (res.data?.success) {
         setSuccess('Appointment booked successfully! You will be auto-added to the queue on the day.')
-        // Navigate to "My Appointments" page
+        // Navigate to "My Appointments" page (only when mobile was collected)
         setTimeout(() => {
-          navigate(`/appointment/my?mobileNumber=${mobileNumber}`)
+          if (otpRequired && mobileNumber) {
+            navigate(`/appointment/my?mobileNumber=${mobileNumber}`)
+          } else {
+            navigate('/')
+          }
         }, 1500)
       } else {
         setError(res.data?.error || 'Failed to book appointment')
@@ -947,29 +969,31 @@ export default function AppointmentBooking() {
                 )}
               </div>
 
-              {/* Customer Details */}
-              <div className="space-y-4">
-                {/* Name field removed as per user request */}
+              {/* Customer Details - only shown when OTP is required */}
+              {otpRequired && (
+                <div className="space-y-4">
+                  {/* Name field removed as per user request */}
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">{t.mobile}</label>
-                  <div className="relative">
-                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                    <input
-                      type="tel"
-                      value={mobileNumber}
-                      onChange={(e) => setMobileNumber(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                      placeholder={t.mobilePh}
-                      maxLength={10}
-                      required
-                    />
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">{t.mobile}</label>
+                    <div className="relative">
+                      <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                      <input
+                        type="tel"
+                        value={mobileNumber}
+                        onChange={(e) => setMobileNumber(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                        placeholder={t.mobilePh}
+                        maxLength={10}
+                        required
+                      />
+                    </div>
+                    {mobileNumber.length > 0 && !isValidMobile(mobileNumber) && (
+                      <p className="text-xs text-red-500 mt-1">Enter a valid 10-digit number starting with 07 or 01</p>
+                    )}
                   </div>
-                  {mobileNumber.length > 0 && !isValidMobile(mobileNumber) && (
-                    <p className="text-xs text-red-500 mt-1">Enter a valid 10-digit number starting with 07 or 01</p>
-                  )}
                 </div>
-              </div>
+              )}
 
               {/* Closed-date error */}
               {closedOnDateError && (
@@ -987,23 +1011,33 @@ export default function AppointmentBooking() {
                 >
                   {t.back}
                 </button>
-                {otpStep === 'idle' && (
+                {!otpRequired ? (
                   <button
-                    type="button"
-                    onClick={sendOtpWithCheck}
-                    disabled={otpSending || !canProceedFromStep3()}
-                    className="flex-1 bg-indigo-600 text-white py-3 rounded-lg font-semibold hover:bg-indigo-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    type="submit"
+                    disabled={loading || !outletId || !datetime || !isValidAppointmentTime(datetime) || !!closedOnDateError}
+                    className="flex-1 bg-indigo-600 text-white py-3 rounded-lg font-semibold hover:bg-indigo-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
                   >
-                    {checkingDate ? (
-                      <>
-                        <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
-                        </svg>
-                        Checking…
-                      </>
-                    ) : otpSending ? t.sendingOTP : t.verify}
+                    {loading ? t.booking : t.book}
                   </button>
+                ) : (
+                  otpStep === 'idle' && (
+                    <button
+                      type="button"
+                      onClick={sendOtpWithCheck}
+                      disabled={otpSending || !canProceedFromStep3()}
+                      className="flex-1 bg-indigo-600 text-white py-3 rounded-lg font-semibold hover:bg-indigo-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    >
+                      {checkingDate ? (
+                        <>
+                          <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+                          </svg>
+                          Checking…
+                        </>
+                      ) : otpSending ? t.sendingOTP : t.verify}
+                    </button>
+                  )
                 )}
               </div>
 

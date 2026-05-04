@@ -28,7 +28,7 @@ export default function KioskDashboard() {
   const [language, setLanguage] = useState<"en" | "si" | "ta">("en")
 
   // Form state
-  const [name, setName] = useState('')
+  const [_name, setName] = useState('')
   const [mobileNumber, setMobileNumber] = useState('')
   const [nicNumber, setNicNumber] = useState('')
   const [email, setEmail] = useState('')
@@ -49,6 +49,9 @@ export default function KioskDashboard() {
   const [autoSendingOtp, setAutoSendingOtp] = useState(false)
   const [showOtpPopup, setShowOtpPopup] = useState(false)
   const [devOtpCode, setDevOtpCode] = useState<string>("")
+
+  // Admin OTP setting
+  const [otpRequired, setOtpRequired] = useState(true)
 
   // Service dropdown states
 
@@ -95,6 +98,7 @@ export default function KioskDashboard() {
 
     setOutlet(JSON.parse(outletData))
     loadInitialData()
+    loadOtpSetting()
   }, [navigate])
 
   // Auto-submit form after OTP verification
@@ -161,6 +165,15 @@ export default function KioskDashboard() {
     }
   }
 
+  const loadOtpSetting = async () => {
+    try {
+      const res = await api.get('/queue/settings/otp-verification')
+      setOtpRequired(res.data?.enabled !== false)
+    } catch {
+      setOtpRequired(true) // Default to requiring OTP if fetch fails
+    }
+  }
+
   const isSltRequiredService = (code: string) => {
     // SVC002 and BILL_PAYMENT require SLT telephone number
     return code === 'SVC002' || code === 'BILL_PAYMENT'
@@ -168,8 +181,13 @@ export default function KioskDashboard() {
 
   const handleServiceSelect = (serviceCode: string) => {
     setSelectedService(serviceCode)
-    // Auto advance to next step after a tiny delay for visual feedback
-    setTimeout(() => goToNextStep(), 300)
+    if (!otpRequired) {
+      // OTP disabled: submit token directly after brief visual feedback
+      setTimeout(() => submitTokenDirect(serviceCode), 300)
+    } else {
+      // OTP enabled: proceed to step 3 (mobile + OTP)
+      setTimeout(() => goToNextStep(), 300)
+    }
   }
 
   const getServiceTitle = (code: string) => {
@@ -330,75 +348,81 @@ export default function KioskDashboard() {
     setSubmitting(true)
 
     try {
-      // Verify OTP if not already verified
+      // When OTP is required, verify OTP if not already verified
       let tokenForSubmit = otpToken
-      if (otpStep !== 'verified' || !tokenForSubmit) {
-        const vt = await verifyOtp()
-        if (!vt) {
-          setSubmitting(false)
-          return
+      if (otpRequired) {
+        if (otpStep !== 'verified' || !tokenForSubmit) {
+          const vt = await verifyOtp()
+          if (!vt) {
+            setSubmitting(false)
+            return
+          }
+          tokenForSubmit = vt
         }
-        tokenForSubmit = vt
       }
 
-      // Payment intent validations removed
-
-      const token = localStorage.getItem('kioskToken')
-      if (!token) {
-        navigate('/kiosk/login')
-        return
-      }
-
-      // partialAmount calc removed
-
-      const response = await fetch(`${API_URL}/kiosk/tokens`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          name: name.trim() || 'Customer',
-          mobileNumber,
-          nicNumber: nicNumber || undefined,
-          email: email || undefined,
-          serviceTypes: [selectedService],
-          preferredLanguages: preferredLanguage ? [preferredLanguage] : undefined,
-          verifiedMobileToken: tokenForSubmit,
-          sltTelephoneNumbers: isSltRequiredService(selectedService) ? sltTelephoneNumbers : undefined,
-          billPaymentIntent: undefined,
-          billPaymentAmount: undefined,
-          billPaymentCustomAmounts: undefined,
-          billPaymentMethod: undefined,
-        }),
-      })
-
-      const data = await response.json()
-      console.log('API Response:', data)
-      console.log('Response Token:', data.token)
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to create token')
-      }
-
-      console.log('Setting successToken to:', data.token)
-      setSuccessToken(data.token)
-
-      // Reset form
-      setName('')
-      setMobileNumber('')
-      setNicNumber('')
-      setEmail('')
-      setSelectedService('')
-      setPreferredLanguage('')
-      setOtpStep('idle')
-      setOtpCode('')
-      setOtpToken('')
+      await generateToken(selectedService, mobileNumber || undefined, tokenForSubmit || undefined)
     } catch (err: any) {
       setError(err.message || 'Failed to create token')
     } finally {
       setSubmitting(false)
     }
+  }
+
+  // Direct token generation when OTP is disabled
+  const submitTokenDirect = async (serviceCode: string) => {
+    if (submitting) return
+    setSubmitting(true)
+    setError('')
+    try {
+      await generateToken(serviceCode, undefined, undefined)
+    } catch (err: any) {
+      setError(err.message || 'Failed to create token')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const generateToken = async (serviceCode: string, mobile?: string, verifiedToken?: string) => {
+    const kioskJwt = localStorage.getItem('kioskToken')
+    if (!kioskJwt) {
+      navigate('/kiosk/login')
+      return
+    }
+
+    const response = await fetch(`${API_URL}/kiosk/tokens`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${kioskJwt}`,
+      },
+      body: JSON.stringify({
+        name: 'Customer',
+        mobileNumber: mobile,
+        serviceTypes: [serviceCode],
+        preferredLanguages: preferredLanguage ? [preferredLanguage] : undefined,
+        verifiedMobileToken: verifiedToken,
+        sltTelephoneNumbers: isSltRequiredService(serviceCode) ? sltTelephoneNumbers : undefined,
+      }),
+    })
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      throw new Error(data.error || 'Failed to create token')
+    }
+
+    setSuccessToken(data.token)
+
+    // Reset form
+    setMobileNumber('')
+    setNicNumber('')
+    setEmail('')
+    setSelectedService('')
+    setPreferredLanguage('')
+    setOtpStep('idle')
+    setOtpCode('')
+    setOtpToken('')
   }
 
   const handleLogout = () => {
@@ -745,7 +769,7 @@ export default function KioskDashboard() {
             {/* Progress Indicator */}
             <div className="mb-6">
               <div className="flex items-center justify-center gap-2 mb-2">
-                {[1, 2, 3].map((step) => (
+                {(otpRequired ? [1, 2, 3] : [1, 2]).map((step) => (
                   <div key={step} className="flex items-center">
                     <div
                       className={`w-8 h-8 rounded-xl flex items-center justify-center text-sm font-semibold transition-colors ${currentStep >= step
@@ -755,7 +779,7 @@ export default function KioskDashboard() {
                     >
                       {step}
                     </div>
-                    {step < 3 && (
+                    {step < (otpRequired ? 3 : 2) && (
                       <div
                         className={`w-8 sm:w-12 h-1 mx-1 transition-colors ${currentStep > step ? 'bg-blue-600' : 'bg-gray-200'
                           }`}
@@ -765,7 +789,7 @@ export default function KioskDashboard() {
                 ))}
               </div>
               <p className="text-xs text-center text-gray-500">
-                {t.step} {currentStep} {t.of} 3
+                {t.step} {currentStep} {t.of} {otpRequired ? 3 : 2}
               </p>
             </div>
 
@@ -866,8 +890,8 @@ export default function KioskDashboard() {
                 </div>
               )}
 
-              {/* STEP 3: Customer Information */}
-              {currentStep === 3 && (
+              {/* STEP 3: Customer Information — only shown when OTP is required */}
+              {currentStep === 3 && otpRequired && (
                 <div className="space-y-6">
                   <div className="text-center">
                     <h2 className="text-xl font-bold text-gray-900 mb-2">{t.step3Title}</h2>

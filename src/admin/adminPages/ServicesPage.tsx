@@ -10,6 +10,7 @@ interface Service {
   order?: number
   isActive?: boolean
   isPriorityService?: boolean
+  requireOtp?: boolean
 }
 
 const ServicesPage: React.FC = () => {
@@ -20,6 +21,8 @@ const ServicesPage: React.FC = () => {
   const [advanceApptLoading, setAdvanceApptLoading] = useState(false)
   const [showServiceTypeEnabled, setShowServiceTypeEnabled] = useState(false)
   const [showServiceTypeLoading, setShowServiceTypeLoading] = useState(false)
+  const [otpVerificationEnabled, setOtpVerificationEnabled] = useState(true)
+  const [otpVerificationLoading, setOtpVerificationLoading] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [searchTerm, setSearchTerm] = useState('')
@@ -38,6 +41,7 @@ const ServicesPage: React.FC = () => {
     fetchPriorityFeatureSetting()
     fetchAdvanceApptSetting()
     fetchShowServiceTypeSetting()
+    fetchOtpVerificationSetting()
     fetchServices()
   }, [])
 
@@ -68,6 +72,16 @@ const ServicesPage: React.FC = () => {
     } catch (err) {
       console.error(err)
       setShowServiceTypeEnabled(false)
+    }
+  }
+
+  const fetchOtpVerificationSetting = async () => {
+    try {
+      const res = await api.get('/queue/settings/otp-verification')
+      setOtpVerificationEnabled(res.data?.enabled !== false)
+    } catch (err) {
+      console.error(err)
+      setOtpVerificationEnabled(true)
     }
   }
 
@@ -142,6 +156,18 @@ const ServicesPage: React.FC = () => {
     }
   }
 
+  const handleOtpPerServiceToggle = async (id: string, requireOtp: boolean) => {
+    try {
+      await api.patch(`/queue/services/${id}`, { requireOtp })
+      setServices((prev) => prev.map(s =>
+        s.id === id ? { ...s, requireOtp } : s
+      ))
+    } catch (err) {
+      console.error(err)
+      setError(`Failed to update OTP requirement for service`)
+    }
+  }
+
   const handlePriorityFeatureToggle = async (enabled: boolean) => {
     setPriorityFeatureLoading(true)
     setError('')
@@ -181,6 +207,20 @@ const ServicesPage: React.FC = () => {
       setError(err?.response?.data?.error || 'Failed to update show service type setting')
     } finally {
       setShowServiceTypeLoading(false)
+    }
+  }
+
+  const handleOtpVerificationToggle = async (enabled: boolean) => {
+    setOtpVerificationLoading(true)
+    setError('')
+    try {
+      const res = await api.patch('/queue/settings/otp-verification', { enabled })
+      setOtpVerificationEnabled(res.data?.enabled === true)
+    } catch (err: any) {
+      console.error(err)
+      setError(err?.response?.data?.error || 'Failed to update OTP verification setting')
+    } finally {
+      setOtpVerificationLoading(false)
     }
   }
 
@@ -284,7 +324,7 @@ const ServicesPage: React.FC = () => {
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 sm:p-6 flex flex-col justify-between md:col-span-2">
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 sm:p-6 flex flex-col justify-between">
             <div>
               <h2 className="text-lg font-semibold text-gray-900">Queue Display Settings</h2>
               <p className="text-sm text-gray-600 mt-1 mb-4">
@@ -307,6 +347,28 @@ const ServicesPage: React.FC = () => {
                 className={`px-4 py-2 rounded-xl text-sm font-semibold transition-colors disabled:opacity-60 ${showServiceTypeEnabled ? 'bg-gray-900 text-white hover:bg-gray-800' : 'bg-blue-600 text-white hover:bg-blue-700'}`}
               >
                 {showServiceTypeLoading ? 'Saving...' : showServiceTypeEnabled ? 'Hide Service Type' : 'Show Service Type'}
+              </button>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 sm:p-6 flex flex-col justify-between">
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">OTP Verification</h2>
+              <p className="text-sm text-gray-600 mt-1 mb-4">
+                When <strong>enabled</strong>, customers must enter their mobile number and verify it via a one-time password (OTP) before their token is generated — across QR, Kiosk, and Online Appointment flows. When <strong>disabled</strong>, the customer journey is streamlined to just <em>Language → Service → Token</em> with no mobile collection.
+              </p>
+            </div>
+            <div className="flex items-center justify-between gap-3 mt-auto">
+              <span className={`px-3 py-1 rounded-full text-xs font-semibold ${otpVerificationEnabled ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
+                {otpVerificationEnabled ? 'Required' : 'Disabled'}
+              </span>
+              <button
+                type="button"
+                onClick={() => handleOtpVerificationToggle(!otpVerificationEnabled)}
+                disabled={otpVerificationLoading}
+                className={`px-4 py-2 rounded-xl text-sm font-semibold transition-colors disabled:opacity-60 ${otpVerificationEnabled ? 'bg-gray-900 text-white hover:bg-gray-800' : 'bg-blue-600 text-white hover:bg-blue-700'}`}
+              >
+                {otpVerificationLoading ? 'Saving...' : otpVerificationEnabled ? 'Disable OTP' : 'Enable OTP'}
               </button>
             </div>
           </div>
@@ -492,6 +554,9 @@ const ServicesPage: React.FC = () => {
                     Priority
                   </th>
                   <th className="px-3 sm:px-6 py-3 sm:py-4 text-center text-xs font-semibold text-white uppercase tracking-wider">
+                    OTP Required
+                  </th>
+                  <th className="px-3 sm:px-6 py-3 sm:py-4 text-center text-xs font-semibold text-white uppercase tracking-wider">
                     Status
                   </th>
                   <th className="px-3 sm:px-6 py-3 sm:py-4 text-center text-xs font-semibold text-white uppercase tracking-wider">
@@ -502,7 +567,7 @@ const ServicesPage: React.FC = () => {
               <tbody className="bg-white divide-y divide-gray-200">
                 {loading ? (
                   <tr>
-                    <td colSpan={7} className="text-center py-12">
+                    <td colSpan={8} className="text-center py-12">
                       <div className="flex items-center justify-center">
                         <div className="w-6 h-6 sm:w-8 sm:h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
                         <span className="ml-3 text-gray-600 text-sm sm:text-base">Loading services...</span>
@@ -511,7 +576,7 @@ const ServicesPage: React.FC = () => {
                   </tr>
                 ) : currentServices.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="text-center py-12">
+                    <td colSpan={8} className="text-center py-12">
                       <Package className="w-12 h-12 sm:w-16 sm:h-16 text-gray-300 mx-auto mb-4" />
                       <p className="text-gray-500 text-base sm:text-lg">
                         {searchTerm ? 'No services match your search' : 'No services available'}
@@ -562,6 +627,23 @@ const ServicesPage: React.FC = () => {
                             Normal
                           </span>
                         )}
+                      </td>
+                      <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-center">
+                        <button
+                          type="button"
+                          title={service.requireOtp ? 'OTP required for this service — click to disable' : 'OTP not required — click to enable'}
+                          onClick={() => handleOtpPerServiceToggle(service.id, !service.requireOtp)}
+                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold transition-colors cursor-pointer border ${
+                            service.requireOtp
+                              ? 'bg-blue-100 text-blue-700 border-blue-200 hover:bg-blue-200'
+                              : 'bg-gray-100 text-gray-500 border-gray-200 hover:bg-gray-200'
+                          }`}
+                        >
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                          </svg>
+                          {service.requireOtp ? 'OTP On' : 'OTP Off'}
+                        </button>
                       </td>
                       <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-center">
                         <select

@@ -49,6 +49,9 @@ export default function CustomerRegistration() {
   const [autoSendingOtp, setAutoSendingOtp] = useState(false)
   const formRef = useRef<HTMLFormElement>(null)
 
+  // Admin OTP setting
+  const [otpRequired, setOtpRequired] = useState(true)
+
 
   // Bill payment specific states
   const [sltTelephoneNumbers, setSltTelephoneNumbers] = useState<string[]>([])
@@ -173,6 +176,7 @@ export default function CustomerRegistration() {
     // Always fetch outlets and services first
     fetchOutlets()
     fetchServices()
+    fetchOtpSetting()
 
     // Clear any previous customer session data that might interfere
     // Keep only QR-related data
@@ -348,6 +352,15 @@ export default function CustomerRegistration() {
     }
   }
 
+  const fetchOtpSetting = async () => {
+    try {
+      const res = await api.get('/queue/settings/otp-verification')
+      setOtpRequired(res.data?.enabled !== false)
+    } catch {
+      setOtpRequired(true)
+    }
+  }
+
   // Auto-send OTP when mobile number is 10 digits (but don't auto-advance for bill payment services)
   useEffect(() => {
     if (currentStep === 3 && mobileNumber.length === 10 && (mobileNumber.startsWith('07') || mobileNumber.startsWith('01'))) {
@@ -423,8 +436,13 @@ export default function CustomerRegistration() {
   const handleServiceSelect = (serviceCode: string) => {
     console.log('Selecting service:', serviceCode)
     setSelectedService(serviceCode)
-    // Auto advance to next step after a tiny delay for visual feedback
-    setTimeout(() => goToNextStep(), 300)
+    if (!otpRequired) {
+      // OTP disabled: submit token directly after brief visual feedback
+      setTimeout(() => submitDirectRegistration(serviceCode), 300)
+    } else {
+      // OTP enabled: proceed to next step (mobile + OTP)
+      setTimeout(() => goToNextStep(), 300)
+    }
   }
 
   // Check if service requires SLT number (Bill Payment or Billing Inquiry)
@@ -603,6 +621,33 @@ export default function CustomerRegistration() {
     }
   }
 
+  // Direct registration when OTP is disabled
+  const submitDirectRegistration = async (serviceCode: string) => {
+    setError('')
+    setLoading(true)
+    try {
+      const response = await api.post('/customer/register', {
+        name: 'Customer',
+        mobileNumber: undefined,
+        serviceTypes: [serviceCode],
+        outletId: selectedOutlet,
+        qrToken,
+        verifiedMobileToken: undefined,
+        preferredLanguages: preferredLanguage ? [preferredLanguage] : undefined,
+      })
+      if (response.data.success) {
+        clearAllFormData()
+        navigate(`/queue/${response.data.token.id}`)
+      } else {
+        setError('Registration failed. Please try again.')
+      }
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Registration failed. Please try again.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
@@ -618,12 +663,16 @@ export default function CustomerRegistration() {
     })
 
     try {
-      // On Register: verify OTP if not already verified and ensure we submit the fresh token
-      let tokenForSubmit = otpToken
-      if (otpStep !== 'verified' || !tokenForSubmit) {
-        const vt = await verifyOtp()
-        if (!vt) return
-        tokenForSubmit = vt
+      // When OTP is disabled, skip OTP verification
+      let tokenForSubmit: string | undefined = undefined
+      if (otpRequired) {
+        let tok = otpToken
+        if (otpStep !== 'verified' || !tok) {
+          const vt = await verifyOtp()
+          if (!vt) return
+          tok = vt
+        }
+        tokenForSubmit = tok
       }
 
       // Payment intent validation removed to simplify flow
@@ -631,7 +680,7 @@ export default function CustomerRegistration() {
       // Log the request data for debugging
       const requestData = {
         name: 'Customer',
-        mobileNumber,
+        mobileNumber: otpRequired ? mobileNumber : undefined,
         nicNumber: nicNumber || undefined,
         email: email || undefined,
         serviceTypes: [selectedService],
