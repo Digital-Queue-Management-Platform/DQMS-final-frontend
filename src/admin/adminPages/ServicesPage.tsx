@@ -10,6 +10,7 @@ interface Service {
   order?: number
   isActive?: boolean
   isPriorityService?: boolean
+  requireOtp?: boolean
 }
 
 const ServicesPage: React.FC = () => {
@@ -152,6 +153,18 @@ const ServicesPage: React.FC = () => {
     } catch (err) {
       console.error(err)
       setError(`Failed to ${isActive ? 'activate' : 'deactivate'} service`)
+    }
+  }
+
+  const handleOtpPerServiceToggle = async (id: string, requireOtp: boolean) => {
+    try {
+      await api.patch(`/queue/services/${id}`, { requireOtp })
+      setServices((prev) => prev.map(s =>
+        s.id === id ? { ...s, requireOtp } : s
+      ))
+    } catch (err) {
+      console.error(err)
+      setError(`Failed to update OTP requirement for service`)
     }
   }
 
@@ -541,6 +554,9 @@ const ServicesPage: React.FC = () => {
                     Priority
                   </th>
                   <th className="px-3 sm:px-6 py-3 sm:py-4 text-center text-xs font-semibold text-white uppercase tracking-wider">
+                    OTP Required
+                  </th>
+                  <th className="px-3 sm:px-6 py-3 sm:py-4 text-center text-xs font-semibold text-white uppercase tracking-wider">
                     Status
                   </th>
                   <th className="px-3 sm:px-6 py-3 sm:py-4 text-center text-xs font-semibold text-white uppercase tracking-wider">
@@ -551,7 +567,7 @@ const ServicesPage: React.FC = () => {
               <tbody className="bg-white divide-y divide-gray-200">
                 {loading ? (
                   <tr>
-                    <td colSpan={7} className="text-center py-12">
+                    <td colSpan={8} className="text-center py-12">
                       <div className="flex items-center justify-center">
                         <div className="w-6 h-6 sm:w-8 sm:h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
                         <span className="ml-3 text-gray-600 text-sm sm:text-base">Loading services...</span>
@@ -560,7 +576,7 @@ const ServicesPage: React.FC = () => {
                   </tr>
                 ) : currentServices.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="text-center py-12">
+                    <td colSpan={8} className="text-center py-12">
                       <Package className="w-12 h-12 sm:w-16 sm:h-16 text-gray-300 mx-auto mb-4" />
                       <p className="text-gray-500 text-base sm:text-lg">
                         {searchTerm ? 'No services match your search' : 'No services available'}
@@ -611,6 +627,23 @@ const ServicesPage: React.FC = () => {
                             Normal
                           </span>
                         )}
+                      </td>
+                      <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-center">
+                        <button
+                          type="button"
+                          title={service.requireOtp ? 'OTP required for this service — click to disable' : 'OTP not required — click to enable'}
+                          onClick={() => handleOtpPerServiceToggle(service.id, !service.requireOtp)}
+                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold transition-colors cursor-pointer border ${
+                            service.requireOtp
+                              ? 'bg-blue-100 text-blue-700 border-blue-200 hover:bg-blue-200'
+                              : 'bg-gray-100 text-gray-500 border-gray-200 hover:bg-gray-200'
+                          }`}
+                        >
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                          </svg>
+                          {service.requireOtp ? 'OTP On' : 'OTP Off'}
+                        </button>
                       </td>
                       <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-center">
                         <select
