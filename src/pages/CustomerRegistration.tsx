@@ -36,7 +36,7 @@ export default function CustomerRegistration() {
   const [language, setLanguage] = useState<"en" | "si" | "ta">("en")
   const [qrToken, setQrToken] = useState<string>("")
   const [qrValid, setQrValid] = useState<boolean>(false)
-  const [services, setServices] = useState<Array<{ id: string; code: string; title: string; isActive?: boolean; isPriorityService?: boolean }>>([])
+  const [services, setServices] = useState<Array<{ id: string; code: string; title: string; isActive?: boolean; isPriorityService?: boolean; requireOtp?: boolean }>>([])
   const [preferredLanguage, setPreferredLanguage] = useState<string>("")
   // OTP verification states
   const [otpStep, setOtpStep] = useState<'idle' | 'sent' | 'verified'>("idle")
@@ -436,11 +436,16 @@ export default function CustomerRegistration() {
   const handleServiceSelect = (serviceCode: string) => {
     console.log('Selecting service:', serviceCode)
     setSelectedService(serviceCode)
-    if (!otpRequired) {
-      // OTP disabled: submit token directly after brief visual feedback
+    
+    // Check if this specific service requires OTP
+    const service = services.find(s => s.code === serviceCode)
+    const serviceRequiresOtp = service?.requireOtp === true
+    
+    if (!otpRequired && !serviceRequiresOtp) {
+      // OTP disabled globally AND for this service: submit token directly
       setTimeout(() => submitDirectRegistration(serviceCode), 300)
     } else {
-      // OTP enabled: proceed to next step (mobile + OTP)
+      // OTP enabled either globally or for this service: proceed to next step (mobile + OTP)
       setTimeout(() => goToNextStep(), 300)
     }
   }
@@ -663,9 +668,13 @@ export default function CustomerRegistration() {
     })
 
     try {
-      // When OTP is disabled, skip OTP verification
+      // When OTP is disabled globally AND for the service, skip OTP verification
       let tokenForSubmit: string | undefined = undefined
-      if (otpRequired) {
+      const service = services.find(s => s.code === selectedService)
+      const serviceRequiresOtp = service?.requireOtp === true
+      const effectiveOtpRequired = otpRequired || serviceRequiresOtp
+
+      if (effectiveOtpRequired) {
         let tok = otpToken
         if (otpStep !== 'verified' || !tok) {
           const vt = await verifyOtp()
@@ -680,7 +689,7 @@ export default function CustomerRegistration() {
       // Log the request data for debugging
       const requestData = {
         name: 'Customer',
-        mobileNumber: otpRequired ? mobileNumber : undefined,
+        mobileNumber: effectiveOtpRequired ? mobileNumber : undefined,
         nicNumber: nicNumber || undefined,
         email: email || undefined,
         serviceTypes: [selectedService],
