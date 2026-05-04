@@ -1053,8 +1053,8 @@ export default function CustomerRegistration() {
   const t = translations[language]
 
   const selectedServiceData = services.find(s => s.code === selectedService)
-  const serviceRequiresOtp = selectedServiceData?.requireOtp === true
-  const effectiveOtpRequired = otpRequired || serviceRequiresOtp
+  const serviceRequiresOtp = selectedServiceData?.requireOtp !== false // Default to true if not specified
+  const effectiveOtpRequired = otpRequired && serviceRequiresOtp
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-3 sm:p-4 lg:p-6">
