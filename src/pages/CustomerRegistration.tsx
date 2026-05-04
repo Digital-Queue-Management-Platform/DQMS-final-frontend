@@ -369,8 +369,9 @@ export default function CustomerRegistration() {
   useEffect(() => {
     if (currentStep === 3 && mobileNumber.length === 10 && (mobileNumber.startsWith('07') || mobileNumber.startsWith('01'))) {
       const canGetOtp = canReceiveOtp();
-      if (canGetOtp && otpStep === 'idle' && !otpSending && !autoSendingOtp) {
-        console.log('Mobile number reached 10 digits, auto-sending OTP...');
+      // Only auto-send if OTP is actually required for this service/setting
+      if (canGetOtp && effectiveOtpRequired && otpStep === 'idle' && !otpSending && !autoSendingOtp) {
+        console.log('Mobile number reached 10 digits and OTP is required, auto-sending OTP...');
         setAutoSendingOtp(true);
         // Small delay to ensure the user sees their number entered
         const timer = setTimeout(() => {
