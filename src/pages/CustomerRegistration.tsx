@@ -1055,7 +1055,8 @@ export default function CustomerRegistration() {
 
   const selectedServiceData = services.find(s => s.code === selectedService)
   const serviceRequiresOtp = selectedServiceData?.requireOtp !== false // Default to true if not specified
-  const effectiveOtpRequired = otpRequired && serviceRequiresOtp
+  // OTP logic: Only depend on the specific service configuration as per user request
+  const effectiveOtpRequired = serviceRequiresOtp;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-3 sm:p-4 lg:p-6">
