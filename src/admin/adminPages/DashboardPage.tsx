@@ -38,6 +38,7 @@ const DashboardPage: React.FC = () => {
   const [exportLoading, setExportLoading] = useState(false)
   const [exportStartDate, setExportStartDate] = useState('')
   const [exportEndDate, setExportEndDate] = useState('')
+  const [whatsappLoading, setWhatsappLoading] = useState(false)
 
   // derived metrics (safely computed from branchData)
   const totalCustomers: number = branchData.reduce((sum, branch) => sum + (branch.customersServed || 0), 0);
@@ -593,6 +594,35 @@ const DashboardPage: React.FC = () => {
     }
   }
 
+  const sendToWhatsAppGroup = async () => {
+    if (!exportStartDate || !exportEndDate) {
+      setTestMessage({ type: 'error', message: 'Please select both start and end dates' })
+      return
+    }
+
+    setWhatsappLoading(true)
+    setTestMessage(null)
+    try {
+      const response = await api.post('/admin/whatsapp-report/trigger', {
+        startDate: exportStartDate,
+        endDate: exportEndDate,
+        scope: 'Island-wide (All Outlets)'
+      })
+      setTestMessage({ type: 'success', message: response.data.message || 'Report sent to WhatsApp group successfully!' })
+      setTimeout(() => {
+        setShowExportModal(false)
+        setExportStartDate('')
+        setExportEndDate('')
+        setTestMessage(null)
+      }, 3000)
+    } catch (err: any) {
+      console.error('WhatsApp report trigger error:', err)
+      setTestMessage({ type: 'error', message: err.response?.data?.error || 'Failed to dispatch report to WhatsApp group' })
+    } finally {
+      setWhatsappLoading(false)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-8">
       <div className="mx-auto">
@@ -1133,14 +1163,27 @@ const DashboardPage: React.FC = () => {
                 service breakdown, regional performance, and officer efficiency insights for the selected date range.
               </p>
 
-              <div className="flex gap-3 pt-4">
-                <button
-                  onClick={exportAnalyticsPDF}
-                  disabled={exportLoading || !exportStartDate || !exportEndDate}
-                  className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                  {exportLoading ? 'Generating...' : 'Generate Report'}
-                </button>
+              <div className="flex flex-col gap-2 pt-4">
+                <div className="flex gap-3">
+                  <button
+                    onClick={exportAnalyticsPDF}
+                    disabled={exportLoading || whatsappLoading || !exportStartDate || !exportEndDate}
+                    className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-1.5"
+                  >
+                    {exportLoading ? <Loader2 className="w-4.5 h-4.5 animate-spin" /> : <Download className="w-4.5 h-4.5" />}
+                    {exportLoading ? 'Generating...' : 'Download PDF'}
+                  </button>
+
+                  <button
+                    onClick={sendToWhatsAppGroup}
+                    disabled={exportLoading || whatsappLoading || !exportStartDate || !exportEndDate}
+                    className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-1.5"
+                  >
+                    {whatsappLoading ? <Loader2 className="w-4.5 h-4.5 animate-spin" /> : <Send className="w-4.5 h-4.5" />}
+                    {whatsappLoading ? 'Sending...' : 'Send WhatsApp'}
+                  </button>
+                </div>
+
                 <button
                   onClick={() => {
                     setShowExportModal(false)
@@ -1148,8 +1191,8 @@ const DashboardPage: React.FC = () => {
                     setExportStartDate('')
                     setExportEndDate('')
                   }}
-                  disabled={exportLoading}
-                  className="flex-1 px-4 py-2 border border-slate-200 text-gray-700 rounded-lg font-medium hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  disabled={exportLoading || whatsappLoading}
+                  className="w-full px-4 py-2 border border-slate-200 text-gray-700 rounded-lg font-medium hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   Cancel
                 </button>
