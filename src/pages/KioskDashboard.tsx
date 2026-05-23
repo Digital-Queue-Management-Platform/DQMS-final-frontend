@@ -73,7 +73,7 @@ export default function KioskDashboard() {
   const [sltVerified, setSltVerified] = useState(false)
   const [billPaymentIntent, setBillPaymentIntent] = useState<'full' | 'partial' | ''>("")
   const [billPaymentAmount, setBillPaymentAmount] = useState<string>("")
-  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card' | 'cheque' | 'bank_transfer' | ''>("")
+  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card' | 'cheque' | ''>("")
   const [shouldAutoSubmit, setShouldAutoSubmit] = useState(false)
   // Removed unused billData state
   // Payment intent states removed
@@ -114,27 +114,7 @@ export default function KioskDashboard() {
     }
   }, [shouldAutoSubmit, otpStep, otpToken])
 
-  // Auto-submit for bill payment after OTP & SLT are verified
-  useEffect(() => {
-    if (selectedService !== 'SVC002' && selectedService !== 'BILL_PAYMENT') {
-      setShouldAutoSubmit(false)
-      return
-    }
-    if (!sltVerified || otpStep !== 'verified') {
-      setShouldAutoSubmit(false)
-      return
-    }
-    setShouldAutoSubmit(true)
-    const timer = setTimeout(() => {
-      if (formRef.current) {
-        formRef.current.dispatchEvent(new Event('submit', { bubbles: true }))
-      }
-    }, 800)
-    return () => {
-      clearTimeout(timer)
-      setShouldAutoSubmit(false)
-    }
-  }, [otpStep, selectedService, sltVerified])
+  // Auto-submit for bill payment removed in favor of manual selection post-verification
   // Auto-send OTP when mobile number reaches 10 valid digits on step 3
   useEffect(() => {
     if (currentStep === 3 && mobileNumber.length === 10 && (mobileNumber.startsWith('07') || mobileNumber.startsWith('01'))) {
@@ -150,6 +130,28 @@ export default function KioskDashboard() {
       }
     }
   }, [mobileNumber, currentStep])
+
+  // Auto-verify SLT numbers when OTP is disabled and details are filled
+  useEffect(() => {
+    if (!isSltRequiredService(selectedService)) return
+    
+    const selectedServiceData = services.find(s => s.code === selectedService)
+    const serviceRequiresOtp = selectedServiceData?.requireOtp !== false
+    
+    if (serviceRequiresOtp) return // OTP verification flow will handle it
+
+    const allSltValid = sltTelephoneNumbers.length > 0 && sltTelephoneNumbers.every(num => isValidSlt(num))
+    if (isValidMobile(mobileNumber) && allSltValid && !sltVerified && !loading) {
+      console.log('OTP disabled: auto-verifying SLT numbers...')
+      verifySltNumbers()
+    }
+  }, [mobileNumber, sltTelephoneNumbers, selectedService, sltVerified, loading, services])
+
+  // Reset SLT verification status if the numbers are modified
+  useEffect(() => {
+    setSltVerified(false)
+    setVerifiedBills([])
+  }, [sltTelephoneNumbers, mobileNumber])
 
   const loadInitialData = async () => {
     try {
@@ -335,7 +337,9 @@ export default function KioskDashboard() {
   const canProceedFromStep3 = () => {
     const validDetails = isValidMobile(mobileNumber)
     if (isSltRequiredService(selectedService)) {
-      return validDetails && sltTelephoneNumbers.length > 0 && sltTelephoneNumbers.every(num => isValidSlt(num))
+      const basicSltValid = validDetails && sltTelephoneNumbers.length > 0 && sltTelephoneNumbers.every(num => isValidSlt(num))
+      const paymentValid = !!billPaymentIntent && (billPaymentIntent === 'full' || (billPaymentIntent === 'partial' && !!billPaymentAmount)) && !!paymentMethod
+      return basicSltValid && paymentValid && sltVerified
     }
     return validDetails
   }
@@ -942,61 +946,70 @@ export default function KioskDashboard() {
                         <p className="text-xs text-blue-600 mt-2">{t.verifySltAccountNote}</p>
                       </div>
 
-                      {/* Payment Intent (Full/Partial) */}
-                      <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-4 shadow-sm">
-                        <label className="block text-sm font-medium text-gray-700">{t.paymentIntentTitle}</label>
-                        <div className="grid grid-cols-2 gap-3">
-                          <button
-                            type="button"
-                            onClick={() => setBillPaymentIntent('full')}
-                            className={`py-3 px-4 rounded-xl text-sm font-semibold border-2 transition-all ${billPaymentIntent === 'full' ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-gray-200 text-gray-600 hover:border-blue-200'}`}
-                          >
-                            {t.payFullAmount}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setBillPaymentIntent('partial')}
-                            className={`py-3 px-4 rounded-xl text-sm font-semibold border-2 transition-all ${billPaymentIntent === 'partial' ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-gray-200 text-gray-600 hover:border-blue-200'}`}
-                          >
-                            {t.payPartialAmount}
-                          </button>
-                        </div>
+                      {sltVerified && (
+                        <div className="space-y-4 animate-in fade-in slide-in-from-top-1 duration-300">
+                          {/* Payment Intent (Full/Partial) */}
+                          <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-4 shadow-sm">
+                            <label className="block text-sm font-medium text-gray-700">{t.paymentIntentTitle}</label>
+                            <div className="grid grid-cols-2 gap-3">
+                              <button
+                                type="button"
+                                onClick={() => setBillPaymentIntent('full')}
+                                className={`py-3 px-4 rounded-xl text-sm font-semibold border-2 transition-all ${billPaymentIntent === 'full' ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-gray-200 text-gray-600 hover:border-blue-200'}`}
+                              >
+                                {t.payFullAmount}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setBillPaymentIntent('partial')}
+                                className={`py-3 px-4 rounded-xl text-sm font-semibold border-2 transition-all ${billPaymentIntent === 'partial' ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-gray-200 text-gray-600 hover:border-blue-200'}`}
+                              >
+                                {t.payPartialAmount}
+                              </button>
+                            </div>
 
-                        {billPaymentIntent === 'partial' && (
-                          <div className="animate-in fade-in slide-in-from-top-1 duration-200">
-                            <label className="block text-xs font-medium text-gray-500 mb-1">{t.partialAmountLabel}</label>
-                            <input
-                              type="number"
-                              value={billPaymentAmount}
-                              onChange={(e) => setBillPaymentAmount(e.target.value)}
-                              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
-                              placeholder={t.partialAmountPlaceholder}
-                            />
+                            {billPaymentIntent === 'partial' && (
+                              <div className="animate-in fade-in slide-in-from-top-1 duration-200">
+                                <label className="block text-xs font-medium text-gray-500 mb-1">{t.partialAmountLabel}</label>
+                                <input
+                                  type="text"
+                                  inputMode="decimal"
+                                  value={billPaymentAmount}
+                                  onChange={(e) => {
+                                    const val = e.target.value;
+                                    if (val === "" || /^\d+(\.\d{0,2})?$/.test(val)) {
+                                      setBillPaymentAmount(val);
+                                    }
+                                  }}
+                                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
+                                  placeholder={t.partialAmountPlaceholder}
+                                />
+                              </div>
+                            )}
                           </div>
-                        )}
-                      </div>
 
-                      {/* Payment Method */}
-                      <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-3 shadow-sm">
-                        <label className="block text-sm font-medium text-gray-700">{t.paymentMethodTitle}</label>
-                        <div className="grid grid-cols-2 gap-2">
-                          {[
-                            { id: 'cash', label: t.payByCash },
-                            { id: 'card', label: t.payByCard },
-                            { id: 'cheque', label: t.payByCheque },
-                            { id: 'bank_transfer', label: t.payByBankTransfer }
-                          ].map((m) => (
-                            <button
-                              key={m.id}
-                              type="button"
-                              onClick={() => setPaymentMethod(m.id as any)}
-                              className={`py-3 px-2 rounded-xl text-xs font-bold border-2 transition-all ${paymentMethod === m.id ? 'border-indigo-600 bg-indigo-50 text-indigo-700' : 'border-gray-100 text-gray-500 hover:border-indigo-100'}`}
-                            >
-                              {m.label}
-                            </button>
-                          ))}
+                          {/* Payment Method */}
+                          <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-3 shadow-sm">
+                            <label className="block text-sm font-medium text-gray-700">{t.paymentMethodTitle}</label>
+                            <div className="grid grid-cols-2 gap-2">
+                              {[
+                                { id: 'cash', label: t.payByCash },
+                                { id: 'card', label: t.payByCard },
+                                { id: 'cheque', label: t.payByCheque }
+                              ].map((m) => (
+                                <button
+                                  key={m.id}
+                                  type="button"
+                                  onClick={() => setPaymentMethod(m.id as any)}
+                                  className={`py-3 px-2 rounded-xl text-xs font-bold border-2 transition-all ${paymentMethod === m.id ? 'border-indigo-600 bg-indigo-50 text-indigo-700' : 'border-gray-100 text-gray-500 hover:border-indigo-100'}`}
+                                >
+                                  {m.label}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
                         </div>
-                      </div>
+                      )}
                     </div>
                   )}
 
@@ -1125,7 +1138,7 @@ export default function KioskDashboard() {
                     {!shouldAutoSubmit && (otpStep === 'sent' || otpStep === 'verified') && (
                       <button
                         type="submit"
-                        disabled={submitting || !selectedService || (otpStep === 'sent' && otpCode.length !== 4)}
+                        disabled={submitting || !selectedService || (otpStep === 'sent' && otpCode.length !== 4) || (otpStep === 'verified' && isSltRequiredService(selectedService) && (!sltVerified || !billPaymentIntent || !paymentMethod))}
                         className="w-full mt-4 bg-blue-600 text-white py-3 rounded-xl font-semibold hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
                       >
                         {submitting ? t.generating : t.generateToken}
