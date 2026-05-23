@@ -549,8 +549,11 @@ export default function AppointmentBooking() {
           await verifySltNumbers()
         }
 
-        // Auto-submit enabled for all services
-        setShouldAutoSubmit(true)
+        // Auto-submit only for non-bill-payment services.
+        // For bill payment, the user must first select payment intent and method.
+        if (!isSltRequiredService(selectedService)) {
+          setShouldAutoSubmit(true)
+        }
 
         return res.data.verifiedMobileToken as string
       }

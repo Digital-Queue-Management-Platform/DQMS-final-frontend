@@ -118,8 +118,7 @@ export default function KioskDashboard() {
   // Auto-send OTP when mobile number reaches 10 valid digits on step 3
   useEffect(() => {
     if (currentStep === 3 && mobileNumber.length === 10 && (mobileNumber.startsWith('07') || mobileNumber.startsWith('01'))) {
-      const canProceed = canProceedFromStep3();
-      if (canProceed && serviceRequiresOtp && otpStep === 'idle' && !otpSending && !autoSendingOtp) {
+      if (canSendOtp() && serviceRequiresOtp && otpStep === 'idle' && !otpSending && !autoSendingOtp) {
         setAutoSendingOtp(true);
         const timer = setTimeout(() => {
           goToNextStep();
@@ -257,8 +256,11 @@ export default function KioskDashboard() {
           await verifySltNumbers()
         }
 
-        // Auto-submit enabled for all services
-        setShouldAutoSubmit(true)
+        // Auto-submit only for non-bill-payment services.
+        // For bill payment, the user must first select payment intent and method.
+        if (!isSltRequiredService(selectedService)) {
+          setShouldAutoSubmit(true)
+        }
         return res.data.verifiedMobileToken as string
       }
       setOtpError('OTP verification failed')
@@ -332,16 +334,23 @@ export default function KioskDashboard() {
   const isValidSlt = (s: string) => /^\d{10}$/.test(s) && s.startsWith('0') && !s.startsWith('07')
   const isValidEmail = (e: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)
 
-  // const canProceedFromStep1 = preferredLanguage !== ''
-  // const canProceedFromStep2 = selectedService !== ''
-  const canProceedFromStep3 = () => {
-    const validDetails = isValidMobile(mobileNumber)
+  // Check if basic details are filled to allow sending OTP (mobile + SLT numbers only)
+  const canSendOtp = () => {
+    const validMobile = isValidMobile(mobileNumber)
     if (isSltRequiredService(selectedService)) {
-      const basicSltValid = validDetails && sltTelephoneNumbers.length > 0 && sltTelephoneNumbers.every(num => isValidSlt(num))
-      const paymentValid = !!billPaymentIntent && (billPaymentIntent === 'full' || (billPaymentIntent === 'partial' && !!billPaymentAmount)) && !!paymentMethod
-      return basicSltValid && paymentValid && sltVerified
+      return validMobile && sltTelephoneNumbers.length > 0 && sltTelephoneNumbers.every(num => isValidSlt(num))
     }
-    return validDetails
+    return validMobile
+  }
+
+  // Check if final submit is allowed (requires payment selections too for bill payment)
+  const canProceedFromStep3 = () => {
+    if (!canSendOtp()) return false
+    if (isSltRequiredService(selectedService)) {
+      const paymentValid = !!billPaymentIntent && (billPaymentIntent === 'full' || (billPaymentIntent === 'partial' && !!billPaymentAmount)) && !!paymentMethod
+      return sltVerified && paymentValid
+    }
+    return true
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -1100,7 +1109,7 @@ export default function KioskDashboard() {
                       <button
                         type="button"
                         onClick={serviceRequiresOtp ? sendOtp : () => generateToken(selectedService, mobileNumber)}
-                        disabled={submitting || (serviceRequiresOtp ? otpSending : false) || !canProceedFromStep3() || !selectedService}
+                        disabled={submitting || (serviceRequiresOtp ? otpSending : false) || (serviceRequiresOtp ? !canSendOtp() : !canProceedFromStep3()) || !selectedService}
                         className="flex-1 bg-indigo-600 text-white py-3 rounded-xl font-semibold hover:bg-indigo-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
                       >
                         {serviceRequiresOtp ? (otpSending ? t.sendingOTP : t.verify) : (submitting ? t.pleaseWait : t.generateToken)}

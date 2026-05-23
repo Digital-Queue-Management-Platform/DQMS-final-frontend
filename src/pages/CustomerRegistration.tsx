@@ -404,18 +404,6 @@ export default function CustomerRegistration() {
     console.log(`Current Step: ${currentStep}`)
   }, [currentStep])
 
-  // Auto-submit for non-bill payment services once OTP is verified
-  // Auto-submit form after OTP verification (simplified kiosk pattern)
-  useEffect(() => {
-    if (shouldAutoSubmit && otpStep === 'verified' && otpToken) {
-      setShouldAutoSubmit(false)
-      // Submit the form immediately after OTP is verified
-      if (formRef.current) {
-        formRef.current.dispatchEvent(new Event('submit', { bubbles: true }))
-      }
-    }
-  }, [shouldAutoSubmit, otpStep, otpToken])
-
   // Auto-submit detection for all services after verification
   useEffect(() => {
     if (currentStep !== 4 || otpStep !== 'verified' || !otpToken) {
@@ -424,7 +412,8 @@ export default function CustomerRegistration() {
     }
 
     if (selectedService === 'SVC002' || selectedService === 'BILL_PAYMENT') {
-      if (!sltVerified) {
+      // For bill payment services, require SLT verified + payment intent + payment method
+      if (!sltVerified || !billPaymentIntent || !paymentMethod) {
         setShouldAutoSubmit(false)
         return
       }
@@ -432,7 +421,7 @@ export default function CustomerRegistration() {
     
     console.log('SUCCESS: All conditions met, setting auto-submit')
     setShouldAutoSubmit(true)
-  }, [selectedService, currentStep, otpStep, otpToken, sltVerified])
+  }, [selectedService, currentStep, otpStep, otpToken, sltVerified, billPaymentIntent, paymentMethod])
 
   // Separate useEffect to handle the actual submission when flag is set
   useEffect(() => {
@@ -552,8 +541,11 @@ export default function CustomerRegistration() {
           await verifyAllSltNumbers()
         }
 
-        // Auto-submit enabled for all services
-        setShouldAutoSubmit(true)
+        // Auto-submit only for non-bill-payment services.
+        // For bill payment, the user must first select payment intent and method.
+        if (!isSltRequiredService(selectedService)) {
+          setShouldAutoSubmit(true)
+        }
 
         return res.data.verifiedMobileToken as string
 
@@ -805,15 +797,23 @@ export default function CustomerRegistration() {
     return isValidMobile(mobileNumber)
   }
 
-  // Check if user can proceed from Step 3 (including SLT for bill payment)
-  const canProceedFromStep3 = () => {
-    const validDetails = isValidMobile(mobileNumber)
+  // Check if basic details are filled to allow sending OTP (mobile + SLT numbers only)
+  const canSendOtp = () => {
+    const validMobile = isValidMobile(mobileNumber)
     if (selectedService === 'BILL_PAYMENT' || isSltRequiredService(selectedService)) {
-      const basicSltValid = validDetails && sltTelephoneNumbers.length > 0 && sltTelephoneNumbers.every(num => isValidSlt(num))
-      const paymentValid = !!billPaymentIntent && (billPaymentIntent === 'full' || (billPaymentIntent === 'partial' && !!billPaymentAmount)) && !!paymentMethod
-      return basicSltValid && paymentValid
+      return validMobile && sltTelephoneNumbers.length > 0 && sltTelephoneNumbers.every(num => isValidSlt(num))
     }
-    return validDetails
+    return validMobile
+  }
+
+  // Check if final submit is allowed (requires payment selections too for bill payment)
+  const canProceedFromStep3 = () => {
+    if (!canSendOtp()) return false
+    if (selectedService === 'BILL_PAYMENT' || isSltRequiredService(selectedService)) {
+      const paymentValid = !!billPaymentIntent && (billPaymentIntent === 'full' || (billPaymentIntent === 'partial' && !!billPaymentAmount)) && !!paymentMethod
+      return sltVerified && paymentValid
+    }
+    return true
   }
 
   const translations = {
@@ -1440,7 +1440,7 @@ export default function CustomerRegistration() {
                       <button
                         type={effectiveOtpRequired ? "button" : "submit"}
                         onClick={effectiveOtpRequired ? sendOtp : undefined}
-                        disabled={!qrValid || loading || !canProceedFromStep3() || !selectedOutlet || !selectedService}
+                        disabled={!qrValid || loading || !canSendOtp() || !selectedOutlet || !selectedService}
                         className="flex-1 bg-indigo-600 text-white py-3 rounded-xl font-semibold hover:bg-indigo-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
                       >
                         {effectiveOtpRequired ? (otpSending ? t.sendingOTP : t.verify) : (loading ? t.registering : t.register)}
@@ -1493,7 +1493,7 @@ export default function CustomerRegistration() {
                           !selectedOutlet || 
                           !selectedService || 
                           (otpStep === 'sent' && otpCode.length !== 4) ||
-                          (otpStep === 'verified' && isSltRequiredService(selectedService) && (!sltVerified || !billPaymentIntent || !paymentMethod))
+                          (otpStep === 'verified' && !canProceedFromStep3())
                         }
                         className="w-full mt-4 bg-blue-600 text-white py-3 rounded-xl font-semibold hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
                       >
