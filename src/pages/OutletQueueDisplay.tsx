@@ -777,7 +777,7 @@ export default function OutletQueueDisplay() {
             <img src={logo} alt="SLT Logo" className="h-[100px] w-auto object-contain" />
             <div>
               <h1 className="font-bold tracking-tight leading-none text-[#1e1b4b] capitalize text-7xl">
-                {outletMeta?.name?.toLowerCase() || "Sri Lanka Telecom"}
+                {outletMeta?.name || "Sri Lanka Telecom"}
               </h1>
               <p className="text-indigo-600 font-semibold uppercase tracking-[0.2em] text-lg mt-3 flex items-center gap-3">
                 <span className="w-6 h-0.5 bg-indigo-600 rounded-full" />
