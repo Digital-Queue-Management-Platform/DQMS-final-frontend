@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import { useState, useEffect } from "react"
 import { Users, Clock, Star, TrendingUp, Filter, Download, Activity, BarChart3, FileText } from "lucide-react"
@@ -281,7 +281,7 @@ export default function InsightsPage() {
       activeSections.push("OFFICER PERFORMANCE AUDIT")
     }
     if (exportSections.hourlyPerformance && analytics.hourlyStats && analytics.hourlyStats.length > 0) {
-      activeSections.push("HOURLY PERFORMANCE BREAKDOWN (08:00 â€“ 18:00)")
+      activeSections.push("HOURLY PERFORMANCE BREAKDOWN (08:00 - 18:00)")
     }
     if (exportSections.tokenFlow && analytics.tokenFlow && analytics.tokenFlow.length > 0) {
       activeSections.push("TOKEN FLOW ANALYSIS")
@@ -388,7 +388,7 @@ export default function InsightsPage() {
 
     // Section V - Hourly Performance
     if (exportSections.hourlyPerformance && analytics.hourlyStats && analytics.hourlyStats.length > 0) {
-      rows.push([getSectionHeader("HOURLY PERFORMANCE BREAKDOWN (08:00 â€“ 18:00)")])
+      rows.push([getSectionHeader("HOURLY PERFORMANCE BREAKDOWN (08:00 - 18:00)")])
       rows.push(["Hour", "Tokens Issued", "Tokens Completed", "Avg Wait (min)", "Avg Service (min)", "Avg Rating", "Feedbacks", "Active Counters"])
       analytics.hourlyStats.forEach(h => {
         rows.push([
@@ -408,7 +408,7 @@ export default function InsightsPage() {
     // Section VI - Token Flow
     if (exportSections.tokenFlow && analytics.tokenFlow && analytics.tokenFlow.length > 0) {
       rows.push([getSectionHeader("TOKEN FLOW ANALYSIS")])
-      rows.push(["Hour", "Tokens Issued", "Tokens Completed", "Net Flow (Issued âˆ’ Completed)"])
+      rows.push(["Hour", "Tokens Issued", "Tokens Completed", "Net Flow (Issued - Completed)"])
       analytics.tokenFlow.forEach(tf => {
         rows.push([tf.time, tf.issued, tf.completed, tf.issued - tf.completed])
       })
@@ -581,7 +581,7 @@ export default function InsightsPage() {
       activeSections.push("Officer Performance Audit")
     }
     if (exportSections.hourlyPerformance && analytics.hourlyStats && analytics.hourlyStats.length > 0) {
-      activeSections.push("Hourly Performance Breakdown (08:00 â€“ 18:00)")
+      activeSections.push("Hourly Performance Breakdown (08:00 - 18:00)")
     }
     if (exportSections.tokenFlow && analytics.tokenFlow && analytics.tokenFlow.length > 0) {
       activeSections.push("Token Flow Analysis")
@@ -590,7 +590,7 @@ export default function InsightsPage() {
       activeSections.push("Staff Utilization Trend")
     }
     if (exportSections.outletRegistry && (freshOutlets.length > 0 || allOutlets.length > 0)) {
-      activeSections.push("Outlet Registry â€” All Branches")
+      activeSections.push("Outlet Registry - All Branches")
     }
 
     const romanNumerals = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX"]
@@ -739,7 +739,7 @@ export default function InsightsPage() {
     // â”€â”€ SECTION VI: Hourly Performance Breakdown â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     if (exportSections.hourlyPerformance && analytics.hourlyStats && analytics.hourlyStats.length > 0) {
       doc.addPage(); addHeader(); currentY = 45
-      sectionTitle(getSectionHeader("Hourly Performance Breakdown (08:00 â€“ 18:00)"), currentY)
+      sectionTitle(getSectionHeader("Hourly Performance Breakdown (08:00 - 18:00)"), currentY)
       autoTable(doc, {
         startY: currentY + 5,
         head: [['Hour', 'Issued', 'Completed', 'Avg Wait (m)', 'Avg Svc (m)', 'Avg Rating', 'Feedbacks', 'Counters']],
@@ -749,7 +749,7 @@ export default function InsightsPage() {
           h.completed,
           h.waitTime,
           h.serviceTime,
-          h.rating > 0 ? h.rating.toFixed(2) : 'â€”',
+          h.rating > 0 ? h.rating.toFixed(2) : '-',
           h.feedbackCount,
           h.activeCounters
         ]),
@@ -895,7 +895,7 @@ export default function InsightsPage() {
             <div className="min-w-0 flex-1">
               <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 truncate">Analytics & Reports</h1>
               <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
-                <p className="text-[10px] sm:text-sm text-gray-600">Super Admin â€¢ DQMS Management</p>
+                <p className="text-[10px] sm:text-sm text-gray-600">Super Admin | DQMS Management</p>
                 <div className="flex items-center gap-2 text-xs text-slate-600">
                   {dashboardLoading && <span className="flex items-center gap-1">Refreshing...</span>}
                   <span>Last sync: {lastUpdated.toLocaleTimeString()}</span>
