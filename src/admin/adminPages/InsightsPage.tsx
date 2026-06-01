@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useState, useEffect } from "react"
 import { Users, Clock, Star, TrendingUp, Filter, Download, Activity, BarChart3, FileText } from "lucide-react"
@@ -95,14 +95,21 @@ export default function InsightsPage() {
     }
   }
 
-  const fetchAllOutlets = async () => {
+  const fetchAllOutlets = async (start?: string, end?: string) => {
     const adminToken = localStorage.getItem('adminToken')
-    if (!adminToken) return
+    if (!adminToken) return []
     try {
-      const response = await api.get("/admin/outlets/all")
+      const params: any = {}
+      if (start && end) {
+        params.startDate = start
+        params.endDate = end
+      }
+      const response = await api.get("/admin/outlets/all", { params })
       setAllOutlets(response.data)
+      return response.data as any[]
     } catch (err) {
       console.error("Failed to fetch all outlets:", err)
+      return []
     }
   }
 
@@ -232,8 +239,10 @@ export default function InsightsPage() {
     }))
   }
 
-  const exportToCSV = () => {
+  const exportToCSV = async () => {
     if (!analytics) return
+    // Re-fetch outlet status scoped to the selected date range so Active/Inactive is accurate
+    const freshOutlets = await fetchAllOutlets(dateRange.startDate, dateRange.endDate)
 
     const reportDate = new Date().toLocaleString()
     const dateStr = new Date().toLocaleDateString().replace(/\//g, '-')
@@ -272,7 +281,7 @@ export default function InsightsPage() {
       activeSections.push("OFFICER PERFORMANCE AUDIT")
     }
     if (exportSections.hourlyPerformance && analytics.hourlyStats && analytics.hourlyStats.length > 0) {
-      activeSections.push("HOURLY PERFORMANCE BREAKDOWN (08:00 – 18:00)")
+      activeSections.push("HOURLY PERFORMANCE BREAKDOWN (08:00 â€“ 18:00)")
     }
     if (exportSections.tokenFlow && analytics.tokenFlow && analytics.tokenFlow.length > 0) {
       activeSections.push("TOKEN FLOW ANALYSIS")
@@ -280,7 +289,7 @@ export default function InsightsPage() {
     if (exportSections.staffUtilization && analytics.staffUtilizationTrend && analytics.staffUtilizationTrend.length > 0) {
       activeSections.push("STAFF UTILIZATION TREND")
     }
-    if (exportSections.outletRegistry && allOutlets.length > 0) {
+    if (exportSections.outletRegistry && (freshOutlets.length > 0 || allOutlets.length > 0)) {
       activeSections.push("OUTLET REGISTRY (ALL BRANCHES)")
     }
 
@@ -379,7 +388,7 @@ export default function InsightsPage() {
 
     // Section V - Hourly Performance
     if (exportSections.hourlyPerformance && analytics.hourlyStats && analytics.hourlyStats.length > 0) {
-      rows.push([getSectionHeader("HOURLY PERFORMANCE BREAKDOWN (08:00 – 18:00)")])
+      rows.push([getSectionHeader("HOURLY PERFORMANCE BREAKDOWN (08:00 â€“ 18:00)")])
       rows.push(["Hour", "Tokens Issued", "Tokens Completed", "Avg Wait (min)", "Avg Service (min)", "Avg Rating", "Feedbacks", "Active Counters"])
       analytics.hourlyStats.forEach(h => {
         rows.push([
@@ -399,7 +408,7 @@ export default function InsightsPage() {
     // Section VI - Token Flow
     if (exportSections.tokenFlow && analytics.tokenFlow && analytics.tokenFlow.length > 0) {
       rows.push([getSectionHeader("TOKEN FLOW ANALYSIS")])
-      rows.push(["Hour", "Tokens Issued", "Tokens Completed", "Net Flow (Issued − Completed)"])
+      rows.push(["Hour", "Tokens Issued", "Tokens Completed", "Net Flow (Issued âˆ’ Completed)"])
       analytics.tokenFlow.forEach(tf => {
         rows.push([tf.time, tf.issued, tf.completed, tf.issued - tf.completed])
       })
@@ -417,10 +426,12 @@ export default function InsightsPage() {
     }
 
     // Section VIII - Outlet Registry
-    if (exportSections.outletRegistry && allOutlets.length > 0) {
-      const filteredOutlets = selectedOutlet
-        ? allOutlets.filter((o: any) => o.id === selectedOutlet)
-        : allOutlets
+    if (exportSections.outletRegistry) {
+      const sourceOutlets = freshOutlets.length > 0 ? freshOutlets : allOutlets
+      if (sourceOutlets.length > 0) {
+        const filteredOutlets = selectedOutlet
+          ? sourceOutlets.filter((o: any) => o.id === selectedOutlet)
+          : sourceOutlets
 
       const headerTitle = selectedOutlet
         ? "OUTLET REGISTRY (SELECTED OUTLET)"
@@ -442,7 +453,8 @@ export default function InsightsPage() {
       const activeCount = filteredOutlets.filter((o: any) => o.isActive).length
       const inactiveCount = filteredOutlets.length - activeCount
       rows.push(["Outlet Summary", `Total: ${filteredOutlets.length}`, `Active: ${activeCount}`, `Inactive: ${inactiveCount}`])
-      rows.push([""])
+        rows.push([""])
+      }
     }
 
     const csvString = rows
@@ -462,8 +474,10 @@ export default function InsightsPage() {
     document.body.removeChild(link)
   }
 
-  const exportToPDF = () => {
+  const exportToPDF = async () => {
     if (!analytics) return
+    // Re-fetch outlet status scoped to the selected date range so Active/Inactive is accurate
+    const freshOutlets = await fetchAllOutlets(dateRange.startDate, dateRange.endDate)
 
     const doc = new jsPDF()
     const pageWidth = doc.internal.pageSize.getWidth()
@@ -567,7 +581,7 @@ export default function InsightsPage() {
       activeSections.push("Officer Performance Audit")
     }
     if (exportSections.hourlyPerformance && analytics.hourlyStats && analytics.hourlyStats.length > 0) {
-      activeSections.push("Hourly Performance Breakdown (08:00 – 18:00)")
+      activeSections.push("Hourly Performance Breakdown (08:00 â€“ 18:00)")
     }
     if (exportSections.tokenFlow && analytics.tokenFlow && analytics.tokenFlow.length > 0) {
       activeSections.push("Token Flow Analysis")
@@ -575,8 +589,8 @@ export default function InsightsPage() {
     if (exportSections.staffUtilization && analytics.staffUtilizationTrend && analytics.staffUtilizationTrend.length > 0) {
       activeSections.push("Staff Utilization Trend")
     }
-    if (exportSections.outletRegistry && allOutlets.length > 0) {
-      activeSections.push("Outlet Registry — All Branches")
+    if (exportSections.outletRegistry && (freshOutlets.length > 0 || allOutlets.length > 0)) {
+      activeSections.push("Outlet Registry â€” All Branches")
     }
 
     const romanNumerals = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX"]
@@ -585,7 +599,7 @@ export default function InsightsPage() {
       return idx !== -1 ? `${romanNumerals[idx]}. ${title}` : title
     }
 
-    // ── SECTION I: Executive Summary ──────────────────────────────────────
+    // â”€â”€ SECTION I: Executive Summary â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     if (exportSections.executiveSummary) {
       sectionTitle(getSectionHeader("Executive Summary"), currentY)
       autoTable(doc, {
@@ -611,7 +625,7 @@ export default function InsightsPage() {
       currentY = (doc as any).lastAutoTable.finalY + 12
     }
 
-    // ── SECTION II: Customer Satisfaction ─────────────────────────────────
+    // â”€â”€ SECTION II: Customer Satisfaction â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     if (exportSections.customerSatisfaction) {
       currentY = ensureSpace(currentY, 70)
       sectionTitle(getSectionHeader("Customer Satisfaction Analysis"), currentY)
@@ -633,7 +647,7 @@ export default function InsightsPage() {
       currentY = (doc as any).lastAutoTable.finalY + 12
     }
 
-    // ── SECTION III: Service Utilization ──────────────────────────────────
+    // â”€â”€ SECTION III: Service Utilization â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     if (exportSections.serviceUtilization && analytics.serviceTypes && analytics.serviceTypes.length > 0) {
       currentY = ensureSpace(currentY, 60)
       sectionTitle(getSectionHeader("Service Utilization Breakdown"), currentY)
@@ -650,7 +664,7 @@ export default function InsightsPage() {
       currentY = (doc as any).lastAutoTable.finalY + 12
     }
 
-    // ── SECTION IV: Regional Branch Performance ────────────────────────────
+    // â”€â”€ SECTION IV: Regional Branch Performance â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     if (exportSections.branchPerformance && analytics.branchPerformance && analytics.branchPerformance.length > 0 && !selectedOutlet) {
       currentY = ensureSpace(currentY, 60)
       sectionTitle(getSectionHeader("Regional Branch Performance Audit"), currentY)
@@ -683,7 +697,7 @@ export default function InsightsPage() {
       currentY = (doc as any).lastAutoTable.finalY + 12
     }
 
-    // ── SECTION V: Officer Performance Audit ─────────────────────────────────────
+    // â”€â”€ SECTION V: Officer Performance Audit â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     if (exportSections.officerPerformance && analytics.officerPerformance && analytics.officerPerformance.length > 0) {
       currentY = ensureSpace(currentY, 60)
       sectionTitle(getSectionHeader("Officer Performance Audit"), currentY)
@@ -722,10 +736,10 @@ export default function InsightsPage() {
       currentY = (doc as any).lastAutoTable.finalY + 12
     }
 
-    // ── SECTION VI: Hourly Performance Breakdown ───────────────────────────
+    // â”€â”€ SECTION VI: Hourly Performance Breakdown â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     if (exportSections.hourlyPerformance && analytics.hourlyStats && analytics.hourlyStats.length > 0) {
       doc.addPage(); addHeader(); currentY = 45
-      sectionTitle(getSectionHeader("Hourly Performance Breakdown (08:00 – 18:00)"), currentY)
+      sectionTitle(getSectionHeader("Hourly Performance Breakdown (08:00 â€“ 18:00)"), currentY)
       autoTable(doc, {
         startY: currentY + 5,
         head: [['Hour', 'Issued', 'Completed', 'Avg Wait (m)', 'Avg Svc (m)', 'Avg Rating', 'Feedbacks', 'Counters']],
@@ -735,7 +749,7 @@ export default function InsightsPage() {
           h.completed,
           h.waitTime,
           h.serviceTime,
-          h.rating > 0 ? h.rating.toFixed(2) : '—',
+          h.rating > 0 ? h.rating.toFixed(2) : 'â€”',
           h.feedbackCount,
           h.activeCounters
         ]),
@@ -748,7 +762,7 @@ export default function InsightsPage() {
       currentY = (doc as any).lastAutoTable.finalY + 12
     }
 
-    // ── SECTION VII: Token Flow Analysis ──────────────────────────────────
+    // â”€â”€ SECTION VII: Token Flow Analysis â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     if (exportSections.tokenFlow && analytics.tokenFlow && analytics.tokenFlow.length > 0) {
       currentY = ensureSpace(currentY, 80)
       sectionTitle(getSectionHeader("Token Flow Analysis"), currentY)
@@ -780,7 +794,7 @@ export default function InsightsPage() {
       currentY = (doc as any).lastAutoTable.finalY + 12
     }
 
-    // ── SECTION VIII: Staff Utilization Trend ─────────────────────────────
+    // â”€â”€ SECTION VIII: Staff Utilization Trend â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     if (exportSections.staffUtilization && analytics.staffUtilizationTrend && analytics.staffUtilizationTrend.length > 0) {
       currentY = ensureSpace(currentY, 80)
       sectionTitle(getSectionHeader("Staff Utilization Trend"), currentY)
@@ -797,65 +811,67 @@ export default function InsightsPage() {
       currentY = (doc as any).lastAutoTable.finalY + 12
     }
 
-    // ── SECTION IX: Outlet Registry ────────────────────────────────────────
-    if (exportSections.outletRegistry && allOutlets.length > 0) {
-      doc.addPage(); addHeader(); currentY = 45
+    // SECTION IX: Outlet Registry
+    if (exportSections.outletRegistry) {
+      const sourceOutlets = freshOutlets.length > 0 ? freshOutlets : allOutlets
+      if (sourceOutlets.length > 0) {
+        doc.addPage(); addHeader(); currentY = 45
 
-      const filteredOutlets = selectedOutlet
-        ? allOutlets.filter((o: any) => o.id === selectedOutlet)
-        : allOutlets
+        const filteredOutlets = selectedOutlet
+          ? sourceOutlets.filter((o: any) => o.id === selectedOutlet)
+          : sourceOutlets
 
-      const headerTitle = selectedOutlet
-        ? "Outlet Registry — Selected Outlet"
-        : "Outlet Registry — All Branches"
+        const headerTitle = selectedOutlet
+          ? "Outlet Registry - Selected Outlet"
+          : "Outlet Registry - All Branches"
 
-      sectionTitle(getSectionHeader(headerTitle), currentY)
+        sectionTitle(getSectionHeader(headerTitle), currentY)
 
-      const activeOutlets = filteredOutlets.filter((o: any) => o.isActive)
-      const inactiveOutlets = filteredOutlets.filter((o: any) => !o.isActive)
+        const activeOutlets = filteredOutlets.filter((o: any) => o.isActive)
+        const inactiveOutlets = filteredOutlets.filter((o: any) => !o.isActive)
 
-      // Summary badges
-      doc.setFontSize(8)
-      doc.setFont("helvetica", "normal")
-      doc.setTextColor(71, 85, 105)
-      doc.text(`Total Outlets: ${filteredOutlets.length}`, 20, currentY + 10)
-      doc.setTextColor(SLT_GREEN[0], SLT_GREEN[1], SLT_GREEN[2])
-      doc.setFont("helvetica", "bold")
-      doc.text(`Active: ${activeOutlets.length}`, 75, currentY + 10)
-      doc.setTextColor(SLT_RED[0], SLT_RED[1], SLT_RED[2])
-      doc.text(`Inactive: ${inactiveOutlets.length}`, 110, currentY + 10)
+        doc.setFontSize(8)
+        doc.setFont("helvetica", "normal")
+        doc.setTextColor(71, 85, 105)
+        doc.text(`Total Outlets: ${filteredOutlets.length}`, 20, currentY + 10)
+        doc.setTextColor(SLT_GREEN[0], SLT_GREEN[1], SLT_GREEN[2])
+        doc.setFont("helvetica", "bold")
+        doc.text(`Active: ${activeOutlets.length}`, 75, currentY + 10)
+        doc.setTextColor(SLT_RED[0], SLT_RED[1], SLT_RED[2])
+        doc.text(`Inactive: ${inactiveOutlets.length}`, 110, currentY + 10)
 
-      autoTable(doc, {
-        startY: currentY + 15,
-        head: [['Outlet Name', 'Location', 'Status', 'Region', 'Counters', 'Registered Since']],
-        body: filteredOutlets.map((o: any) => [
-          o.name,
-          o.location || 'N/A',
-          o.isActive ? 'ACTIVE' : 'INACTIVE',
-          o.region?.name || 'N/A',
-          o.counterCount ?? 0,
-          o.createdAt ? new Date(o.createdAt).toLocaleDateString() : 'N/A'
-        ]),
-        theme: 'grid',
-        headStyles: { fillColor: SLT_DARK, textColor: [255, 255, 255], halign: 'center', fontSize: 8 },
-        styles: { fontSize: 8, cellPadding: 2.5 },
-        columnStyles: {
-          0: { halign: 'left', cellWidth: 40 },
-          1: { halign: 'left', cellWidth: 35 },
-          2: { halign: 'center', fontStyle: 'bold', cellWidth: 20 },
-          3: { halign: 'left', cellWidth: 35 },
-          4: { halign: 'center', cellWidth: 18 },
-          5: { halign: 'center', cellWidth: 25 }
-        },
-        didParseCell: (data: any) => {
-          if (data.column.index === 2 && data.section === 'body') {
-            if (data.cell.raw === 'ACTIVE') data.cell.styles.textColor = SLT_GREEN
-            else if (data.cell.raw === 'INACTIVE') data.cell.styles.textColor = SLT_RED
-          }
-        },
-        margin: { left: 20, right: 20 }
-      })
-      currentY = (doc as any).lastAutoTable.finalY + 12
+        autoTable(doc, {
+          startY: currentY + 15,
+          head: [['Outlet Name', 'Location', 'Status', 'Region', 'Counters', 'Registered Since']],
+          body: filteredOutlets.map((o: any) => [
+            o.name,
+            o.location || 'N/A',
+            o.isActive ? 'ACTIVE' : 'INACTIVE',
+            o.region?.name || 'N/A',
+            o.counterCount ?? 0,
+            o.createdAt ? new Date(o.createdAt).toLocaleDateString() : 'N/A'
+          ]),
+          theme: 'grid',
+          headStyles: { fillColor: SLT_DARK, textColor: [255, 255, 255], halign: 'center', fontSize: 8 },
+          styles: { fontSize: 8, cellPadding: 2.5 },
+          columnStyles: {
+            0: { halign: 'left', cellWidth: 40 },
+            1: { halign: 'left', cellWidth: 35 },
+            2: { halign: 'center', fontStyle: 'bold', cellWidth: 20 },
+            3: { halign: 'left', cellWidth: 35 },
+            4: { halign: 'center', cellWidth: 18 },
+            5: { halign: 'center', cellWidth: 25 }
+          },
+          didParseCell: (data: any) => {
+            if (data.column.index === 2 && data.section === 'body') {
+              if (data.cell.raw === 'ACTIVE') data.cell.styles.textColor = SLT_GREEN
+              else if (data.cell.raw === 'INACTIVE') data.cell.styles.textColor = SLT_RED
+            }
+          },
+          margin: { left: 20, right: 20 }
+        })
+        currentY = (doc as any).lastAutoTable.finalY + 12
+      }
     }
 
     const totalPages = (doc as any).internal.getNumberOfPages()
@@ -879,7 +895,7 @@ export default function InsightsPage() {
             <div className="min-w-0 flex-1">
               <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 truncate">Analytics & Reports</h1>
               <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
-                <p className="text-[10px] sm:text-sm text-gray-600">Super Admin • DQMS Management</p>
+                <p className="text-[10px] sm:text-sm text-gray-600">Super Admin â€¢ DQMS Management</p>
                 <div className="flex items-center gap-2 text-xs text-slate-600">
                   {dashboardLoading && <span className="flex items-center gap-1">Refreshing...</span>}
                   <span>Last sync: {lastUpdated.toLocaleTimeString()}</span>
