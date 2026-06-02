@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { CheckCircle, AlertTriangle, XCircle, Loader2 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import api from '../../../config/api';
@@ -195,7 +195,7 @@ const SystemHealthStatus: React.FC = () => {
                 >
                   <div className="flex items-center gap-3 min-w-0">
                     <IconComponent className={`w-4 h-4 flex-shrink-0 ${iconColorClass}`} />
-                    <span className="text-[#374151] text-sm font-medium truncate">
+                    <span className="text-sm font-medium text-gray-700 truncate">
                       {service.name}
                     </span>
                   </div>
@@ -206,7 +206,7 @@ const SystemHealthStatus: React.FC = () => {
                     >
                       {service.status}
                     </span>
-                    <span className="text-[#6b7280] text-xs sm:text-sm whitespace-nowrap">
+                    <span className="text-gray-500 text-xs sm:text-sm whitespace-nowrap">
                       {service.uptime} uptime
                     </span>
                   </div>

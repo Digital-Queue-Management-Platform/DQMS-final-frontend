@@ -379,10 +379,10 @@ export default function SystemLogsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-650 mx-auto"></div>
-          <p className="mt-4 text-slate-600 font-semibold">Analyzing logs registry...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600 font-medium">Analyzing logs registry...</p>
         </div>
       </div>
     )
@@ -390,17 +390,17 @@ export default function SystemLogsPage() {
 
   if (!overview) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
         <div className="text-center">
           <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-          <p className="text-slate-700 font-semibold">Failed to connect to the monitoring service</p>
+          <p className="text-gray-700 font-medium">Failed to connect to the monitoring service</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 relative overflow-hidden font-sans" style={{ fontFamily: "'Outfit', sans-serif" }}>
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 relative overflow-hidden">
       {/* Background blobs for modern premium design */}
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute top-0 right-1/4 w-[500px] h-[500px] bg-indigo-100/30 rounded-full blur-[120px]" />
@@ -410,28 +410,28 @@ export default function SystemLogsPage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 relative z-10">
         
         {/* Header */}
-        <div className="mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight flex items-center gap-3">
-              <Activity className="h-8 w-8 text-indigo-600 animate-pulse" />
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center gap-2.5">
+              <Activity className="h-6 w-6 text-indigo-600 animate-pulse flex-shrink-0" />
               System Monitoring Dashboard
             </h1>
-            <p className="text-slate-600 mt-1 text-sm sm:text-base">
-              Real-time centralized log registry, heartbeat monitoring, and deployment diagnostics
+            <p className="text-gray-500 mt-1 text-sm">
+              Real-time log registry, heartbeat monitoring &amp; deployment diagnostics
             </p>
           </div>
           
-          <button 
+          <button
             onClick={() => { fetchOverview(); fetchTabData(); }}
-            className="flex items-center justify-center gap-2 px-4 py-2.5 bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 rounded-xl text-sm font-semibold shadow-sm transition-all shrink-0 hover:border-slate-300"
+            className="flex items-center justify-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 rounded-xl text-sm font-semibold shadow-sm transition-all shrink-0"
           >
-            <RefreshCw className={`h-4 w-4 text-slate-600 ${tabLoading ? 'animate-spin' : ''}`} />
-            Refresh Diagnostics
+            <RefreshCw className={`h-4 w-4 text-gray-500 ${tabLoading ? 'animate-spin' : ''}`} />
+            Refresh
           </button>
         </div>
 
         {/* Navigation Tabs */}
-        <div className="bg-white/80 backdrop-blur-md rounded-2xl shadow-sm border border-slate-200 overflow-hidden mb-6">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-6">
           <div className="flex overflow-x-auto scrollbar-none">
             {[
               { key: 'overview', label: 'Overview', icon: Gauge },
@@ -446,14 +446,14 @@ export default function SystemLogsPage() {
                 key={tab.key}
                 onClick={() => { setSelectedTab(tab.key as any); setPage(1); }}
                 className={`
-                  flex items-center gap-2 px-6 py-4 font-semibold text-sm border-b-2 transition-all whitespace-nowrap outline-none
+                  flex items-center gap-2 px-4 sm:px-6 py-3.5 font-semibold text-sm border-b-2 transition-all whitespace-nowrap outline-none
                   ${selectedTab === tab.key
-                    ? 'border-indigo-650 text-indigo-650 bg-indigo-50/20'
-                    : 'border-transparent text-slate-600 hover:text-slate-950 hover:bg-slate-50/50'
+                    ? 'border-indigo-600 text-indigo-600 bg-indigo-50/30'
+                    : 'border-transparent text-gray-500 hover:text-gray-800 hover:bg-gray-50/50'
                   }
                 `}
               >
-                <tab.icon className={`h-4.5 w-4.5 ${selectedTab === tab.key ? 'text-indigo-600' : 'text-slate-450'}`} />
+                <tab.icon className={`h-4 w-4 ${selectedTab === tab.key ? 'text-indigo-600' : 'text-gray-400'}`} />
                 {tab.label}
               </button>
             ))}
@@ -564,10 +564,10 @@ export default function SystemLogsPage() {
         {/* Active Tab Screen */}
         <div className="transition-all duration-250">
           {tabLoading ? (
-            <div className="bg-white rounded-2xl border border-slate-200 py-20 text-center shadow-sm">
-              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600 mx-auto"></div>
-              <p className="mt-4 text-slate-500 text-sm font-semibold">Updating telemetry stream...</p>
-            </div>
+            <div className="bg-white rounded-xl border border-gray-200 py-16 text-center shadow-sm">
+            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600 mx-auto"></div>
+            <p className="mt-4 text-gray-500 text-sm font-medium">Updating telemetry stream...</p>
+          </div>
           ) : (
             <>
               {/* TAB: OVERVIEW */}

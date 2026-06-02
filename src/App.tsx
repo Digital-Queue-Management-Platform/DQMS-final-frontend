@@ -342,6 +342,7 @@ function Layout({ children }: { children: React.ReactNode }) {
   const [isCollapsed, setIsCollapsed] = React.useState<boolean>(() => {
     try { return localStorage.getItem('sidebar_collapsed') === '1' } catch { return false }
   })
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = React.useState<boolean>(false)
 
   // Central officer state for top bar when on officer pages (except login)
   const [officer, setOfficer] = React.useState<Officer | null>(null)
@@ -388,19 +389,41 @@ function Layout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Mobile top bar — visible only on small screens, pushes content down */}
+      {showSidebar && (
+        <div className="lg:hidden fixed top-0 left-0 right-0 z-40 h-14 bg-white border-b border-slate-200 flex items-center px-4 shadow-sm">
+          <button
+            onClick={() => setIsMobileSidebarOpen(true)}
+            className={`p-2 rounded-xl text-white ${
+              isOfficerPath ? 'bg-amber-600' :
+              isManagerPath ? 'bg-emerald-600' :
+              isTeleshopManagerPath ? 'bg-sky-600' :
+              isGMPath ? 'bg-violet-600' :
+              isDGMPath ? 'bg-teal-600' :
+              'bg-indigo-600'
+            }`}
+            aria-label="Toggle navigation"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
+          <img src="/logo.png" alt="logo" className="h-7 ml-3" />
+        </div>
+      )}
+
       {showSidebar && (
         <Sidebar
           isCollapsed={isCollapsed}
           setIsCollapsed={setIsCollapsed}
           activePage={activePage}
-          setActivePage={setActivePage} />
+          setActivePage={setActivePage}
+          isMobileOpen={isMobileSidebarOpen}
+          setIsMobileOpen={setIsMobileSidebarOpen} />
       )}
       <div
-        className={`flex-1 transition-all duration-300 ${showSidebar ? (isCollapsed ? 'lg:ml-16' : 'lg:ml-72') : 'ml-0'}`}
+        className={`flex-1 transition-all duration-300 ${showSidebar ? (isCollapsed ? 'lg:ml-16' : 'lg:ml-72') : 'ml-0'} ${showSidebar ? 'pt-14 lg:pt-0' : ''}`}
       >
-        {/* Header for all dashboard pages
-        {showSidebar && <Header />} */}
-
         {/* Shared Officer Top Bar for all officer pages except login, dashboard, queue, ip-speaker, served-customers, and service-tracking */}
         {isOfficerPath && !isOfficerLogin && officer && !location.pathname.includes('/officer/dashboard') && !location.pathname.includes('/officer/queue') && !location.pathname.includes('/officer/ip-speaker') && !location.pathname.includes('/officer/served-customers') && !location.pathname.includes('/officer/service-tracking') && !location.pathname.includes('/officer/branch-notices') && (
           <OfficerTopBar
