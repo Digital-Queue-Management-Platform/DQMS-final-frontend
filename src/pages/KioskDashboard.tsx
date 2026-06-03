@@ -71,9 +71,10 @@ export default function KioskDashboard() {
   // Legacy state variables (keeping for potential backward compatibility)
   // const [sltTelephoneNumber, setSltTelephoneNumber] = useState("")
   const [sltVerified, setSltVerified] = useState(false)
-  const [billPaymentIntent, setBillPaymentIntent] = useState<'full' | 'partial' | ''>("")
-  const [billPaymentAmount, setBillPaymentAmount] = useState<string>("")
-  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card' | 'cheque' | ''>("")
+  const [billRateLimited, setBillRateLimited] = useState(false) // true = daily limit reached, stop auto-retry
+  const [billPaymentIntent, setBillPaymentIntent] = useState<'full' | 'partial' | ''>('')
+  const [billPaymentAmount, setBillPaymentAmount] = useState<string>('')
+  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card' | 'cheque' | ''>('')
   const [shouldAutoSubmit, setShouldAutoSubmit] = useState(false)
   // Removed unused billData state
   // Payment intent states removed
@@ -133,6 +134,7 @@ export default function KioskDashboard() {
   // Auto-verify SLT numbers when OTP is disabled and details are filled
   useEffect(() => {
     if (!isSltRequiredService(selectedService)) return
+    if (billRateLimited) return // Stop retrying after a 429 – avoids infinite loop
     
     const selectedServiceData = services.find(s => s.code === selectedService)
     const serviceRequiresOtp = selectedServiceData?.requireOtp !== false
@@ -144,13 +146,19 @@ export default function KioskDashboard() {
       console.log('OTP disabled: auto-verifying SLT numbers...')
       verifySltNumbers()
     }
-  }, [mobileNumber, sltTelephoneNumbers, selectedService, sltVerified, loading, services])
+  }, [mobileNumber, sltTelephoneNumbers, selectedService, sltVerified, loading, services, billRateLimited])
 
   // Reset SLT verification status if the numbers are modified
   useEffect(() => {
     setSltVerified(false)
     setVerifiedBills([])
-  }, [sltTelephoneNumbers, mobileNumber])
+    setBillRateLimited(false) // Allow a fresh attempt when mobile number changes
+  }, [mobileNumber])
+
+  useEffect(() => {
+    setSltVerified(false)
+    setVerifiedBills([])
+  }, [sltTelephoneNumbers])
 
   const loadInitialData = async () => {
     try {
@@ -304,9 +312,17 @@ export default function KioskDashboard() {
         // Removed legacy bill data set
       }
     } catch (err: any) {
-      console.error('SLT verification error:', err)
-      const errMsg = err?.response?.data?.error || 'Failed to verify SLT numbers. Please try again.'
-      setError(errMsg)
+      const status = err?.response?.status
+      if (status === 429) {
+        // Rate limit hit — expected, handled gracefully
+        console.warn('Bill enquiry rate limit reached for this mobile number.')
+        setBillRateLimited(true)
+        setError(err?.response?.data?.error || t.billEnquiryLimitReached)
+      } else {
+        console.error('SLT verification error:', err)
+        const errMsg = err?.response?.data?.error || 'Failed to verify SLT numbers. Please try again.'
+        setError(errMsg)
+      }
     } finally {
       setLoading(false)
     }
@@ -557,6 +573,7 @@ export default function KioskDashboard() {
       invalidSltNumber: "Enter a valid 10-digit SLT number (e.g. 011XXXXXXX)",
       invalidName: "Please enter your full name (at least 2 characters)",
       verifySltAccountNote: "We'll verify your SLT account after you verify your mobile number",
+      billEnquiryLimitReached: "Daily bill enquiry limit reached. For your privacy, each mobile number can only request bill details 3 times per day. Please try again tomorrow.",
       pleaseWait: "Please wait..."
     },
     si: {
@@ -640,6 +657,7 @@ export default function KioskDashboard() {
       invalidSltNumber: "වලංගු අංක 10 කින් යුත් SLT දුරකථන අංකයක් ඇතුළත් කරන්න (උදා: 011XXXXXXX)",
       invalidName: "කරුණාකර ඔබගේ සම්පූර්ණ නම ඇතුළත් කරන්න (අඩුම තරමින් අකුරු 2ක්)",
       verifySltAccountNote: "ඔබ ජංගම දුරකථන අංකය තහවුරු කළ පසු අපි ඔබේ SLT ගිණුම තහවුරු කරන්නෙමු",
+      billEnquiryLimitReached: "දෛනික බිල් විමසීමේ සීමාව ළඟා වී ඇත. ඔබේ පෞද්ගලිකත්වය ආරක්ෂා කිරීම සඳහා, සෑම ජංගම අංකයකටම දිනකට 3 වතාවක් පමණ බිල් විස්තර ඉල්ලා ගත හැකිය. හෙට නැවත උත්සාහ කරන්න.",
       pleaseWait: "කරුණාකර රැඳී සිටින්න..."
     },
     ta: {
@@ -723,6 +741,7 @@ export default function KioskDashboard() {
       invalidSltNumber: "சரியான 10 இலக்க SLT எண்ணை உள்ளிடவும் (உதாரணமாக 011XXXXXXX)",
       invalidName: "தயவுசெய்து உங்கள் முழு பெயரை உள்ளிடவும் (குறைந்தது 2 எழுத்துக்கள்)",
       verifySltAccountNote: "உங்கள் மொபைல் எண்ணை சரிபார்த்த பிறகு உங்கள் SLT கணக்கை சரிபார்ப்போம்",
+      billEnquiryLimitReached: "தினசரி பில் விசாரணை வரம்பை எட்டிவிட்டது. உங்கள் தனியுரிமையைப் பாதுகாக்க, ஒவ்வொரு மொபைல் எண்ணும் ஒரு நாளைக்கு 3 முறை மட்டுமே பில் விவரங்களைக் கோரலாம். நாளை மீண்டும் முயற்சிக்கவும்.",
       pleaseWait: "தயவுசெய்து காத்திருக்கவும்..."
     }
   }

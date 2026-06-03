@@ -21,6 +21,8 @@ const ServicesPage: React.FC = () => {
   const [advanceApptLoading, setAdvanceApptLoading] = useState(false)
   const [showServiceTypeEnabled, setShowServiceTypeEnabled] = useState(false)
   const [showServiceTypeLoading, setShowServiceTypeLoading] = useState(false)
+  const [billRateLimitEnabled, setBillRateLimitEnabled] = useState(true)
+  const [billRateLimitLoading, setBillRateLimitLoading] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [searchTerm, setSearchTerm] = useState('')
@@ -39,6 +41,7 @@ const ServicesPage: React.FC = () => {
     fetchPriorityFeatureSetting()
     fetchAdvanceApptSetting()
     fetchShowServiceTypeSetting()
+    fetchBillRateLimitSetting()
     fetchServices()
   }, [])
 
@@ -69,6 +72,16 @@ const ServicesPage: React.FC = () => {
     } catch (err) {
       console.error(err)
       setShowServiceTypeEnabled(false)
+    }
+  }
+
+  const fetchBillRateLimitSetting = async () => {
+    try {
+      const res = await api.get('/queue/settings/bill-enquiry-rate-limit')
+      setBillRateLimitEnabled(res.data?.enabled !== false)
+    } catch (err) {
+      console.error(err)
+      setBillRateLimitEnabled(true)
     }
   }
 
@@ -199,6 +212,20 @@ const ServicesPage: React.FC = () => {
     }
   }
 
+  const handleBillRateLimitToggle = async (enabled: boolean) => {
+    setBillRateLimitLoading(true)
+    setError('')
+    try {
+      const res = await api.patch('/queue/settings/bill-enquiry-rate-limit', { enabled })
+      setBillRateLimitEnabled(res.data?.enabled === true)
+    } catch (err: any) {
+      console.error(err)
+      setError(err?.response?.data?.error || 'Failed to update bill enquiry rate limit setting')
+    } finally {
+      setBillRateLimitLoading(false)
+    }
+  }
+
 
 
   const resetForm = () => {
@@ -324,6 +351,28 @@ const ServicesPage: React.FC = () => {
                 className={`px-4 py-2 rounded-xl text-sm font-semibold transition-colors disabled:opacity-60 ${showServiceTypeEnabled ? 'bg-gray-900 text-white hover:bg-gray-800' : 'bg-blue-600 text-white hover:bg-blue-700'}`}
               >
                 {showServiceTypeLoading ? 'Saving...' : showServiceTypeEnabled ? 'Hide Service Type' : 'Show Service Type'}
+              </button>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 sm:p-6 flex flex-col justify-between">
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">Daily Bill Enquiry Limit</h2>
+              <p className="text-sm text-gray-600 mt-1 mb-4">
+                When enabled, customers can only request their bill details 3 times per day per mobile number to protect their privacy. When disabled, customers have unlimited bill enquiries.
+              </p>
+            </div>
+            <div className="flex items-center justify-between gap-3 mt-auto">
+              <span className={`px-3 py-1 rounded-full text-xs font-semibold ${billRateLimitEnabled ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-600'}`}>
+                {billRateLimitEnabled ? 'Enabled' : 'Disabled'}
+              </span>
+              <button
+                type="button"
+                onClick={() => handleBillRateLimitToggle(!billRateLimitEnabled)}
+                disabled={billRateLimitLoading}
+                className={`px-4 py-2 rounded-xl text-sm font-semibold transition-colors disabled:opacity-60 ${billRateLimitEnabled ? 'bg-gray-900 text-white hover:bg-gray-800' : 'bg-blue-600 text-white hover:bg-blue-700'}`}
+              >
+                {billRateLimitLoading ? 'Saving...' : billRateLimitEnabled ? 'Disable Limit' : 'Enable Limit'}
               </button>
             </div>
           </div>

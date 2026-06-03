@@ -105,6 +105,7 @@ export default function AppointmentBooking() {
   const [billPaymentAmount, setBillPaymentAmount] = useState<string>("")
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card' | 'cheque' | ''>("")
   const [sltVerified, setSltVerified] = useState(false)
+  const [billRateLimited, setBillRateLimited] = useState(false) // true = daily limit reached, stop auto-retry
 
   const selectedServiceData = services.find(s => s.code === selectedService)
   const serviceRequiresOtp = selectedServiceData?.requireOtp !== false
@@ -150,6 +151,7 @@ export default function AppointmentBooking() {
   // Auto-verify SLT numbers when OTP is disabled and details are filled
   useEffect(() => {
     if (!isSltRequiredService(selectedService)) return
+    if (billRateLimited) return // Stop retrying after a 429 – avoids infinite loop
     if (serviceRequiresOtp) return // OTP verification flow will handle it
 
     const allSltValid = sltTelephoneNumbers.length > 0 && sltTelephoneNumbers.every(num => isValidSlt(num))
@@ -157,13 +159,19 @@ export default function AppointmentBooking() {
       console.log('OTP disabled: auto-verifying SLT numbers...')
       verifySltNumbers()
     }
-  }, [mobileNumber, sltTelephoneNumbers, selectedService, sltVerified, loading, serviceRequiresOtp])
+  }, [mobileNumber, sltTelephoneNumbers, selectedService, sltVerified, loading, serviceRequiresOtp, billRateLimited])
 
   // Reset SLT verification status if the numbers are modified
   useEffect(() => {
     setSltVerified(false)
     setVerifiedBills([])
-  }, [sltTelephoneNumbers, mobileNumber])
+    setBillRateLimited(false) // Allow a fresh attempt when mobile number changes
+  }, [mobileNumber])
+
+  useEffect(() => {
+    setSltVerified(false)
+    setVerifiedBills([])
+  }, [sltTelephoneNumbers])
 
   // Auto-send OTP when entering step 4
   useEffect(() => {
@@ -348,7 +356,8 @@ export default function AppointmentBooking() {
       payByCheque: "Cheque",
       payByBankTransfer: "Bank Transfer",
       dueAmountNote: "Please ask the account holder to confirm the due amount with the officer at the counter.",
-      verifySltAccountNote: "We will verify your SLT account once you verify your mobile number"
+      verifySltAccountNote: "We will verify your SLT account once you verify your mobile number",
+      billEnquiryLimitReached: "Daily bill enquiry limit reached. For your privacy, each mobile number can only request bill details 3 times per day. Please try again tomorrow."
     },
     si: {
       title: 'වේලාවක් වෙන්කරන්න',
@@ -420,7 +429,8 @@ export default function AppointmentBooking() {
       payByCheque: "චෙක්",
       payByBankTransfer: "බැංකු හැරීම",
       dueAmountNote: "ගිණුම් හිමිකරුගෙන් ගෙවිය යුතු නිවැරදි මුදල ශාලාවේ නිලධාරීට ලබා දෙන ලෙස කරුණාකර ඉල්ලා සිටින්න.",
-      verifySltAccountNote: "ඔබ ජංගම දුරකථන අංකය තහවුරු කළ පසු අපි ඔබේ SLT ගිණුම තහවුරු කරන්නෙමු"
+      verifySltAccountNote: "ඔබ ජංගම දුරකථන අංකය තහවුරු කළ පසු අපි ඔබේ SLT ගිණුම තහවුරු කරන්නෙමු",
+      billEnquiryLimitReached: "දෛනික බිල් විමසීමේ සීමාව ළඟා වී ඇත. ඔබේ පෞද්ගලිකත්වය ආරක්ෂා කිරීම සඳහා, සෑම ජංගම අංකයකටම දිනකට 3 වතාවක් පමණ බිල් විස්තර ඉල්ලා ගත හැකිය. හෙට නැවත උත්සාහ කරන්න."
     },
     ta: {
       title: 'ஒரு நேரம் பதிவு செய்யவும்',
@@ -492,7 +502,8 @@ export default function AppointmentBooking() {
       payByCheque: "காசோலை",
       payByBankTransfer: "வங்கி பரிமாற்றம்",
       dueAmountNote: "கணக்கு வைத்திருப்பவர் கவுண்டரில் உள்ள அதிகாரியிடம் நிலுவைத் தொகையை உறுதிப்படுத்துமாறு கேட்கவும்.",
-      verifySltAccountNote: "உங்கள் மொபைல் எண்ணைச் சரிபார்த்த பிறகு உங்கள் SLT கணக்கை நாங்கள் சரிபார்ப்போம்"
+      verifySltAccountNote: "உங்கள் மொபைல் எண்ணைச் சரிபார்த்த பிறகு உங்கள் SLT கணக்கை நாங்கள் சரிபார்ப்போம்",
+      billEnquiryLimitReached: "தினசரி பில் விசாரணை வரம்பை எட்டிவிட்டது. உங்கள் தனியுரிமையைப் பாதுகாக்க, ஒவ்வொரு மொபைல் எண்ணும் ஒரு நாளைக்கு 3 முறை மட்டுமே பில் விவரங்களைக் கோரலாம். நாளை மீண்டும் முயற்சிக்கவும்."
     },
   } as const
 
@@ -597,9 +608,17 @@ export default function AppointmentBooking() {
         // Removed legacy bill data set
       }
     } catch (err: any) {
-      console.error('SLT verification error:', err)
-      const errMsg = err?.response?.data?.error || 'Failed to verify SLT numbers. Please try again.'
-      setError(errMsg)
+      const status = err?.response?.status
+      if (status === 429) {
+        // Rate limit hit — expected, handled gracefully
+        console.warn('Bill enquiry rate limit reached for this mobile number.')
+        setBillRateLimited(true)
+        setError(err?.response?.data?.error || t.billEnquiryLimitReached)
+      } else {
+        console.error('SLT verification error:', err)
+        const errMsg = err?.response?.data?.error || 'Failed to verify SLT numbers. Please try again.'
+        setError(errMsg)
+      }
     } finally {
       setLoading(false)
     }
