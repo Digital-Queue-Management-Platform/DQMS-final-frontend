@@ -315,7 +315,14 @@ export default function NotificationSettingsPage() {
 
   useEffect(() => {
     api.get('/admin/notification-settings', { headers: getAuthHeader() })
-      .then(res => { if (res.data?.settings) setSettings(res.data.settings) })
+      .then(res => { 
+        if (res.data?.settings) {
+          setSettings(res.data.settings)
+          if (res.data.settings.daily_summary_last_sent) {
+            setLastSent(new Date(res.data.settings.daily_summary_last_sent).toLocaleString('en-GB', { timeZone: 'Asia/Colombo' }))
+          }
+        } 
+      })
       .catch(() => addToast('Failed to load notification settings', 'error'))
       .finally(() => setLoading(false))
   }, [addToast])
