@@ -33,6 +33,7 @@ import {
   Database,
   ClipboardList,
   Activity,
+  Bell,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useUser } from '../../../contexts/UserContext'
@@ -80,6 +81,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed, activePa
     { name: 'Backup', icon: Database, to: '/admin/backup' },
     { name: 'Insights', icon: BarChart2, to: '/admin/insights' },
     { name: 'System Logs', icon: Activity, to: '/admin/logs' },
+    { name: 'Notifications', icon: Bell, to: '/admin/notification-settings' },
   ]
   // Officer navigation items - Queue is now the primary page (first in order)
   const officerItems: NavigationItem[] = [
