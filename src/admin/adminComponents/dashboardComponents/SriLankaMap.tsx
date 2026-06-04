@@ -43,7 +43,7 @@ const SriLankaMap: React.FC<SriLankaMapProps> = ({ branchData, onViewDetails }) 
 
   return (
     <div className="w-full">
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
+      <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-3 lg:gap-4">
         {branchData.map((branch) => (
           <div
             key={branch.id}
@@ -87,10 +87,10 @@ const SriLankaMap: React.FC<SriLankaMapProps> = ({ branchData, onViewDetails }) 
                 <div className="flex items-center justify-center mb-1">
                   <UsersIcon className="h-3 w-3 sm:h-4 sm:w-4 text-gray-400 mr-1" />
                 </div>
-                <div className="text-sm sm:text-lg font-semibold text-gray-800">
+                <div className="text-xs sm:text-sm font-semibold text-gray-800">
                   {branch.customersServed}
                 </div>
-                <div className="text-xs text-gray-500">Customers</div>
+                <div className="text-[10px] sm:text-xs text-gray-500">Customers</div>
               </div>
 
               <div className="p-2 sm:p-3 text-center">
@@ -113,10 +113,10 @@ const SriLankaMap: React.FC<SriLankaMapProps> = ({ branchData, onViewDetails }) 
                 <div className="flex items-center justify-center mb-1">
                   <StarIcon className="h-3 w-3 sm:h-4 sm:w-4 text-gray-400 mr-1" />
                 </div>
-                <div className={`text-sm sm:text-lg font-semibold ${getRatingColor(branch.rating)}`}>
+                <div className={`text-xs sm:text-sm font-semibold ${getRatingColor(branch.rating)}`}>
                   {branch.rating.toFixed(1)}
                 </div>
-                <div className="text-xs text-gray-500">Rating</div>
+                <div className="text-[10px] sm:text-xs text-gray-500">Rating</div>
               </div>
             </div>
 
@@ -139,8 +139,8 @@ const SriLankaMap: React.FC<SriLankaMapProps> = ({ branchData, onViewDetails }) 
       </div>
 
       {/* Legend - Responsive */}
-      <div className="mt-6 sm:mt-8 bg-white p-3 sm:p-4 rounded-lg shadow-sm border border-slate-200">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4 text-xs">
+      <div className="mt-4 sm:mt-6 bg-white p-3 sm:p-4 rounded-lg shadow-sm border border-slate-200">
+        <div className="flex flex-wrap gap-3 sm:gap-4 text-xs">
           {/* Wait time indicators */}
           <div className="flex items-center">
             <div className="h-3 w-3 rounded-full bg-green-500 mr-2 flex-shrink-0"></div>

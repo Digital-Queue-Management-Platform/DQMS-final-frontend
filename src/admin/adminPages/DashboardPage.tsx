@@ -594,50 +594,26 @@ const DashboardPage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-8">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-4 sm:p-6 lg:p-8">
       <div className="mx-auto">
         {/* Header Section in Body */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-2">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">
-                {showBranchDashboard ? 'Branch Dashboard' : 'Super Admin Dashboard'}
-              </h1>
-              <div className="mt-2 flex items-center bg-white p-1 rounded-lg border border-slate-200 w-fit">
-                {['Today', 'Weekly', 'Monthly', 'Annual'].map((tf) => (
-                  <button
-                    key={tf}
-                    onClick={() => setTimeframe(tf)}
-                    className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${timeframe === tf
-                        ? 'bg-blue-600 text-white shadow-sm'
-                        : 'text-slate-600 hover:bg-slate-50'
-                      }`}
-                  >
-                    {tf}
-                  </button>
-                ))}
-              </div>
-              <div className="flex flex-col sm:flex-row sm:items-center gap-2 mt-4">
-                <div className="flex text-sm items-center text-gray-500">
-                  {/*<Clock size={16} className="mr-1" />*/}
-                  <span>
-                    {formatDate(currentDateTime)} | {formatTime(currentDateTime)}
-                  </span>
-                </div>
-                <div className="flex items-center gap-3 text-sm text-slate-600">
-                  {dashboardLoading && <span className="flex items-center gap-1"><Loader2 className="w-4 h-4 animate-spin" /> Refreshing...</span>}
-                  <span>Last updated: {lastUpdated.toLocaleTimeString()}</span>
-                </div>
-              </div>
-            </div>
-            <div className="flex items-center space-x-4">
+        <div className="mb-6 sm:mb-8">
+          {/* Row 1: Title + Action Buttons */}
+          <div className="flex flex-wrap items-start justify-between gap-3 mb-3">
+            {/* Page Title */}
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 leading-tight">
+              {showBranchDashboard ? 'Branch Dashboard' : 'Super Admin Dashboard'}
+            </h1>
+
+            {/* Action Buttons — wrap on small screens */}
+            <div className="flex flex-wrap items-center gap-2">
               {/* Export PDF Button */}
               <button
                 onClick={() => {
                   setShowExportModal(true)
                   setTestMessage(null)
                 }}
-                className="relative flex items-center justify-center p-2 bg-green-100 rounded-md hover:bg-green-200 transition-colors"
+                className="flex items-center justify-center p-2 bg-green-100 rounded-md hover:bg-green-200 transition-colors"
                 title="Export Analytics Report (PDF)"
               >
                 <Download className="w-5 h-5 text-green-700" />
@@ -650,7 +626,7 @@ const DashboardPage: React.FC = () => {
                   setShowNotifications(false)
                   setTestMessage(null)
                 }}
-                className="relative flex items-center justify-center p-2 bg-purple-100 rounded-md hover:bg-purple-200 transition-colors"
+                className="flex items-center justify-center p-2 bg-purple-100 rounded-md hover:bg-purple-200 transition-colors"
                 title="Test SMS Service"
               >
                 <Phone className="w-5 h-5 text-purple-700" />
@@ -663,15 +639,14 @@ const DashboardPage: React.FC = () => {
                   setShowNotifications(false)
                   setTestMessage(null)
                 }}
-                className="relative flex items-center justify-center p-2 bg-blue-100 rounded-md hover:bg-blue-200 transition-colors"
+                className="flex items-center justify-center p-2 bg-blue-100 rounded-md hover:bg-blue-200 transition-colors"
                 title="Test Email Service"
               >
                 <Send className="w-5 h-5 text-blue-700" />
               </button>
 
               {/* Notification Controls */}
-              <div className="flex items-center gap-2">
-                {/* Browser Notification Status */}
+              <div className="flex items-center gap-1.5">
                 {notificationPermission === 'granted' && (
                   <div className="flex items-center gap-1 text-xs text-green-600" title="Browser notifications enabled">
                     <CheckCircle2 className="w-4 h-4" />
@@ -808,21 +783,52 @@ const DashboardPage: React.FC = () => {
 
               {showBranchDashboard ? (
                 <button
-                  className="flex items-center px-4 py-2 bg-gray-900 border border-gray-300 rounded-md text-md font-medium text-white hover:text-black hover:bg-gray-50"
+                  className="flex items-center px-3 py-2 bg-gray-900 border border-gray-300 rounded-md text-sm font-medium text-white hover:text-black hover:bg-gray-50 whitespace-nowrap"
                   onClick={handleBranchDashboardToggle}
                 >
-                  <ArrowLeft className="w-5 h-5 mr-2" />
-                  Back to Super Admin Dashboard
+                  <ArrowLeft className="w-4 h-4 mr-1.5" />
+                  <span className="hidden sm:inline">Back to Super Admin</span>
+                  <span className="sm:hidden">Back</span>
                 </button>
               ) : (
                 <button
-                  className="flex items-center px-4 py-2 bg-black border border-gray-300 rounded-md text-md font-medium text-white hover:text-black hover:bg-gray-50"
+                  className="flex items-center px-3 py-2 bg-black border border-gray-300 rounded-md text-sm font-medium text-white hover:text-black hover:bg-gray-50 whitespace-nowrap"
                   onClick={handleBranchDashboardToggle}
                 >
-                  <Eye className="w-5 h-5 mr-2" />
-                  Location wise Dashboard
+                  <Eye className="w-4 h-4 mr-1.5" />
+                  <span className="hidden sm:inline">Location wise Dashboard</span>
+                  <span className="sm:hidden">Locations</span>
                 </button>
               )}
+            </div>
+          </div>
+
+          {/* Row 2: Timeframe selector + Date/time info */}
+          <div className="flex flex-wrap items-center justify-between gap-3 mt-2">
+            <div className="flex items-center bg-white p-1 rounded-lg border border-slate-200 w-fit">
+              {['Today', 'Weekly', 'Monthly', 'Annual'].map((tf) => (
+                <button
+                  key={tf}
+                  onClick={() => setTimeframe(tf)}
+                  className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${timeframe === tf
+                      ? 'bg-blue-600 text-white shadow-sm'
+                      : 'text-slate-600 hover:bg-slate-50'
+                    }`}
+                >
+                  {tf}
+                </button>
+              ))}
+            </div>
+            <div className="flex flex-wrap items-center gap-3 text-sm text-slate-600">
+              <span className="text-gray-500 text-xs sm:text-sm">
+                {formatDate(currentDateTime)} | {formatTime(currentDateTime)}
+              </span>
+              {dashboardLoading && (
+                <span className="flex items-center gap-1 text-xs">
+                  <Loader2 className="w-4 h-4 animate-spin" /> Refreshing...
+                </span>
+              )}
+              <span className="text-xs text-slate-500">Updated: {lastUpdated.toLocaleTimeString()}</span>
             </div>
           </div>
         </div>
@@ -847,7 +853,7 @@ const DashboardPage: React.FC = () => {
             {/* Main content area */}
 
             {/* Metrics row */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 mb-6">
               <MetricCard title={`Total Customers (${timeframe})`} value={totalCustomers.toString()} icon={<UsersIcon className="h-7 w-7 text-blue-500" />} detail={branchData.length >= 3 ? `${branchData[0].name}: ${branchData[0].customersServed}, ${branchData[1].name}: ${branchData[1].customersServed}, ${branchData[2].name}: ${branchData[2].customersServed}` : undefined} />
               <MetricCard title={`Avg Wait Time (${timeframe})`} value={`${avgWaitingTime} min`} icon={<ClockIcon className="h-7 w-7 text-blue-500" />} trend={Number(avgWaitingTime) < 15 ? 'down' : 'up'} trendLabel={Number(avgWaitingTime) < 15 ? 'Better than target' : 'Above target'} />
               <MetricCard title={`Satisfaction (${timeframe})`} value={avgRating} icon={<StarIcon className="h-7 w-7 text-blue-500" />} trend={Number(avgRating) > 4.0 ? 'up' : 'down'} trendLabel={Number(avgRating) > 4.0 ? 'Above average' : 'Below average'} />
@@ -855,42 +861,37 @@ const DashboardPage: React.FC = () => {
             </div>
 
             {/* Charts section */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-              <div className="bg-white p-4 rounded-lg shadow">
-                <h3 className="text-lg font-medium mb-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-4 sm:mb-6">
+              <div className="bg-white p-3 sm:p-4 rounded-lg shadow overflow-hidden">
+                <h3 className="text-base sm:text-lg font-medium mb-3 sm:mb-4">
                   Customer Volume by Branch
                 </h3>
                 <BranchComparisonChart data={branchData} />
               </div>
-              <div className="bg-white p-4 rounded-lg shadow">
-                <h3 className="text-lg font-medium mb-4">
+              <div className="bg-white p-3 sm:p-4 rounded-lg shadow overflow-hidden">
+                <h3 className="text-base sm:text-lg font-medium mb-3 sm:mb-4">
                   Waiting Time Trends (Last 7 Days)
                 </h3>
                 <WaitingTimeChart data={waitingTimeData} />
               </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-1 gap-6 mb-4">
-              <div className="mb-2">
-                <div className="max-w-5xl mx-auto">
-                  <SystemHealthStatus />
-                </div>
-              </div>
+            {/* System Health */}
+            <div className="mb-4 sm:mb-6">
+              <SystemHealthStatus />
             </div>
 
-            {/* Map section */}
-            <div className="bg-white p-4 rounded-lg shadow mb-6">
-              <h3 className="text-lg font-medium mb-4">
+            {/* Branch Location Cards section */}
+            <div className="bg-white p-3 sm:p-4 rounded-lg shadow mb-4 sm:mb-6">
+              <h3 className="text-base sm:text-lg font-medium mb-3 sm:mb-4">
                 Branch Locations & Performance
               </h3>
-              <div className="h-135">
-                <SriLankaMap branchData={branchData} onViewDetails={handleViewBranchDetails} />
-              </div>
+              <SriLankaMap branchData={branchData} onViewDetails={handleViewBranchDetails} />
             </div>
 
-            {/* Table section */}
-            <div className="bg-white p-4 rounded-lg shadow">
-              <h3 className="text-lg font-medium mb-4">
+            {/* Branch Performance Table */}
+            <div className="bg-white p-3 sm:p-4 rounded-lg shadow overflow-x-auto">
+              <h3 className="text-base sm:text-lg font-medium mb-3 sm:mb-4">
                 Branch Performance Details
               </h3>
               <BranchTable

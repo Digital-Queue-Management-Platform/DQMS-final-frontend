@@ -71,9 +71,10 @@ export default function KioskDashboard() {
   // Legacy state variables (keeping for potential backward compatibility)
   // const [sltTelephoneNumber, setSltTelephoneNumber] = useState("")
   const [sltVerified, setSltVerified] = useState(false)
-  const [billPaymentIntent, setBillPaymentIntent] = useState<'full' | 'partial' | ''>("")
-  const [billPaymentAmount, setBillPaymentAmount] = useState<string>("")
-  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card' | 'cheque' | 'bank_transfer' | ''>("")
+  const [billRateLimited, setBillRateLimited] = useState(false) // true = daily limit reached, stop auto-retry
+  const [billPaymentIntent, setBillPaymentIntent] = useState<'full' | 'partial' | ''>('')
+  const [billPaymentAmount, setBillPaymentAmount] = useState<string>('')
+  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card' | 'cheque' | ''>('')
   const [shouldAutoSubmit, setShouldAutoSubmit] = useState(false)
   // Removed unused billData state
   // Payment intent states removed
@@ -114,32 +115,11 @@ export default function KioskDashboard() {
     }
   }, [shouldAutoSubmit, otpStep, otpToken])
 
-  // Auto-submit for bill payment after OTP & SLT are verified
-  useEffect(() => {
-    if (selectedService !== 'SVC002' && selectedService !== 'BILL_PAYMENT') {
-      setShouldAutoSubmit(false)
-      return
-    }
-    if (!sltVerified || otpStep !== 'verified') {
-      setShouldAutoSubmit(false)
-      return
-    }
-    setShouldAutoSubmit(true)
-    const timer = setTimeout(() => {
-      if (formRef.current) {
-        formRef.current.dispatchEvent(new Event('submit', { bubbles: true }))
-      }
-    }, 800)
-    return () => {
-      clearTimeout(timer)
-      setShouldAutoSubmit(false)
-    }
-  }, [otpStep, selectedService, sltVerified])
+  // Auto-submit for bill payment removed in favor of manual selection post-verification
   // Auto-send OTP when mobile number reaches 10 valid digits on step 3
   useEffect(() => {
     if (currentStep === 3 && mobileNumber.length === 10 && (mobileNumber.startsWith('07') || mobileNumber.startsWith('01'))) {
-      const canProceed = canProceedFromStep3();
-      if (canProceed && serviceRequiresOtp && otpStep === 'idle' && !otpSending && !autoSendingOtp) {
+      if (canSendOtp() && serviceRequiresOtp && otpStep === 'idle' && !otpSending && !autoSendingOtp) {
         setAutoSendingOtp(true);
         const timer = setTimeout(() => {
           goToNextStep();
@@ -150,6 +130,35 @@ export default function KioskDashboard() {
       }
     }
   }, [mobileNumber, currentStep])
+
+  // Auto-verify SLT numbers when OTP is disabled and details are filled
+  useEffect(() => {
+    if (!isSltRequiredService(selectedService)) return
+    if (billRateLimited) return // Stop retrying after a 429 – avoids infinite loop
+    
+    const selectedServiceData = services.find(s => s.code === selectedService)
+    const serviceRequiresOtp = selectedServiceData?.requireOtp !== false
+    
+    if (serviceRequiresOtp) return // OTP verification flow will handle it
+
+    const allSltValid = sltTelephoneNumbers.length > 0 && sltTelephoneNumbers.every(num => isValidSlt(num))
+    if (isValidMobile(mobileNumber) && allSltValid && !sltVerified && !loading) {
+      console.log('OTP disabled: auto-verifying SLT numbers...')
+      verifySltNumbers()
+    }
+  }, [mobileNumber, sltTelephoneNumbers, selectedService, sltVerified, loading, services, billRateLimited])
+
+  // Reset SLT verification status if the numbers are modified
+  useEffect(() => {
+    setSltVerified(false)
+    setVerifiedBills([])
+    setBillRateLimited(false) // Allow a fresh attempt when mobile number changes
+  }, [mobileNumber])
+
+  useEffect(() => {
+    setSltVerified(false)
+    setVerifiedBills([])
+  }, [sltTelephoneNumbers])
 
   const loadInitialData = async () => {
     try {
@@ -255,8 +264,11 @@ export default function KioskDashboard() {
           await verifySltNumbers()
         }
 
-        // Auto-submit enabled for all services
-        setShouldAutoSubmit(true)
+        // Auto-submit only for non-bill-payment services.
+        // For bill payment, the user must first select payment intent and method.
+        if (!isSltRequiredService(selectedService)) {
+          setShouldAutoSubmit(true)
+        }
         return res.data.verifiedMobileToken as string
       }
       setOtpError('OTP verification failed')
@@ -300,9 +312,17 @@ export default function KioskDashboard() {
         // Removed legacy bill data set
       }
     } catch (err: any) {
-      console.error('SLT verification error:', err)
-      const errMsg = err?.response?.data?.error || 'Failed to verify SLT numbers. Please try again.'
-      setError(errMsg)
+      const status = err?.response?.status
+      if (status === 429) {
+        // Rate limit hit — expected, handled gracefully
+        console.warn('Bill enquiry rate limit reached for this mobile number.')
+        setBillRateLimited(true)
+        setError(err?.response?.data?.error || t.billEnquiryLimitReached)
+      } else {
+        console.error('SLT verification error:', err)
+        const errMsg = err?.response?.data?.error || 'Failed to verify SLT numbers. Please try again.'
+        setError(errMsg)
+      }
     } finally {
       setLoading(false)
     }
@@ -330,14 +350,23 @@ export default function KioskDashboard() {
   const isValidSlt = (s: string) => /^\d{10}$/.test(s) && s.startsWith('0') && !s.startsWith('07')
   const isValidEmail = (e: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)
 
-  // const canProceedFromStep1 = preferredLanguage !== ''
-  // const canProceedFromStep2 = selectedService !== ''
-  const canProceedFromStep3 = () => {
-    const validDetails = isValidMobile(mobileNumber)
+  // Check if basic details are filled to allow sending OTP (mobile + SLT numbers only)
+  const canSendOtp = () => {
+    const validMobile = isValidMobile(mobileNumber)
     if (isSltRequiredService(selectedService)) {
-      return validDetails && sltTelephoneNumbers.length > 0 && sltTelephoneNumbers.every(num => isValidSlt(num))
+      return validMobile && sltTelephoneNumbers.length > 0 && sltTelephoneNumbers.every(num => isValidSlt(num))
     }
-    return validDetails
+    return validMobile
+  }
+
+  // Check if final submit is allowed (requires payment selections too for bill payment)
+  const canProceedFromStep3 = () => {
+    if (!canSendOtp()) return false
+    if (isSltRequiredService(selectedService)) {
+      const paymentValid = !!billPaymentIntent && (billPaymentIntent === 'full' || (billPaymentIntent === 'partial' && !!billPaymentAmount)) && !!paymentMethod
+      return sltVerified && paymentValid
+    }
+    return true
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -544,6 +573,7 @@ export default function KioskDashboard() {
       invalidSltNumber: "Enter a valid 10-digit SLT number (e.g. 011XXXXXXX)",
       invalidName: "Please enter your full name (at least 2 characters)",
       verifySltAccountNote: "We'll verify your SLT account after you verify your mobile number",
+      billEnquiryLimitReached: "Daily bill enquiry limit reached. For your privacy, each mobile number can only request bill details 3 times per day. Please try again tomorrow.",
       pleaseWait: "Please wait..."
     },
     si: {
@@ -627,6 +657,7 @@ export default function KioskDashboard() {
       invalidSltNumber: "වලංගු අංක 10 කින් යුත් SLT දුරකථන අංකයක් ඇතුළත් කරන්න (උදා: 011XXXXXXX)",
       invalidName: "කරුණාකර ඔබගේ සම්පූර්ණ නම ඇතුළත් කරන්න (අඩුම තරමින් අකුරු 2ක්)",
       verifySltAccountNote: "ඔබ ජංගම දුරකථන අංකය තහවුරු කළ පසු අපි ඔබේ SLT ගිණුම තහවුරු කරන්නෙමු",
+      billEnquiryLimitReached: "දෛනික බිල් විමසීමේ සීමාව ළඟා වී ඇත. ඔබේ පෞද්ගලිකත්වය ආරක්ෂා කිරීම සඳහා, සෑම ජංගම අංකයකටම දිනකට 3 වතාවක් පමණ බිල් විස්තර ඉල්ලා ගත හැකිය. හෙට නැවත උත්සාහ කරන්න.",
       pleaseWait: "කරුණාකර රැඳී සිටින්න..."
     },
     ta: {
@@ -710,6 +741,7 @@ export default function KioskDashboard() {
       invalidSltNumber: "சரியான 10 இலக்க SLT எண்ணை உள்ளிடவும் (உதாரணமாக 011XXXXXXX)",
       invalidName: "தயவுசெய்து உங்கள் முழு பெயரை உள்ளிடவும் (குறைந்தது 2 எழுத்துக்கள்)",
       verifySltAccountNote: "உங்கள் மொபைல் எண்ணை சரிபார்த்த பிறகு உங்கள் SLT கணக்கை சரிபார்ப்போம்",
+      billEnquiryLimitReached: "தினசரி பில் விசாரணை வரம்பை எட்டிவிட்டது. உங்கள் தனியுரிமையைப் பாதுகாக்க, ஒவ்வொரு மொபைல் எண்ணும் ஒரு நாளைக்கு 3 முறை மட்டுமே பில் விவரங்களைக் கோரலாம். நாளை மீண்டும் முயற்சிக்கவும்.",
       pleaseWait: "தயவுசெய்து காத்திருக்கவும்..."
     }
   }
@@ -942,61 +974,70 @@ export default function KioskDashboard() {
                         <p className="text-xs text-blue-600 mt-2">{t.verifySltAccountNote}</p>
                       </div>
 
-                      {/* Payment Intent (Full/Partial) */}
-                      <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-4 shadow-sm">
-                        <label className="block text-sm font-medium text-gray-700">{t.paymentIntentTitle}</label>
-                        <div className="grid grid-cols-2 gap-3">
-                          <button
-                            type="button"
-                            onClick={() => setBillPaymentIntent('full')}
-                            className={`py-3 px-4 rounded-xl text-sm font-semibold border-2 transition-all ${billPaymentIntent === 'full' ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-gray-200 text-gray-600 hover:border-blue-200'}`}
-                          >
-                            {t.payFullAmount}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setBillPaymentIntent('partial')}
-                            className={`py-3 px-4 rounded-xl text-sm font-semibold border-2 transition-all ${billPaymentIntent === 'partial' ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-gray-200 text-gray-600 hover:border-blue-200'}`}
-                          >
-                            {t.payPartialAmount}
-                          </button>
-                        </div>
+                      {sltVerified && (
+                        <div className="space-y-4 animate-in fade-in slide-in-from-top-1 duration-300">
+                          {/* Payment Intent (Full/Partial) */}
+                          <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-4 shadow-sm">
+                            <label className="block text-sm font-medium text-gray-700">{t.paymentIntentTitle}</label>
+                            <div className="grid grid-cols-2 gap-3">
+                              <button
+                                type="button"
+                                onClick={() => setBillPaymentIntent('full')}
+                                className={`py-3 px-4 rounded-xl text-sm font-semibold border-2 transition-all ${billPaymentIntent === 'full' ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-gray-200 text-gray-600 hover:border-blue-200'}`}
+                              >
+                                {t.payFullAmount}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setBillPaymentIntent('partial')}
+                                className={`py-3 px-4 rounded-xl text-sm font-semibold border-2 transition-all ${billPaymentIntent === 'partial' ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-gray-200 text-gray-600 hover:border-blue-200'}`}
+                              >
+                                {t.payPartialAmount}
+                              </button>
+                            </div>
 
-                        {billPaymentIntent === 'partial' && (
-                          <div className="animate-in fade-in slide-in-from-top-1 duration-200">
-                            <label className="block text-xs font-medium text-gray-500 mb-1">{t.partialAmountLabel}</label>
-                            <input
-                              type="number"
-                              value={billPaymentAmount}
-                              onChange={(e) => setBillPaymentAmount(e.target.value)}
-                              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
-                              placeholder={t.partialAmountPlaceholder}
-                            />
+                            {billPaymentIntent === 'partial' && (
+                              <div className="animate-in fade-in slide-in-from-top-1 duration-200">
+                                <label className="block text-xs font-medium text-gray-500 mb-1">{t.partialAmountLabel}</label>
+                                <input
+                                  type="text"
+                                  inputMode="decimal"
+                                  value={billPaymentAmount}
+                                  onChange={(e) => {
+                                    const val = e.target.value;
+                                    if (val === "" || /^\d+(\.\d{0,2})?$/.test(val)) {
+                                      setBillPaymentAmount(val);
+                                    }
+                                  }}
+                                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
+                                  placeholder={t.partialAmountPlaceholder}
+                                />
+                              </div>
+                            )}
                           </div>
-                        )}
-                      </div>
 
-                      {/* Payment Method */}
-                      <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-3 shadow-sm">
-                        <label className="block text-sm font-medium text-gray-700">{t.paymentMethodTitle}</label>
-                        <div className="grid grid-cols-2 gap-2">
-                          {[
-                            { id: 'cash', label: t.payByCash },
-                            { id: 'card', label: t.payByCard },
-                            { id: 'cheque', label: t.payByCheque },
-                            { id: 'bank_transfer', label: t.payByBankTransfer }
-                          ].map((m) => (
-                            <button
-                              key={m.id}
-                              type="button"
-                              onClick={() => setPaymentMethod(m.id as any)}
-                              className={`py-3 px-2 rounded-xl text-xs font-bold border-2 transition-all ${paymentMethod === m.id ? 'border-indigo-600 bg-indigo-50 text-indigo-700' : 'border-gray-100 text-gray-500 hover:border-indigo-100'}`}
-                            >
-                              {m.label}
-                            </button>
-                          ))}
+                          {/* Payment Method */}
+                          <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-3 shadow-sm">
+                            <label className="block text-sm font-medium text-gray-700">{t.paymentMethodTitle}</label>
+                            <div className="grid grid-cols-2 gap-2">
+                              {[
+                                { id: 'cash', label: t.payByCash },
+                                { id: 'card', label: t.payByCard },
+                                { id: 'cheque', label: t.payByCheque }
+                              ].map((m) => (
+                                <button
+                                  key={m.id}
+                                  type="button"
+                                  onClick={() => setPaymentMethod(m.id as any)}
+                                  className={`py-3 px-2 rounded-xl text-xs font-bold border-2 transition-all ${paymentMethod === m.id ? 'border-indigo-600 bg-indigo-50 text-indigo-700' : 'border-gray-100 text-gray-500 hover:border-indigo-100'}`}
+                                >
+                                  {m.label}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
                         </div>
-                      </div>
+                      )}
                     </div>
                   )}
 
@@ -1087,7 +1128,7 @@ export default function KioskDashboard() {
                       <button
                         type="button"
                         onClick={serviceRequiresOtp ? sendOtp : () => generateToken(selectedService, mobileNumber)}
-                        disabled={submitting || (serviceRequiresOtp ? otpSending : false) || !canProceedFromStep3() || !selectedService}
+                        disabled={submitting || (serviceRequiresOtp ? otpSending : false) || (serviceRequiresOtp ? !canSendOtp() : !canProceedFromStep3()) || !selectedService}
                         className="flex-1 bg-indigo-600 text-white py-3 rounded-xl font-semibold hover:bg-indigo-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
                       >
                         {serviceRequiresOtp ? (otpSending ? t.sendingOTP : t.verify) : (submitting ? t.pleaseWait : t.generateToken)}
@@ -1125,7 +1166,7 @@ export default function KioskDashboard() {
                     {!shouldAutoSubmit && (otpStep === 'sent' || otpStep === 'verified') && (
                       <button
                         type="submit"
-                        disabled={submitting || !selectedService || (otpStep === 'sent' && otpCode.length !== 4)}
+                        disabled={submitting || !selectedService || (otpStep === 'sent' && otpCode.length !== 4) || (otpStep === 'verified' && isSltRequiredService(selectedService) && (!sltVerified || !billPaymentIntent || !paymentMethod))}
                         className="w-full mt-4 bg-blue-600 text-white py-3 rounded-xl font-semibold hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
                       >
                         {submitting ? t.generating : t.generateToken}

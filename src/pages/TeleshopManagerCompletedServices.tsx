@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
@@ -78,6 +78,8 @@ interface TeleshopManager {
   name: string
   mobileNumber: string
   regionName: string
+  branchId?: string
+  branchName?: string
 }
 
 export default function TeleshopManagerCompletedServices() {
@@ -89,10 +91,20 @@ export default function TeleshopManagerCompletedServices() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
 
+  const getTodayString = () => {
+    const today = new Date()
+    const year = today.getFullYear()
+    const month = String(today.getMonth() + 1).padStart(2, '0')
+    const day = String(today.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
+  }
+
+  const todayStr = getTodayString()
+
   // Filters
   const [filters, setFilters] = useState({
-    startDate: "",
-    endDate: "",
+    startDate: todayStr,
+    endDate: todayStr,
     officerId: "",
     outletId: ""
   })
@@ -100,9 +112,14 @@ export default function TeleshopManagerCompletedServices() {
   const [outlets, setOutlets] = useState<Outlet[]>([])
   const [currentPage, setCurrentPage] = useState(1)
 
+  // Load profile data and dropdowns exactly once on component mount
   useEffect(() => {
     fetchTeleshopManagerData()
     fetchOfficersAndOutlets()
+  }, [])
+
+  // Load completed services, handle CRON-like refreshes, and listen to real-time WebSockets
+  useEffect(() => {
     fetchServices()
 
     // Auto-refresh every 60 seconds for completed services
@@ -194,12 +211,20 @@ export default function TeleshopManagerCompletedServices() {
       })
 
       if (response.data?.teleshopManager) {
+        const mgr = response.data.teleshopManager
         setTeleshopManager({
-          id: response.data.teleshopManager.id,
-          name: response.data.teleshopManager.name,
-          mobileNumber: response.data.teleshopManager.mobileNumber,
-          regionName: response.data.teleshopManager.region?.name || 'Unknown Region'
+          id: mgr.id,
+          name: mgr.name,
+          mobileNumber: mgr.mobileNumber,
+          regionName: mgr.region?.name || 'Unknown Region',
+          branchId: mgr.branch?.id || undefined,
+          branchName: mgr.branch?.name || undefined
         })
+
+        // Automatically set and lock the outletId filter to manager's assigned branch
+        if (mgr.branch?.id) {
+          setFilters(prev => ({ ...prev, outletId: mgr.branch.id }))
+        }
       }
     } catch (error) {
       console.error("Failed to fetch teleshop manager data:", error)
@@ -224,7 +249,11 @@ export default function TeleshopManagerCompletedServices() {
         })
       ])
 
-      setOfficers(Array.isArray(officersRes.data) ? officersRes.data : [])
+      // Fixed endpoint structure: /teleshop-manager/officers returns { success: true, officers: [...] }
+      const officersList = Array.isArray(officersRes.data)
+        ? officersRes.data
+        : (officersRes.data?.officers || [])
+      setOfficers(officersList)
       setOutlets(Array.isArray(outletsRes.data) ? outletsRes.data : [])
     } catch (error) {
       console.error("Failed to fetch officers and outlets:", error)
@@ -273,11 +302,12 @@ export default function TeleshopManagerCompletedServices() {
   }
 
   const clearFilters = () => {
+    const today = getTodayString()
     setFilters({
-      startDate: "",
-      endDate: "",
+      startDate: today,
+      endDate: today,
       officerId: "",
-      outletId: ""
+      outletId: teleshopManager?.branchId || ""
     })
     setCurrentPage(1)
   }
@@ -420,14 +450,25 @@ export default function TeleshopManagerCompletedServices() {
             <select
               value={filters.outletId}
               onChange={(e) => handleFilterChange("outletId", e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+              className={`w-full border border-gray-300 rounded-lg px-3 py-2 text-sm ${
+                teleshopManager?.branchId ? "bg-slate-100 cursor-not-allowed text-gray-500" : ""
+              }`}
+              disabled={!!teleshopManager?.branchId}
             >
-              <option value="">All Outlets</option>
-              {Array.isArray(outlets) && outlets.map((outlet) => (
-                <option key={outlet.id} value={outlet.id}>
-                  {outlet.name}
+              {teleshopManager?.branchId ? (
+                <option value={teleshopManager.branchId}>
+                  {teleshopManager.branchName || 'My Outlet'}
                 </option>
-              ))}
+              ) : (
+                <>
+                  <option value="">All Outlets</option>
+                  {Array.isArray(outlets) && outlets.map((outlet) => (
+                    <option key={outlet.id} value={outlet.id}>
+                      {outlet.name}
+                    </option>
+                  ))}
+                </>
+              )}
             </select>
           </div>
         </div>

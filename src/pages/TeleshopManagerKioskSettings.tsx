@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import api from '../config/api'
-import { Eye, EyeOff, Copy, RefreshCw, Save, ExternalLink } from 'lucide-react'
+import { Eye, EyeOff, Copy, RefreshCw, Save, ExternalLink, MonitorPlay, CheckCircle2 } from 'lucide-react'
 
 export default function TeleshopManagerKioskSettings() {
   const [loading, setLoading] = useState(true)
@@ -13,6 +13,7 @@ export default function TeleshopManagerKioskSettings() {
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+  const [kioskLaunched, setKioskLaunched] = useState(false)
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -93,9 +94,26 @@ export default function TeleshopManagerKioskSettings() {
     }
   }
 
-  const copyPassword = (password: string) => {
-    navigator.clipboard.writeText(password)
-    alert('Password copied to clipboard!')
+  const copyPassword = (pwd: string) => {
+    navigator.clipboard.writeText(pwd)
+  }
+
+  // Save outlet credentials to localStorage so the Kiosk PC auto-logs in
+  const launchKioskSetup = () => {
+    if (!outlet || !currentPassword) {
+      setError('Please set a kiosk password before launching the kiosk.')
+      return
+    }
+    // Store credentials for the kiosk PC to auto-fill
+    localStorage.setItem('kioskSavedCredentials', JSON.stringify({
+      outletId: outlet.id,
+      outletName: outlet.name,
+      password: currentPassword,
+      savedAt: new Date().toISOString()
+    }))
+    setKioskLaunched(true)
+    setTimeout(() => setKioskLaunched(false), 4000)
+    window.open('/kiosk/login', '_blank')
   }
 
 
@@ -146,13 +164,24 @@ export default function TeleshopManagerKioskSettings() {
                   <span className="font-medium">Outlet ID:</span> <code className="bg-gray-100 px-2 py-0.5 rounded">{outlet.id}</code>
                 </p>
               </div>
-              <button
-                onClick={() => window.open('/kiosk/login', '_blank')}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors"
-              >
-                <ExternalLink className="w-4 h-4" />
-                Open Kiosk Login
-              </button>
+              <div className="flex flex-col gap-2">
+                <button
+                  onClick={launchKioskSetup}
+                  className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-semibold shadow"
+                  title="Saves credentials and opens the kiosk login — staff won't need to type anything"
+                >
+                  {kioskLaunched
+                    ? <><CheckCircle2 className="w-4 h-4" /> Launched!</>
+                    : <><MonitorPlay className="w-4 h-4" /> Launch Kiosk on This PC</>}
+                </button>
+                <button
+                  onClick={() => window.open('/kiosk/login', '_blank')}
+                  className="flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200 transition-colors text-sm"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  Open Login Page Only
+                </button>
+              </div>
             </div>
 
             {/* Current Password Display */}
@@ -173,7 +202,7 @@ export default function TeleshopManagerKioskSettings() {
                   <button
                     onClick={() => copyPassword(currentPassword)}
                     className="p-3 bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors"
-                    title="Copy password"
+                    title="Copy password to clipboard"
                   >
                     <Copy className="w-5 h-5" />
                   </button>
@@ -238,13 +267,13 @@ export default function TeleshopManagerKioskSettings() {
 
             {/* Instructions */}
             <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <p className="text-sm font-medium text-blue-800 mb-2">📋 Instructions for Staff:</p>
+              <p className="text-sm font-medium text-blue-800 mb-2">📋 Setup Instructions:</p>
               <ol className="text-sm text-blue-700 space-y-1 list-decimal list-inside">
-                <li>Go to the main page and click "Walk-in Appoinment" button</li>
-                <li>Enter outlet ID: <code className="bg-blue-100 px-1 py-0.5 rounded font-semibold">{outlet.id}</code></li>
-                <li>Enter the kiosk password (shown above)</li>
-                <li>Generate tokens for customers who don't have smartphones</li>
-                <li>Share this password only with authorized outlet staff</li>
+                <li>Set a kiosk password above (or generate one)</li>
+                <li>On the <strong>central kiosk PC</strong>, click <span className="font-semibold text-indigo-700">"Launch Kiosk on This PC"</span></li>
+                <li>The kiosk login will open and auto-fill the outlet ID and password</li>
+                <li>Staff just click <strong>"Start Kiosk Session"</strong> — no typing needed</li>
+                <li>The browser will also offer to save the password for future logins</li>
               </ol>
             </div>
 

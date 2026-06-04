@@ -161,7 +161,7 @@ function fmtDuration(ms: number | null | undefined): string {
 
 function methodLabel(method: string | null): string {
   if (!method) return "—"
-  return { cash: "Cash", card: "Card", cheque: "Cheque", bank_transfer: "Bank Transfer" }[method] ?? method
+  return { cash: "Cash", card: "Card", cheque: "Cheque" }[method] ?? method
 }
 
 const roleLabel = (role: string) =>

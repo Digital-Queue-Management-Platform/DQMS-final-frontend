@@ -1,4 +1,4 @@
-﻿//import React from 'react';
+//import React from 'react';
 import { TrendingUpIcon, TrendingDownIcon } from 'lucide-react';
 
 interface MetricCardProps {
@@ -16,38 +16,43 @@ const MetricCard: React.FC<MetricCardProps> = ({
   icon,
   trend,
   trendLabel,
-  detail
+  detail,
 }) => {
   return (
-    <div className="p-6 rounded-2xl border border-slate-200 bg-white">
-      <div className="flex justify-between items-start">
-        <div>
-          <p className="text-sm font-medium text-gray-600">{title}</p>
-          <div className="mt-1 flex items-baseline">
-            <p className="text-xl font-semibold text-gray-900">{value}</p>
+    <div className="p-3 sm:p-5 rounded-xl border border-slate-200 bg-white shadow-sm">
+      <div className="flex justify-between items-start gap-2">
+        <div className="min-w-0 flex-1">
+          <p className="text-xs sm:text-sm font-medium text-gray-500 leading-tight truncate">{title}</p>
+          <div className="mt-1 flex flex-wrap items-baseline gap-x-1">
+            <p className="text-lg sm:text-2xl font-bold text-gray-900 leading-tight">{value}</p>
             {trend && (
               <span
-                className={`ml-2 flex items-center text-xs font-medium ${trend === 'up'
+                className={`flex items-center text-[10px] sm:text-xs font-medium ${
+                  trend === 'up'
                     ? title.includes('Waiting')
                       ? 'text-red-600'
                       : 'text-green-600'
                     : title.includes('Waiting')
-                      ? 'text-green-600'
-                      : 'text-red-600'
-                  }`}
+                    ? 'text-green-600'
+                    : 'text-red-600'
+                }`}
               >
                 {trend === 'up' ? (
-                  <TrendingUpIcon className="h-3 w-3 mr-1" />
+                  <TrendingUpIcon className="h-3 w-3 mr-0.5" />
                 ) : (
-                  <TrendingDownIcon className="h-3 w-3 mr-1" />
+                  <TrendingDownIcon className="h-3 w-3 mr-0.5" />
                 )}
-                {trendLabel}
+                <span className="hidden sm:inline">{trendLabel}</span>
               </span>
             )}
           </div>
-          {detail && <p className="mt-1 text-xs text-gray-500">{detail}</p>}
+          {detail && (
+            <p className="mt-1 text-[10px] sm:text-xs text-gray-400 leading-snug line-clamp-2">
+              {detail}
+            </p>
+          )}
         </div>
-        <div className="p-2 rounded-full">{icon}</div>
+        <div className="p-1.5 sm:p-2 rounded-full flex-shrink-0 bg-slate-50">{icon}</div>
       </div>
     </div>
   );

@@ -12,7 +12,6 @@ import {
   LogOut,
   Menu,
   SidebarIcon,
-  PanelLeftOpen,
   Scale3D,
   ListOrdered,
   Building2,
@@ -50,11 +49,16 @@ interface SidebarProps {
   setIsCollapsed: (value: boolean | ((prev: boolean) => boolean)) => void;
   activePage: string;
   setActivePage: (page: string) => void;
+  onMobileMenuOpen?: () => void;
+  isMobileOpen?: boolean;
+  setIsMobileOpen?: (val: boolean) => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed, activePage, setActivePage }) => {
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState<boolean>(false);
-  const [hoverExpanded, setHoverExpanded] = useState<boolean>(false);
+const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed, activePage, setActivePage, onMobileMenuOpen, isMobileOpen, setIsMobileOpen }) => {
+  const [_isMobileMenuOpen, _setIsMobileMenuOpen] = useState<boolean>(false);
+  // Support controlled mode (from parent) or uncontrolled (internal state)
+  const isMobileMenuOpen = isMobileOpen !== undefined ? isMobileOpen : _isMobileMenuOpen;
+  const setIsMobileMenuOpen = setIsMobileOpen !== undefined ? setIsMobileOpen : _setIsMobileMenuOpen;
   const { currentUser, loading } = useUser()
   const location = useLocation()
   const navigate = useNavigate()
@@ -176,7 +180,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed, activePa
 
   const toggleSidebar = (): void => {
     if (window.innerWidth < 1024) {
-      setIsMobileMenuOpen(prev => !prev)
+      setIsMobileMenuOpen(!isMobileMenuOpen)
+      if (onMobileMenuOpen) onMobileMenuOpen()
     } else {
       setIsCollapsed((prev) => !prev)
     }
@@ -253,8 +258,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed, activePa
 
   const userInfo = getUserDisplayInfo()
 
-  // collapsed for rendering: true when user has collapsed sidebar and we're NOT hovering
-  const collapsed = isCollapsed && !hoverExpanded
+  // collapsed for rendering
+  const collapsed = isCollapsed
 
   // Role-specific accent color classes
   const roleAccent = onOfficerPath
@@ -349,13 +354,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed, activePa
 
   return (
     <>
-      {/* Mobile menu button */}
-      <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
-        onClick={() => setIsMobileMenuOpen(true)}
-        className={`fixed top-4 left-4 z-50 lg:hidden ${roleAccent.btn} text-white p-3 rounded-xl shadow-lg cursor-pointer`}
-      >
-        <Menu className="h-5 w-5" />
-      </motion.button>
+      {/* Mobile menu button — hidden: mobile top bar in App.tsx handles this */}
+      {/* <motion.button ... /> */}
 
       {/* Mobile backdrop */}
       <AnimatePresence>
@@ -370,23 +370,20 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed, activePa
 
       {/* Sidebar */}
       <div
-        onMouseLeave={() => {
-          if (window.innerWidth >= 1024) setHoverExpanded(false)
-        }}
         className={`
-        fixed left-0 top-0 bg-white shadow-xl border-r border-slate-200/80 h-full min-h-screen z-50 transition-all duration-300 overflow-x-hidden
+        fixed left-0 bg-white shadow-xl border-r border-slate-200/80 h-full min-h-screen z-50 transition-all duration-300 overflow-x-hidden
+        top-14 lg:top-0
         ${isMobileMenuOpen ? 'w-72' : 'hidden lg:block'}
         ${collapsed ? 'lg:w-16' : 'lg:w-72'}
       `}>
 
         {/* Header */}
-        {/*<div className="border-b border-slate-200 h-20 flex items-center justify-between p-5 relative">*/}
         <div className="h-20 flex items-center justify-between p-5 relative">
           {collapsed ? (
             <button
               onClick={toggleSidebar}
-              onMouseEnter={() => { if (window.innerWidth >= 1024 && isCollapsed) setHoverExpanded(true) }}
-              className="flex items-center justify-center w-full cursor-pointer"
+              className="flex items-center justify-center w-full cursor-pointer p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              title="Expand sidebar"
             >
               <Menu className="h-6 w-6 text-gray-600" />
             </button>
@@ -399,28 +396,12 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed, activePa
                   className='w-36 pr-2 p-1'
                 />
               </div>
-              {/* Toggle button: pin-open when hover-expanded, collapse when pinned */}
               <button
-                onClick={() => {
-                  if (window.innerWidth < 1024) {
-                    setIsMobileMenuOpen(false);
-                  } else if (isCollapsed) {
-                    // Sidebar is hover-expanded — pin it open permanently
-                    setIsCollapsed(false);
-                    setHoverExpanded(false);
-                  } else {
-                    // Sidebar is pinned open — collapse it
-                    setIsCollapsed(true);
-                    setHoverExpanded(false);
-                  }
-                }}
+                onClick={toggleSidebar}
                 className="p-2 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
-                title={isCollapsed ? 'Pin sidebar open' : 'Collapse sidebar'}
+                title="Collapse sidebar"
               >
-                {isCollapsed
-                  ? <PanelLeftOpen className="h-6 w-6 text-gray-600" />
-                  : <SidebarIcon className="h-6 w-6 text-gray-600" />
-                }
+                <SidebarIcon className="h-6 w-6 text-gray-600" />
               </button>
             </>
           )}

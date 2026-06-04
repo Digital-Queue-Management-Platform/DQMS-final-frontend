@@ -103,7 +103,12 @@ export default function AppointmentBooking() {
   }>>([])
   const [billPaymentIntent, setBillPaymentIntent] = useState<'full' | 'partial' | ''>("")
   const [billPaymentAmount, setBillPaymentAmount] = useState<string>("")
-  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card' | 'cheque' | 'bank_transfer' | ''>("")
+  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card' | 'cheque' | ''>("")
+  const [sltVerified, setSltVerified] = useState(false)
+  const [billRateLimited, setBillRateLimited] = useState(false) // true = daily limit reached, stop auto-retry
+
+  const selectedServiceData = services.find(s => s.code === selectedService)
+  const serviceRequiresOtp = selectedServiceData?.requireOtp !== false
 
   // Multi-step form state
   const [currentStep, setCurrentStep] = useState(1)
@@ -142,6 +147,31 @@ export default function AppointmentBooking() {
       return () => clearTimeout(timer);
     }
   }, [mobileNumber, currentStep])
+
+  // Auto-verify SLT numbers when OTP is disabled and details are filled
+  useEffect(() => {
+    if (!isSltRequiredService(selectedService)) return
+    if (billRateLimited) return // Stop retrying after a 429 – avoids infinite loop
+    if (serviceRequiresOtp) return // OTP verification flow will handle it
+
+    const allSltValid = sltTelephoneNumbers.length > 0 && sltTelephoneNumbers.every(num => isValidSlt(num))
+    if (isValidMobile(mobileNumber) && allSltValid && !sltVerified && !loading) {
+      console.log('OTP disabled: auto-verifying SLT numbers...')
+      verifySltNumbers()
+    }
+  }, [mobileNumber, sltTelephoneNumbers, selectedService, sltVerified, loading, serviceRequiresOtp, billRateLimited])
+
+  // Reset SLT verification status if the numbers are modified
+  useEffect(() => {
+    setSltVerified(false)
+    setVerifiedBills([])
+    setBillRateLimited(false) // Allow a fresh attempt when mobile number changes
+  }, [mobileNumber])
+
+  useEffect(() => {
+    setSltVerified(false)
+    setVerifiedBills([])
+  }, [sltTelephoneNumbers])
 
   // Auto-send OTP when entering step 4
   useEffect(() => {
@@ -194,19 +224,7 @@ export default function AppointmentBooking() {
     }
   }, [datetime, outletId, currentStep])
 
-  // Auto-submit for bill payment after SLT verification
-  useEffect(() => {
-    if (selectedService === 'SVC002' || selectedService === 'BILL_PAYMENT') {
-      if (verifiedBills.length > 0 && otpStep === 'verified') {
-        const timer = setTimeout(() => {
-          if (formRef.current) {
-            formRef.current.dispatchEvent(new Event('submit', { bubbles: true }))
-          }
-        }, 800)
-        return () => clearTimeout(timer)
-      }
-    }
-  }, [selectedService, verifiedBills, otpStep])
+  // Auto-submit for bill payment removed in favor of manual selection post-verification
 
   const fetchOutlets = async () => {
     try {
@@ -338,7 +356,8 @@ export default function AppointmentBooking() {
       payByCheque: "Cheque",
       payByBankTransfer: "Bank Transfer",
       dueAmountNote: "Please ask the account holder to confirm the due amount with the officer at the counter.",
-      verifySltAccountNote: "We will verify your SLT account once you verify your mobile number"
+      verifySltAccountNote: "We will verify your SLT account once you verify your mobile number",
+      billEnquiryLimitReached: "Daily bill enquiry limit reached. For your privacy, each mobile number can only request bill details 3 times per day. Please try again tomorrow."
     },
     si: {
       title: 'වේලාවක් වෙන්කරන්න',
@@ -410,7 +429,8 @@ export default function AppointmentBooking() {
       payByCheque: "චෙක්",
       payByBankTransfer: "බැංකු හැරීම",
       dueAmountNote: "ගිණුම් හිමිකරුගෙන් ගෙවිය යුතු නිවැරදි මුදල ශාලාවේ නිලධාරීට ලබා දෙන ලෙස කරුණාකර ඉල්ලා සිටින්න.",
-      verifySltAccountNote: "ඔබ ජංගම දුරකථන අංකය තහවුරු කළ පසු අපි ඔබේ SLT ගිණුම තහවුරු කරන්නෙමු"
+      verifySltAccountNote: "ඔබ ජංගම දුරකථන අංකය තහවුරු කළ පසු අපි ඔබේ SLT ගිණුම තහවුරු කරන්නෙමු",
+      billEnquiryLimitReached: "දෛනික බිල් විමසීමේ සීමාව ළඟා වී ඇත. ඔබේ පෞද්ගලිකත්වය ආරක්ෂා කිරීම සඳහා, සෑම ජංගම අංකයකටම දිනකට 3 වතාවක් පමණ බිල් විස්තර ඉල්ලා ගත හැකිය. හෙට නැවත උත්සාහ කරන්න."
     },
     ta: {
       title: 'ஒரு நேரம் பதிவு செய்யவும்',
@@ -482,13 +502,12 @@ export default function AppointmentBooking() {
       payByCheque: "காசோலை",
       payByBankTransfer: "வங்கி பரிமாற்றம்",
       dueAmountNote: "கணக்கு வைத்திருப்பவர் கவுண்டரில் உள்ள அதிகாரியிடம் நிலுவைத் தொகையை உறுதிப்படுத்துமாறு கேட்கவும்.",
-      verifySltAccountNote: "உங்கள் மொபைல் எண்ணைச் சரிபார்த்த பிறகு உங்கள் SLT கணக்கை நாங்கள் சரிபார்ப்போம்"
+      verifySltAccountNote: "உங்கள் மொபைல் எண்ணைச் சரிபார்த்த பிறகு உங்கள் SLT கணக்கை நாங்கள் சரிபார்ப்போம்",
+      billEnquiryLimitReached: "தினசரி பில் விசாரணை வரம்பை எட்டிவிட்டது. உங்கள் தனியுரிமையைப் பாதுகாக்க, ஒவ்வொரு மொபைல் எண்ணும் ஒரு நாளைக்கு 3 முறை மட்டுமே பில் விவரங்களைக் கோரலாம். நாளை மீண்டும் முயற்சிக்கவும்."
     },
   } as const
 
   const t = translations[language]
-  const selectedServiceData = services.find(s => s.code === selectedService)
-  const serviceRequiresOtp = selectedServiceData?.requireOtp !== false
 
   const sendOtpWithCheck = async () => {
     setClosedOnDateError(null)
@@ -541,8 +560,11 @@ export default function AppointmentBooking() {
           await verifySltNumbers()
         }
 
-        // Auto-submit enabled for all services
-        setShouldAutoSubmit(true)
+        // Auto-submit only for non-bill-payment services.
+        // For bill payment, the user must first select payment intent and method.
+        if (!isSltRequiredService(selectedService)) {
+          setShouldAutoSubmit(true)
+        }
 
         return res.data.verifiedMobileToken as string
       }
@@ -581,13 +603,22 @@ export default function AppointmentBooking() {
           .map((result: any) => result.bill)
 
         setVerifiedBills(verifiedBills)
+        setSltVerified(true)
 
         // Removed legacy bill data set
       }
     } catch (err: any) {
-      console.error('SLT verification error:', err)
-      const errMsg = err?.response?.data?.error || 'Failed to verify SLT numbers. Please try again.'
-      setError(errMsg)
+      const status = err?.response?.status
+      if (status === 429) {
+        // Rate limit hit — expected, handled gracefully
+        console.warn('Bill enquiry rate limit reached for this mobile number.')
+        setBillRateLimited(true)
+        setError(err?.response?.data?.error || t.billEnquiryLimitReached)
+      } else {
+        console.error('SLT verification error:', err)
+        const errMsg = err?.response?.data?.error || 'Failed to verify SLT numbers. Please try again.'
+        setError(errMsg)
+      }
     } finally {
       setLoading(false)
     }
@@ -717,7 +748,8 @@ export default function AppointmentBooking() {
   const canProceedFromStep3 = () => {
     const hasBasicInfo = outletId && datetime && isValidMobile(mobileNumber) && isValidAppointmentTime(datetime) && !closedOnDateError && !checkingDate
     if (isSltRequiredService(selectedService)) {
-      return hasBasicInfo && sltTelephoneNumbers.length > 0 && sltTelephoneNumbers.every(num => isValidSlt(num))
+      const paymentValid = !!billPaymentIntent && (billPaymentIntent === 'full' || (billPaymentIntent === 'partial' && !!billPaymentAmount)) && !!paymentMethod
+      return hasBasicInfo && sltTelephoneNumbers.length > 0 && sltTelephoneNumbers.every(num => isValidSlt(num)) && paymentValid && sltVerified
     }
     return hasBasicInfo
   }
@@ -968,61 +1000,70 @@ export default function AppointmentBooking() {
                         <p className="text-xs text-blue-600 mt-2">{t.verifySltAccountNote}</p>
                       </div>
 
-                      {/* Payment Intent (Full/Partial) */}
-                      <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-4 shadow-sm">
-                        <label className="block text-sm font-medium text-gray-700">{t.paymentIntentTitle}</label>
-                        <div className="grid grid-cols-2 gap-3">
-                          <button
-                            type="button"
-                            onClick={() => setBillPaymentIntent('full')}
-                            className={`py-2 px-3 rounded-lg text-sm font-medium border-2 transition-all ${billPaymentIntent === 'full' ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-gray-200 text-gray-600 hover:border-blue-200'}`}
-                          >
-                            {t.payFullAmount}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setBillPaymentIntent('partial')}
-                            className={`py-2 px-3 rounded-lg text-sm font-medium border-2 transition-all ${billPaymentIntent === 'partial' ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-gray-200 text-gray-600 hover:border-blue-200'}`}
-                          >
-                            {t.payPartialAmount}
-                          </button>
-                        </div>
+                      {sltVerified && (
+                        <div className="space-y-4 animate-in fade-in slide-in-from-top-1 duration-300">
+                          {/* Payment Intent (Full/Partial) */}
+                          <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-4 shadow-sm">
+                            <label className="block text-sm font-medium text-gray-700">{t.paymentIntentTitle}</label>
+                            <div className="grid grid-cols-2 gap-3">
+                              <button
+                                type="button"
+                                onClick={() => setBillPaymentIntent('full')}
+                                className={`py-2 px-3 rounded-lg text-sm font-medium border-2 transition-all ${billPaymentIntent === 'full' ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-gray-200 text-gray-600 hover:border-blue-200'}`}
+                              >
+                                {t.payFullAmount}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setBillPaymentIntent('partial')}
+                                className={`py-2 px-3 rounded-lg text-sm font-medium border-2 transition-all ${billPaymentIntent === 'partial' ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-gray-200 text-gray-600 hover:border-blue-200'}`}
+                              >
+                                {t.payPartialAmount}
+                              </button>
+                            </div>
 
-                        {billPaymentIntent === 'partial' && (
-                          <div className="animate-in fade-in slide-in-from-top-1 duration-200">
-                            <label className="block text-xs font-medium text-gray-500 mb-1">{t.partialAmountLabel}</label>
-                            <input
-                              type="number"
-                              value={billPaymentAmount}
-                              onChange={(e) => setBillPaymentAmount(e.target.value)}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                              placeholder={t.partialAmountPlaceholder}
-                            />
+                            {billPaymentIntent === 'partial' && (
+                              <div className="animate-in fade-in slide-in-from-top-1 duration-200">
+                                <label className="block text-xs font-medium text-gray-500 mb-1">{t.partialAmountLabel}</label>
+                                <input
+                                  type="text"
+                                  inputMode="decimal"
+                                  value={billPaymentAmount}
+                                  onChange={(e) => {
+                                    const val = e.target.value;
+                                    if (val === "" || /^\d+(\.\d{0,2})?$/.test(val)) {
+                                      setBillPaymentAmount(val);
+                                    }
+                                  }}
+                                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                                  placeholder={t.partialAmountPlaceholder}
+                                />
+                              </div>
+                            )}
                           </div>
-                        )}
-                      </div>
 
-                      {/* Payment Method */}
-                      <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-3 shadow-sm">
-                        <label className="block text-sm font-medium text-gray-700">{t.paymentMethodTitle}</label>
-                        <div className="grid grid-cols-2 gap-2">
-                          {[
-                            { id: 'cash', label: t.payByCash },
-                            { id: 'card', label: t.payByCard },
-                            { id: 'cheque', label: t.payByCheque },
-                            { id: 'bank_transfer', label: t.payByBankTransfer }
-                          ].map((m) => (
-                            <button
-                              key={m.id}
-                              type="button"
-                              onClick={() => setPaymentMethod(m.id as any)}
-                              className={`py-2 px-2 rounded-lg text-xs font-medium border-2 transition-all ${paymentMethod === m.id ? 'border-indigo-600 bg-indigo-50 text-indigo-700' : 'border-gray-100 text-gray-500 hover:border-indigo-100'}`}
-                            >
-                              {m.label}
-                            </button>
-                          ))}
+                          {/* Payment Method */}
+                          <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-3 shadow-sm">
+                            <label className="block text-sm font-medium text-gray-700">{t.paymentMethodTitle}</label>
+                            <div className="grid grid-cols-2 gap-2">
+                              {[
+                                { id: 'cash', label: t.payByCash },
+                                { id: 'card', label: t.payByCard },
+                                { id: 'cheque', label: t.payByCheque }
+                              ].map((m) => (
+                                <button
+                                  key={m.id}
+                                  type="button"
+                                  onClick={() => setPaymentMethod(m.id as any)}
+                                  className={`py-2 px-2 rounded-lg text-xs font-medium border-2 transition-all ${paymentMethod === m.id ? 'border-indigo-600 bg-indigo-50 text-indigo-700' : 'border-gray-100 text-gray-500 hover:border-indigo-100'}`}
+                                >
+                                  {m.label}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
                         </div>
-                      </div>
+                      )}
                     </div>
                   )}
 
@@ -1067,7 +1108,7 @@ export default function AppointmentBooking() {
                 {!serviceRequiresOtp ? (
                   <button
                     type="submit"
-                    disabled={loading || !outletId || !datetime || !isValidAppointmentTime(datetime) || !!closedOnDateError}
+                    disabled={loading || !outletId || !datetime || !isValidAppointmentTime(datetime) || !!closedOnDateError || (isSltRequiredService(selectedService) && (!sltVerified || !billPaymentIntent || !paymentMethod))}
                     className="flex-1 bg-indigo-600 text-white py-3 rounded-lg font-semibold hover:bg-indigo-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
                   >
                     {loading ? t.booking : t.book}
@@ -1114,7 +1155,7 @@ export default function AppointmentBooking() {
                   {!shouldAutoSubmit && (otpStep === 'sent' || otpStep === 'verified') && (
                     <button
                       type="submit"
-                      disabled={loading || !selectedService || (otpStep === 'sent' && otpCode.length !== 4)}
+                      disabled={loading || !selectedService || (otpStep === 'sent' && otpCode.length !== 4) || (otpStep === 'verified' && isSltRequiredService(selectedService) && (!sltVerified || !billPaymentIntent || !paymentMethod))}
                       className="w-full mt-4 bg-blue-600 text-white py-3 rounded-xl font-semibold hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
                     >
                       {loading ? t.booking : t.step4Subtitle}
