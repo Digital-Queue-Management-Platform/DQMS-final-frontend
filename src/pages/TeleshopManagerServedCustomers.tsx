@@ -339,7 +339,7 @@ export default function TeleshopManagerServedCustomers() {
                 className="w-44"
               />
 
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap sm:flex-nowrap items-center gap-2">
                 <input
                   type="date"
                   value={startDate}
@@ -368,7 +368,7 @@ export default function TeleshopManagerServedCustomers() {
               />
 
               {/* Action Buttons */}
-              <div className="flex gap-2 ml-auto">
+              <div className="flex flex-wrap gap-2 w-full sm:w-auto sm:ml-auto mt-2 sm:mt-0 justify-start sm:justify-end">
                 <button
                   onClick={clearFilters}
                   className="px-4 py-2.5 bg-white border border-gray-300 rounded-lg text-sm font-semibold hover:bg-gray-50 transition-colors"

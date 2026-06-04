@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import {useState, useEffect} from "react"
 import {useNavigate} from "react-router-dom"
@@ -358,7 +358,7 @@ export default function TeleshopManagerOfficers() {
     <div className="p-4">
       {/* Header */}
       <div className="mb-8">
-        <div className="flex items-center justify-between mb-2">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-2 gap-4">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Manage Officers</h1>
           </div>
@@ -412,7 +412,7 @@ export default function TeleshopManagerOfficers() {
       </div>
 
       {/* Tab Selector */}
-      <div className="flex gap-1 bg-gray-100 p-1.5 rounded-2xl mb-8 self-start inline-flex shadow-inner">
+      <div className="flex flex-col sm:flex-row gap-1 bg-gray-100 p-1.5 rounded-2xl mb-8 sm:self-start shadow-inner">
         <button
           onClick={()=> setActiveTab('officers')}
           className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all duration-200 ${activeTab=== 'officers' ? 'bg-white text-purple-600 shadow-md transform scale-105' : 'text-gray-500 hover:text-gray-700 hover:bg-white/50'}`}
@@ -555,8 +555,8 @@ onClick={()=> {
       const isExpanded= expandedOfficers.has(officer.id)
       return (
         <div key={officer.id} className="group bg-white rounded-2xl shadow-sm border-2 border-gray-50 p-4 transition-all hover:border-purple-100 hover:shadow-md">
-          <div className="flex items-center justify-between">
-            <div className="flex-1">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="flex-1 min-w-0">
       {
         !isExpanded && (
           <div className="flex items-start gap-5">
@@ -621,9 +621,9 @@ onClick={()=> {
                         </div>
                       )}
                     </div>
-  <div className={`ml-6 gap-3 flex ${isExpanded ?"flex-col" : "flex-row"}`}>
-    <button onClick={()=> navigate(`/teleshop-manager/officers/${officer.id}/edit`)} className="flex items-center justify-center gap-2 px-4 py-2 rounded-xl border-2 text-sm font-bold text-gray-700 hover:border-purple-600 hover:text-purple-600 transition-all"><Edit className="w-4 h-4" />Edit</button>
-      <button onClick={()=> handleDeleteOfficer(officer.id, officer.name)} className="flex items-center justify-center gap-2 px-4 py-2 rounded-xl border-2 text-sm font-bold text-gray-400 hover:border-red-500 hover:text-red-500 transition-all"><Trash2 className="w-4 h-4" />Delete</button>
+  <div className={`gap-3 flex ${isExpanded ?"flex-col" : "flex-row"} sm:ml-6 w-full md:w-auto mt-2 md:mt-0`}>
+    <button onClick={()=> navigate(`/teleshop-manager/officers/${officer.id}/edit`)} className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-xl border-2 text-sm font-bold text-gray-700 hover:border-purple-600 hover:text-purple-600 transition-all"><Edit className="w-4 h-4" />Edit</button>
+      <button onClick={()=> handleDeleteOfficer(officer.id, officer.name)} className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-xl border-2 text-sm font-bold text-gray-400 hover:border-red-500 hover:text-red-500 transition-all"><Trash2 className="w-4 h-4" />Delete</button>
                     </div>
                   </div>
                 </div>

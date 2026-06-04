@@ -287,9 +287,9 @@ export default function TeleshopManagerDashboard() {
   }
 
   return (
-    <div className="p-6">
+    <div className="p-4 sm:p-6 lg:p-8">
       {/* Header Section */}
-      <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-8 flex items-start justify-between">
+      <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-6 sm:mb-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-sky-600 rounded-xl flex items-center justify-center shadow-sm">
             <Store className="w-5 h-5 text-white" />
@@ -387,7 +387,7 @@ export default function TeleshopManagerDashboard() {
         <div className="xl:col-span-2 space-y-6">
           {/* Officers by Status */}
           <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-            <div className="flex justify-between items-center mb-4">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-3">
               <h3 className="text-lg font-semibold text-slate-900">Officers by Status</h3>
               <button
                 onClick={() => navigate("/teleshop-manager/officers/add")}
@@ -491,7 +491,7 @@ export default function TeleshopManagerDashboard() {
                   </tbody>
                 </table>
                 {breakAnalytics.officers.length > itemsPerPage && (
-                  <div className="px-6 py-3 bg-gray-50 border-t border-slate-200 flex items-center justify-between">
+                  <div className="px-4 sm:px-6 py-4 bg-gray-50 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4">
                     <div className="text-sm text-gray-500">
                       Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, breakAnalytics.officers.length)} of {breakAnalytics.officers.length} officers
                     </div>
@@ -547,7 +547,7 @@ export default function TeleshopManagerDashboard() {
                   .slice(0, 3)
                   .map((officer, index) => (
                     <div key={`active-break-${officer.id}-${index}`} className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-                      <div className="flex justify-between items-start">
+                      <div className="flex flex-col sm:flex-row justify-between items-start gap-2">
                         <div className="flex-1 min-w-0">
                           <h4 className="text-sm font-medium text-gray-900 truncate">{officer.name}</h4>
                           <p className="text-xs text-gray-600 truncate">{officer.outlet.name}</p>

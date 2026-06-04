@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
@@ -443,7 +443,7 @@ export default function TeleshopManagerOfficerRegistration() {
           </div>
 
           {/* Submit Buttons */}
-          <div className="flex justify-end space-x-4">
+          <div className="flex flex-col sm:flex-row justify-end space-y-4 sm:space-y-0 sm:space-x-4">
             <button
               type="button"
               onClick={clearForm}

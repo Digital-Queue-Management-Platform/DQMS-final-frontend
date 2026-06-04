@@ -124,7 +124,7 @@ const TeleshopManagerOutletSetup: React.FC = () => {
       {/* Header */}
       <div className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between h-auto py-4 sm:h-16 gap-4">
             <div className="flex items-center space-x-3">
               <Monitor className="w-8 h-8 text-emerald-600" />
               <div>
@@ -283,7 +283,7 @@ const TeleshopManagerOutletSetup: React.FC = () => {
                 <div className="space-y-3">
                   {devices.map((device) => (
                     <div key={device.id} className="border rounded-lg p-3">
-                      <div className="flex items-center justify-between">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div className="flex items-center space-x-3">
                           <Monitor className="w-8 h-8 text-emerald-600" />
                           <div>
@@ -293,7 +293,7 @@ const TeleshopManagerOutletSetup: React.FC = () => {
                           </div>
                         </div>
                         
-                        <div className="flex items-center space-x-2">
+                        <div className="flex flex-wrap items-center gap-2">
                           {device.isActive ? (
                             <div className="flex items-center text-green-600 text-xs">
                               <div className="w-2 h-2 bg-green-500 rounded-full mr-1"></div>
