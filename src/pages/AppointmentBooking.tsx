@@ -269,6 +269,8 @@ export default function AppointmentBooking() {
     if (upperCode === 'NEW_SERVICE' || upperCode === 'SVC001') return t.newService
     if (upperCode === 'SERVICE_COMPLAINT' || upperCode === 'SVC003') return t.serviceComplaint
     if (upperCode === 'BILL_DISPUTE' || upperCode === 'SVC004') return t.billDispute
+    if (upperCode === 'FIXED') return t.fixed
+    if (upperCode === 'MOBILE') return t.mobileService
 
     const service = services.find(s => s.code === code)
     if (!service) return code
@@ -280,6 +282,8 @@ export default function AppointmentBooking() {
     if (title.includes('service complaint')) return t.serviceComplaint
     if (title.includes('bill dispute')) return t.billDispute
     if (title.includes('other')) return t.others
+    if (title === 'fixed' || title.includes('fixed line')) return t.fixed
+    if (title === 'mobile' || title.includes('mobile service')) return t.mobileService
 
     return service.title
   }
@@ -304,6 +308,8 @@ export default function AppointmentBooking() {
       serviceComplaint: 'Service Complaint',
       billDispute: 'Bill Dispute',
       others: 'Others',
+      fixed: 'Fixed',
+      mobileService: 'Mobile',
       preferredLang: 'Preferred Language',
       verifyMobile: 'Verify Mobile',
       sendingOTP: 'Sending OTP…',
@@ -377,6 +383,8 @@ export default function AppointmentBooking() {
       serviceComplaint: 'සේවා පැමිණිල්ල',
       billDispute: 'බිල්පත් ආරවුල',
       others: 'වෙනත්',
+      fixed: 'ස්ථාවර',
+      mobileService: 'ජංගම',
       preferredLang: 'කැමති භාෂාව',
       verifyMobile: 'ජංගම අංකය තහවුරු කරන්න',
       sendingOTP: 'OTP යවමින්…',
@@ -450,6 +458,8 @@ export default function AppointmentBooking() {
       serviceComplaint: 'சேவை புகார்',
       billDispute: 'பில் சர்ச்சை',
       others: 'பிறவை',
+      fixed: 'நிலையான',
+      mobileService: 'மொபைல்',
       preferredLang: 'விருப்ப மொழி',
       verifyMobile: 'மொபைல் சரிபார்க்கவும்',
       sendingOTP: 'OTP அனுப்பப்படுகிறது…',

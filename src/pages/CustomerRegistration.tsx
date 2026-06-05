@@ -483,6 +483,8 @@ export default function CustomerRegistration() {
     if (upperCode === 'NEW_SERVICE' || upperCode === 'SVC001') return t.newService
     if (upperCode === 'SERVICE_COMPLAINT' || upperCode === 'SVC003') return t.serviceComplaint
     if (upperCode === 'BILL_DISPUTE' || upperCode === 'SVC004') return t.billDispute
+    if (upperCode === 'FIXED') return t.fixed
+    if (upperCode === 'MOBILE') return t.mobileService
 
     const service = services.find(s => s.code === code)
     if (!service) return code
@@ -494,6 +496,8 @@ export default function CustomerRegistration() {
     if (title.includes('service complaint')) return t.serviceComplaint
     if (title.includes('bill dispute')) return t.billDispute
     if (title.includes('other')) return t.other
+    if (title === 'fixed' || title.includes('fixed line')) return t.fixed
+    if (title === 'mobile' || title.includes('mobile service')) return t.mobileService
 
     return service.title
   }
@@ -858,6 +862,8 @@ export default function CustomerRegistration() {
       serviceComplaint: "Service Complaint",
       billDispute: "Bill Dispute",
       other: "Other Services",
+      fixed: "Fixed",
+      mobileService: "Mobile",
       register: "Generate Token",
       registering: "Generating...",
       sltMobile: "Telephone Number",
@@ -941,6 +947,8 @@ export default function CustomerRegistration() {
       serviceComplaint: "සේවා පැමිණිල්ල",
       billDispute: "බිල්පත් ආරවුල",
       other: "වෙනත් සේවා",
+      fixed: "ස්ථාවර",
+      mobileService: "ජංගම",
       register: "ටෝකන් උත්පාදනය කරන්න",
       registering: "උත්පාදනය කරමින්...",
       sltMobile: "දුරකථන අංකය",
@@ -1024,6 +1032,8 @@ export default function CustomerRegistration() {
       serviceComplaint: "சேவை புகார்",
       billDispute: "பில் சர்ச்சை",
       other: "பிற சேவைகள்",
+      fixed: "நிலையான",
+      mobileService: "மொபைல்",
       register: "டோக்கன் உருவாக்கவும்",
       registering: "உருவாக்குகிறது...",
       sltMobile: "தொலைபேசி எண்",
