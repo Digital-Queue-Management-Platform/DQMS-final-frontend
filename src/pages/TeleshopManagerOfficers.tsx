@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import {useState, useEffect} from "react"
 import {useNavigate} from "react-router-dom"
@@ -6,7 +6,6 @@ import {
   Users,
   UserPlus,
   Edit,
-  Trash2,
   Search,
   Filter,
   AlertCircle,
@@ -27,6 +26,7 @@ interface Officer {
   name: string
   mobileNumber: string
   counterNumber?: number
+  isActive?: boolean
   status: 'available' | 'serving' | 'on_break' | 'break' | 'offline' | 'busy'
   outlet: {
     id: string
@@ -198,27 +198,30 @@ export default function TeleshopManagerOfficers() {
    }
  }
 
-  const handleDeleteOfficer= async (officerId: string, officerName: string)=> {
-    if (!confirm(`Are you sure you want to delete ${officerName}? This action cannot be undone.`)) {
-      return
-   }
+  const handleToggleActive = async (officerId: string, currentStatus: boolean, officerName: string) => {
+    const action = currentStatus ? "suspend" : "activate";
+    if (!confirm(`Are you sure you want to ${action} ${officerName}?`)) return;
 
     try {
-      const response= await api.delete(`/teleshop-manager/officers/${officerId}`)
+      const response = await api.patch(`/teleshop-manager/officers/${officerId}/active`, {
+        isActive: !currentStatus
+      });
 
       if (response.data.success) {
-        setOfficers(prev=> prev.filter(officer=> officer.id !== officerId))
-     } else {
-        alert("Failed to delete officer")
-     }
-   } catch (error: any) {
-      console.error("Failed to delete officer:", error)
-
+        setOfficers(prev => prev.map(o => 
+          o.id === officerId ? { ...o, isActive: !currentStatus } : o
+        ));
+        fetchOfficers(false);
+      } else {
+        alert(`Failed to ${action} officer`);
+      }
+    } catch (error: any) {
+      console.error(`Failed to ${action} officer:`, error);
       if (!handleAuthError(error)) {
-        alert(error.response?.data?.error || "Failed to delete officer. Please try again.")
-     }
-   }
- }
+        alert(error.response?.data?.error || `Failed to ${action} officer. Please try again.`);
+      }
+    }
+  }
 
   const handleOpenAssignCounter= (officer: Officer)=> {
     setSelectedOfficerForCounter(officer)
@@ -287,7 +290,16 @@ export default function TeleshopManagerOfficers() {
     return matchesSearch && matchesStatus
  })
 
-  const getStatusBadge= (status: string)=> {
+  const getStatusBadge= (status: string, isActive?: boolean)=> {
+    if (isActive === false) {
+      return (
+        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800`}>
+          <AlertCircle className="w-3 h-3 mr-1" />
+          Suspended
+        </span>
+      )
+    }
+
     const statusConfig={
       available: {color: "bg-green-100 text-green-800", icon: CheckCircle, label: "Available"},
       serving: {color: "bg-blue-100 text-blue-800", icon: CheckCircle, label: "Serving"},
@@ -358,7 +370,7 @@ export default function TeleshopManagerOfficers() {
     <div className="p-4">
       {/* Header */}
       <div className="mb-8">
-        <div className="flex items-center justify-between mb-2">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-2 gap-4">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Manage Officers</h1>
           </div>
@@ -412,7 +424,7 @@ export default function TeleshopManagerOfficers() {
       </div>
 
       {/* Tab Selector */}
-      <div className="flex gap-1 bg-gray-100 p-1.5 rounded-2xl mb-8 self-start inline-flex shadow-inner">
+      <div className="flex flex-col sm:flex-row gap-1 bg-gray-100 p-1.5 rounded-2xl mb-8 sm:self-start shadow-inner">
         <button
           onClick={()=> setActiveTab('officers')}
           className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all duration-200 ${activeTab=== 'officers' ? 'bg-white text-purple-600 shadow-md transform scale-105' : 'text-gray-500 hover:text-gray-700 hover:bg-white/50'}`}
@@ -555,8 +567,8 @@ onClick={()=> {
       const isExpanded= expandedOfficers.has(officer.id)
       return (
         <div key={officer.id} className="group bg-white rounded-2xl shadow-sm border-2 border-gray-50 p-4 transition-all hover:border-purple-100 hover:shadow-md">
-          <div className="flex items-center justify-between">
-            <div className="flex-1">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="flex-1 min-w-0">
       {
         !isExpanded && (
           <div className="flex items-start gap-5">
@@ -570,8 +582,7 @@ onClick={()=> {
               <div className="flex items-center gap-2"><Phone className="w-4 h-4 text-gray-400" />{officer.mobileNumber}</div>
                 <div className="flex items-center gap-2"><MapPin className="w-4 h-4 text-gray-400" />{officer.outlet.name}</div>
                   <CounterInfo officer={officer} onAssign={handleOpenAssignCounter} />
-                    {getStatusBadge(officer.status)
- }
+                    {getStatusBadge(officer.status, officer.isActive)}
                             </div>
                           </div>
                         </div>
@@ -593,7 +604,7 @@ onClick={()=> {
       <CounterInfo officer={officer} onAssign={handleOpenAssignCounter} />
                               </div>
                             </div>
-  <div className="ml-auto">{getStatusBadge(officer.status)}</div>
+  <div className="ml-auto">{getStatusBadge(officer.status, officer.isActive)}</div>
                           </div>
   <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 mt-4 sm:ml-11">
     <div className="bg-blue-50/50 rounded-2xl p-4 border border-blue-100">
@@ -621,9 +632,12 @@ onClick={()=> {
                         </div>
                       )}
                     </div>
-  <div className={`ml-6 gap-3 flex ${isExpanded ?"flex-col" : "flex-row"}`}>
-    <button onClick={()=> navigate(`/teleshop-manager/officers/${officer.id}/edit`)} className="flex items-center justify-center gap-2 px-4 py-2 rounded-xl border-2 text-sm font-bold text-gray-700 hover:border-purple-600 hover:text-purple-600 transition-all"><Edit className="w-4 h-4" />Edit</button>
-      <button onClick={()=> handleDeleteOfficer(officer.id, officer.name)} className="flex items-center justify-center gap-2 px-4 py-2 rounded-xl border-2 text-sm font-bold text-gray-400 hover:border-red-500 hover:text-red-500 transition-all"><Trash2 className="w-4 h-4" />Delete</button>
+  <div className={`gap-3 flex ${isExpanded ?"flex-col" : "flex-row"} sm:ml-6 w-full md:w-auto mt-2 md:mt-0`}>
+    <button onClick={()=> navigate(`/teleshop-manager/officers/${officer.id}/edit`)} className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-xl border-2 text-sm font-bold text-gray-700 hover:border-purple-600 hover:text-purple-600 transition-all"><Edit className="w-4 h-4" />Edit</button>
+    <button onClick={()=> handleToggleActive(officer.id, officer.isActive ?? true, officer.name)} className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-xl border-2 text-sm font-bold transition-all ${officer.isActive === false ? 'text-green-600 border-green-200 hover:border-green-600 hover:bg-green-50' : 'text-orange-500 border-orange-200 hover:border-orange-500 hover:bg-orange-50'}`}>
+      {officer.isActive === false ? <CheckCircle className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
+      {officer.isActive === false ? "Activate" : "Suspend"}
+    </button>
                     </div>
                   </div>
                 </div>

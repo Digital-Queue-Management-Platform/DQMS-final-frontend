@@ -332,8 +332,8 @@ export default function TeleshopManagerCompletedServices() {
   }
 
   return (
-    <div className="p-6">
-      <div className="flex items-center justify-between mb-6">
+    <div className="p-4 sm:p-6">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
         <div className="flex items-center gap-4">
           <button
             onClick={() => navigate("/teleshop-manager/dashboard")}
@@ -348,7 +348,7 @@ export default function TeleshopManagerCompletedServices() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
           <div className="text-xs text-gray-500">
             Last updated: {new Date().toLocaleTimeString()}
           </div>
@@ -504,7 +504,7 @@ export default function TeleshopManagerCompletedServices() {
 
           {/* Pagination */}
           {pagination && pagination.totalPages > 1 && (
-            <div className="flex items-center justify-between bg-white border border-slate-200 rounded-lg p-4">
+            <div className="flex flex-col sm:flex-row items-center sm:justify-between bg-white border border-slate-200 rounded-lg p-4 gap-4">
               <div className="text-sm text-gray-700">
                 Showing page {pagination.page} of {pagination.totalPages}
                 ({pagination.total} total services)

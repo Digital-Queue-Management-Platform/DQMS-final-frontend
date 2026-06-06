@@ -63,7 +63,8 @@ export default function InsightsPage() {
     startDate: new Date().toISOString().split("T")[0],
     endDate: new Date().toISOString().split("T")[0],
   })
-  const [selectedOutlet, setSelectedOutlet] = useState("")
+  const [selectedOutlets, setSelectedOutlets] = useState<string[]>([])
+  const [isScopeDropdownOpen, setIsScopeDropdownOpen] = useState(false)
   const [loading, setLoading] = useState(true)
   const [outlets, setOutlets] = useState<any[]>([])
   const [allOutlets, setAllOutlets] = useState<any[]>([])
@@ -190,8 +191,8 @@ export default function InsightsPage() {
         endDate: endDate.toISOString(),
       }
 
-      if (selectedOutlet) {
-        params.outletId = selectedOutlet
+      if (selectedOutlets.length > 0) {
+        params.outletIds = selectedOutlets.join(",")
       }
 
       const response = await api.get("/admin/analytics", { params })
@@ -246,11 +247,11 @@ export default function InsightsPage() {
 
     const reportDate = new Date().toLocaleString()
     const dateStr = new Date().toLocaleDateString().replace(/\//g, '-')
-    const outName = selectedOutlet
-      ? (outlets.find((o: any) => o.id === selectedOutlet)?.name || 'Outlet').replace(/\s+/g, '_')
+    const outName = selectedOutlets.length > 0
+      ? (selectedOutlets.length === 1 ? (outlets.find((o: any) => o.id === selectedOutlets[0])?.name || 'Outlet') : `${selectedOutlets.length}_Outlets`).replace(/\s+/g, '_')
       : 'All_Outlets'
-    const scopeLabel = selectedOutlet
-      ? (outlets.find((o: any) => o.id === selectedOutlet)?.name || 'Specified Outlet')
+    const scopeLabel = selectedOutlets.length > 0
+      ? (selectedOutlets.length === 1 ? (outlets.find((o: any) => o.id === selectedOutlets[0])?.name || 'Specified Outlet') : `${selectedOutlets.length} Selected Outlets`)
       : 'Island-wide (All Outlets)'
     const reportId = `DQMP-${Math.floor(Date.now() / 10000)}`
     const totalFeedbacks = analytics.feedbackStats.reduce((s, f) => s + (f._count ?? f.count ?? 0), 0)
@@ -274,7 +275,7 @@ export default function InsightsPage() {
     if (exportSections.executiveSummary) activeSections.push("EXECUTIVE SUMMARY")
     if (exportSections.customerSatisfaction) activeSections.push("CUSTOMER SATISFACTION ANALYSIS")
     if (exportSections.serviceUtilization) activeSections.push("SERVICE UTILIZATION BREAKDOWN")
-    if (exportSections.branchPerformance && analytics.branchPerformance && analytics.branchPerformance.length > 0 && !selectedOutlet) {
+    if (exportSections.branchPerformance && analytics.branchPerformance && analytics.branchPerformance.length > 0 && selectedOutlets.length !== 1) {
       activeSections.push("REGIONAL BRANCH PERFORMANCE AUDIT")
     }
     if (exportSections.officerPerformance && analytics.officerPerformance && analytics.officerPerformance.length > 0) {
@@ -340,7 +341,7 @@ export default function InsightsPage() {
     }
 
     // Section IV - Branch Performance
-    if (exportSections.branchPerformance && analytics.branchPerformance && analytics.branchPerformance.length > 0 && !selectedOutlet) {
+    if (exportSections.branchPerformance && analytics.branchPerformance && analytics.branchPerformance.length > 0 && selectedOutlets.length !== 1) {
       rows.push([getSectionHeader("REGIONAL BRANCH PERFORMANCE AUDIT")])
       rows.push(["Outlet Name", "Location", "Tokens Issued", "Avg Wait (m)", "Avg Service (m)", "Avg Rating", "Total Feedbacks"])
       
@@ -429,12 +430,12 @@ export default function InsightsPage() {
     if (exportSections.outletRegistry) {
       const sourceOutlets = freshOutlets.length > 0 ? freshOutlets : allOutlets
       if (sourceOutlets.length > 0) {
-        const filteredOutlets = selectedOutlet
-          ? sourceOutlets.filter((o: any) => o.id === selectedOutlet)
+        const filteredOutlets = selectedOutlets.length > 0
+          ? sourceOutlets.filter((o: any) => selectedOutlets.includes(o.id))
           : sourceOutlets
 
-      const headerTitle = selectedOutlet
-        ? "OUTLET REGISTRY (SELECTED OUTLET)"
+      const headerTitle = selectedOutlets.length > 0
+        ? "OUTLET REGISTRY (SELECTED OUTLETS)"
         : "OUTLET REGISTRY (ALL BRANCHES)"
 
       rows.push([getSectionHeader(headerTitle)])
@@ -544,8 +545,8 @@ export default function InsightsPage() {
     }
 
     const reportId = `DQMP-${Math.floor(Date.now() / 10000)}`
-    const scopeLabel = selectedOutlet
-      ? (outlets.find((o: any) => o.id === selectedOutlet)?.name || selectedOutlet)
+    const scopeLabel = selectedOutlets.length > 0
+      ? (selectedOutlets.length === 1 ? (outlets.find((o: any) => o.id === selectedOutlets[0])?.name || 'Specified Outlet') : `${selectedOutlets.length} Selected Outlets`)
       : 'Island-wide (All Outlets)'
     const totalFeedbacks = analytics.feedbackStats.reduce((s, f) => s + (f._count ?? f.count ?? 0), 0)
     const completionRate = analytics.totalTokens > 0
@@ -574,7 +575,7 @@ export default function InsightsPage() {
     if (exportSections.executiveSummary) activeSections.push("Executive Summary")
     if (exportSections.customerSatisfaction) activeSections.push("Customer Satisfaction Analysis")
     if (exportSections.serviceUtilization) activeSections.push("Service Utilization Breakdown")
-    if (exportSections.branchPerformance && analytics.branchPerformance && analytics.branchPerformance.length > 0 && !selectedOutlet) {
+    if (exportSections.branchPerformance && analytics.branchPerformance && analytics.branchPerformance.length > 0 && selectedOutlets.length !== 1) {
       activeSections.push("Regional Branch Performance Audit")
     }
     if (exportSections.officerPerformance && analytics.officerPerformance && analytics.officerPerformance.length > 0) {
@@ -665,7 +666,7 @@ export default function InsightsPage() {
     }
 
     // â”€â”€ SECTION IV: Regional Branch Performance â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-    if (exportSections.branchPerformance && analytics.branchPerformance && analytics.branchPerformance.length > 0 && !selectedOutlet) {
+    if (exportSections.branchPerformance && analytics.branchPerformance && analytics.branchPerformance.length > 0 && selectedOutlets.length !== 1) {
       currentY = ensureSpace(currentY, 60)
       sectionTitle(getSectionHeader("Regional Branch Performance Audit"), currentY)
       autoTable(doc, {
@@ -817,12 +818,12 @@ export default function InsightsPage() {
       if (sourceOutlets.length > 0) {
         doc.addPage(); addHeader(); currentY = 45
 
-        const filteredOutlets = selectedOutlet
-          ? sourceOutlets.filter((o: any) => o.id === selectedOutlet)
+        const filteredOutlets = selectedOutlets.length > 0
+          ? sourceOutlets.filter((o: any) => selectedOutlets.includes(o.id))
           : sourceOutlets
 
-        const headerTitle = selectedOutlet
-          ? "Outlet Registry - Selected Outlet"
+        const headerTitle = selectedOutlets.length > 0
+          ? "Outlet Registry - Selected Outlets"
           : "Outlet Registry - All Branches"
 
         sectionTitle(getSectionHeader(headerTitle), currentY)
@@ -878,7 +879,7 @@ export default function InsightsPage() {
     for (let i = 1; i <= totalPages; i++) addFooter(i, totalPages)
 
     const fileDate = new Date().toISOString().split('T')[0]
-    const outLabel = selectedOutlet ? 'Outlet' : 'IslandWide'
+    const outLabel = selectedOutlets.length > 0 ? 'Outlets' : 'IslandWide'
     doc.save(`DQMP_Report_${outLabel}_${fileDate}.pdf`)
   }
 
@@ -996,20 +997,45 @@ export default function InsightsPage() {
               />
             </div>
 
-            <div>
+            <div className="relative z-20">
               <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Scope</label>
-              <select
-                value={selectedOutlet}
-                onChange={(e) => setSelectedOutlet(e.target.value)}
-                className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm transition-all"
+              <div
+                className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm transition-all bg-white cursor-pointer min-h-[38px] flex items-center"
+                onClick={() => setIsScopeDropdownOpen(!isScopeDropdownOpen)}
               >
-                <option value="">Island-wide (All Outlets)</option>
-                {outlets.map((outlet) => (
-                  <option key={outlet.id} value={outlet.id}>
-                    {outlet.name}
-                  </option>
-                ))}
-              </select>
+                {selectedOutlets.length === 0 ? "Island-wide (All Outlets)" : `${selectedOutlets.length} Outlet${selectedOutlets.length > 1 ? 's' : ''} Selected`}
+              </div>
+              
+              {isScopeDropdownOpen && (
+                <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-60 overflow-auto z-50">
+                  <div
+                    className="px-4 py-2 hover:bg-slate-50 cursor-pointer border-b border-slate-100 text-sm font-medium text-slate-700"
+                    onClick={() => {
+                      setSelectedOutlets([])
+                      setIsScopeDropdownOpen(false)
+                    }}
+                  >
+                    Island-wide (All Outlets)
+                  </div>
+                  {outlets.map((outlet) => (
+                    <label key={outlet.id} className="flex items-center px-4 py-2 hover:bg-slate-50 cursor-pointer text-sm text-slate-700">
+                      <input
+                        type="checkbox"
+                        checked={selectedOutlets.includes(outlet.id)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedOutlets([...selectedOutlets, outlet.id])
+                          } else {
+                            setSelectedOutlets(selectedOutlets.filter(id => id !== outlet.id))
+                          }
+                        }}
+                        className="mr-3 w-4 h-4 text-indigo-600 border-slate-300 rounded focus:ring-indigo-500"
+                      />
+                      <span className="truncate">{outlet.name}</span>
+                    </label>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div className="flex gap-2">
@@ -1095,13 +1121,13 @@ export default function InsightsPage() {
                   <input
                     type="checkbox"
                     checked={exportSections.branchPerformance}
-                    disabled={!!selectedOutlet}
+                    disabled={selectedOutlets.length === 1}
                     onChange={(e) => setExportSections({ ...exportSections, branchPerformance: e.target.checked })}
                     className="w-4 h-4 text-indigo-600 border-slate-300 rounded focus:ring-indigo-500 cursor-pointer disabled:opacity-50"
                   />
                   <div>
-                    <span className={`block text-xs font-semibold ${selectedOutlet ? 'text-slate-400' : 'text-slate-700'}`}>Branch Audit</span>
-                    <span className="text-[9px] text-slate-400 block mt-0.5">{selectedOutlet ? 'N/A for single outlet' : 'Outlet comparison table'}</span>
+                    <span className={`block text-xs font-semibold ${selectedOutlets.length === 1 ? 'text-slate-400' : 'text-slate-700'}`}>Branch Audit</span>
+                    <span className="text-[9px] text-slate-400 block mt-0.5">{selectedOutlets.length === 1 ? 'N/A for single outlet' : 'Outlet comparison table'}</span>
                   </div>
                 </label>
 
@@ -1242,7 +1268,7 @@ export default function InsightsPage() {
               </div>
             )}
 
-            {analytics.branchPerformance && analytics.branchPerformance.length > 0 && !selectedOutlet && (
+            {analytics.branchPerformance && analytics.branchPerformance.length > 0 && selectedOutlets.length !== 1 && (
               <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
                 <div className="px-4 sm:px-6 py-4 border-b border-slate-100 bg-slate-50/50">
                   <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">

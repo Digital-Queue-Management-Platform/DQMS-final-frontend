@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from "react"
+import { useState, useEffect } from "react"
 import { PlusCircle, Trash2, AlertTriangle, Calendar, Clock, RefreshCw, Bell, Pencil } from "lucide-react"
 import api from "../config/api"
 
@@ -157,8 +157,8 @@ export default function TeleshopManagerClosureNotices() {
     const formatDate = (d: string) => new Date(d).toLocaleString()
 
     return (
-        <div className="p-6 max-w-3xl mx-auto">
-            <div className="flex items-center justify-between mb-6">
+        <div className="p-4 sm:p-6 max-w-3xl mx-auto">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
                 <div>
                     <h1 className="text-2xl font-bold text-gray-900">Branch Notices</h1>
                     <p className="text-sm text-gray-500 mt-1">
@@ -292,7 +292,7 @@ export default function TeleshopManagerClosureNotices() {
                         />
                     </div>
                     {form.isRecurring ? (
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Start Time</label>
                                 <input
@@ -324,7 +324,7 @@ export default function TeleshopManagerClosureNotices() {
                             </div>
                         </div>
                     ) : (
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Starts At</label>
                                 <input

@@ -206,6 +206,8 @@ export default function KioskDashboard() {
     if (upperCode === 'NEW_SERVICE' || upperCode === 'SVC001') return t.newService
     if (upperCode === 'SERVICE_COMPLAINT' || upperCode === 'SVC003') return t.serviceComplaint
     if (upperCode === 'BILL_DISPUTE' || upperCode === 'SVC004') return t.billDispute
+    if (upperCode === 'FIXED') return t.fixed
+    if (upperCode === 'MOBILE') return t.mobileService
 
     const service = services.find(s => s.code === code)
     if (!service) return code
@@ -217,6 +219,8 @@ export default function KioskDashboard() {
     if (title.includes('service complaint')) return t.serviceComplaint
     if (title.includes('bill dispute')) return t.billDispute
     if (title.includes('other')) return t.other
+    if (title === 'fixed' || title.includes('fixed line')) return t.fixed
+    if (title === 'mobile' || title.includes('mobile service')) return t.mobileService
 
     return service.title
   }
@@ -504,6 +508,8 @@ export default function KioskDashboard() {
       serviceComplaint: "Service Complaint",
       billDispute: "Bill Dispute",
       other: "Other Services",
+      fixed: "Fixed",
+      mobileService: "Mobile",
       register: "Register",
       registering: "Registering...",
       nic: "NIC (Optional)",
@@ -588,6 +594,8 @@ export default function KioskDashboard() {
       serviceComplaint: "සේවා පැමිණිල්ල",
       billDispute: "බිල්පත් ආරවුල",
       other: "වෙනත් සේවා",
+      fixed: "ස්ථාවර",
+      mobileService: "ජංගම",
       register: "ලියාපදිංචි වන්න",
       registering: "ලියාපදිංචි වෙමින්...",
       nic: "ජාතික හැදුනුම්පත් අංකය (විකල්ප)",
@@ -672,6 +680,8 @@ export default function KioskDashboard() {
       serviceComplaint: "சேவை புகார்",
       billDispute: "பில் சர்ச்சை",
       other: "மற்ற சேவைகள்",
+      fixed: "நிலையான",
+      mobileService: "மொபைல்",
       register: "பதிவு செய்யவும்",
       registering: "பதிவு செய்யப்படுகிறது...",
       nic: "தேசிய அடையாள அட்டை (விருப்பம்)",

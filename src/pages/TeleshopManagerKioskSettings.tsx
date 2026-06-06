@@ -156,7 +156,7 @@ export default function TeleshopManagerKioskSettings() {
 
         {outlet && (
           <div className="bg-white rounded-2xl shadow-sm-md p-6 mb-6">
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex flex-col md:flex-row md:items-start justify-between mb-4 gap-4">
               <div>
                 <h2 className="text-xl font-bold text-gray-800">{outlet.name}</h2>
                 <p className="text-sm text-gray-600">{outlet.location}</p>
@@ -221,7 +221,7 @@ export default function TeleshopManagerKioskSettings() {
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     New Password
                   </label>
-                  <div className="flex gap-2">
+                  <div className="flex flex-col sm:flex-row gap-2">
                     <input
                       type="text"
                       value={newPassword}

@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import { useState } from "react"
 import {
@@ -174,7 +174,7 @@ export default function TeleshopManagerServiceTracking() {
       {/* Search Bar */}
       <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5">
         <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-3">Service Case Tracking</h1>
-        <div className="flex gap-2">
+        <div className="flex flex-col sm:flex-row gap-2">
           <div className="relative flex-1">
             <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
@@ -226,7 +226,7 @@ export default function TeleshopManagerServiceTracking() {
                   {data.outlet.name} — {data.outlet.location}
                 </div>
               </div>
-              <div className="text-right text-xs text-gray-500 space-y-1">
+              <div className="text-left sm:text-right text-xs text-gray-500 space-y-1 mt-2 sm:mt-0 flex-shrink-0">
                 <div>Created: <span className="font-medium text-gray-700">{fmtDateTime(data.createdAt)}</span></div>
                 {data.completedAt && (
                   <div>Completed: <span className="font-medium text-green-700">{fmtDateTime(data.completedAt)}</span></div>

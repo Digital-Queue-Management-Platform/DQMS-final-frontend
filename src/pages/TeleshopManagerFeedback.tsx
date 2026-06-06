@@ -330,7 +330,7 @@ export default function TeleshopManagerFeedback() {
 
   return (
     <div className="p-4">
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
         <div className="flex items-center gap-4">
           {/*<button
             onClick={() => navigate("/teleshop-manager/dashboard")}
@@ -401,7 +401,7 @@ export default function TeleshopManagerFeedback() {
 
       {/* Filters */}
       <div className="p-2 rounded-lg mb-6 border border-slate-200">
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           {/* Status Dropdown */}
           <div className="w-48">
             <AnimatedDropdown
@@ -439,7 +439,7 @@ export default function TeleshopManagerFeedback() {
           </div>
 
           {/* Action Buttons */}
-          <div className="flex gap-2 ml-auto">
+          <div className="flex flex-wrap gap-2 w-full sm:w-auto sm:ml-auto mt-2 sm:mt-0 justify-start sm:justify-end">
             <button
               onClick={applyFilters}
               className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 text-sm transition-colors"

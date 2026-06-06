@@ -70,6 +70,7 @@ const AdminGMs = React.lazy(() => import("./admin/adminPages/AdminGMs"))
 const AdminDGMs = React.lazy(() => import("./admin/adminPages/AdminDGMs"))
 const AdminTeleshopManagers = React.lazy(() => import("./admin/adminPages/AdminTeleshopManagers"))
 const SystemLogsPage = React.lazy(() => import("./admin/adminPages/SystemLogsPage"))
+const NotificationSettingsPage = React.lazy(() => import('./admin/adminPages/NotificationSettingsPage'))
 const GMLogin = React.lazy(() => import("./pages/GMLogin"))
 const DGMLogin = React.lazy(() => import("./pages/DGMLogin"))
 const GMDashboard = React.lazy(() => import("./pages/GMDashboard"))
@@ -581,6 +582,10 @@ function App() {
         <Route
           element={<Layout><ProtectedAdminRoute><SystemLogsPage /></ProtectedAdminRoute></Layout>}
           path="/admin/logs"
+        />
+        <Route
+          element={<Layout><ProtectedAdminRoute><NotificationSettingsPage /></ProtectedAdminRoute></Layout>}
+          path="/admin/notification-settings"
         />
         <Route
           element={<KioskLogin />}
