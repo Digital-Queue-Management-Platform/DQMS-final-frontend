@@ -1126,8 +1126,8 @@ export default function InsightsPage() {
                     className="w-4 h-4 text-indigo-600 border-slate-300 rounded focus:ring-indigo-500 cursor-pointer disabled:opacity-50"
                   />
                   <div>
-                    <span className={`block text-xs font-semibold ${selectedOutlet ? 'text-slate-400' : 'text-slate-700'}`}>Branch Audit</span>
-                    <span className="text-[9px] text-slate-400 block mt-0.5">{selectedOutlet ? 'N/A for single outlet' : 'Outlet comparison table'}</span>
+                    <span className={`block text-xs font-semibold ${selectedOutlets.length === 1 ? 'text-slate-400' : 'text-slate-700'}`}>Branch Audit</span>
+                    <span className="text-[9px] text-slate-400 block mt-0.5">{selectedOutlets.length === 1 ? 'N/A for single outlet' : 'Outlet comparison table'}</span>
                   </div>
                 </label>
 
