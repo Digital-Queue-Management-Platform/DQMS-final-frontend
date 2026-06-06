@@ -18,6 +18,9 @@ export default function OfficerQueuePage() {
   const [multipleBills, setMultipleBills] = useState<{ telephoneNumber: string; accountName: string; currentBill: number; dueDate: string; status: string; billPaymentIntent?: string; billPaymentAmount?: number; updatedAt: string }[]>([])
   const [queue, setQueue] = useState<{ waiting: Token[]; inService: Token[]; availableOfficers: number; totalWaiting: number } | null>(null)
   const [accountRef, setAccountRef] = useState("")
+  const [customerName, setCustomerName] = useState("")
+  const [customerMobile, setCustomerMobile] = useState("")
+  const [customerEmail, setCustomerEmail] = useState("")
   const [loading, setLoading] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
   const [currentDateTime, setCurrentDateTime] = useState(new Date())
@@ -196,6 +199,17 @@ export default function OfficerQueuePage() {
       setCurrentToken(res.data.currentToken)
       setBillInfo(res.data.billData || null)
       setMultipleBills(res.data.multipleBills || [])
+      if (res.data.currentToken?.customer) {
+        const cName = res.data.currentToken.customer.name || ""
+        const cMobile = res.data.currentToken.customer.mobileNumber || ""
+        setCustomerName(cName === "Customer" || cName === "Anonymous" ? "" : cName)
+        setCustomerMobile(cMobile.toUpperCase() === "N/A" ? "" : cMobile)
+        setCustomerEmail(res.data.currentToken.customer.email || "")
+      } else {
+        setCustomerName("")
+        setCustomerMobile("")
+        setCustomerEmail("")
+      }
     } catch (e) {
       console.error('failed to fetch current token', e)
     }
@@ -318,6 +332,17 @@ export default function OfficerQueuePage() {
       setCurrentToken(response.data.token)
       setBillInfo(null)
       setAccountRef("")
+      if (response.data.token.customer) {
+        const cName = response.data.token.customer.name || ""
+        const cMobile = response.data.token.customer.mobileNumber || ""
+        setCustomerName(cName === "Customer" || cName === "Anonymous" ? "" : cName)
+        setCustomerMobile(cMobile.toUpperCase() === "N/A" ? "" : cMobile)
+        setCustomerEmail(response.data.token.customer.email || "")
+      } else {
+        setCustomerName("")
+        setCustomerMobile("")
+        setCustomerEmail("")
+      }
       await refreshOfficerQueueState(officer)
       autoSpeak(response.data.token, 'call', officer.counterNumber)
       return response.data.token as Token
@@ -376,11 +401,21 @@ export default function OfficerQueuePage() {
     setLoading(true)
     try {
       // First complete the service to get reference number
-      await api.post('/officer/complete-service', { tokenId: currentToken.id, officerId: officer.id, accountRef })
+      await api.post('/officer/complete-service', { 
+        tokenId: currentToken.id, 
+        officerId: officer.id, 
+        accountRef,
+        customerName,
+        customerMobile,
+        customerEmail 
+      })
       setOfficer(prev => prev ? { ...prev, status: 'available' } : prev)
       setCurrentToken(null)
       setBillInfo(null)
       setAccountRef("")
+      setCustomerName("")
+      setCustomerMobile("")
+      setCustomerEmail("")
       fetchQueue(officer.outletId, officer.id)
     } catch (err) {
       console.error('failed to complete service', err)
@@ -401,6 +436,9 @@ export default function OfficerQueuePage() {
       if (!tokenId) {
         setCurrentToken(null)
         setBillInfo(null)
+        setCustomerName("")
+        setCustomerMobile("")
+        setCustomerEmail("")
       }
       fetchQueue(officer.outletId, officer.id)
     } catch (err) {
@@ -420,6 +458,17 @@ export default function OfficerQueuePage() {
         setCurrentToken(response.data.token)
         setBillInfo(null)
         setAccountRef("")
+        if (response.data.token.customer) {
+          const cName = response.data.token.customer.name || ""
+          const cMobile = response.data.token.customer.mobileNumber || ""
+          setCustomerName(cName === "Customer" || cName === "Anonymous" ? "" : cName)
+          setCustomerMobile(cMobile.toUpperCase() === "N/A" ? "" : cMobile)
+          setCustomerEmail(response.data.token.customer.email || "")
+        } else {
+          setCustomerName("")
+          setCustomerMobile("")
+          setCustomerEmail("")
+        }
         fetchCurrentToken(officer.id)
       }
       fetchQueue(officer.outletId, officer.id)
@@ -824,6 +873,41 @@ export default function OfficerQueuePage() {
                       <Play className="w-4 h-4 fill-current" />
                       Announce Call
                     </button>
+                  </div>
+
+                  {/* Customer Details Form */}
+                  <div className="mb-4 space-y-3 bg-white p-4 rounded-2xl border border-slate-200">
+                    <h3 className="text-sm font-bold text-slate-900 mb-2">Update Customer Details (Optional)</h3>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Customer Name</label>
+                      <input
+                        type="text"
+                        value={customerName}
+                        onChange={(e) => setCustomerName(e.target.value)}
+                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none"
+                        placeholder="E.g. John Doe"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Mobile Number</label>
+                      <input
+                        type="text"
+                        value={customerMobile}
+                        onChange={(e) => setCustomerMobile(e.target.value)}
+                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none"
+                        placeholder="E.g. 07XXXXXXXX"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Email</label>
+                      <input
+                        type="email"
+                        value={customerEmail}
+                        onChange={(e) => setCustomerEmail(e.target.value)}
+                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none"
+                        placeholder="E.g. email@example.com"
+                      />
+                    </div>
                   </div>
 
                   {/* Notes Section */}

@@ -49,8 +49,16 @@ const TokenDetailContent = ({ t, caseDetails, loadingCase }: { t: ServedToken, c
           <dl className="space-y-2 text-xs">
 
             <div className="flex justify-between border-b border-slate-50 pb-1">
+              <dt className="font-medium text-gray-500">Name</dt>
+              <dd className="text-gray-900 font-semibold">{details.customer?.name || '-'}</dd>
+            </div>
+            <div className="flex justify-between border-b border-slate-50 pb-1">
               <dt className="font-medium text-gray-500">Mobile</dt>
-              <dd className="text-gray-900 font-semibold">{t.customerMobile || '-'}</dd>
+              <dd className="text-gray-900 font-semibold">{details.customer?.mobileNumber || t.customerMobile || '-'}</dd>
+            </div>
+            <div className="flex justify-between border-b border-slate-50 pb-1">
+              <dt className="font-medium text-gray-500">Email</dt>
+              <dd className="text-gray-900 font-semibold">{details.customer?.email || '-'}</dd>
             </div>
             <div className="flex justify-between border-b border-slate-50 pb-1">
               <dt className="font-medium text-gray-500">Assigned Officer</dt>
@@ -318,7 +326,7 @@ export default function OfficerServedCustomers() {
     setLoadingCase(refNumber)
     try {
       const res = await api.get(`/service-case/${refNumber}`)
-      setCaseDetails(prev => ({ ...prev, [refNumber]: res.data }))
+      setCaseDetails(prev => ({ ...prev, [refNumber]: Array.isArray(res.data) ? res.data[0] : res.data }))
     } catch (e: any) {
       console.error('Failed to load case details:', e)
       // Set empty object to prevent infinite retry
