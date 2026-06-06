@@ -21,6 +21,7 @@ interface Service {
   description: string | null
   isPriorityService?: boolean
   requireOtp?: boolean
+  collectMobile?: boolean
 }
 
 export default function KioskDashboard() {
@@ -119,8 +120,9 @@ export default function KioskDashboard() {
       return
     }
 
-    setOutlet(JSON.parse(outletData))
-    loadInitialData()
+    const parsedOutlet = JSON.parse(outletData)
+    setOutlet(parsedOutlet)
+    loadInitialData(parsedOutlet.id)
   }, [navigate])
 
   // Auto-submit form after OTP verification
@@ -137,8 +139,11 @@ export default function KioskDashboard() {
   // Auto-submit for bill payment removed in favor of manual selection post-verification
   // Auto-send OTP when mobile number reaches 10 valid digits on step 3
   useEffect(() => {
+    const selectedServiceData = services.find(s => s.code === selectedService)
+    const isOtpRequired = selectedServiceData?.requireOtp === true
+
     if (currentStep === 3 && mobileNumber.length === 10 && (mobileNumber.startsWith('07') || mobileNumber.startsWith('01'))) {
-      if (canSendOtp() && serviceRequiresOtp && otpStep === 'idle' && !otpSending && !autoSendingOtp) {
+      if (canSendOtp() && isOtpRequired && otpStep === 'idle' && !otpSending && !autoSendingOtp) {
         setAutoSendingOtp(true);
         const timer = setTimeout(() => {
           goToNextStep();
@@ -148,7 +153,7 @@ export default function KioskDashboard() {
         return () => clearTimeout(timer);
       }
     }
-  }, [mobileNumber, currentStep])
+  }, [mobileNumber, currentStep, selectedService, services])
 
   // Auto-verify SLT numbers when OTP is disabled and details are filled
   useEffect(() => {
@@ -156,9 +161,9 @@ export default function KioskDashboard() {
     if (billRateLimited) return // Stop retrying after a 429 – avoids infinite loop
     
     const selectedServiceData = services.find(s => s.code === selectedService)
-    const serviceRequiresOtp = selectedServiceData?.requireOtp !== false
+    const isOtpRequired = selectedServiceData?.requireOtp === true
     
-    if (serviceRequiresOtp) return // OTP verification flow will handle it
+    if (isOtpRequired) return // OTP verification flow will handle it
 
     const allSltValid = sltTelephoneNumbers.length > 0 && sltTelephoneNumbers.every(num => isValidSlt(num))
     if (isValidMobile(mobileNumber) && allSltValid && !sltVerified && !loading) {
@@ -179,7 +184,7 @@ export default function KioskDashboard() {
     setVerifiedBills([])
   }, [sltTelephoneNumbers])
 
-  const loadInitialData = async () => {
+  const loadInitialData = async (currentOutletId: string) => {
     try {
       // Fetch outlet settings including promo video
       try {
@@ -205,7 +210,7 @@ export default function KioskDashboard() {
       }
 
       // Fetch active services from public endpoint (already ordered correctly)
-      const response = await api.get('/queue/services')
+      const response = await api.get(`/queue/services?outletId=${currentOutletId}`)
       const allServices = response.data || []
       // Filter only active services
       const activeServices = allServices.filter((s: any) => s.isActive !== false)
@@ -228,10 +233,10 @@ export default function KioskDashboard() {
   const handleServiceSelect = (serviceCode: string) => {
     setSelectedService(serviceCode)
     const selectedServiceData = services.find(s => s.code === serviceCode)
-    const serviceRequiresOtp = selectedServiceData?.requireOtp !== false
+    const collectMobileNumber = selectedServiceData?.collectMobile === true
     const sltRequired = isSltRequiredService(serviceCode)
 
-    if (!serviceRequiresOtp && !sltRequired) {
+    if (!collectMobileNumber && !sltRequired) {
       // OTP disabled and NOT a bill payment service: submit token directly after brief visual feedback
       setTimeout(() => submitTokenDirect(serviceCode), 300)
     } else {
@@ -291,7 +296,7 @@ export default function KioskDashboard() {
   }
 
   const verifyOtp = async (codeValue?: string): Promise<string | null> => {
-    const code = codeValue || otpCode
+      const code = codeValue || otpCode
     if (!code || code.length !== 4) {
       setOtpError("Please enter the 4-digit code")
       return null
@@ -431,10 +436,10 @@ export default function KioskDashboard() {
     try {
       // When OTP is required, verify OTP if not already verified
       const selectedServiceData = services.find(s => s.code === selectedService)
-      const serviceRequiresOtp = selectedServiceData?.requireOtp !== false
+      const isOtpRequired = selectedServiceData?.requireOtp === true
 
       let tokenForSubmit = otpToken
-      if (serviceRequiresOtp) {
+      if (isOtpRequired) {
         if (otpStep !== 'verified' || !tokenForSubmit) {
           const vt = await verifyOtp()
           if (!vt) {
@@ -828,7 +833,7 @@ export default function KioskDashboard() {
 
   const t = translations[language]
   const selectedServiceData = services.find(s => s.code === selectedService)
-  const serviceRequiresOtp = selectedServiceData?.requireOtp !== false
+  const isOtpRequired = selectedServiceData?.requireOtp === true
 
   // Idle timer logic
   useEffect(() => {
@@ -838,7 +843,7 @@ export default function KioskDashboard() {
       clearTimeout(idleTimer)
       // Reset after 60 seconds of inactivity
       idleTimer = setTimeout(() => {
-        if (promoVideoUrl && !successToken) {
+        if (!successToken) {
           setShowPromo(true)
           // Reset form state to Step 1
           setCurrentStep(1)
@@ -1064,9 +1069,9 @@ export default function KioskDashboard() {
               <div className="flex items-center justify-center gap-2 mb-2">
                 {(() => {
                   const selectedServiceData = services.find(s => s.code === selectedService)
-                  const serviceRequiresOtp = selectedServiceData?.requireOtp !== false
+                  const collectMobileNumber = selectedServiceData?.collectMobile === true
                   const sltRequired = isSltRequiredService(selectedService)
-                  const totalSteps = (serviceRequiresOtp || sltRequired) ? 3 : 2
+                  const totalSteps = (collectMobileNumber || sltRequired) ? 3 : 2
 
                   return Array.from({ length: totalSteps }, (_, i) => i + 1).map((step) => (
                     <div key={step} className="flex items-center">
@@ -1091,9 +1096,9 @@ export default function KioskDashboard() {
               <p className="text-xs text-center text-gray-500">
                 {(() => {
                   const selectedServiceData = services.find(s => s.code === selectedService)
-                  const serviceRequiresOtp = selectedServiceData?.requireOtp !== false
+                  const collectMobileNumber = selectedServiceData?.collectMobile === true
                   const sltRequired = isSltRequiredService(selectedService)
-                  const totalSteps = (serviceRequiresOtp || sltRequired) ? 3 : 2
+                  const totalSteps = (collectMobileNumber || sltRequired) ? 3 : 2
                   return `${t.step} ${currentStep} ${t.of} ${totalSteps}`
                 })()}
               </p>
@@ -1194,7 +1199,7 @@ export default function KioskDashboard() {
               )}
 
               {/* STEP 3: Customer Information — only shown when OTP or SLT details are required */}
-              {currentStep === 3 && (serviceRequiresOtp || isSltRequiredService(selectedService)) && (
+              {currentStep === 3 && ((services.find(s => s.code === selectedService)?.collectMobile === true) || isSltRequiredService(selectedService)) && (
                 <div className="space-y-6">
                   <div className="text-center">
                     <h2 className="text-xl font-bold text-gray-900 mb-2">{t.step3Title}</h2>
@@ -1372,11 +1377,11 @@ export default function KioskDashboard() {
                     {otpStep === 'idle' && (
                       <button
                         type="button"
-                        onClick={serviceRequiresOtp ? sendOtp : () => generateToken(selectedService, mobileNumber)}
-                        disabled={submitting || (serviceRequiresOtp ? otpSending : false) || (serviceRequiresOtp ? !canSendOtp() : !canProceedFromStep3()) || !selectedService}
+                        onClick={isOtpRequired ? sendOtp : () => generateToken(selectedService, mobileNumber)}
+                        disabled={submitting || (isOtpRequired ? otpSending : false) || (isOtpRequired ? !canSendOtp() : !canProceedFromStep3()) || !selectedService}
                         className="flex-1 bg-indigo-600 text-white py-3 rounded-xl font-semibold hover:bg-indigo-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
                       >
-                        {serviceRequiresOtp ? (otpSending ? t.sendingOTP : t.verify) : (submitting ? t.pleaseWait : t.generateToken)}
+                        {isOtpRequired ? (otpSending ? t.sendingOTP : t.verify) : (submitting ? t.pleaseWait : t.generateToken)}
                       </button>
                     )}
                   </div>
