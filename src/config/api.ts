@@ -65,6 +65,14 @@ api.interceptors.request.use(
       }
     }
 
+    // Check for Kiosk token for kiosk routes
+    if (config.url?.startsWith('/kiosk/')) {
+      const kioskToken = localStorage.getItem('kioskToken')
+      if (kioskToken) {
+        config.headers.Authorization = `Bearer ${kioskToken}`
+      }
+    }
+
     return config
   },
   (error) => {

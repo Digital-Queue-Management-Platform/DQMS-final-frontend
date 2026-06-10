@@ -36,7 +36,7 @@ export default function CustomerRegistration() {
   const [language, setLanguage] = useState<"en" | "si" | "ta">("en")
   const [qrToken, setQrToken] = useState<string>("")
   const [qrValid, setQrValid] = useState<boolean>(false)
-  const [services, setServices] = useState<Array<{ id: string; code: string; title: string; isActive?: boolean; isPriorityService?: boolean; requireOtp?: boolean }>>([])
+  const [services, setServices] = useState<Array<{ id: string; code: string; title: string; isActive?: boolean; isPriorityService?: boolean; requireOtp?: boolean; collectMobile?: boolean }>>([])
   const [preferredLanguage, setPreferredLanguage] = useState<string>("")
   // OTP verification states
   const [otpStep, setOtpStep] = useState<'idle' | 'sent' | 'verified'>("idle")
@@ -179,7 +179,7 @@ export default function CustomerRegistration() {
 
     // Always fetch outlets and services first
     fetchOutlets()
-    fetchServices()
+    // fetchServices() is called by the selectedOutlet useEffect
 
     // Clear any previous customer session data that might interfere
     // Keep only QR-related data
@@ -344,9 +344,10 @@ export default function CustomerRegistration() {
   }
 
   // Load services from admin-managed list (active only)
-  const fetchServices = async () => {
+  const fetchServices = async (id?: string) => {
     try {
-      const response = await api.get('/queue/services')
+      const url = id ? `/queue/services?outletId=${id}` : '/queue/services'
+      const response = await api.get(url)
       const data = Array.isArray(response.data) ? response.data : []
       setServices(data.filter((s: any) => s.isActive !== false))
     } catch (err) {
@@ -354,6 +355,14 @@ export default function CustomerRegistration() {
       setServices([])
     }
   }
+
+  useEffect(() => {
+    if (selectedOutlet) {
+      fetchServices(selectedOutlet)
+    } else {
+      fetchServices()
+    }
+  }, [selectedOutlet])
 
 
 
@@ -383,10 +392,9 @@ export default function CustomerRegistration() {
     if (billRateLimited) return // Stop retrying after a 429 – avoids infinite loop
     
     const selectedServiceData = services.find(s => s.code === selectedService)
-    const serviceRequiresOtp = selectedServiceData?.requireOtp !== false
-    const effectiveOtpRequired = serviceRequiresOtp
+    const isOtpRequired = selectedServiceData?.requireOtp === true
     
-    if (effectiveOtpRequired) return // OTP verification flow will handle it
+    if (isOtpRequired) return // OTP verification flow will handle it
 
     const allSltValid = sltTelephoneNumbers.length > 0 && sltTelephoneNumbers.every(num => isValidSlt(num))
     if (isValidMobile(mobileNumber) && allSltValid && !sltVerified && !loading) {
@@ -455,12 +463,12 @@ export default function CustomerRegistration() {
     
     // Check if this specific service requires OTP
     const service = services.find(s => s.code === serviceCode)
-    const serviceRequiresOtp = service?.requireOtp === true
+    const collectMobileNumber = service?.collectMobile === true
     const isBillPayment = isSltRequiredService(serviceCode)
     
-    // If OTP is disabled for this service, AND it's NOT a bill payment service,
+    // If we don't need to collect mobile number AND it's NOT a bill payment service,
     // we can submit directly. Otherwise, we go to Step 3 to collect info (Mobile/SLT numbers).
-    if (!serviceRequiresOtp && !isBillPayment) {
+    if (!collectMobileNumber && !isBillPayment) {
       // Submit token directly after brief visual feedback
       setTimeout(() => submitDirectRegistration(serviceCode), 300)
     } else {
@@ -533,7 +541,7 @@ export default function CustomerRegistration() {
   }
 
   const verifyOtp = async (codeValue?: string): Promise<string | null> => {
-    const code = codeValue || otpCode
+      const code = codeValue || otpCode
     if (!code || code.length !== 4) {
       setOtpError("Please enter the 4-digit code")
       return null
@@ -1109,9 +1117,9 @@ export default function CustomerRegistration() {
   const t = translations[language]
 
   const selectedServiceData = services.find(s => s.code === selectedService)
-  const serviceRequiresOtp = selectedServiceData?.requireOtp !== false // Default to true if not specified
-  // OTP logic: Only depend on the specific service configuration as per user request
-  const effectiveOtpRequired = serviceRequiresOtp;
+  const isOtpRequired = selectedServiceData?.requireOtp === true
+  
+  const effectiveOtpRequired = isOtpRequired;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-3 sm:p-4 lg:p-6">

@@ -11,6 +11,8 @@ import NoticeModal from '../components/NoticeModal'
 import MultiTelephoneNumberInput from '../components/MultiTelephoneNumberInput'
 import { useBranchStatus } from '../hooks/useBranchStatus'
 import { useOutletNotices } from '../hooks/useOutletNotices'
+import { useWebSocket } from '../hooks/useWebSocket'
+import { QRCodeSVG } from 'qrcode.react'
 
 interface Service {
   id: string
@@ -19,6 +21,7 @@ interface Service {
   description: string | null
   isPriorityService?: boolean
   requireOtp?: boolean
+  collectMobile?: boolean
 }
 
 export default function KioskDashboard() {
@@ -27,6 +30,9 @@ export default function KioskDashboard() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [language, setLanguage] = useState<"en" | "si" | "ta">("en")
+  const [promoVideoUrl, setPromoVideoUrl] = useState<string>('')
+  const [showPromo, setShowPromo] = useState<boolean>(true)
+  const [qrToken, setQrToken] = useState<string | null>(null)
 
   // Form state
   const [_name, setName] = useState('')
@@ -91,6 +97,20 @@ export default function KioskDashboard() {
   const branchStatus = useBranchStatus(kioskOutletId)
   const { notices: activeNotices, dismiss: dismissNotice } = useOutletNotices(kioskOutletId)
 
+  useWebSocket({
+    onMessage: (msg) => {
+      try {
+        if (msg?.type === "QR_UPDATED" && msg?.data) {
+          if (outlet && msg.data.outletId === outlet.id) {
+            setQrToken(msg.data.token)
+          }
+        }
+      } catch (err) {
+        console.error("Error processing websocket message:", err)
+      }
+    }
+  })
+
   useEffect(() => {
     const token = localStorage.getItem('kioskToken')
     const outletData = localStorage.getItem('kioskOutlet')
@@ -100,8 +120,9 @@ export default function KioskDashboard() {
       return
     }
 
-    setOutlet(JSON.parse(outletData))
-    loadInitialData()
+    const parsedOutlet = JSON.parse(outletData)
+    setOutlet(parsedOutlet)
+    loadInitialData(parsedOutlet.id)
   }, [navigate])
 
   // Auto-submit form after OTP verification
@@ -118,8 +139,11 @@ export default function KioskDashboard() {
   // Auto-submit for bill payment removed in favor of manual selection post-verification
   // Auto-send OTP when mobile number reaches 10 valid digits on step 3
   useEffect(() => {
+    const selectedServiceData = services.find(s => s.code === selectedService)
+    const isOtpRequired = selectedServiceData?.requireOtp === true
+
     if (currentStep === 3 && mobileNumber.length === 10 && (mobileNumber.startsWith('07') || mobileNumber.startsWith('01'))) {
-      if (canSendOtp() && serviceRequiresOtp && otpStep === 'idle' && !otpSending && !autoSendingOtp) {
+      if (canSendOtp() && isOtpRequired && otpStep === 'idle' && !otpSending && !autoSendingOtp) {
         setAutoSendingOtp(true);
         const timer = setTimeout(() => {
           goToNextStep();
@@ -129,7 +153,7 @@ export default function KioskDashboard() {
         return () => clearTimeout(timer);
       }
     }
-  }, [mobileNumber, currentStep])
+  }, [mobileNumber, currentStep, selectedService, services])
 
   // Auto-verify SLT numbers when OTP is disabled and details are filled
   useEffect(() => {
@@ -137,9 +161,9 @@ export default function KioskDashboard() {
     if (billRateLimited) return // Stop retrying after a 429 – avoids infinite loop
     
     const selectedServiceData = services.find(s => s.code === selectedService)
-    const serviceRequiresOtp = selectedServiceData?.requireOtp !== false
+    const isOtpRequired = selectedServiceData?.requireOtp === true
     
-    if (serviceRequiresOtp) return // OTP verification flow will handle it
+    if (isOtpRequired) return // OTP verification flow will handle it
 
     const allSltValid = sltTelephoneNumbers.length > 0 && sltTelephoneNumbers.every(num => isValidSlt(num))
     if (isValidMobile(mobileNumber) && allSltValid && !sltVerified && !loading) {
@@ -160,10 +184,33 @@ export default function KioskDashboard() {
     setVerifiedBills([])
   }, [sltTelephoneNumbers])
 
-  const loadInitialData = async () => {
+  const loadInitialData = async (currentOutletId: string) => {
     try {
+      // Fetch outlet settings including promo video
+      try {
+        const settingsRes = await api.get('/kiosk/outlet-settings')
+        let videoUrl = settingsRes.data.outlet?.displaySettings?.promoVideoUrl
+        if (videoUrl) {
+          // Auto-fix locally saved URLs if accessing from another device
+          const baseUrl = api.defaults.baseURL?.replace(/\/api$/, '') || ''
+          if (videoUrl.includes('localhost:') && baseUrl && !baseUrl.includes('localhost:')) {
+            videoUrl = videoUrl.replace(/http:\/\/localhost:\d+/, baseUrl)
+          }
+          setPromoVideoUrl(videoUrl)
+          setShowPromo(true)
+        } else {
+          setShowPromo(false)
+        }
+        if (settingsRes.data.qrToken) {
+          setQrToken(settingsRes.data.qrToken)
+        }
+      } catch (err) {
+        console.error('Failed to load outlet settings:', err)
+        setShowPromo(false)
+      }
+
       // Fetch active services from public endpoint (already ordered correctly)
-      const response = await api.get('/queue/services')
+      const response = await api.get(`/queue/services?outletId=${currentOutletId}`)
       const allServices = response.data || []
       // Filter only active services
       const activeServices = allServices.filter((s: any) => s.isActive !== false)
@@ -186,10 +233,10 @@ export default function KioskDashboard() {
   const handleServiceSelect = (serviceCode: string) => {
     setSelectedService(serviceCode)
     const selectedServiceData = services.find(s => s.code === serviceCode)
-    const serviceRequiresOtp = selectedServiceData?.requireOtp !== false
+    const collectMobileNumber = selectedServiceData?.collectMobile === true
     const sltRequired = isSltRequiredService(serviceCode)
 
-    if (!serviceRequiresOtp && !sltRequired) {
+    if (!collectMobileNumber && !sltRequired) {
       // OTP disabled and NOT a bill payment service: submit token directly after brief visual feedback
       setTimeout(() => submitTokenDirect(serviceCode), 300)
     } else {
@@ -249,7 +296,7 @@ export default function KioskDashboard() {
   }
 
   const verifyOtp = async (codeValue?: string): Promise<string | null> => {
-    const code = codeValue || otpCode
+      const code = codeValue || otpCode
     if (!code || code.length !== 4) {
       setOtpError("Please enter the 4-digit code")
       return null
@@ -342,6 +389,13 @@ export default function KioskDashboard() {
 
   const goToPreviousStep = () => {
     if (currentStep === 2) {
+      if (promoVideoUrl) {
+        setShowPromo(true)
+        setPreferredLanguage("")
+        setLanguage("en")
+        setCurrentStep(1)
+        return
+      }
       setPreferredLanguage("")
     }
     if (currentStep === 3) {
@@ -382,10 +436,10 @@ export default function KioskDashboard() {
     try {
       // When OTP is required, verify OTP if not already verified
       const selectedServiceData = services.find(s => s.code === selectedService)
-      const serviceRequiresOtp = selectedServiceData?.requireOtp !== false
+      const isOtpRequired = selectedServiceData?.requireOtp === true
 
       let tokenForSubmit = otpToken
-      if (serviceRequiresOtp) {
+      if (isOtpRequired) {
         if (otpStep !== 'verified' || !tokenForSubmit) {
           const vt = await verifyOtp()
           if (!vt) {
@@ -493,6 +547,9 @@ export default function KioskDashboard() {
     setBillPaymentAmount('')
     setPaymentMethod('')
     setCurrentStep(1)
+    if (promoVideoUrl) {
+      setShowPromo(true)
+    }
   }
 
   const translations = {
@@ -580,7 +637,13 @@ export default function KioskDashboard() {
       invalidName: "Please enter your full name (at least 2 characters)",
       verifySltAccountNote: "We'll verify your SLT account after you verify your mobile number",
       billEnquiryLimitReached: "Daily bill enquiry limit reached. For your privacy, each mobile number can only request bill details 3 times per day. Please try again tomorrow.",
-      pleaseWait: "Please wait..."
+      pleaseWait: "Please wait...",
+      tokenGeneratedSuccess: "Token Generated Successfully!",
+      rememberTokenNumber: "Please remember your token number",
+      yourTokenNumber: "Your Token Number",
+      servicesLabel: "Services:",
+      timeLabel: "Time:",
+      generateAnotherTokenAction: "Generate Another Token"
     },
     si: {
       title: "ඩිජිටල් පෝලිම වේදිකාව",
@@ -666,7 +729,13 @@ export default function KioskDashboard() {
       invalidName: "කරුණාකර ඔබගේ සම්පූර්ණ නම ඇතුළත් කරන්න (අඩුම තරමින් අකුරු 2ක්)",
       verifySltAccountNote: "ඔබ ජංගම දුරකථන අංකය තහවුරු කළ පසු අපි ඔබේ SLT ගිණුම තහවුරු කරන්නෙමු",
       billEnquiryLimitReached: "දෛනික බිල් විමසීමේ සීමාව ළඟා වී ඇත. ඔබේ පෞද්ගලිකත්වය ආරක්ෂා කිරීම සඳහා, සෑම ජංගම අංකයකටම දිනකට 3 වතාවක් පමණ බිල් විස්තර ඉල්ලා ගත හැකිය. හෙට නැවත උත්සාහ කරන්න.",
-      pleaseWait: "කරුණාකර රැඳී සිටින්න..."
+      pleaseWait: "කරුණාකර රැඳී සිටින්න...",
+      tokenGeneratedSuccess: "ටෝකනය සාර්ථකව ජනනය කරන ලදී!",
+      rememberTokenNumber: "කරුණාකර ඔබගේ ටෝකන් අංකය මතක තබා ගන්න",
+      yourTokenNumber: "ඔබගේ ටෝකන් අංකය",
+      servicesLabel: "සේවාවන්:",
+      timeLabel: "වේලාව:",
+      generateAnotherTokenAction: "තවත් ටෝකනයක් ජනනය කරන්න"
     },
     ta: {
       title: "டிஜிட்டல் வரிசை தளம்",
@@ -752,13 +821,69 @@ export default function KioskDashboard() {
       invalidName: "தயவுசெய்து உங்கள் முழு பெயரை உள்ளிடவும் (குறைந்தது 2 எழுத்துக்கள்)",
       verifySltAccountNote: "உங்கள் மொபைல் எண்ணை சரிபார்த்த பிறகு உங்கள் SLT கணக்கை சரிபார்ப்போம்",
       billEnquiryLimitReached: "தினசரி பில் விசாரணை வரம்பை எட்டிவிட்டது. உங்கள் தனியுரிமையைப் பாதுகாக்க, ஒவ்வொரு மொபைல் எண்ணும் ஒரு நாளைக்கு 3 முறை மட்டுமே பில் விவரங்களைக் கோரலாம். நாளை மீண்டும் முயற்சிக்கவும்.",
-      pleaseWait: "தயவுசெய்து காத்திருக்கவும்..."
+      pleaseWait: "தயவுசெய்து காத்திருக்கவும்...",
+      tokenGeneratedSuccess: "டோக்கன் வெற்றிகரமாக உருவாக்கப்பட்டது!",
+      rememberTokenNumber: "தயவுசெய்து உங்கள் டோக்கன் எண்ணை நினைவில் கொள்ளுங்கள்",
+      yourTokenNumber: "உங்கள் டோக்கன் எண்",
+      servicesLabel: "சேவைகள்:",
+      timeLabel: "நேரம்:",
+      generateAnotherTokenAction: "மற்றொரு டோக்கனை உருவாக்குங்கள்"
     }
   }
 
   const t = translations[language]
   const selectedServiceData = services.find(s => s.code === selectedService)
-  const serviceRequiresOtp = selectedServiceData?.requireOtp !== false
+  const isOtpRequired = selectedServiceData?.requireOtp === true
+
+  // Idle timer logic
+  useEffect(() => {
+    let idleTimer: ReturnType<typeof setTimeout>
+
+    const resetIdleTimer = () => {
+      clearTimeout(idleTimer)
+      // Reset after 60 seconds of inactivity
+      idleTimer = setTimeout(() => {
+        if (!successToken) {
+          setShowPromo(true)
+          // Reset form state to Step 1
+          setCurrentStep(1)
+          setName('')
+          setMobileNumber('')
+          setNicNumber('')
+          setEmail('')
+          setSelectedService('')
+          setPreferredLanguage('')
+          setOtpStep('idle')
+          setOtpCode('')
+          setOtpToken('')
+          setOtpError('')
+          setError('')
+          setSltTelephoneNumbers([])
+          setVerifiedBills([])
+          setSltVerified(false)
+          setBillPaymentIntent('')
+          setBillPaymentAmount('')
+          setPaymentMethod('')
+        }
+      }, 60000)
+    }
+
+    if (!showPromo && !successToken) {
+      window.addEventListener('mousemove', resetIdleTimer)
+      window.addEventListener('touchstart', resetIdleTimer)
+      window.addEventListener('keypress', resetIdleTimer)
+      window.addEventListener('click', resetIdleTimer)
+      resetIdleTimer()
+    }
+
+    return () => {
+      clearTimeout(idleTimer)
+      window.removeEventListener('mousemove', resetIdleTimer)
+      window.removeEventListener('touchstart', resetIdleTimer)
+      window.removeEventListener('keypress', resetIdleTimer)
+      window.removeEventListener('click', resetIdleTimer)
+    }
+  }, [showPromo, promoVideoUrl, successToken])
 
   if (loading) {
     return (
@@ -766,6 +891,121 @@ export default function KioskDashboard() {
         <div className="text-center">
           <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto"></div>
           <p className="mt-4 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (showPromo && promoVideoUrl) {
+    return (
+      <div 
+        className="fixed inset-0 w-full h-full bg-black z-50 overflow-hidden flex flex-col items-center justify-center"
+      >
+        <video 
+          src={promoVideoUrl} 
+          autoPlay 
+          loop 
+          muted 
+          className="absolute inset-0 w-full h-full object-cover opacity-80"
+        />
+        <div className="absolute inset-0 bg-black/30" />
+        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/70 to-transparent pt-32 pb-8 px-6 sm:px-12 z-10 flex flex-col sm:flex-row items-end justify-between gap-6">
+          <div className="flex flex-col sm:flex-row gap-6 items-start sm:items-end w-full sm:w-auto">
+            {qrToken && outlet?.id && (
+              <div className="bg-white/90 backdrop-blur-sm p-4 rounded-2xl shadow-2xl flex flex-col items-center gap-3 border-2 border-white/50 transition-transform hover:scale-105">
+                <div className="bg-white p-2 rounded-xl">
+                  <QRCodeSVG
+                    value={`${window.location.origin}/register/${outlet.id}?qr=${encodeURIComponent(qrToken)}`}
+                    size={140}
+                    level="H"
+                    includeMargin={false}
+                  />
+                </div>
+                <div className="text-center">
+                  <span className="text-blue-900 font-extrabold text-sm uppercase tracking-widest block">Scan to Join</span>
+                  <span className="text-blue-700 font-semibold text-xs tracking-wider">From Mobile</span>
+                </div>
+              </div>
+            )}
+            <div className="text-left">
+              <h1 className="text-3xl sm:text-5xl font-extrabold text-white mb-2 drop-shadow-lg tracking-tight">
+                Digital Queue Platform
+              </h1>
+              <p className="text-lg sm:text-2xl text-blue-300 font-medium mb-3 drop-shadow">
+                Register to join the queue
+              </p>
+              <div className="h-px w-full max-w-sm bg-white/30 mb-3"></div>
+              <h2 className="text-xl sm:text-2xl font-bold text-white drop-shadow">
+                Walk-in Token Generation
+              </h2>
+              <p className="text-sm sm:text-lg text-gray-300 font-medium">
+                {outlet?.name} {outlet?.location ? `- ${outlet.location}` : ''}
+              </p>
+            </div>
+          </div>
+          
+          <div className="w-full sm:w-auto flex flex-col items-center sm:items-end gap-3 pb-2">
+            <p className="text-white/90 font-medium text-sm sm:text-lg mb-1 drop-shadow-md">Select Language to Begin</p>
+            <div className="flex flex-wrap justify-center sm:justify-end gap-3 sm:gap-4">
+              <button 
+                onClick={async (e) => {
+                  e.stopPropagation();
+                  try {
+                    if (document.documentElement.requestFullscreen && !document.fullscreenElement) {
+                      await document.documentElement.requestFullscreen()
+                    }
+                  } catch (err) {
+                    console.error("Fullscreen request failed", err)
+                  }
+                  setPreferredLanguage('en')
+                  setLanguage('en')
+                  setShowPromo(false)
+                  setCurrentStep(2)
+                }}
+                className="text-lg sm:text-xl text-white font-bold tracking-wide drop-shadow-xl bg-blue-600/90 hover:bg-blue-500/90 px-6 sm:px-8 py-3 sm:py-4 rounded-full backdrop-blur-sm border border-white/50 shadow-[0_0_20px_rgba(37,99,235,0.5)] transition-transform hover:scale-105 active:scale-95"
+              >
+                English
+              </button>
+              <button 
+                onClick={async (e) => {
+                  e.stopPropagation();
+                  try {
+                    if (document.documentElement.requestFullscreen && !document.fullscreenElement) {
+                      await document.documentElement.requestFullscreen()
+                    }
+                  } catch (err) {
+                    console.error("Fullscreen request failed", err)
+                  }
+                  setPreferredLanguage('si')
+                  setLanguage('si')
+                  setShowPromo(false)
+                  setCurrentStep(2)
+                }}
+                className="text-lg sm:text-xl text-white font-bold tracking-wide drop-shadow-xl bg-blue-600/90 hover:bg-blue-500/90 px-6 sm:px-8 py-3 sm:py-4 rounded-full backdrop-blur-sm border border-white/50 shadow-[0_0_20px_rgba(37,99,235,0.5)] transition-transform hover:scale-105 active:scale-95"
+              >
+                සිංහල
+              </button>
+              <button 
+                onClick={async (e) => {
+                  e.stopPropagation();
+                  try {
+                    if (document.documentElement.requestFullscreen && !document.fullscreenElement) {
+                      await document.documentElement.requestFullscreen()
+                    }
+                  } catch (err) {
+                    console.error("Fullscreen request failed", err)
+                  }
+                  setPreferredLanguage('ta')
+                  setLanguage('ta')
+                  setShowPromo(false)
+                  setCurrentStep(2)
+                }}
+                className="text-lg sm:text-xl text-white font-bold tracking-wide drop-shadow-xl bg-blue-600/90 hover:bg-blue-500/90 px-6 sm:px-8 py-3 sm:py-4 rounded-full backdrop-blur-sm border border-white/50 shadow-[0_0_20px_rgba(37,99,235,0.5)] transition-transform hover:scale-105 active:scale-95"
+              >
+                தமிழ்
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     )
@@ -829,9 +1069,9 @@ export default function KioskDashboard() {
               <div className="flex items-center justify-center gap-2 mb-2">
                 {(() => {
                   const selectedServiceData = services.find(s => s.code === selectedService)
-                  const serviceRequiresOtp = selectedServiceData?.requireOtp !== false
+                  const collectMobileNumber = selectedServiceData?.collectMobile === true
                   const sltRequired = isSltRequiredService(selectedService)
-                  const totalSteps = (serviceRequiresOtp || sltRequired) ? 3 : 2
+                  const totalSteps = (collectMobileNumber || sltRequired) ? 3 : 2
 
                   return Array.from({ length: totalSteps }, (_, i) => i + 1).map((step) => (
                     <div key={step} className="flex items-center">
@@ -856,9 +1096,9 @@ export default function KioskDashboard() {
               <p className="text-xs text-center text-gray-500">
                 {(() => {
                   const selectedServiceData = services.find(s => s.code === selectedService)
-                  const serviceRequiresOtp = selectedServiceData?.requireOtp !== false
+                  const collectMobileNumber = selectedServiceData?.collectMobile === true
                   const sltRequired = isSltRequiredService(selectedService)
-                  const totalSteps = (serviceRequiresOtp || sltRequired) ? 3 : 2
+                  const totalSteps = (collectMobileNumber || sltRequired) ? 3 : 2
                   return `${t.step} ${currentStep} ${t.of} ${totalSteps}`
                 })()}
               </p>
@@ -959,7 +1199,7 @@ export default function KioskDashboard() {
               )}
 
               {/* STEP 3: Customer Information — only shown when OTP or SLT details are required */}
-              {currentStep === 3 && (serviceRequiresOtp || isSltRequiredService(selectedService)) && (
+              {currentStep === 3 && ((services.find(s => s.code === selectedService)?.collectMobile === true) || isSltRequiredService(selectedService)) && (
                 <div className="space-y-6">
                   <div className="text-center">
                     <h2 className="text-xl font-bold text-gray-900 mb-2">{t.step3Title}</h2>
@@ -1137,11 +1377,11 @@ export default function KioskDashboard() {
                     {otpStep === 'idle' && (
                       <button
                         type="button"
-                        onClick={serviceRequiresOtp ? sendOtp : () => generateToken(selectedService, mobileNumber)}
-                        disabled={submitting || (serviceRequiresOtp ? otpSending : false) || (serviceRequiresOtp ? !canSendOtp() : !canProceedFromStep3()) || !selectedService}
+                        onClick={isOtpRequired ? sendOtp : () => generateToken(selectedService, mobileNumber)}
+                        disabled={submitting || (isOtpRequired ? otpSending : false) || (isOtpRequired ? !canSendOtp() : !canProceedFromStep3()) || !selectedService}
                         className="flex-1 bg-indigo-600 text-white py-3 rounded-xl font-semibold hover:bg-indigo-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
                       >
-                        {serviceRequiresOtp ? (otpSending ? t.sendingOTP : t.verify) : (submitting ? t.pleaseWait : t.generateToken)}
+                        {isOtpRequired ? (otpSending ? t.sendingOTP : t.verify) : (submitting ? t.pleaseWait : t.generateToken)}
                       </button>
                     )}
                   </div>
@@ -1214,11 +1454,11 @@ export default function KioskDashboard() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
                 </div>
-                <h2 className="text-2xl font-bold text-gray-800 mb-2">Token Generated Successfully!</h2>
-                <p className="text-gray-600 mb-6">Please remember your token number</p>
+                <h2 className="text-2xl font-bold text-gray-800 mb-2">{t.tokenGeneratedSuccess}</h2>
+                <p className="text-gray-600 mb-6">{t.rememberTokenNumber}</p>
 
                 <div className="bg-blue-50 rounded-lg p-6 mb-6">
-                  <div className="text-sm text-slate-500 mb-1">Your Token Number</div>
+                  <div className="text-sm text-slate-500 mb-1">{t.yourTokenNumber}</div>
                   <div className="text-6xl font-bold text-blue-600">
                     {successToken.tokenNumber || 'N/A'}
                   </div>
@@ -1232,7 +1472,7 @@ export default function KioskDashboard() {
                 <div className="text-left bg-slate-50 rounded-xl p-4 mb-6 space-y-2 text-sm">
 
                   <div className="flex justify-between items-start">
-                    <span className="text-gray-600">Services:</span>
+                    <span className="text-gray-600">{t.servicesLabel}</span>
                     <div className="text-right">
                       {successToken.serviceTypes.map((code: string) => (
                         <div key={code} className="font-medium text-blue-700">{getServiceTitle(code)}</div>
@@ -1240,7 +1480,7 @@ export default function KioskDashboard() {
                     </div>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Time:</span>
+                    <span className="text-gray-600">{t.timeLabel}</span>
                     <span className="font-medium">{new Date(successToken.createdAt).toLocaleTimeString()}</span>
                   </div>
                 </div>
@@ -1249,7 +1489,7 @@ export default function KioskDashboard() {
                   onClick={closeSuccessModal}
                   className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 font-semibold transition-colors"
                 >
-                  Generate Another Token
+                  {t.generateAnotherTokenAction}
                 </button>
               </div>
             </div>

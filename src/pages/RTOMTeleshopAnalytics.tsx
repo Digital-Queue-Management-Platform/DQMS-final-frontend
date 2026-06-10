@@ -72,8 +72,35 @@ export default function RTOMTeleshopAnalytics() {
   const [selectedOutlet, setSelectedOutlet] = useState<string>('')
   const [metrics, setMetrics] = useState<PerformanceMetrics | null>(null)
   const [loading, setLoading] = useState(true)
-  const [selectedTimeframe, setSelectedTimeframe] = useState('Today')
+  const [startDate, setStartDate] = useState<string>(new Date().toISOString().split('T')[0])
+  const [endDate, setEndDate] = useState<string>(new Date().toISOString().split('T')[0])
+  const [quickFilter, setQuickFilter] = useState('Today')
   const navigate = useNavigate()
+
+  const handleQuickFilterChange = (value: string) => {
+    setQuickFilter(value)
+    if (value === 'Custom') return
+    
+    const end = new Date()
+    const start = new Date()
+    
+    switch (value.toLowerCase()) {
+      case 'today':
+        break
+      case 'weekly':
+        start.setDate(start.getDate() - 7)
+        break
+      case 'monthly':
+        start.setMonth(start.getMonth() - 1)
+        break
+      case 'annual':
+        start.setFullYear(start.getFullYear() - 1)
+        break
+    }
+    
+    setStartDate(start.toISOString().split('T')[0])
+    setEndDate(end.toISOString().split('T')[0])
+  }
 
   useEffect(() => {
     const storedManager = localStorage.getItem('manager')
@@ -92,7 +119,7 @@ export default function RTOMTeleshopAnalytics() {
     if (selectedOutlet) {
       fetchAnalytics()
     }
-  }, [selectedOutlet, selectedTimeframe])
+  }, [selectedOutlet, startDate, endDate])
 
   const fetchOutlets = async () => {
     try {
@@ -109,67 +136,32 @@ export default function RTOMTeleshopAnalytics() {
       }
     } catch (error) {
       console.error('Failed to fetch outlets:', error)
-      // Mock data for development
-      const mockOutlets = [
-        { id: '1', name: 'Sri Lanka Telecom Kotte', address: 'Sri Jayawardenepura Kotte 10100', teleshopManagerName: 'Deepika Priyanganee' },
-        { id: '2', name: 'Colombo Main Branch', address: 'Colombo 01', teleshopManagerName: 'Samantha Silva' }
-      ]
-      setOutlets(mockOutlets)
-      setSelectedOutlet(mockOutlets[0].id)
+      setOutlets([])
     }
   }
 
   const fetchAnalytics = async () => {
     try {
       setLoading(true)
+      
+      const start = new Date(startDate)
+      start.setHours(0, 0, 0, 0)
+      
+      const end = new Date(endDate)
+      end.setHours(23, 59, 59, 999)
+
       const response = await api.get(`/manager/outlet/${selectedOutlet}/analytics`, {
-        params: { timeframe: selectedTimeframe.toLowerCase() }
+        params: { 
+          startDate: start.toISOString(),
+          endDate: end.toISOString()
+        }
       })
       
       const data = response.data
       setMetrics(data)
     } catch (error) {
       console.error('Failed to fetch analytics:', error)
-      // Mock data for development
-      const mockHourlyData = Array.from({ length: 12 }, (_, i) => ({
-        hour: `${8 + i}:00`,
-        waitTime: Math.floor(Math.random() * 10) + 2,
-        serviceTime: Math.floor(Math.random() * 8) + 5,
-        issued: Math.floor(Math.random() * 20) + 5,
-        completed: Math.floor(Math.random() * 18) + 3,
-        dropOffs: Math.floor(Math.random() * 3),
-        activeCounters: Math.floor(Math.random() * 4) + 1
-      }))
-
-      const mockMetrics: PerformanceMetrics = {
-        totalCustomers: 142,
-        avgWaitTime: 6.5,
-        avgServiceTime: 8.2,
-        customerSatisfaction: 4.3,
-        totalIssued: 165,
-        totalCompleted: 142,
-        totalDropOffs: 23,
-        completionRate: 86.1,
-        changePercents: { customers: 5.2, waitTime: -2.3, serviceTime: -1.1, satisfaction: 0.3 },
-        hourlyData: mockHourlyData,
-        ratingDistribution: [
-          { rating: 1, count: 2 },
-          { rating: 2, count: 5 },
-          { rating: 3, count: 12 },
-          { rating: 4, count: 45 },
-          { rating: 5, count: 78 }
-        ],
-        officers: [
-          { id: '1', name: 'Kasun Perera', tokensServed: 45, avgServiceTime: 7.2, rating: 4.5 },
-          { id: '2', name: 'Nimali Fernando', tokensServed: 52, avgServiceTime: 6.8, rating: 4.8 },
-          { id: '3', name: 'Rohan Silva', tokensServed: 38, avgServiceTime: 8.1, rating: 4.2 }
-        ],
-        alerts: [
-          { id: '1', message: 'High wait times detected in Counter 3', severity: 'warning', time: '2 hours ago' },
-          { id: '2', message: 'Customer complaint received - Service quality', severity: 'high', time: '30 minutes ago' }
-        ]
-      }
-      setMetrics(mockMetrics)
+      setMetrics(null)
     } finally {
       setLoading(false)
     }
@@ -221,18 +213,36 @@ export default function RTOMTeleshopAnalytics() {
             </div>
 
             {/* Time Period Selector */}
-            <div className="relative">
-              <select
-                value={selectedTimeframe}
-                onChange={(e) => setSelectedTimeframe(e.target.value)}
-                className="appearance-none bg-white border border-gray-300 rounded-lg px-4 py-2 pr-8 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-              >
-                <option value="Today">Today</option>
-                <option value="Weekly">Weekly</option>
-                <option value="Monthly">Monthly</option>
-                <option value="Annual">Annual</option>
-              </select>
-              <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+            <div className="flex flex-col sm:flex-row gap-2 items-center">
+              <div className="relative">
+                <select
+                  value={quickFilter}
+                  onChange={(e) => handleQuickFilterChange(e.target.value)}
+                  className="appearance-none bg-white border border-gray-300 rounded-lg px-4 py-2 pr-8 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                >
+                  <option value="Today">Today</option>
+                  <option value="Weekly">Weekly</option>
+                  <option value="Monthly">Monthly</option>
+                  <option value="Annual">Annual</option>
+                  <option value="Custom">Custom Range</option>
+                </select>
+                <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+              </div>
+              <div className="flex flex-col sm:flex-row gap-2 items-center bg-white border border-gray-300 rounded-lg px-2 py-1">
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => { setStartDate(e.target.value); setQuickFilter('Custom'); }}
+                  className="appearance-none bg-transparent outline-none border-none text-sm text-gray-700"
+                />
+                <span className="text-gray-400 text-sm">to</span>
+                <input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => { setEndDate(e.target.value); setQuickFilter('Custom'); }}
+                  className="appearance-none bg-transparent outline-none border-none text-sm text-gray-700"
+                />
+              </div>
             </div>
           </div>
         </div>
@@ -253,7 +263,7 @@ export default function RTOMTeleshopAnalytics() {
               </p>
             </div>
             <div className="text-right text-sm text-gray-500">
-              {selectedTimeframe}
+              {startDate} to {endDate}
             </div>
           </div>
         </div>

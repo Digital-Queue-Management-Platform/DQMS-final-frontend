@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import api from '../config/api'
-import { Eye, EyeOff, Copy, RefreshCw, Save, ExternalLink, MonitorPlay, CheckCircle2 } from 'lucide-react'
+import { Eye, EyeOff, Copy, RefreshCw, Save, ExternalLink, MonitorPlay, CheckCircle2, Upload, Video, Trash2 } from 'lucide-react'
 
 export default function TeleshopManagerKioskSettings() {
   const [loading, setLoading] = useState(true)
@@ -14,6 +14,8 @@ export default function TeleshopManagerKioskSettings() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [kioskLaunched, setKioskLaunched] = useState(false)
+  const [promoVideoUrl, setPromoVideoUrl] = useState('')
+  const [uploadingVideo, setUploadingVideo] = useState(false)
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -39,6 +41,14 @@ export default function TeleshopManagerKioskSettings() {
       const response = await api.get(`/teleshop-manager/kiosk-settings`)
       setOutlet(response.data.outlet)
       setCurrentPassword(response.data.outlet.kioskPassword || '')
+      
+      let videoUrl = response.data.outlet.displaySettings?.promoVideoUrl || ''
+      const baseUrl = api.defaults.baseURL?.replace(/\/api$/, '') || ''
+      if (videoUrl.includes('localhost:') && baseUrl && !baseUrl.includes('localhost:')) {
+        videoUrl = videoUrl.replace(/http:\/\/localhost:\d+/, baseUrl)
+      }
+      setPromoVideoUrl(videoUrl)
+      
       setLoading(false)
     } catch (err: any) {
       setError(err.response?.data?.error || 'Failed to load outlet information')
@@ -96,6 +106,71 @@ export default function TeleshopManagerKioskSettings() {
 
   const copyPassword = (pwd: string) => {
     navigator.clipboard.writeText(pwd)
+  }
+
+  const handleVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    if (!file.type.includes('mp4')) {
+      setError('Only MP4 videos are supported')
+      return
+    }
+
+    if (file.size > 200 * 1024 * 1024) {
+      setError('Video must be less than 200MB')
+      return
+    }
+
+    try {
+      setUploadingVideo(true)
+      setError('')
+      setSuccess('')
+
+      const formData = new FormData()
+      formData.append('file', file)
+
+      const uploadRes = await api.post('/teleshop-manager/upload-promo-video', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      })
+
+      // Ensure the URL works across different network boundaries
+      // by constructing it from the known working API_URL
+      const baseUrl = api.defaults.baseURL?.replace(/\/api$/, '') || ''
+      const newUrl = baseUrl + uploadRes.data.relativeUrl
+
+      await api.post('/teleshop-manager/kiosk-settings', {
+        promoVideoUrl: newUrl
+      })
+
+      setPromoVideoUrl(newUrl)
+      setSuccess('Promo video uploaded successfully!')
+      setTimeout(() => setSuccess(''), 5000)
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Failed to upload video')
+    } finally {
+      setUploadingVideo(false)
+    }
+  }
+
+  const handleRemoveVideo = async () => {
+    try {
+      setSaving(true)
+      setError('')
+      setSuccess('')
+
+      await api.post('/teleshop-manager/kiosk-settings', {
+        promoVideoUrl: null
+      })
+
+      setPromoVideoUrl('')
+      setSuccess('Promo video removed successfully!')
+      setTimeout(() => setSuccess(''), 5000)
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Failed to remove video')
+    } finally {
+      setSaving(false)
+    }
   }
 
   // Save outlet credentials to localStorage so the Kiosk PC auto-logs in
@@ -262,6 +337,71 @@ export default function TeleshopManagerKioskSettings() {
                   <Save className="w-5 h-5" />
                   {saving ? 'Saving...' : currentPassword ? 'Update Password' : 'Set Password'}
                 </button>
+              </div>
+            </div>
+
+            {/* Promo Video Settings */}
+            <div className="border-t border-slate-200 pt-6 mt-6">
+              <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                <Video className="w-5 h-5 text-indigo-600" />
+                Kiosk Idle Screensaver Video
+              </h3>
+              <p className="text-sm text-gray-600 mb-4">
+                Upload a promotional video to play on the Kiosk when it's idle. This will act as the "Home Page" screensaver. Customers can tap the screen to dismiss the video and join the queue.
+              </p>
+
+              <div className="bg-gray-50 border border-slate-200 rounded-xl p-6">
+                {promoVideoUrl ? (
+                  <div className="space-y-4">
+                    <div className="aspect-video w-full max-w-md bg-black rounded-lg overflow-hidden relative shadow-sm">
+                      <video 
+                        src={promoVideoUrl} 
+                        controls 
+                        className="w-full h-full object-contain"
+                      />
+                    </div>
+                    <div className="flex gap-3">
+                      <label className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors text-sm font-medium">
+                        <Upload className="w-4 h-4" />
+                        {uploadingVideo ? 'Uploading...' : 'Replace Video'}
+                        <input 
+                          type="file" 
+                          accept="video/mp4" 
+                          className="hidden" 
+                          onChange={handleVideoUpload}
+                          disabled={uploadingVideo}
+                        />
+                      </label>
+                      <button
+                        onClick={handleRemoveVideo}
+                        disabled={saving}
+                        className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-700 rounded-lg hover:bg-red-100 transition-colors text-sm font-medium"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                        Remove Video
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center p-8 border-2 border-dashed border-gray-300 rounded-xl bg-white">
+                    <MonitorPlay className="w-12 h-12 text-gray-400 mb-3" />
+                    <h4 className="text-sm font-medium text-gray-900 mb-1">No Video Configured</h4>
+                    <p className="text-xs text-gray-500 mb-4 text-center">
+                      Upload an MP4 video (max 200MB) to be displayed on the idle Kiosk screen.
+                    </p>
+                    <label className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 cursor-pointer transition-colors font-medium text-sm shadow-sm">
+                      <Upload className="w-4 h-4" />
+                      {uploadingVideo ? 'Uploading...' : 'Upload Video'}
+                      <input 
+                        type="file" 
+                        accept="video/mp4" 
+                        className="hidden" 
+                        onChange={handleVideoUpload}
+                        disabled={uploadingVideo}
+                      />
+                    </label>
+                  </div>
+                )}
               </div>
             </div>
 

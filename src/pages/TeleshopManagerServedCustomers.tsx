@@ -138,7 +138,7 @@ export default function TeleshopManagerServedCustomers() {
     setLoadingCase(refNumber)
     try {
       const res = await api.get(`/service-case/${refNumber}`)
-      setCaseDetails(prev => ({ ...prev, [refNumber]: res.data }))
+      setCaseDetails(prev => ({ ...prev, [refNumber]: Array.isArray(res.data) ? res.data[0] : res.data }))
     } catch (e: any) {
       console.error('Failed to load case details:', e)
       setCaseDetails(prev => ({ ...prev, [refNumber]: null }))
@@ -501,8 +501,16 @@ export default function TeleshopManagerServedCustomers() {
                                   <dl className="space-y-1 text-xs">
 
                                     <div className="flex gap-2">
+                                      <dt className="font-medium text-gray-600">Name:</dt>
+                                      <dd className="text-gray-900">{caseDetails[t.refNumber]?.customer?.name || '-'}</dd>
+                                    </div>
+                                    <div className="flex gap-2">
                                       <dt className="font-medium text-gray-600">Mobile:</dt>
-                                      <dd className="text-gray-900">{t.customerMobile || '-'}</dd>
+                                      <dd className="text-gray-900">{caseDetails[t.refNumber]?.customer?.mobileNumber || t.customerMobile || '-'}</dd>
+                                    </div>
+                                    <div className="flex gap-2">
+                                      <dt className="font-medium text-gray-600">Email:</dt>
+                                      <dd className="text-gray-900">{caseDetails[t.refNumber]?.customer?.email || '-'}</dd>
                                     </div>
                                     <div className="flex gap-2">
                                       <dt className="font-medium text-gray-600">Assigned Officer:</dt>
