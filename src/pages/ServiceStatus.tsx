@@ -263,7 +263,6 @@ export default function ServiceStatus() {
                       </div>
                       <div className="space-y-1 text-sm">
                         <div className="font-medium text-gray-900">{data.officer.name}</div>
-                        <div className="flex items-center gap-1 text-gray-600"><Phone className="w-3.5 h-3.5" />{data.officer.mobileNumber}</div>
                         {data.officer.counterNumber != null && (
                           <div className="text-gray-500 text-xs">Counter #{data.officer.counterNumber}</div>
                         )}
