@@ -177,7 +177,11 @@ export default function TeleshopManagerOfficers() {
  }
 
   const handleClearAllCounters= async ()=> {
-    if (!confirm("Are you sure you want to clear ALL counter assignments? This will unassign all officers from their current counters.")) return
+    if (!confirm(
+      "⚠️ IMPORTANT: Counter assignments are now PERMANENT and persist across days.\n\n" +
+      "Are you sure you want to manually clear ALL counter assignments for all officers?\n\n" +
+      "You will need to reassign each officer to their counter manually after this."
+    )) return
 
     setLoading(true)
     try {
@@ -186,17 +190,17 @@ export default function TeleshopManagerOfficers() {
         if (officer.counterNumber) {
           await api.patch(`/teleshop-manager/officers/${officer.id}/assign-counter`, {counterNumber: null})
           successCount++
-       }
-     }
+        }
+      }
       alert(`Cleared ${successCount} counter assignments.`)
       fetchOfficers(true)
-   } catch (err) {
+    } catch (err) {
       console.error("Failed to clear counters", err)
       alert("An error occurred while clearing counters.")
-   } finally {
+    } finally {
       setLoading(false)
-   }
- }
+    }
+  }
 
   const handleToggleActive = async (officerId: string, currentStatus: boolean, officerName: string) => {
     const action = currentStatus ? "suspend" : "activate";
@@ -441,7 +445,7 @@ export default function TeleshopManagerOfficers() {
 
       {activeTab=== 'counters' && (
         <div className="mb-8 animate-in fade-in slide-in-from-top-4 duration-300">
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-bold text-gray-900 flex items-center gap-3">
               <MapPin className="w-6 h-6 text-purple-600" />
               Counter Overview
@@ -450,8 +454,14 @@ export default function TeleshopManagerOfficers() {
               onClick={handleClearAllCounters}
               className="text-xs text-red-600 hover:text-white hover:bg-red-600 font-bold px-4 py-2 rounded-xl bg-red-50 border border-red-100 transition-all duration-200 shadow-sm"
            >
-              Reset All Counter Assignments
+              Clear All Assignments
             </button>
+          </div>
+          <div className="mb-4 px-4 py-3 bg-blue-50 border border-blue-100 rounded-2xl flex items-start gap-3">
+            <div className="text-blue-500 mt-0.5 flex-shrink-0"></div>
+            <p className="text-sm text-blue-700 font-medium">
+              Counter assignments are <span className="font-bold">permanent</span> — they are saved until you manually change or unassign them. Officers will retain their assigned counter across days.
+            </p>
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
