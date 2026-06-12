@@ -29,9 +29,16 @@ export default function OfficerTopBar({ officer, onOfficerUpdate, onAfterStatusC
       if (status === 'on_break') {
         // Use dedicated break start endpoint
         await api.post('/officer/break/start', { officerId: officer.id })
-      } else if (status === 'available' && officer.status === 'on_break') {
-        // Use dedicated break end endpoint
-        await api.post('/officer/break/end', { officerId: officer.id })
+      } else if (status === 'available') {
+        // Always call /break/end when returning to available — this correctly
+        // closes the BreakLog record (sets endedAt). If no active break exists
+        // the backend returns 400, fall back to general status endpoint.
+        try {
+          await api.post('/officer/break/end', { officerId: officer.id })
+        } catch (breakEndErr: any) {
+          if (breakEndErr.response?.status !== 400) throw breakEndErr
+          await api.post('/officer/status', { officerId: officer.id, status })
+        }
       } else {
         // Use general status endpoint for other status changes
         await api.post('/officer/status', { officerId: officer.id, status })

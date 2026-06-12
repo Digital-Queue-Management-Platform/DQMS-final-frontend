@@ -45,8 +45,8 @@ const DashboardPage: React.FC = () => {
   const avgRating: string = branchData.length > 0 ? (branchData.reduce((sum, branch) => sum + (branch.rating || 0), 0) / branchData.length).toFixed(1) : '0.0';
 
   const [currentPage, setCurrentPage] = useState<number>(1);
-  const [sortColumn, setSortColumn] = useState<string>('name');
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [sortColumn, setSortColumn] = useState<string>('customersServed');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [showBranchDashboard, setShowBranchDashboard] = useState<boolean>(false);
   const [selectedBranchIdForDetails, setSelectedBranchIdForDetails] = useState<string | null>(null);
   const [selectedBranchNameForDetails, setSelectedBranchNameForDetails] = useState<string | null>(null);
@@ -391,7 +391,7 @@ const DashboardPage: React.FC = () => {
           }
         })
       )
-
+      metrics.sort((a, b) => b.customersServed - a.customersServed)
       setBranchData(metrics as BranchData[])
 
       // build waiting time series for top 4 outlets (or first 4)
