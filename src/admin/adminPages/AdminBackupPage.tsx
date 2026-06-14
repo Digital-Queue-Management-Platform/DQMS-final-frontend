@@ -84,6 +84,10 @@ const AdminBackupPage: React.FC = () => {
   const [restoreResult, setRestoreResult] = useState<RestoreResult | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  const [syncHistory, setSyncHistory] = useState<BackupHistoryEntry[]>([])
+  const [syncHistoryLoading, setSyncHistoryLoading] = useState(false)
+  const [syncHistoryError, setSyncHistoryError] = useState<string | null>(null)
+
   const fetchHistory = async (expandLatestBackup = false) => {
     setHistoryLoading(true)
     setHistoryError(null)
@@ -116,8 +120,26 @@ const AdminBackupPage: React.FC = () => {
     }
   }
 
+  const fetchSyncHistory = async () => {
+    setSyncHistoryLoading(true)
+    setSyncHistoryError(null)
+    try {
+      const token = localStorage.getItem('adminToken')
+      const res = await api.get('/admin/vm-sync-status', {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      const fetched: BackupHistoryEntry[] = Array.isArray(res.data?.history) ? res.data.history : []
+      setSyncHistory(fetched)
+    } catch (err: any) {
+      setSyncHistoryError(err?.response?.data?.error || 'Failed to load sync history.')
+    } finally {
+      setSyncHistoryLoading(false)
+    }
+  }
+
   useEffect(() => {
     fetchHistory()
+    fetchSyncHistory()
   }, [])
 
   const handleDownload = async () => {
@@ -318,6 +340,58 @@ const AdminBackupPage: React.FC = () => {
               ))}
             </div>
           </div>
+        )}
+      </div>
+
+      {/* VM Auto-Sync history */}
+      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm mb-6">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+          <div className="flex items-center gap-2">
+            <RefreshCw className="h-5 w-5 text-indigo-400" />
+            <h2 className="font-semibold text-gray-800">VM → Neon Auto-Sync</h2>
+            {syncHistory.length > 0 && (
+              <span className="ml-1 px-2 py-0.5 bg-indigo-100 text-indigo-700 text-xs font-semibold rounded-full">
+                {syncHistory.length}
+              </span>
+            )}
+          </div>
+          <button
+            onClick={() => fetchSyncHistory()}
+            className="flex items-center gap-1.5 text-xs text-indigo-600 hover:text-indigo-700 font-medium transition-colors cursor-pointer"
+          >
+            <RefreshCw className={`h-3.5 w-3.5 ${syncHistoryLoading ? 'animate-spin' : ''}`} />
+            Refresh
+          </button>
+        </div>
+
+        {syncHistoryError ? (
+          <div className="px-6 py-8 text-center text-sm text-red-500">{syncHistoryError}</div>
+        ) : syncHistory.length === 0 ? (
+          <div className="px-6 py-8 text-center text-sm text-gray-400">No auto-sync activity yet.</div>
+        ) : (
+          <ul className="divide-y divide-gray-100 max-h-96 overflow-y-auto">
+            {syncHistory.map((entry) => (
+              <li key={entry.id} className="px-6 py-4 hover:bg-gray-50 transition-colors">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-medium text-gray-800">
+                      {entry.status === 'success' ? 'Auto-Sync completed' : 'Auto-Sync failed'}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      {new Date(entry.createdAt).toLocaleString()}
+                      {entry.filename ? ` · ${entry.filename}` : ''}
+                    </p>
+                    {entry.errorMessage && (
+                      <p className="text-xs text-red-600 mt-1">{entry.errorMessage}</p>
+                    )}
+                  </div>
+                  <span className={`text-xs font-semibold px-2 py-1 rounded-full ${entry.status === 'success' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
+                    {entry.status === 'success' ? `+${entry.totalRecords.toLocaleString()} rows synced` : 'Failed'}
+                  </span>
+                </div>
+              </li>
+            ))}
+          </ul>
         )}
       </div>
 
