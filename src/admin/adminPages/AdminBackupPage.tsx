@@ -87,6 +87,9 @@ const AdminBackupPage: React.FC = () => {
   const [syncHistory, setSyncHistory] = useState<BackupHistoryEntry[]>([])
   const [syncHistoryLoading, setSyncHistoryLoading] = useState(false)
   const [syncHistoryError, setSyncHistoryError] = useState<string | null>(null)
+  
+  const [scheduleTime, setScheduleTime] = useState("00:00")
+  const [savingSchedule, setSavingSchedule] = useState(false)
 
   const fetchHistory = async (expandLatestBackup = false) => {
     setHistoryLoading(true)
@@ -137,10 +140,38 @@ const AdminBackupPage: React.FC = () => {
     }
   }
 
+  const fetchSchedule = async () => {
+    try {
+      const token = localStorage.getItem('adminToken')
+      const res = await api.get('/admin/backup-schedule', {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (res.data?.time) setScheduleTime(res.data.time)
+    } catch (err) {
+      console.error('Failed to load schedule', err)
+    }
+  }
+
   useEffect(() => {
     fetchHistory()
     fetchSyncHistory()
+    fetchSchedule()
   }, [])
+
+  const handleSaveSchedule = async () => {
+    setSavingSchedule(true)
+    try {
+      const token = localStorage.getItem('adminToken')
+      await api.post('/admin/backup-schedule', { time: scheduleTime }, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      alert("Schedule updated successfully! The VM will now check and run the sync at " + scheduleTime)
+    } catch (err) {
+      alert("Failed to update schedule")
+    } finally {
+      setSavingSchedule(false)
+    }
+  }
 
   const handleDownload = async () => {
     setLoading(true)
@@ -356,12 +387,35 @@ const AdminBackupPage: React.FC = () => {
             )}
           </div>
           <button
-            onClick={() => fetchSyncHistory()}
+            onClick={() => { fetchSyncHistory(); fetchSchedule(); }}
             className="flex items-center gap-1.5 text-xs text-indigo-600 hover:text-indigo-700 font-medium transition-colors cursor-pointer"
           >
             <RefreshCw className={`h-3.5 w-3.5 ${syncHistoryLoading ? 'animate-spin' : ''}`} />
             Refresh
           </button>
+        </div>
+
+        {/* Schedule Config */}
+        <div className="px-6 py-4 border-b border-gray-100 bg-gray-50 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div>
+            <p className="text-sm font-semibold text-gray-800">Daily Sync Schedule</p>
+            <p className="text-xs text-gray-500">The VM will check every 5 minutes and run at this specific time.</p>
+          </div>
+          <div className="flex items-center gap-3">
+            <input
+              type="time"
+              value={scheduleTime}
+              onChange={(e) => setScheduleTime(e.target.value)}
+              className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+            <button
+              onClick={handleSaveSchedule}
+              disabled={savingSchedule}
+              className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white text-sm font-semibold rounded-lg transition-colors shadow-sm"
+            >
+              {savingSchedule ? 'Saving...' : 'Save Schedule'}
+            </button>
+          </div>
         </div>
 
         {syncHistoryError ? (
