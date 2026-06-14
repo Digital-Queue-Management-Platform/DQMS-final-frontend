@@ -13,6 +13,7 @@ import NoticeModal from "../components/NoticeModal"
 import MultiTelephoneNumberInput from "../components/MultiTelephoneNumberInput"
 import { useBranchStatus } from "../hooks/useBranchStatus"
 import { useOutletNotices } from "../hooks/useOutletNotices"
+import { useWebSocket } from "../hooks/useWebSocket"
 
 interface Service {
   id: string
@@ -35,6 +36,18 @@ export default function AppointmentBooking() {
   const [datetime, setDatetime] = useState("") // yyyy-MM-ddTHH:mm
 
   const [advanceApptRequired, setAdvanceApptRequired] = useState(true)
+
+  useWebSocket({
+    onMessage: (msg) => {
+      try {
+        if (msg?.type === "SERVICES_UPDATED") {
+          fetchServices()
+        }
+      } catch (err) {
+        console.error("Error processing websocket message:", err)
+      }
+    }
+  })
 
   // Get minimum date/time
   const getMinDateTime = () => {
@@ -262,30 +275,8 @@ export default function AppointmentBooking() {
   }
 
   const getServiceTitle = (code: string) => {
-    // Check by code first
-    const upperCode = code.toUpperCase()
-    if (upperCode === 'BILL_PAYMENT') return t.billPayment
-    if (upperCode === 'OTHERS' || upperCode === 'OTHER') return t.others
-    if (upperCode === 'NEW_SERVICE' || upperCode === 'SVC001') return t.newService
-    if (upperCode === 'SERVICE_COMPLAINT' || upperCode === 'SVC003') return t.serviceComplaint
-    if (upperCode === 'BILL_DISPUTE' || upperCode === 'SVC004') return t.billDispute
-    if (upperCode === 'FIXED') return t.fixed
-    if (upperCode === 'MOBILE') return t.mobileService
-
     const service = services.find(s => s.code === code)
-    if (!service) return code
-
-    // Try to match the title string to localized versions as fallback
-    const title = service.title.toLowerCase()
-    if (title.includes('new service')) return t.newService
-    if (title.includes('bill payment')) return t.billPayment
-    if (title.includes('service complaint')) return t.serviceComplaint
-    if (title.includes('bill dispute')) return t.billDispute
-    if (title.includes('other')) return t.others
-    if (title === 'fixed' || title.includes('fixed line')) return t.fixed
-    if (title === 'mobile' || title.includes('mobile service')) return t.mobileService
-
-    return service.title
+    return service ? service.title : code
   }
 
   // Translations for UI labels/buttons
