@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import api from '../../config/api'
-import { Database, Download, AlertCircle, Loader2, HardDrive, FileJson, Clock, ChevronDown, ChevronUp, Upload, CheckCircle2, RefreshCw } from 'lucide-react'
+import { Database, Download, AlertCircle, Loader2, HardDrive, FileJson, Clock, ChevronDown, ChevronUp, Upload, CheckCircle2, RefreshCw, Zap } from 'lucide-react'
 
 interface BackupCounts {
   regions: number
@@ -91,6 +91,10 @@ const AdminBackupPage: React.FC = () => {
   const [scheduleTime, setScheduleTime] = useState("00:00")
   const [savingSchedule, setSavingSchedule] = useState(false)
 
+  const [syncing, setSyncing] = useState(false)
+  const [syncResult, setSyncResult] = useState<{ totalSynced: number; results: Record<string, number>; filename: string } | null>(null)
+  const [syncNowError, setSyncNowError] = useState<string | null>(null)
+
   const fetchHistory = async (expandLatestBackup = false) => {
     setHistoryLoading(true)
     setHistoryError(null)
@@ -170,6 +174,29 @@ const AdminBackupPage: React.FC = () => {
       alert("Failed to update schedule")
     } finally {
       setSavingSchedule(false)
+    }
+  }
+
+  const handleSyncNow = async () => {
+    setSyncing(true)
+    setSyncResult(null)
+    setSyncNowError(null)
+    try {
+      const token = localStorage.getItem('adminToken')
+      const res = await api.post('/admin/neon-sync-now', {}, {
+        headers: { Authorization: `Bearer ${token}` },
+        timeout: 120000, // 2-minute timeout for large datasets
+      })
+      setSyncResult(res.data)
+      await fetchSyncHistory()
+    } catch (err: any) {
+      setSyncNowError(
+        err?.response?.data?.error ||
+        err?.message ||
+        'Sync failed. Check the server logs for details.'
+      )
+    } finally {
+      setSyncing(false)
     }
   }
 
@@ -416,6 +443,63 @@ const AdminBackupPage: React.FC = () => {
               {savingSchedule ? 'Saving...' : 'Save Schedule'}
             </button>
           </div>
+        </div>
+
+        {/* Sync Now */}
+        <div className="px-6 py-4 border-b border-gray-100">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div>
+              <p className="text-sm font-semibold text-gray-800">Manual Sync</p>
+              <p className="text-xs text-gray-500">Instantly push all production data to the backup NeonDB right now.</p>
+            </div>
+            <button
+              onClick={handleSyncNow}
+              disabled={syncing}
+              className="flex items-center gap-2 px-5 py-2 bg-violet-600 hover:bg-violet-700 disabled:bg-violet-400 text-white text-sm font-semibold rounded-xl transition-colors shadow-sm cursor-pointer disabled:cursor-not-allowed flex-shrink-0"
+            >
+              {syncing ? (
+                <><Loader2 className="h-4 w-4 animate-spin" />Syncing…</>
+              ) : (
+                <><Zap className="h-4 w-4" />Sync Now</>
+              )}
+            </button>
+          </div>
+
+          {/* Sync Now error */}
+          {syncNowError && (
+            <div className="flex items-start gap-3 bg-red-50 border border-red-200 rounded-xl p-4 mt-4">
+              <AlertCircle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
+              <p className="text-sm text-red-700 font-medium">{syncNowError}</p>
+            </div>
+          )}
+
+          {/* Sync Now result */}
+          {syncResult && (
+            <div className="mt-4">
+              <div className="flex items-center gap-2 mb-3">
+                <CheckCircle2 className="h-5 w-5 text-violet-600" />
+                <span className="text-sm font-semibold text-violet-700">
+                  Sync complete — {syncResult.totalSynced.toLocaleString()} new records pushed to NeonDB
+                </span>
+              </div>
+              <p className="text-xs text-gray-400 mb-2">File: {syncResult.filename}</p>
+              <div className="flex flex-col divide-y divide-gray-100 border border-gray-200 rounded-xl overflow-hidden max-h-56 overflow-y-auto">
+                {Object.entries(syncResult.results)
+                  .filter(([, count]) => count > 0)
+                  .map(([key, count]) => (
+                    <div key={key} className="flex items-center justify-between bg-gray-50 px-4 py-2">
+                      <span className="text-sm text-gray-600">{TABLE_LABELS[key as keyof BackupCounts] ?? key}</span>
+                      <span className="text-sm font-semibold text-violet-700">+{count.toLocaleString()}</span>
+                    </div>
+                  ))}
+                {Object.values(syncResult.results).every(c => c === 0) && (
+                  <div className="px-4 py-3 text-sm text-gray-500 bg-gray-50">
+                    All records already exist in NeonDB — nothing new to sync.
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
         {syncHistoryError ? (
