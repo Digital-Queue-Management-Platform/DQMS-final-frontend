@@ -185,15 +185,17 @@ const AdminBackupPage: React.FC = () => {
       const token = localStorage.getItem('adminToken')
       const res = await api.post('/admin/neon-sync-now', {}, {
         headers: { Authorization: `Bearer ${token}` },
-        timeout: 120000, // 2-minute timeout for large datasets
+        timeout: 600000, // 10-minute timeout — first sync of 44k records can be slow
       })
       setSyncResult(res.data)
       await fetchSyncHistory()
     } catch (err: any) {
+      // If it's just a browser timeout, the server may still be running — tell the user to refresh
+      const isTimeout = err?.code === 'ECONNABORTED' || err?.message?.includes('timeout')
       setSyncNowError(
-        err?.response?.data?.error ||
-        err?.message ||
-        'Sync failed. Check the server logs for details.'
+        isTimeout
+          ? '⏱ The sync is taking longer than expected (large dataset). The server is still running it in the background — refresh the sync history in a minute to see the result.'
+          : (err?.response?.data?.error || err?.message || 'Sync failed. Check the server logs for details.')
       )
     } finally {
       setSyncing(false)
