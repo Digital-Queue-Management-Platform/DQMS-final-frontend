@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
@@ -102,16 +102,16 @@ export default function ManagerTeleshopManagers() {
       const token = localStorage.getItem("managerToken")
       if (!token) return
 
-      const storedManager = localStorage.getItem('manager')
-      const managerData = storedManager ? JSON.parse(storedManager) : null
-      const params: any = {}
-      if (managerData?.email) params.email = managerData.email
-
-      const meRes = await api.get('/manager/me', { params })
-      const outlets = meRes.data?.manager?.outlets || []
+      // Use region-outlets endpoint to fetch ALL outlets in the RTOM's region,
+      // regardless of whether they currently have a teleshop manager assigned.
+      // This ensures outlets that were just unassigned still appear for reassignment.
+      const res = await api.get('/manager/region-outlets', {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      const outlets = res.data?.outlets || []
       setBranches(outlets)
       
-      // Filter outlets that don't have teleshop managers assigned
+      // For the "Add New Manager" form, show only outlets without any assigned manager
       const unassignedOutlets = outlets.filter((outlet: any) => 
         !outlet.teleshopManagers || outlet.teleshopManagers.length === 0
       )
