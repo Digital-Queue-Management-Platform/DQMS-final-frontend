@@ -247,10 +247,11 @@ const BranchesPage: React.FC = () => {
   const handleDeleteOutlet = async (id: string) => {
     if (!confirm('Are you sure you want to delete this outlet?')) return
     try {
-      await api.delete(`/queue/outlets/${id}`)
+      await api.delete(`/admin/outlets/${id}`)
       setOutlets((prev) => prev.filter((o) => o.id !== id))
-    } catch (err) {
-      setError('Failed to delete outlet')
+    } catch (err: any) {
+      const msg = err?.response?.data?.error || err?.message || 'Failed to delete outlet'
+      setError('Failed to delete outlet: ' + msg)
     }
   }
 
