@@ -8,9 +8,13 @@ import {
   Filter,
   ChevronDown,
   Calendar,
-  X
+  X,
+  Download,
+  FileText
 } from "lucide-react"
 import { motion } from "framer-motion"
+import jsPDF from "jspdf"
+import autoTable from "jspdf-autotable"
 import api from "../config/api"
 
 interface Officer {
@@ -74,6 +78,8 @@ export default function TeleshopManagerOfficerAnalytics() {
   const [showCustomDatePicker, setShowCustomDatePicker] = useState(false)
   const [customStartDate, setCustomStartDate] = useState('')
   const [customEndDate, setCustomEndDate] = useState('')
+  const [exportingPdf, setExportingPdf] = useState(false)
+  const [exportingCsv, setExportingCsv] = useState(false)
 
   useEffect(() => {
     fetchOfficerAnalytics()
@@ -175,6 +181,222 @@ export default function TeleshopManagerOfficerAnalytics() {
     return `${hours}h ${remainingMinutes}m`
   }
 
+  const exportToPDF = async () => {
+    if (!analytics) return
+    setExportingPdf(true)
+    
+    try {
+      const doc = new jsPDF()
+      const pageWidth = doc.internal.pageSize.getWidth()
+      const pageHeight = doc.internal.pageSize.getHeight()
+      const SLT_BLUE = [0, 92, 185] as [number, number, number]
+      const SLT_ORANGE = [255, 102, 0] as [number, number, number]
+      const SLT_DARK = [22, 38, 70] as [number, number, number]
+
+      const addHeader = (isFirstPage: boolean = false) => {
+        doc.setFillColor(SLT_DARK[0], SLT_DARK[1], SLT_DARK[2])
+        doc.rect(0, 0, pageWidth, 32, 'F')
+        doc.setFillColor(SLT_ORANGE[0], SLT_ORANGE[1], SLT_ORANGE[2])
+        doc.rect(20, 8, 1, 16, 'F')
+        doc.setTextColor(255, 255, 255)
+        doc.setFont("helvetica", "bold")
+        doc.setFontSize(16)
+        doc.text("SLT MOBITEL", 25, 16)
+        doc.setFontSize(8)
+        doc.setFont("helvetica", "normal")
+        doc.text("DIGITAL QUEUE MANAGEMENT PLATFORM", 25, 23)
+        if (isFirstPage) {
+          doc.setFontSize(12)
+          doc.setFont("helvetica", "bold")
+          doc.setTextColor(255, 255, 255)
+          doc.text("OFFICER PERFORMANCE ANALYTICS", pageWidth - 20, 16, { align: "right" })
+          doc.setFontSize(8)
+          doc.setFont("helvetica", "normal")
+          doc.text("Teleshop Manager Report", pageWidth - 20, 23, { align: "right" })
+        }
+      }
+
+      const addFooter = (page: number, total: number) => {
+        doc.setPage(page)
+        doc.setDrawColor(203, 213, 225)
+        doc.setLineWidth(0.1)
+        doc.line(20, pageHeight - 15, pageWidth - 20, pageHeight - 15)
+        doc.setFontSize(6.5)
+        doc.setTextColor(100, 116, 139)
+        const dateStr = new Date().toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' })
+        const reportId = `DQMP-TM-${Math.floor(Date.now() / 10000)}`
+        doc.text(`${reportId} | Generated: ${dateStr}`, 20, pageHeight - 10)
+        doc.setFont("helvetica", "bold")
+        doc.text("Officer Analytics Report", pageWidth / 2, pageHeight - 10, { align: "center" })
+        doc.setFont("helvetica", "normal")
+        doc.text(`Page ${page} of ${total}`, pageWidth - 20, pageHeight - 10, { align: "right" })
+      }
+
+      const sectionTitle = (text: string, y: number) => {
+        doc.setFontSize(13)
+        doc.setFont("helvetica", "bold")
+        doc.setTextColor(SLT_BLUE[0], SLT_BLUE[1], SLT_BLUE[2])
+        doc.text(text, 20, y)
+      }
+
+      const drawBox = (x: number, y: number, w: number, h: number, title: string, value: string, sub: string, titleColor: [number,number,number]) => {
+        doc.setFillColor(255, 255, 255)
+        doc.roundedRect(x, y, w, h, 2, 2, 'F')
+        doc.setDrawColor(226, 232, 240)
+        doc.roundedRect(x, y, w, h, 2, 2, 'S')
+        
+        doc.setFont("helvetica", "bold")
+        doc.setFontSize(7)
+        doc.setTextColor(titleColor[0], titleColor[1], titleColor[2])
+        doc.text(title, x + 5, y + 8)
+        
+        doc.setFontSize(18)
+        doc.setTextColor(SLT_DARK[0], SLT_DARK[1], SLT_DARK[2])
+        doc.text(value, x + 5, y + 20)
+        
+        doc.setFont("helvetica", "normal")
+        doc.setFontSize(6.5)
+        doc.setTextColor(148, 163, 184)
+        doc.text(sub, x + 5, y + 25)
+      }
+
+      addHeader(true)
+
+      // Report Parameters block
+      doc.setFillColor(248, 250, 252)
+      doc.roundedRect(20, 36, pageWidth - 40, 24, 2, 2, 'F')
+      doc.setTextColor(71, 85, 105)
+      doc.setFont("helvetica", "bold")
+      doc.setFontSize(8)
+      doc.text("REPORT PARAMETERS", 25, 44)
+      doc.setFont("helvetica", "normal")
+      doc.setFontSize(8)
+      const reportId = `DQMP-TM-${Math.floor(Date.now() / 10000)}`
+      doc.text(`Report ID: ${reportId}`, 25, 50)
+      doc.text(`Period: ${formatTimeRangeLabel(timeRange)}`, 25, 55)
+      doc.text(`Branch: ${analytics.branchName}`, pageWidth / 2, 50)
+      doc.text(`Generated: ${new Date().toLocaleString()}`, pageWidth / 2, 55)
+
+      let currentY = 72
+
+      // I. Branch Summary
+      sectionTitle("I. Branch Summary", currentY)
+      currentY += 8
+
+      const boxW = (pageWidth - 40 - 12) / 4
+      drawBox(20, currentY, boxW, 30, "TOTAL OFFICERS", String(analytics.summary.totalOfficers), "Total registered", SLT_BLUE)
+      drawBox(20 + boxW + 4, currentY, boxW, 30, "ACTIVE NOW", String(analytics.summary.activeOfficers), "Currently active", [5, 150, 105])
+      drawBox(20 + (boxW + 4)*2, currentY, boxW, 30, "TOTAL SERVED", String(analytics.summary.totalServedCustomers), "Customers served", [147, 51, 234])
+      drawBox(20 + (boxW + 4)*3, currentY, boxW, 30, "AVG WAIT TIME", `${analytics.summary.avgBranchWaitTime}m`, "Branch average", [234, 88, 12])
+      
+      currentY += 40
+
+      // II. Officer Performance Details
+      sectionTitle("II. Officer Performance Details", currentY)
+      
+      const sortedOfficers = [...analytics.officers].sort((a, b) => {
+        return b.metrics.totalTokensHandled - a.metrics.totalTokensHandled;
+      });
+
+      const tableData = sortedOfficers.map(data => [
+        data.officer.name,
+        data.officer.status,
+        `${data.metrics.servedCustomers} / ${data.metrics.totalTokensHandled}`,
+        `${data.metrics.avgWaitingTime}m`,
+        `${data.metrics.maxWaitingTime}m`,
+        `${data.metrics.avgServingTime}m`,
+        formatDuration(data.metrics.totalServingTime),
+        `${data.metrics.completionRate}% (${data.metrics.efficiency}/m)`
+      ])
+
+      autoTable(doc, {
+        startY: currentY + 5,
+        head: [['Officer Name', 'Status', 'Served/Total', 'Avg Wait', 'Max Wait', 'Avg Service', 'Total Service', 'Completion']],
+        body: tableData,
+        theme: 'grid',
+        headStyles: { fillColor: SLT_BLUE, textColor: [255, 255, 255], halign: 'center', fontSize: 8 },
+        styles: { fontSize: 8, cellPadding: 2.5 },
+        columnStyles: {
+          0: { halign: 'left', cellWidth: 35 },
+          1: { halign: 'center', cellWidth: 20 },
+          2: { halign: 'center', cellWidth: 25 },
+          3: { halign: 'center', cellWidth: 15 },
+          4: { halign: 'center', fontStyle: 'bold', cellWidth: 15 },
+          5: { halign: 'center', cellWidth: 20 },
+          6: { halign: 'center', cellWidth: 20 },
+          7: { halign: 'center', cellWidth: 25 }
+        },
+        margin: { left: 20, right: 20 }
+      })
+
+      const totalPages = (doc as any).internal.getNumberOfPages()
+      for (let i = 1; i <= totalPages; i++) {
+        addFooter(i, totalPages)
+      }
+
+      doc.save(`officer-analytics-${analytics.branchName.replace(/\s+/g, '-')}-${new Date().getTime()}.pdf`)
+    } catch (err) {
+      console.error("Failed to export PDF", err)
+      alert("Failed to export PDF")
+    } finally {
+      setExportingPdf(false)
+    }
+  }
+
+  const exportToCSV = async () => {
+    if (!analytics) return
+    setExportingCsv(true)
+    
+    try {
+      const q = (v: string | number | null | undefined): string => {
+        if (v === null || v === undefined || v === "") return ""
+        return `"${String(v).replace(/"/g, '""')}"`
+      }
+
+      let csv = "\\uFEFF" // BOM for Excel
+      csv += "OFFICER PERFORMANCE ANALYTICS\\n"
+      csv += `Branch,${q(analytics.branchName)}\\n`
+      csv += `Period,${q(formatTimeRangeLabel(timeRange))}\\n\\n`
+      
+      csv += "SUMMARY\\n"
+      csv += `Total Officers,${analytics.summary.totalOfficers}\\n`
+      csv += `Active Now,${analytics.summary.activeOfficers}\\n`
+      csv += `Total Served,${analytics.summary.totalServedCustomers}\\n`
+      csv += `Avg Wait Time (m),${analytics.summary.avgBranchWaitTime}\\n`
+      csv += `Avg Service Time (m),${analytics.summary.avgBranchServingTime}\\n\\n`
+      
+      csv += "OFFICER DETAILS\\n"
+      csv += "Officer,Status,Served Customers,Total Handled,Avg Wait Time (m),Max Wait Time (m),Avg Service Time (m),Total Service Time (m),Completion Rate (%),Efficiency (cust/min)\\n"
+      
+      analytics.officers.forEach(data => {
+        csv += `${q(data.officer.name)},`
+        csv += `${q(data.officer.status)},`
+        csv += `${data.metrics.servedCustomers},`
+        csv += `${data.metrics.totalTokensHandled},`
+        csv += `${data.metrics.avgWaitingTime},`
+        csv += `${data.metrics.maxWaitingTime},`
+        csv += `${data.metrics.avgServingTime},`
+        csv += `${data.metrics.totalServingTime},`
+        csv += `${data.metrics.completionRate},`
+        csv += `${data.metrics.efficiency}\\n`
+      })
+
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" })
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement("a")
+      link.setAttribute("href", url)
+      link.setAttribute("download", `officer-analytics-${analytics.branchName.replace(/\\s+/g, '-')}-${new Date().getTime()}.csv`)
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+    } catch (err) {
+      console.error("Failed to export CSV", err)
+      alert("Failed to export CSV")
+    } finally {
+      setExportingCsv(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen p-4">
@@ -220,16 +442,34 @@ export default function TeleshopManagerOfficerAnalytics() {
             </p>
           </div>
           
-          {/* Time Range Filter */}
-          <div className="relative">
+          <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
             <button
-              onClick={() => setShowFilters(!showFilters)}
-              className="inline-flex items-center gap-2 px-3 py-2 sm:px-4 sm:py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm sm:text-base font-medium"
+              onClick={exportToPDF}
+              disabled={exportingPdf}
+              className="inline-flex items-center gap-1.5 px-3 py-2 sm:px-4 sm:py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium disabled:bg-blue-400"
             >
-              <Filter className="h-4 w-4" />
-              <span className="max-w-40 truncate">{formatTimeRangeLabel(timeRange)}</span>
-              <ChevronDown className={`h-4 w-4 transition-transform ${showFilters ? 'rotate-180' : ''}`} />
+              <FileText className={`h-4 w-4 ${exportingPdf ? "animate-pulse" : ""}`} />
+              <span className="hidden sm:inline">{exportingPdf ? "Exporting..." : "Export PDF"}</span>
             </button>
+            <button
+              onClick={exportToCSV}
+              disabled={exportingCsv}
+              className="inline-flex items-center gap-1.5 px-3 py-2 sm:px-4 sm:py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium disabled:bg-green-400"
+            >
+              <Download className={`h-4 w-4 ${exportingCsv ? "animate-bounce" : ""}`} />
+              <span className="hidden sm:inline">{exportingCsv ? "Exporting..." : "Export Excel"}</span>
+            </button>
+
+            {/* Time Range Filter */}
+            <div className="relative">
+              <button
+                onClick={() => setShowFilters(!showFilters)}
+                className="inline-flex items-center gap-2 px-3 py-2 sm:px-4 sm:py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm sm:text-base font-medium"
+              >
+                <Filter className="h-4 w-4" />
+                <span className="max-w-40 truncate">{formatTimeRangeLabel(timeRange)}</span>
+                <ChevronDown className={`h-4 w-4 transition-transform ${showFilters ? 'rotate-180' : ''}`} />
+              </button>
             
             {showFilters && (
               <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-10">
@@ -305,6 +545,7 @@ export default function TeleshopManagerOfficerAnalytics() {
                 </div>
               </div>
             )}
+          </div>
           </div>
         </div>
 
