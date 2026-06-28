@@ -17,6 +17,8 @@ export default function QueueStatus() {
   const [loading, setLoading] = useState(true)
   const [cancelling, setCancelling] = useState(false)
   const [showCancelConfirm, setShowCancelConfirm] = useState(false)
+  const [showQueuePosition, setShowQueuePosition] = useState(true)
+  const [showWaitTime, setShowWaitTime] = useState(true)
   const [language, setLanguage] = useState<'en' | 'si' | 'ta'>(() => {
     try {
       const saved = localStorage.getItem('dq_lang') as 'en' | 'si' | 'ta' | null
@@ -190,6 +192,7 @@ export default function QueueStatus() {
   const t = translations[language]
 
   useEffect(() => {
+    fetchSettings()
     fetchTokenStatus()
     const interval = setInterval(fetchTokenStatus, 15000)
 
@@ -211,7 +214,22 @@ export default function QueueStatus() {
       clearInterval(interval)
       ws.close()
     }
-  }, [tokenId])
+  }, [tokenId, navigate])
+
+  const fetchSettings = async () => {
+    try {
+      const posRes = await api.get('/queue/settings/show-queue-position')
+      setShowQueuePosition(posRes.data?.enabled !== false)
+    } catch (e) {
+      console.error(e)
+    }
+    try {
+      const waitRes = await api.get('/queue/settings/show-wait-time')
+      setShowWaitTime(waitRes.data?.enabled !== false)
+    } catch (e) {
+      console.error(e)
+    }
+  }
 
   const fetchTokenStatus = async () => {
     try {
@@ -320,15 +338,17 @@ export default function QueueStatus() {
                   </div>
                 )}
 
-                <div className="flex justify-center">
-                  <div className="bg-slate-50 rounded-2xl p-6 text-center w-full max-w-[280px] border border-gray-100">
-                    <Users className="w-10 h-10 text-blue-600 mx-auto mb-3" />
-                    <p className="text-xs text-gray-400 uppercase font-black tracking-widest mb-1">{t.positionInQueue}</p>
-                    <p className="text-5xl font-black text-slate-900">{position}</p>
+                {showQueuePosition && (
+                  <div className="flex justify-center mt-6">
+                    <div className="bg-slate-50 rounded-2xl p-6 text-center w-full max-w-[280px] border border-gray-100">
+                      <Users className="w-10 h-10 text-blue-600 mx-auto mb-3" />
+                      <p className="text-xs text-gray-400 uppercase font-black tracking-widest mb-1">{t.positionInQueue}</p>
+                      <p className="text-5xl font-black text-slate-900">{position}</p>
+                    </div>
                   </div>
-                </div>
+                )}
 
-                <div className="bg-amber-50/50 border border-amber-100 rounded-2xl p-4">
+                <div className={`bg-amber-50/50 border border-amber-100 rounded-2xl p-4 ${!showQueuePosition ? 'mt-6' : ''}`}>
                   <p className="text-amber-800 text-center text-sm font-bold leading-relaxed">
                     {token.isTransferred ? t.waitPriority : t.waitTurn}
                   </p>
@@ -384,23 +404,25 @@ export default function QueueStatus() {
         {/* Customer Details Footer */}
         <div className="bg-slate-50 p-8 border-t border-gray-100">
           <div className="grid grid-cols-2 gap-y-6 gap-x-4">
-            <div className="col-span-2">
-              <motion.div 
-                animate={{ scale: [1, 1.02, 1] }} 
-                transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-                className="bg-blue-50 border border-blue-100 rounded-2xl p-4 flex items-center justify-between"
-              >
-                <div>
-                  <p className="text-[10px] text-blue-600 uppercase font-black tracking-widest mb-0.5">{t.avgWaitTime}</p>
-                  <p className="text-2xl font-black text-blue-900 leading-none">
-                    {estimatedWait ?? '--'} <span className="text-xs font-bold opacity-70">{t.min}</span>
-                  </p>
-                </div>
-                <div className="bg-blue-600/10 p-2.5 rounded-xl text-blue-600">
-                  <Clock className="w-6 h-6 animate-spin-slow" style={{ animationDuration: '8s' }} />
-                </div>
-              </motion.div>
-            </div>
+            {showWaitTime && (
+              <div className="col-span-2">
+                <motion.div 
+                  animate={{ scale: [1, 1.02, 1] }} 
+                  transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                  className="bg-blue-50 border border-blue-100 rounded-2xl p-4 flex items-center justify-between"
+                >
+                  <div>
+                    <p className="text-[10px] text-blue-600 uppercase font-black tracking-widest mb-0.5">{t.avgWaitTime}</p>
+                    <p className="text-2xl font-black text-blue-900 leading-none">
+                      {estimatedWait ?? '--'} <span className="text-xs font-bold opacity-70">{t.min}</span>
+                    </p>
+                  </div>
+                  <div className="bg-blue-600/10 p-2.5 rounded-xl text-blue-600">
+                    <Clock className="w-6 h-6 animate-spin-slow" style={{ animationDuration: '8s' }} />
+                  </div>
+                </motion.div>
+              </div>
+            )}
 
             <div className="space-y-1">
               <p className="text-[10px] text-gray-400 uppercase font-black tracking-widest">{t.mobile}</p>

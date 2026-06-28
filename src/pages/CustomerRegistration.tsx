@@ -100,6 +100,9 @@ export default function CustomerRegistration() {
   const branchStatus = useBranchStatus(selectedOutlet || outletId || null)
   const { notices: activeNotices, dismiss: dismissNotice } = useOutletNotices(selectedOutlet || outletId || null)
 
+  const currentOutletData = outlets.find(o => o.id === (selectedOutlet || outletId))
+  const enableBillPaymentOptions = currentOutletData?.displaySettings?.enableBillPaymentOptions === true
+
   // Add a form key to force React re-render when needed
   const [formKey, setFormKey] = useState(Date.now())
 
@@ -447,15 +450,22 @@ export default function CustomerRegistration() {
 
     if (selectedService === 'SVC002' || selectedService === 'BILL_PAYMENT') {
       // For bill payment services, require SLT verified + payment intent + payment method
-      if (!sltVerified || !billPaymentIntent || !paymentMethod) {
+      if (!sltVerified) {
         setShouldAutoSubmit(false)
         return
+      }
+      
+      if (enableBillPaymentOptions) {
+        if (!billPaymentIntent || !paymentMethod) {
+          setShouldAutoSubmit(false)
+          return
+        }
       }
     }
     
     console.log('SUCCESS: All conditions met, setting auto-submit')
     setShouldAutoSubmit(true)
-  }, [selectedService, currentStep, otpStep, otpToken, sltVerified, billPaymentIntent, paymentMethod])
+  }, [selectedService, currentStep, otpStep, otpToken, sltVerified, billPaymentIntent, paymentMethod, enableBillPaymentOptions])
 
   // Separate useEffect to handle the actual submission when flag is set
   useEffect(() => {
@@ -846,6 +856,7 @@ export default function CustomerRegistration() {
   const canProceedFromStep3 = () => {
     if (!canSendOtp()) return false
     if (selectedService === 'BILL_PAYMENT' || isSltRequiredService(selectedService)) {
+      if (!enableBillPaymentOptions) return sltVerified
       const paymentValid = !!billPaymentIntent && (billPaymentIntent === 'full' || (billPaymentIntent === 'partial' && !!billPaymentAmount)) && !!paymentMethod
       return sltVerified && paymentValid
     }
@@ -1331,7 +1342,7 @@ export default function CustomerRegistration() {
                           <p className="text-xs text-blue-600 mt-2">{t.verifySltAccountNote}</p>
                         </div>
 
-                        {sltVerified && (
+                        {sltVerified && enableBillPaymentOptions && (
                           <div className="space-y-4 animate-in fade-in slide-in-from-top-1 duration-300">
                             {/* Payment Intent (Full/Partial) */}
                             <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-4">

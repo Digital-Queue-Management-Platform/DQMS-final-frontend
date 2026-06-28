@@ -96,6 +96,7 @@ export default function KioskDashboard() {
   const kioskOutletId = (() => { try { const d = localStorage.getItem('kioskOutlet'); return d ? JSON.parse(d)?.id : null } catch { return null } })()
   const branchStatus = useBranchStatus(kioskOutletId)
   const { notices: activeNotices, dismiss: dismissNotice } = useOutletNotices(kioskOutletId)
+  const enableBillPaymentOptions = outlet?.displaySettings?.enableBillPaymentOptions === true
 
   useWebSocket({
     onMessage: (msg) => {
@@ -293,14 +294,14 @@ export default function KioskDashboard() {
         setOtpToken(res.data.verifiedMobileToken)
         setOtpStep('verified')
 
-  // Auto-verify SLT number after mobile OTP (for bill payment)
+        // Auto-verify SLT number after mobile OTP (for bill payment)
         if (isSltRequiredService(selectedService) && sltTelephoneNumbers.length > 0 && verifiedBills.length === 0) {
           await verifySltNumbers()
         }
 
         // Auto-submit only for non-bill-payment services.
-        // For bill payment, the user must first select payment intent and method.
-        if (!isSltRequiredService(selectedService)) {
+        // For bill payment, the user must first select payment intent and method, unless disabled.
+        if (!isSltRequiredService(selectedService) || !enableBillPaymentOptions) {
           setShouldAutoSubmit(true)
         }
         return res.data.verifiedMobileToken as string
@@ -404,6 +405,7 @@ export default function KioskDashboard() {
   const canProceedFromStep3 = () => {
     if (!canSendOtp()) return false
     if (isSltRequiredService(selectedService)) {
+      if (!enableBillPaymentOptions) return sltVerified
       const paymentValid = !!billPaymentIntent && (billPaymentIntent === 'full' || (billPaymentIntent === 'partial' && !!billPaymentAmount)) && !!paymentMethod
       return sltVerified && paymentValid
     }
@@ -1207,7 +1209,7 @@ export default function KioskDashboard() {
                         <p className="text-xs text-blue-600 mt-2">{t.verifySltAccountNote}</p>
                       </div>
 
-                      {sltVerified && (
+                      {sltVerified && enableBillPaymentOptions && (
                         <div className="space-y-4 animate-in fade-in slide-in-from-top-1 duration-300">
                           {/* Payment Intent (Full/Partial) */}
                           <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-4 shadow-sm">

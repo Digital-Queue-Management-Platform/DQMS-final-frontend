@@ -16,6 +16,7 @@ export default function TeleshopManagerKioskSettings() {
   const [kioskLaunched, setKioskLaunched] = useState(false)
   const [promoVideoUrl, setPromoVideoUrl] = useState('')
   const [uploadingVideo, setUploadingVideo] = useState(false)
+  const [enableBillPaymentOptions, setEnableBillPaymentOptions] = useState(true)
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -42,7 +43,10 @@ export default function TeleshopManagerKioskSettings() {
       setOutlet(response.data.outlet)
       setCurrentPassword(response.data.outlet.kioskPassword || '')
       
-      let videoUrl = response.data.outlet.displaySettings?.promoVideoUrl || ''
+      const displaySettings = response.data.outlet.displaySettings || {}
+      setEnableBillPaymentOptions(displaySettings.enableBillPaymentOptions === true) // default false
+      
+      let videoUrl = displaySettings.promoVideoUrl || ''
       const baseUrl = api.defaults.baseURL?.replace(/\/api$/, '') || ''
       if (videoUrl.includes('localhost:') && baseUrl && !baseUrl.includes('localhost:')) {
         videoUrl = videoUrl.replace(/http:\/\/localhost:\d+/, baseUrl)
@@ -168,6 +172,27 @@ export default function TeleshopManagerKioskSettings() {
       setTimeout(() => setSuccess(''), 5000)
     } catch (err: any) {
       setError(err.response?.data?.error || 'Failed to remove video')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleToggleBillPaymentOptions = async () => {
+    try {
+      setSaving(true)
+      setError('')
+      setSuccess('')
+
+      const newValue = !enableBillPaymentOptions
+      await api.post('/teleshop-manager/kiosk-settings', {
+        enableBillPaymentOptions: newValue
+      })
+
+      setEnableBillPaymentOptions(newValue)
+      setSuccess('Bill payment options setting updated successfully!')
+      setTimeout(() => setSuccess(''), 5000)
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Failed to update setting')
     } finally {
       setSaving(false)
     }
@@ -336,6 +361,42 @@ export default function TeleshopManagerKioskSettings() {
                 >
                   <Save className="w-5 h-5" />
                   {saving ? 'Saving...' : currentPassword ? 'Update Password' : 'Set Password'}
+                </button>
+              </div>
+            </div>
+
+            {/* Bill Payment Settings */}
+            <div className="border-t border-slate-200 pt-6 mt-6">
+              <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                <CheckCircle2 className="w-5 h-5 text-indigo-600" />
+                Bill Payment Options
+              </h3>
+              <p className="text-sm text-gray-600 mb-4">
+                Enable or disable the requirement for customers to select their preferred payment method (Cash/Card/Cheque) and payment intent (Full/Partial) during the Bill Payment queue registration flow.
+              </p>
+
+              <div className="flex items-center justify-between bg-gray-50 p-4 rounded-xl border border-gray-200">
+                <div>
+                  <h4 className="font-medium text-gray-900 text-sm">Payment Method Selection</h4>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {enableBillPaymentOptions 
+                      ? 'Customers must select how they want to pay before getting a ticket.'
+                      : 'Customers can get a ticket without selecting a payment method.'}
+                  </p>
+                </div>
+                <button
+                  onClick={handleToggleBillPaymentOptions}
+                  disabled={saving}
+                  className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:ring-offset-2 ${
+                    enableBillPaymentOptions ? 'bg-indigo-600' : 'bg-gray-200'
+                  } ${saving ? 'opacity-50 cursor-not-allowed' : ''}`}
+                >
+                  <span
+                    aria-hidden="true"
+                    className={`inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                      enableBillPaymentOptions ? 'translate-x-5' : 'translate-x-0'
+                    }`}
+                  />
                 </button>
               </div>
             </div>

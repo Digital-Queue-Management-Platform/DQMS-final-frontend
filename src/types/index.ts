@@ -81,6 +81,7 @@ export interface Outlet {
   isActive: boolean
   createdAt: string
   counterCount?: number
+  displaySettings?: any
 }
 
 export interface Region {

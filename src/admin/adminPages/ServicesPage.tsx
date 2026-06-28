@@ -23,6 +23,10 @@ const ServicesPage: React.FC = () => {
   const [showServiceTypeLoading, setShowServiceTypeLoading] = useState(false)
   const [billRateLimitEnabled, setBillRateLimitEnabled] = useState(true)
   const [billRateLimitLoading, setBillRateLimitLoading] = useState(false)
+  const [showQueuePositionEnabled, setShowQueuePositionEnabled] = useState(true)
+  const [showQueuePositionLoading, setShowQueuePositionLoading] = useState(false)
+  const [showWaitTimeEnabled, setShowWaitTimeEnabled] = useState(true)
+  const [showWaitTimeLoading, setShowWaitTimeLoading] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [searchTerm, setSearchTerm] = useState('')
@@ -42,6 +46,8 @@ const ServicesPage: React.FC = () => {
     fetchAdvanceApptSetting()
     fetchShowServiceTypeSetting()
     fetchBillRateLimitSetting()
+    fetchShowQueuePositionSetting()
+    fetchShowWaitTimeSetting()
     fetchServices()
   }, [])
 
@@ -82,6 +88,26 @@ const ServicesPage: React.FC = () => {
     } catch (err) {
       console.error(err)
       setBillRateLimitEnabled(true)
+    }
+  }
+
+  const fetchShowQueuePositionSetting = async () => {
+    try {
+      const res = await api.get('/queue/settings/show-queue-position')
+      setShowQueuePositionEnabled(res.data?.enabled !== false)
+    } catch (err) {
+      console.error(err)
+      setShowQueuePositionEnabled(true)
+    }
+  }
+
+  const fetchShowWaitTimeSetting = async () => {
+    try {
+      const res = await api.get('/queue/settings/show-wait-time')
+      setShowWaitTimeEnabled(res.data?.enabled !== false)
+    } catch (err) {
+      console.error(err)
+      setShowWaitTimeEnabled(true)
     }
   }
 
@@ -226,7 +252,33 @@ const ServicesPage: React.FC = () => {
     }
   }
 
+  const handleShowQueuePositionToggle = async (enabled: boolean) => {
+    setShowQueuePositionLoading(true)
+    setError('')
+    try {
+      const res = await api.patch('/queue/settings/show-queue-position', { enabled })
+      setShowQueuePositionEnabled(res.data?.enabled === true)
+    } catch (err: any) {
+      console.error(err)
+      setError(err?.response?.data?.error || 'Failed to update show queue position setting')
+    } finally {
+      setShowQueuePositionLoading(false)
+    }
+  }
 
+  const handleShowWaitTimeToggle = async (enabled: boolean) => {
+    setShowWaitTimeLoading(true)
+    setError('')
+    try {
+      const res = await api.patch('/queue/settings/show-wait-time', { enabled })
+      setShowWaitTimeEnabled(res.data?.enabled === true)
+    } catch (err: any) {
+      console.error(err)
+      setError(err?.response?.data?.error || 'Failed to update show wait time setting')
+    } finally {
+      setShowWaitTimeLoading(false)
+    }
+  }
 
   const resetForm = () => {
     setCode('')
@@ -373,6 +425,50 @@ const ServicesPage: React.FC = () => {
                 className={`px-4 py-2 rounded-xl text-sm font-semibold transition-colors disabled:opacity-60 ${billRateLimitEnabled ? 'bg-gray-900 text-white hover:bg-gray-800' : 'bg-blue-600 text-white hover:bg-blue-700'}`}
               >
                 {billRateLimitLoading ? 'Saving...' : billRateLimitEnabled ? 'Disable Limit' : 'Enable Limit'}
+              </button>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 sm:p-6 flex flex-col justify-between">
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">Show Queue Position</h2>
+              <p className="text-sm text-gray-600 mt-1 mb-4">
+                When enabled, customers can view their exact position in the queue on the token tracking page. When disabled, this information is hidden.
+              </p>
+            </div>
+            <div className="flex items-center justify-between gap-3 mt-auto">
+              <span className={`px-3 py-1 rounded-full text-xs font-semibold ${showQueuePositionEnabled ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-600'}`}>
+                {showQueuePositionEnabled ? 'Enabled' : 'Disabled'}
+              </span>
+              <button
+                type="button"
+                onClick={() => handleShowQueuePositionToggle(!showQueuePositionEnabled)}
+                disabled={showQueuePositionLoading}
+                className={`px-4 py-2 rounded-xl text-sm font-semibold transition-colors disabled:opacity-60 ${showQueuePositionEnabled ? 'bg-gray-900 text-white hover:bg-gray-800' : 'bg-blue-600 text-white hover:bg-blue-700'}`}
+              >
+                {showQueuePositionLoading ? 'Saving...' : showQueuePositionEnabled ? 'Disable' : 'Enable'}
+              </button>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 sm:p-6 flex flex-col justify-between">
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">Show Wait Time</h2>
+              <p className="text-sm text-gray-600 mt-1 mb-4">
+                When enabled, customers can view the estimated wait time for their service on the token tracking page. When disabled, this information is hidden.
+              </p>
+            </div>
+            <div className="flex items-center justify-between gap-3 mt-auto">
+              <span className={`px-3 py-1 rounded-full text-xs font-semibold ${showWaitTimeEnabled ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-600'}`}>
+                {showWaitTimeEnabled ? 'Enabled' : 'Disabled'}
+              </span>
+              <button
+                type="button"
+                onClick={() => handleShowWaitTimeToggle(!showWaitTimeEnabled)}
+                disabled={showWaitTimeLoading}
+                className={`px-4 py-2 rounded-xl text-sm font-semibold transition-colors disabled:opacity-60 ${showWaitTimeEnabled ? 'bg-gray-900 text-white hover:bg-gray-800' : 'bg-blue-600 text-white hover:bg-blue-700'}`}
+              >
+                {showWaitTimeLoading ? 'Saving...' : showWaitTimeEnabled ? 'Disable' : 'Enable'}
               </button>
             </div>
           </div>
