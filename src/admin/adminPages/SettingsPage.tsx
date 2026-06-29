@@ -9,7 +9,8 @@ import {
   ListOrdered,
   Timer,
   Save,
-  Loader2
+  Loader2,
+  Hash
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import api from '../../config/api';
@@ -25,6 +26,11 @@ const SettingsPage: React.FC = () => {
   });
 
   const [initialSettings, setInitialSettings] = useState(settings);
+  
+  const [serviceStartingTokens, setServiceStartingTokens] = useState<Record<string, number>>({});
+  const [initialServiceStartingTokens, setInitialServiceStartingTokens] = useState<Record<string, number>>({});
+  const [services, setServices] = useState<any[]>([]);
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -44,14 +50,18 @@ const SettingsPage: React.FC = () => {
         serviceTypeRes,
         billLimitRes,
         queuePosRes,
-        waitTimeRes
+        waitTimeRes,
+        startingTokensRes,
+        servicesRes
       ] = await Promise.all([
         api.get('/queue/settings/priority-service').catch(() => ({ data: { enabled: false } })),
         api.get('/queue/settings/advance-appointment').catch(() => ({ data: { enabled: true } })),
         api.get('/queue/settings/show-service-type').catch(() => ({ data: { enabled: false } })),
         api.get('/queue/settings/bill-enquiry-rate-limit').catch(() => ({ data: { enabled: true } })),
         api.get('/queue/settings/show-queue-position').catch(() => ({ data: { enabled: true } })),
-        api.get('/queue/settings/show-wait-time').catch(() => ({ data: { enabled: true } }))
+        api.get('/queue/settings/show-wait-time').catch(() => ({ data: { enabled: true } })),
+        api.get('/queue/settings/service-starting-tokens').catch(() => ({ data: {} })),
+        api.get('/queue/services?all=true').catch(() => ({ data: [] }))
       ]);
 
       const fetchedSettings = {
@@ -65,6 +75,10 @@ const SettingsPage: React.FC = () => {
 
       setSettings(fetchedSettings);
       setInitialSettings(fetchedSettings);
+
+      setServiceStartingTokens(startingTokensRes.data || {});
+      setInitialServiceStartingTokens(startingTokensRes.data || {});
+      setServices(servicesRes.data || []);
     } catch (err) {
       console.error('Error fetching settings:', err);
       setError('Failed to load some settings. They may show default values.');
@@ -78,7 +92,9 @@ const SettingsPage: React.FC = () => {
     setSuccess(null);
   };
 
-  const hasUnsavedChanges = JSON.stringify(settings) !== JSON.stringify(initialSettings);
+  const hasUnsavedChanges = 
+    JSON.stringify(settings) !== JSON.stringify(initialSettings) ||
+    JSON.stringify(serviceStartingTokens) !== JSON.stringify(initialServiceStartingTokens);
 
   const saveSettings = async () => {
     setSaving(true);
@@ -104,9 +120,13 @@ const SettingsPage: React.FC = () => {
         settings.showWaitTime !== initialSettings.showWaitTime 
           ? api.patch('/queue/settings/show-wait-time', { enabled: settings.showWaitTime })
           : Promise.resolve(),
+        JSON.stringify(serviceStartingTokens) !== JSON.stringify(initialServiceStartingTokens)
+          ? api.patch('/queue/settings/service-starting-tokens', serviceStartingTokens)
+          : Promise.resolve(),
       ]);
 
       setInitialSettings(settings);
+      setInitialServiceStartingTokens(serviceStartingTokens);
       setSuccess('Settings saved successfully!');
     } catch (err) {
       console.error('Error saving settings:', err);
@@ -174,6 +194,58 @@ const SettingsPage: React.FC = () => {
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Service Starting Tokens */}
+        <motion.div 
+          className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 md:col-span-2"
+        >
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-2 bg-indigo-50 rounded-lg text-indigo-600">
+              <Hash className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-gray-900">Service Starting Token Numbers</h3>
+              <p className="text-sm text-gray-500 mt-1">
+                Configure custom starting token numbers for specific services. For example, setting Bill Payments to 1000 will start generating tokens as 1000, 1001, etc. This applies globally to all outlets via Kiosk, QR, and Online Appointments.
+              </p>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mt-6">
+            {services.map(service => (
+              <div key={service.code} className="bg-gray-50 p-4 rounded-xl border border-gray-200 transition-colors focus-within:border-indigo-300 focus-within:ring-1 focus-within:ring-indigo-300">
+                <label className="block text-sm font-semibold text-gray-900 mb-1 truncate" title={service.title}>
+                  {service.title}
+                </label>
+                <div className="text-xs text-gray-500 font-medium mb-3">{service.code}</div>
+                <input
+                  type="number"
+                  min="1"
+                  placeholder="Default (1)"
+                  value={serviceStartingTokens[service.code] || ''}
+                  onChange={(e) => {
+                    const val = e.target.value ? parseInt(e.target.value, 10) : undefined;
+                    setServiceStartingTokens(prev => {
+                      const updated = { ...prev };
+                      if (val === undefined || isNaN(val)) {
+                        delete updated[service.code];
+                      } else {
+                        updated[service.code] = val;
+                      }
+                      return updated;
+                    });
+                    setSuccess(null);
+                  }}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm bg-white shadow-sm"
+                />
+              </div>
+            ))}
+            {services.length === 0 && (
+              <div className="col-span-full p-4 text-center text-gray-500 text-sm bg-gray-50 rounded-xl border border-gray-200">
+                No services available. Create services in the Services tab first.
+              </div>
+            )}
+          </div>
+        </motion.div>
+
         {/* Service Priority Feature */}
         <motion.div 
           whileHover={{ scale: 1.01 }}
