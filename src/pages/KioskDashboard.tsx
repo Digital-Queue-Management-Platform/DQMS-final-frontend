@@ -195,6 +195,10 @@ export default function KioskDashboard() {
       // Fetch outlet settings including promo video
       try {
         const settingsRes = await api.get('/kiosk/outlet-settings')
+        if (settingsRes.data.outlet) {
+          setOutlet(settingsRes.data.outlet)
+          localStorage.setItem('kioskOutlet', JSON.stringify(settingsRes.data.outlet))
+        }
         let videoUrl = settingsRes.data.outlet?.displaySettings?.promoVideoUrl
         if (videoUrl) {
           // Auto-fix locally saved URLs if accessing from another device
