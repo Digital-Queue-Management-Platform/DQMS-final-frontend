@@ -253,7 +253,23 @@ export default function KioskDashboard() {
 
   const getServiceTitle = (code: string) => {
     const service = services.find(s => s.code === code)
-    return service ? service.title : code
+    if (!service) return code
+    
+    const title = service.title
+    const lowerTitle = title.toLowerCase()
+    
+    // Add translation mapping for known service titles
+    if (lowerTitle.includes('fixed') && lowerTitle.includes('bill')) {
+      return `${t.fixed} - ${t.billPayment}`
+    }
+    if (lowerTitle.includes('fixed') && (lowerTitle.includes('other') || lowerTitle.includes('others'))) {
+      return `${t.fixed} - ${t.other}`
+    }
+    if (lowerTitle === 'mobile' || lowerTitle === 'mobile service') {
+      return t.mobileService
+    }
+    
+    return title
   }
 
   const sendOtp = async (): Promise<boolean> => {
