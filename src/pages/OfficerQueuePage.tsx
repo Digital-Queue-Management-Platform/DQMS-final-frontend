@@ -660,8 +660,8 @@ export default function OfficerQueuePage() {
 
           {/* Flex Container for Current Customer and Queue List */}
           <div className="flex flex-col lg:flex-row gap-6 items-start flex-1 min-h-0">
-            {/* Current Customer Section - Top on mobile, Left on desktop (5/12 width) */}
-            <div className="w-full lg:w-5/12 bg-white rounded-2xl shadow-sm border border-slate-100 p-4 sm:p-5 h-full overflow-y-auto custom-scrollbar">
+            {/* Current Customer Section - Top on mobile, Left on desktop (1/2 width) */}
+            <div className="w-full lg:w-1/2 bg-white rounded-2xl shadow-sm border border-slate-100 p-4 sm:p-5 h-full overflow-y-auto custom-scrollbar">
               {!currentToken ? (
                 <>
                   <h2 className="text-lg font-bold text-slate-900 mb-4">Current Customer</h2>
@@ -794,57 +794,75 @@ export default function OfficerQueuePage() {
                       <div className="space-y-3 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
                         {multipleBills.length > 0 ? (
                           multipleBills.map((bill) => (
-                            <div key={bill.telephoneNumber} className="bg-white rounded-xl p-3 border border-slate-200 shadow-sm">
-                              <div className="grid grid-cols-2 gap-3 mb-2">
-                                <div className="flex flex-col gap-0.5">
-                                  <span className="text-gray-500 text-[10px] uppercase font-bold tracking-wider">SLT Number</span>
-                                  <span className="font-mono font-semibold text-gray-800 text-sm">{bill.telephoneNumber}</span>
-                                </div>
-                                <div className="flex flex-col gap-0.5">
-                                  <span className="text-gray-500 text-[10px] uppercase font-bold tracking-wider">Account Name</span>
-                                  <span className="text-sm font-semibold text-gray-800 truncate" title={bill.accountName}>{bill.accountName}</span>
-                                </div>
-                              </div>
-                              <div className="flex items-center justify-between pt-2 border-t border-slate-100">
-                                <div className="flex flex-col gap-0.5">
-                                  <span className="text-gray-500 text-[10px] uppercase font-bold tracking-wider">Bill Status</span>
-                                  <span className={`text-[10px] font-black px-2 py-0.5 rounded-full inline-block ${bill.status === 'paid' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
-                                    {bill.status.toUpperCase()}
-                                  </span>
-                                </div>
-                                {bill.accountNumber && (
-                                  <div className="flex flex-col items-end">
-                                    <Barcode value={bill.accountNumber} height={45} width={1.5} fontSize={14} displayValue={true} background="transparent" margin={0} />
+                            <div key={bill.telephoneNumber} className="bg-white rounded-xl p-3 sm:p-4 border border-slate-200 shadow-sm flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
+                              <div className="flex-1 w-full space-y-3">
+                                <div className="grid grid-cols-2 gap-3">
+                                  <div className="flex flex-col gap-0.5">
+                                    <span className="text-gray-500 text-[10px] uppercase font-bold tracking-wider">SLT Number</span>
+                                    <span className="font-mono font-semibold text-gray-800 text-sm">{bill.telephoneNumber}</span>
                                   </div>
-                                )}
+                                  <div className="flex flex-col gap-0.5">
+                                    <span className="text-gray-500 text-[10px] uppercase font-bold tracking-wider">Account Name</span>
+                                    <span className="text-sm font-semibold text-gray-800 truncate" title={bill.accountName}>{bill.accountName}</span>
+                                  </div>
+                                  <div className="flex flex-col gap-0.5">
+                                    <span className="text-gray-500 text-[10px] uppercase font-bold tracking-wider">Bill Status</span>
+                                    <div>
+                                      <span className={`text-[10px] font-black px-2 py-0.5 rounded-full inline-block ${bill.status === 'paid' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
+                                        {bill.status.toUpperCase()}
+                                      </span>
+                                    </div>
+                                  </div>
+                                  <div className="flex flex-col gap-0.5">
+                                    <span className="text-gray-500 text-[10px] uppercase font-bold tracking-wider">Bill Amount</span>
+                                    <span className="font-bold text-sm text-gray-900">
+                                      {bill.currentBill !== undefined && bill.currentBill !== null ? `LKR ${bill.currentBill.toLocaleString()}` : '-'}
+                                    </span>
+                                  </div>
+                                </div>
                               </div>
-                            </div>
-                          ))
-                        ) : billInfo ? (
-                          <div className="bg-white rounded-xl p-3 border border-slate-200 shadow-sm">
-                            <div className="grid grid-cols-2 gap-3 mb-2">
-                              <div className="flex flex-col gap-0.5">
-                                <span className="text-gray-500 text-[10px] uppercase font-bold tracking-wider">SLT Number</span>
-                                <span className="font-mono font-semibold text-gray-800 text-sm">{currentToken.sltTelephoneNumber}</span>
-                              </div>
-                              <div className="flex flex-col gap-0.5">
-                                <span className="text-gray-500 text-[10px] uppercase font-bold tracking-wider">Account Name</span>
-                                <span className="text-sm font-semibold text-gray-800 truncate" title={billInfo.accountName}>{billInfo.accountName}</span>
-                              </div>
-                            </div>
-                            <div className="flex items-center justify-between pt-2 border-t border-slate-100">
-                              <div className="flex flex-col gap-0.5">
-                                <span className="text-gray-500 text-[10px] uppercase font-bold tracking-wider">Bill Status</span>
-                                <span className={`text-[10px] font-black px-2 py-0.5 rounded-full inline-block ${billInfo.status === 'paid' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
-                                  {billInfo.status.toUpperCase()}
-                                </span>
-                              </div>
-                              {billInfo.accountNumber && (
-                                <div className="flex flex-col items-end">
-                                  <Barcode value={billInfo.accountNumber} height={45} width={1.5} fontSize={14} displayValue={true} background="transparent" margin={0} />
+                              
+                              {bill.accountNumber && (
+                                <div className="flex flex-col items-center sm:items-end w-full sm:w-auto sm:border-l sm:border-slate-100 sm:pl-4 pt-3 sm:pt-0 border-t sm:border-t-0 border-slate-100 shrink-0">
+                                  <Barcode value={bill.accountNumber} height={45} width={1.5} fontSize={14} displayValue={true} background="transparent" margin={0} />
                                 </div>
                               )}
                             </div>
+                          ))
+                        ) : billInfo ? (
+                          <div className="bg-white rounded-xl p-3 sm:p-4 border border-slate-200 shadow-sm flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
+                            <div className="flex-1 w-full space-y-3">
+                              <div className="grid grid-cols-2 gap-3">
+                                <div className="flex flex-col gap-0.5">
+                                  <span className="text-gray-500 text-[10px] uppercase font-bold tracking-wider">SLT Number</span>
+                                  <span className="font-mono font-semibold text-gray-800 text-sm">{currentToken.sltTelephoneNumber}</span>
+                                </div>
+                                <div className="flex flex-col gap-0.5">
+                                  <span className="text-gray-500 text-[10px] uppercase font-bold tracking-wider">Account Name</span>
+                                  <span className="text-sm font-semibold text-gray-800 truncate" title={billInfo.accountName}>{billInfo.accountName}</span>
+                                </div>
+                                <div className="flex flex-col gap-0.5">
+                                  <span className="text-gray-500 text-[10px] uppercase font-bold tracking-wider">Bill Status</span>
+                                  <div>
+                                    <span className={`text-[10px] font-black px-2 py-0.5 rounded-full inline-block ${billInfo.status === 'paid' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
+                                      {billInfo.status.toUpperCase()}
+                                    </span>
+                                  </div>
+                                </div>
+                                <div className="flex flex-col gap-0.5">
+                                  <span className="text-gray-500 text-[10px] uppercase font-bold tracking-wider">Bill Amount</span>
+                                  <span className="font-bold text-sm text-gray-900">
+                                    {billInfo.currentBill !== undefined && billInfo.currentBill !== null ? `LKR ${billInfo.currentBill.toLocaleString()}` : '-'}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                            
+                            {billInfo.accountNumber && (
+                              <div className="flex flex-col items-center sm:items-end w-full sm:w-auto sm:border-l sm:border-slate-100 sm:pl-4 pt-3 sm:pt-0 border-t sm:border-t-0 border-slate-100 shrink-0">
+                                <Barcode value={billInfo.accountNumber} height={45} width={1.5} fontSize={14} displayValue={true} background="transparent" margin={0} />
+                              </div>
+                            )}
                           </div>
                         ) : currentToken.sltTelephoneNumber ? (
                           <p className="text-xs text-amber-700 italic">Fetching bill details...</p>
@@ -955,8 +973,8 @@ export default function OfficerQueuePage() {
               )}
             </div>
 
-            {/* Queue List - Bottom on mobile, Right on desktop (7/12 width) */}
-            <div className="w-full lg:w-7/12 bg-white rounded-2xl shadow-sm border border-slate-100 p-3 sm:p-5 h-full flex flex-col min-h-0">
+            {/* Queue List - Bottom on mobile, Right on desktop (1/2 width) */}
+            <div className="w-full lg:w-1/2 bg-white rounded-2xl shadow-sm border border-slate-100 p-3 sm:p-5 h-full flex flex-col min-h-0">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-5 px-1">
                 <h2 className="text-lg font-bold text-slate-900 border-l-4 border-amber-500 pl-3">
                   {activeTab === 'my-queue' ? 'My Queue' : activeTab === 'transferred' ? 'Transferred Tokens' : 'Unmatched Tokens'}
