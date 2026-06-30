@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { motion } from "framer-motion"
 import { Clock, Phone, FileText, Users, RefreshCwIcon, Calendar, AlertTriangle, CheckCircle2, Volume2, Play, Star } from "lucide-react"
+import Barcode from "react-barcode"
 // OfficerTopBar is provided globally from Layout for officer routes
 import api, { WS_URL } from "../config/api"
 import type { Officer, Token } from "../types"
@@ -14,8 +15,8 @@ export default function OfficerQueuePage() {
   const navigate = useNavigate()
   const [officer, setOfficer] = useState<Officer | null>(null)
   const [currentToken, setCurrentToken] = useState<Token | null>(null)
-  const [billInfo, setBillInfo] = useState<{ telephoneNumber: string; accountName: string; currentBill: number; dueDate: string; status: string; updatedAt: string } | null>(null)
-  const [multipleBills, setMultipleBills] = useState<{ telephoneNumber: string; accountName: string; currentBill: number; dueDate: string; status: string; billPaymentIntent?: string; billPaymentAmount?: number; updatedAt: string }[]>([])
+  const [billInfo, setBillInfo] = useState<{ telephoneNumber: string; accountName: string; currentBill: number; dueDate: string; status: string; updatedAt: string; accountNumber?: string | null } | null>(null)
+  const [multipleBills, setMultipleBills] = useState<{ telephoneNumber: string; accountName: string; currentBill: number; dueDate: string; status: string; billPaymentIntent?: string; billPaymentAmount?: number; updatedAt: string; accountNumber?: string | null }[]>([])
   const [queue, setQueue] = useState<{ waiting: Token[]; inService: Token[]; availableOfficers: number; totalWaiting: number } | null>(null)
   const [accountRef, setAccountRef] = useState("")
   const [customerName, setCustomerName] = useState("")
@@ -823,6 +824,11 @@ export default function OfficerQueuePage() {
                                   {bill.status.toUpperCase()}
                                 </span>
                               </div>
+                              {bill.accountNumber && (
+                                <div className="mt-3 flex flex-col items-center border-t border-slate-100 pt-3">
+                                  <Barcode value={bill.accountNumber} height={40} width={1.5} fontSize={12} displayValue={true} background="transparent" />
+                                </div>
+                              )}
                             </div>
                           ))
                         ) : billInfo ? (
@@ -841,6 +847,11 @@ export default function OfficerQueuePage() {
                                 {billInfo.status.toUpperCase()}
                               </span>
                             </div>
+                            {billInfo.accountNumber && (
+                              <div className="mt-3 flex flex-col items-center border-t border-slate-100 pt-3">
+                                <Barcode value={billInfo.accountNumber} height={40} width={1.5} fontSize={12} displayValue={true} background="transparent" />
+                              </div>
+                            )}
                           </div>
                         ) : currentToken.sltTelephoneNumber ? (
                           <p className="text-xs text-amber-700 italic">Fetching bill details...</p>
