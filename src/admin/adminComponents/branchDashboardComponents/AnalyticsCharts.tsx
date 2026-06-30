@@ -1,0 +1,234 @@
+import React, { useState } from 'react';
+import {
+  LineChart,
+  Line,
+  BarChart,
+  Bar,
+  PieChart,
+  Pie,
+  Cell,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from 'recharts';
+import StaffUtilizationChart from './StaffUtilizationChart';
+
+interface HourlyWaitingTime {
+  hour: string;
+  waitTime: number;
+}
+
+interface ServiceType {
+  name: string;
+  count: number;
+}
+
+interface RatingDistribution {
+  rating: number;
+  count: number;
+}
+
+interface TokenDataItem {
+  hour: string;
+  issued: number;
+  completed: number;
+}
+
+interface EnhancedTokenDataItem extends TokenDataItem {
+  dropOffs: number;
+}
+
+interface AnalyticsData {
+  hourlyWaitingTimes: HourlyWaitingTime[];
+  serviceTypes: ServiceType[];
+  ratingDistribution: RatingDistribution[];
+  staffUtilizationTrend?: any[];
+}
+
+interface AnalyticsChartsProps {
+  data: AnalyticsData;
+  tokenData: TokenDataItem[];
+}
+
+const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ data, tokenData }) => {
+  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
+
+  const totalIssued = tokenData.reduce((sum, item) => sum + item.issued, 0);
+  const totalCompleted = tokenData.reduce((sum, item) => sum + item.completed, 0);
+  const totalDropOffs = totalIssued - totalCompleted;
+  const dropOffPercentage = totalIssued > 0 ? ((totalDropOffs / totalIssued) * 100).toFixed(1) : "0.0";
+
+  const enhancedTokenData: EnhancedTokenDataItem[] = tokenData.map(item => ({
+    ...item,
+    dropOffs: item.issued - item.completed,
+  }));
+
+  const [formattedServiceTypes, setFormattedServiceTypes] = useState<ServiceType[]>([]);
+
+  React.useEffect(() => {
+    const formatServices = async () => {
+      const { getServiceDisplayName } = await import('../../../utils/sharedServiceCache');
+      const formatted = await Promise.all(data.serviceTypes.map(async st => ({
+        name: await getServiceDisplayName(st.name),
+        count: st.count
+      })));
+      setFormattedServiceTypes(formatted);
+    };
+    formatServices();
+  }, [data.serviceTypes]);
+
+  return (
+    <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 mb-6">
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-lg font-semibold text-gray-800">
+          Branch Analytics
+        </h2>
+      </div>
+
+      {/* Line Chart */}
+      <div className="mt-12 grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div>
+          <h3 className="text-sm font-medium text-gray-700 mb-4">
+            Waiting Times Throughout the Day
+          </h3>
+          <div className="h-64 mt-6" style={{ minWidth: 0 }}>
+            <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={150}>
+              <LineChart data={data.hourlyWaitingTimes}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                <XAxis dataKey="hour" />
+                <YAxis unit=" min" />
+                <Tooltip formatter={(value) => [`${value} min`, 'Wait Time']} />
+                <Line
+                  type="monotone"
+                  dataKey="waitTime"
+                  stroke="#3b82f6"
+                  strokeWidth={2}
+                  dot={{ r: 3 }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Bar Chart */}
+        <div>
+          <h3 className="text-sm font-medium text-gray-700 mb-4">
+            Services Availed
+          </h3>
+          <div className="h-64 mt-6" style={{ minWidth: 0 }}>
+            <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={150}>
+              <BarChart data={formattedServiceTypes}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                <XAxis dataKey="name" />
+                <YAxis />
+                <Tooltip />
+                <Bar dataKey="count" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      </div>
+
+      {/* Token Drop-off Trend */}
+      <div className="mt-8">
+        <div className=" p-4 mb-6">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4">
+            <h3 className="text-base font-medium text-gray-700">Token Drop-off Trend</h3>
+            <div className="mt-2 md:mt-0 flex items-center space-x-4">
+              <div className="flex items-center">
+                <span className="w-3 h-3 rounded-full bg-blue-500 mr-1"></span>
+                <span className="text-sm text-gray-600">Issued</span>
+              </div>
+              <div className="flex items-center">
+                <span className="w-3 h-3 rounded-full bg-green-500 mr-1"></span>
+                <span className="text-sm text-gray-600">Completed</span>
+              </div>
+              <div className="flex items-center">
+                <span className="w-3 h-3 rounded-full bg-red-400 mr-1"></span>
+                <span className="text-sm text-gray-600">Drop-offs</span>
+              </div>
+            </div>
+          </div>
+          <div className="h-72" style={{ minWidth: 0 }}>
+            <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={150}>
+              <LineChart data={enhancedTokenData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="hour" />
+                <YAxis />
+                <Tooltip
+                  formatter={(value, name) => {
+                    if (name === 'issued') return [`${value} Tokens`, 'Issued'];
+                    if (name === 'completed') return [`${value} Tokens`, 'Completed'];
+                    if (name === 'dropOffs') return [`${value} Customers`, 'No-shows'];
+                    return [value, name];
+                  }}
+                />
+                <Legend />
+                <Line type="monotone" dataKey="issued" stroke="#3B82F6" strokeWidth={2} activeDot={{ r: 8 }} />
+                <Line type="monotone" dataKey="completed" stroke="#10B981" strokeWidth={2} activeDot={{ r: 8 }} />
+                <Line type="monotone" dataKey="dropOffs" stroke="#F87171" strokeDasharray="5 5" strokeWidth={2} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="mt-3 pt-3 border-t border-gray-100 flex flex-wrap items-center justify-between">
+            <div className="text-sm text-gray-500">
+              <span className="font-semibold">Total no-shows:</span> {totalDropOffs} customers ({dropOffPercentage}% of issued tokens)
+            </div>
+            <div className="text-sm text-gray-500 mt-1 md:mt-0">
+              <span className="font-semibold">Completion rate:</span> {(100 - parseFloat(dropOffPercentage)).toFixed(1)}%
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-14">
+        <StaffUtilizationChart data={data.staffUtilizationTrend || []} />
+      </div>
+
+      {/* Pie Chart */}
+      <div className="mt-6">
+        <h3 className="text-sm font-medium text-gray-700 mb-4">
+          Customer Rating Distribution
+        </h3>
+        <div className="h-64 flex items-center justify-center" style={{ minWidth: 0 }}>
+          <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={150}>
+            <PieChart>
+              <Pie
+                data={data.ratingDistribution as any}
+                cx="50%"
+                cy="50%"
+                labelLine={false}
+                outerRadius={80}
+                fill="#8884d8"
+                dataKey="count"
+                nameKey="rating"
+                label={({ name, percent }) =>
+                  `${name}★: ${(percent as any * 100).toFixed(0)}%`
+                }
+              >
+                {data.ratingDistribution.map((_, index) => (
+                  <Cell
+                    key={`cell-${index}`}
+                    fill={COLORS[index % COLORS.length]}
+                  />
+                ))}
+              </Pie>
+              <Tooltip
+                formatter={(value, name) => [
+                  `${value} customers`,
+                  `${name}★ Rating`,
+                ]}
+              />
+              <Legend />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default AnalyticsCharts;
