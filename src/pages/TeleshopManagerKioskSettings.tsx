@@ -42,7 +42,9 @@ export default function TeleshopManagerKioskSettings() {
       setOutlet(response.data.outlet)
       setCurrentPassword(response.data.outlet.kioskPassword || '')
       
-      let videoUrl = response.data.outlet.displaySettings?.promoVideoUrl || ''
+      const displaySettings = response.data.outlet.displaySettings || {}
+      
+      let videoUrl = displaySettings.promoVideoUrl || ''
       const baseUrl = api.defaults.baseURL?.replace(/\/api$/, '') || ''
       if (videoUrl.includes('localhost:') && baseUrl && !baseUrl.includes('localhost:')) {
         videoUrl = videoUrl.replace(/http:\/\/localhost:\d+/, baseUrl)
@@ -172,6 +174,7 @@ export default function TeleshopManagerKioskSettings() {
       setSaving(false)
     }
   }
+
 
   // Save outlet credentials to localStorage so the Kiosk PC auto-logs in
   const launchKioskSetup = () => {
@@ -339,6 +342,7 @@ export default function TeleshopManagerKioskSettings() {
                 </button>
               </div>
             </div>
+
 
             {/* Promo Video Settings */}
             <div className="border-t border-slate-200 pt-6 mt-6">

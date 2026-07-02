@@ -96,6 +96,7 @@ export default function KioskDashboard() {
   const kioskOutletId = (() => { try { const d = localStorage.getItem('kioskOutlet'); return d ? JSON.parse(d)?.id : null } catch { return null } })()
   const branchStatus = useBranchStatus(kioskOutletId)
   const { notices: activeNotices, dismiss: dismissNotice } = useOutletNotices(kioskOutletId)
+  const enableBillPaymentOptions = outlet?.displaySettings?.enableBillPaymentOptions === true
 
   useWebSocket({
     onMessage: (msg) => {
@@ -194,6 +195,10 @@ export default function KioskDashboard() {
       // Fetch outlet settings including promo video
       try {
         const settingsRes = await api.get('/kiosk/outlet-settings')
+        if (settingsRes.data.outlet) {
+          setOutlet(settingsRes.data.outlet)
+          localStorage.setItem('kioskOutlet', JSON.stringify(settingsRes.data.outlet))
+        }
         let videoUrl = settingsRes.data.outlet?.displaySettings?.promoVideoUrl
         if (videoUrl) {
           // Auto-fix locally saved URLs if accessing from another device
@@ -252,7 +257,23 @@ export default function KioskDashboard() {
 
   const getServiceTitle = (code: string) => {
     const service = services.find(s => s.code === code)
-    return service ? service.title : code
+    if (!service) return code
+    
+    const title = service.title
+    const lowerTitle = title.toLowerCase()
+    
+    // Add translation mapping for known service titles
+    if (lowerTitle.includes('fixed') && lowerTitle.includes('bill')) {
+      return `${t.fixed} - ${t.billPayment}`
+    }
+    if (lowerTitle.includes('fixed') && (lowerTitle.includes('other') || lowerTitle.includes('others'))) {
+      return `${t.fixed} - ${t.other}`
+    }
+    if (lowerTitle === 'mobile' || lowerTitle === 'mobile service') {
+      return t.mobileService
+    }
+    
+    return title
   }
 
   const sendOtp = async (): Promise<boolean> => {
@@ -293,14 +314,14 @@ export default function KioskDashboard() {
         setOtpToken(res.data.verifiedMobileToken)
         setOtpStep('verified')
 
-  // Auto-verify SLT number after mobile OTP (for bill payment)
+        // Auto-verify SLT number after mobile OTP (for bill payment)
         if (isSltRequiredService(selectedService) && sltTelephoneNumbers.length > 0 && verifiedBills.length === 0) {
           await verifySltNumbers()
         }
 
         // Auto-submit only for non-bill-payment services.
-        // For bill payment, the user must first select payment intent and method.
-        if (!isSltRequiredService(selectedService)) {
+        // For bill payment, the user must first select payment intent and method, unless disabled.
+        if (!isSltRequiredService(selectedService) || !enableBillPaymentOptions) {
           setShouldAutoSubmit(true)
         }
         return res.data.verifiedMobileToken as string
@@ -404,6 +425,7 @@ export default function KioskDashboard() {
   const canProceedFromStep3 = () => {
     if (!canSendOtp()) return false
     if (isSltRequiredService(selectedService)) {
+      if (!enableBillPaymentOptions) return sltVerified
       const paymentValid = !!billPaymentIntent && (billPaymentIntent === 'full' || (billPaymentIntent === 'partial' && !!billPaymentAmount)) && !!paymentMethod
       return sltVerified && paymentValid
     }
@@ -1207,7 +1229,7 @@ export default function KioskDashboard() {
                         <p className="text-xs text-blue-600 mt-2">{t.verifySltAccountNote}</p>
                       </div>
 
-                      {sltVerified && (
+                      {sltVerified && enableBillPaymentOptions && (
                         <div className="space-y-4 animate-in fade-in slide-in-from-top-1 duration-300">
                           {/* Payment Intent (Full/Partial) */}
                           <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-4 shadow-sm">

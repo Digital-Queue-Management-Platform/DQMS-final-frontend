@@ -13,11 +13,15 @@ import {
   Activity,
   MapPin,
   Bell,
-  Eye
+  Eye,
+  Download,
+  FileText
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import api from '../config/api'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts'
+import jsPDF from 'jspdf'
+import autoTable from 'jspdf-autotable'
 
 interface TeleshopOutlet {
   id: string
@@ -53,7 +57,7 @@ interface PerformanceMetrics {
   }
   hourlyData: HourlyData[]
   ratingDistribution: { rating: number; count: number }[]
-  officers: { id: string; name: string; tokensServed: number; avgServiceTime: number; rating: number }[]
+  officers: { id: string; name: string; teleshopName?: string; tokensServed: number; avgServiceTime: number; rating: number }[]
   alerts: { id: string; message: string; severity: string; time: string }[]
 }
 
@@ -69,12 +73,15 @@ interface Manager {
 export default function RTOMTeleshopAnalytics() {
   const [manager, setManager] = useState<Manager | null>(null)
   const [outlets, setOutlets] = useState<TeleshopOutlet[]>([])
-  const [selectedOutlet, setSelectedOutlet] = useState<string>('')
+  const [selectedOutlets, setSelectedOutlets] = useState<string[]>([])
+  const [isScopeDropdownOpen, setIsScopeDropdownOpen] = useState(false)
   const [metrics, setMetrics] = useState<PerformanceMetrics | null>(null)
   const [loading, setLoading] = useState(true)
   const [startDate, setStartDate] = useState<string>(new Date().toISOString().split('T')[0])
   const [endDate, setEndDate] = useState<string>(new Date().toISOString().split('T')[0])
   const [quickFilter, setQuickFilter] = useState('Today')
+  const [exportingPdf, setExportingPdf] = useState(false)
+  const [exportingCsv, setExportingCsv] = useState(false)
   const navigate = useNavigate()
 
   const handleQuickFilterChange = (value: string) => {
@@ -116,10 +123,10 @@ export default function RTOMTeleshopAnalytics() {
   }, [])
 
   useEffect(() => {
-    if (selectedOutlet) {
+    if (outlets.length > 0) {
       fetchAnalytics()
     }
-  }, [selectedOutlet, startDate, endDate])
+  }, [selectedOutlets, outlets, startDate, endDate])
 
   const fetchOutlets = async () => {
     try {
@@ -132,7 +139,7 @@ export default function RTOMTeleshopAnalytics() {
       }))
       setOutlets(outletsData)
       if (outletsData.length > 0) {
-        setSelectedOutlet(outletsData[0].id)
+        setSelectedOutlets(outletsData.map((o: any) => o.id))
       }
     } catch (error) {
       console.error('Failed to fetch outlets:', error)
@@ -150,8 +157,9 @@ export default function RTOMTeleshopAnalytics() {
       const end = new Date(endDate)
       end.setHours(23, 59, 59, 999)
 
-      const response = await api.get(`/manager/outlet/${selectedOutlet}/analytics`, {
+      const response = await api.get(`/manager/outlets/analytics`, {
         params: { 
+          outletIds: selectedOutlets.length > 0 ? selectedOutlets.join(',') : outlets.map(o => o.id).join(','),
           startDate: start.toISOString(),
           endDate: end.toISOString()
         }
@@ -167,7 +175,226 @@ export default function RTOMTeleshopAnalytics() {
     }
   }
 
-  const selectedOutletData = outlets.find(o => o.id === selectedOutlet)
+  const exportToPDF = async () => {
+    if (!metrics || !selectedOutletData) return
+    setExportingPdf(true)
+    
+    try {
+      const doc = new jsPDF()
+      const pageWidth = doc.internal.pageSize.getWidth()
+      const pageHeight = doc.internal.pageSize.getHeight()
+      const SLT_BLUE = [0, 92, 185] as [number, number, number]
+      const SLT_ORANGE = [255, 102, 0] as [number, number, number]
+      const SLT_DARK = [22, 38, 70] as [number, number, number]
+
+      const addHeader = (isFirstPage: boolean = false) => {
+        doc.setFillColor(SLT_DARK[0], SLT_DARK[1], SLT_DARK[2])
+        doc.rect(0, 0, pageWidth, 32, 'F')
+        doc.setFillColor(SLT_ORANGE[0], SLT_ORANGE[1], SLT_ORANGE[2])
+        doc.rect(20, 8, 1, 16, 'F')
+        doc.setTextColor(255, 255, 255)
+        doc.setFont("helvetica", "bold")
+        doc.setFontSize(16)
+        doc.text("SLT MOBITEL", 25, 16)
+        doc.setFontSize(8)
+        doc.setFont("helvetica", "normal")
+        doc.text("DIGITAL QUEUE MANAGEMENT PLATFORM", 25, 23)
+        if (isFirstPage) {
+          doc.setFontSize(12)
+          doc.setFont("helvetica", "bold")
+          doc.setTextColor(255, 255, 255)
+          doc.text("TELESHOP ANALYTICS", pageWidth - 20, 16, { align: "right" })
+          doc.setFontSize(8)
+          doc.setFont("helvetica", "normal")
+          doc.text("RTOM Report", pageWidth - 20, 23, { align: "right" })
+        }
+      }
+
+      const addFooter = (page: number, total: number) => {
+        doc.setPage(page)
+        doc.setDrawColor(203, 213, 225)
+        doc.setLineWidth(0.1)
+        doc.line(20, pageHeight - 15, pageWidth - 20, pageHeight - 15)
+        doc.setFontSize(6.5)
+        doc.setTextColor(100, 116, 139)
+        const dateStr = new Date().toLocaleString()
+        doc.text(`Generated: ${dateStr}`, 20, pageHeight - 10)
+        doc.setFont("helvetica", "bold")
+        doc.text("Teleshop Analytics Report", pageWidth / 2, pageHeight - 10, { align: "center" })
+        doc.setFont("helvetica", "normal")
+        doc.text(`Page ${page} of ${total}`, pageWidth - 20, pageHeight - 10, { align: "right" })
+      }
+
+      const sectionTitle = (text: string, y: number) => {
+        doc.setFontSize(13)
+        doc.setFont("helvetica", "bold")
+        doc.setTextColor(SLT_BLUE[0], SLT_BLUE[1], SLT_BLUE[2])
+        doc.text(text, 20, y)
+      }
+
+      // Start rendering
+      addHeader(true)
+      let currentY = 45
+
+      // Outlet Details
+      doc.setFontSize(14)
+      doc.setFont("helvetica", "bold")
+      doc.setTextColor(SLT_DARK[0], SLT_DARK[1], SLT_DARK[2])
+      doc.text(selectedOutletData.name, 20, currentY)
+      currentY += 6
+
+      doc.setFontSize(9)
+      doc.setFont("helvetica", "normal")
+      doc.setTextColor(100, 116, 139)
+
+      const includedOutlets = selectedOutlets.length > 0 
+        ? outlets.filter(o => selectedOutlets.includes(o.id))
+        : outlets
+        
+      if (selectedOutlets.length !== 1) {
+        const namesStr = includedOutlets.map(o => o.name).join(", ")
+        const splitNames = doc.splitTextToSize(`Included: ${namesStr}`, pageWidth - 40)
+        doc.text(splitNames, 20, currentY)
+        currentY += (splitNames.length * 4) + 1
+      } else {
+        doc.text(`Address: ${selectedOutletData.address}`, 20, currentY)
+        currentY += 5
+        doc.text(`Manager: ${selectedOutletData.teleshopManagerName}`, 20, currentY)
+        currentY += 5
+      }
+
+      doc.text(`Period: ${startDate} to ${endDate}`, 20, currentY)
+      
+      currentY += 15
+      
+      // Summary Metrics
+      sectionTitle("Performance Overview", currentY)
+      currentY += 8
+      
+      const drawBox = (x: number, y: number, w: number, h: number, title: string, value: string) => {
+        doc.setFillColor(248, 250, 252)
+        doc.roundedRect(x, y, w, h, 2, 2, 'F')
+        doc.setDrawColor(226, 232, 240)
+        doc.roundedRect(x, y, w, h, 2, 2, 'S')
+        
+        doc.setFontSize(8)
+        doc.setTextColor(100, 116, 139)
+        doc.text(title, x + 5, y + 8)
+        
+        doc.setFontSize(16)
+        doc.setFont("helvetica", "bold")
+        doc.setTextColor(15, 23, 42)
+        doc.text(value, x + 5, y + 18)
+      }
+
+      drawBox(20, currentY, 40, 25, "Total Tokens", String(metrics.totalCustomers))
+      drawBox(65, currentY, 40, 25, "Avg Wait", `${metrics.avgWaitTime}m`)
+      drawBox(110, currentY, 40, 25, "Avg Service", `${metrics.avgServiceTime}m`)
+      drawBox(155, currentY, 35, 25, "Satisfaction", `${metrics.customerSatisfaction}/5`)
+      
+      currentY += 35
+      
+      // Officer Performance Table
+      if (metrics.officers && metrics.officers.length > 0) {
+        sectionTitle("Officer Performance", currentY)
+        currentY += 5
+        
+        autoTable(doc, {
+          startY: currentY,
+          head: [['Officer Name', 'Teleshop', 'Tokens Served', 'Avg Service Time (m)', 'Rating']],
+          body: metrics.officers.map(o => [
+            o.name,
+            o.teleshopName || '-',
+            String(o.tokensServed),
+            String(o.avgServiceTime),
+            String(o.rating)
+          ]),
+          styles: { fontSize: 8, cellPadding: 3 },
+          headStyles: { fillColor: SLT_DARK, textColor: 255, fontStyle: 'bold' },
+          alternateRowStyles: { fillColor: [248, 250, 252] },
+          margin: { left: 20, right: 20 }
+        })
+        
+        currentY = (doc as any).lastAutoTable.finalY + 15
+      }
+
+      // Add footer to all pages
+      const totalPages = (doc.internal as any).getNumberOfPages()
+      for (let i = 1; i <= totalPages; i++) {
+        addFooter(i, totalPages)
+      }
+
+      const outLabel = selectedOutlets.length > 0 ? (selectedOutlets.length === 1 ? selectedOutletData.name.replace(/\s+/g, '-') : 'Multiple-Outlets') : 'All-Outlets'
+      doc.save(`teleshop-analytics-${outLabel}-${new Date().getTime()}.pdf`)
+    } catch (err) {
+      console.error("Failed to export PDF", err)
+      alert("Failed to export PDF")
+    } finally {
+      setExportingPdf(false)
+    }
+  }
+
+  const exportToCSV = async () => {
+    if (!metrics || !selectedOutletData) return
+    setExportingCsv(true)
+    
+    try {
+      const q = (v: string | number | null | undefined): string => {
+        if (v === null || v === undefined || v === "") return ""
+        return `"${String(v).replace(/"/g, '""')}"`
+      }
+
+      let csv = "\uFEFF"
+      csv += "TELESHOP ANALYTICS REPORT\n"
+      csv += `Outlet,${q(selectedOutletData.name)}\n`
+      
+      const includedOutlets = selectedOutlets.length > 0 
+        ? outlets.filter(o => selectedOutlets.includes(o.id))
+        : outlets
+        
+      if (selectedOutlets.length !== 1) {
+        csv += `Included Outlets,${q(includedOutlets.map(o => o.name).join("; "))}\n`
+      } else {
+        csv += `Manager,${q(selectedOutletData.teleshopManagerName)}\n`
+      }
+      
+      csv += `Period,${q(startDate)} to ${q(endDate)}\n\n`
+      
+      csv += "SUMMARY\n"
+      csv += `Total Customers,${metrics.totalCustomers}\n`
+      csv += `Avg Wait Time (m),${metrics.avgWaitTime}\n`
+      csv += `Avg Service Time (m),${metrics.avgServiceTime}\n`
+      csv += `Completion Rate (%),${metrics.completionRate}\n`
+      csv += `Customer Satisfaction (/5),${metrics.customerSatisfaction}\n\n`
+      
+      if (metrics.officers && metrics.officers.length > 0) {
+        csv += "OFFICER DETAILS\n"
+        csv += "Officer Name,Teleshop,Tokens Served,Avg Service Time (m),Rating\n"
+        metrics.officers.forEach(o => {
+          csv += `${q(o.name)},${q(o.teleshopName || '-')},${o.tokensServed},${o.avgServiceTime},${o.rating}\n`
+        })
+      }
+
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" })
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement("a")
+      link.setAttribute("href", url)
+      const outLabel = selectedOutlets.length > 0 ? (selectedOutlets.length === 1 ? selectedOutletData.name.replace(/\s+/g, '-') : 'Multiple-Outlets') : 'All-Outlets'
+      link.setAttribute("download", `teleshop-analytics-${outLabel}-${new Date().getTime()}.csv`)
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+    } catch (err) {
+      console.error("Failed to export CSV", err)
+      alert("Failed to export CSV")
+    } finally {
+      setExportingCsv(false)
+    }
+  }
+
+  const selectedOutletData = selectedOutlets.length === 1 
+    ? outlets.find(o => o.id === selectedOutlets[0]) 
+    : { name: selectedOutlets.length === 0 ? "All Assigned Outlets" : `${selectedOutlets.length} Outlets Selected`, address: "Multiple Locations", teleshopManagerName: "Multiple Managers" }
 
   if (!manager) {
     return <div className="flex items-center justify-center h-screen">Loading...</div>
@@ -197,19 +424,47 @@ export default function RTOMTeleshopAnalytics() {
           {/* Controls */}
           <div className="flex flex-col sm:flex-row gap-4">
             {/* Outlet Selector */}
-            <div className="relative">
-              <select
-                value={selectedOutlet}
-                onChange={(e) => setSelectedOutlet(e.target.value)}
-                className="appearance-none bg-white border border-gray-300 rounded-lg px-4 py-2 pr-8 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 min-w-[250px]"
+            <div className="relative min-w-[250px]">
+              <div
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-sm bg-white cursor-pointer min-h-[42px] flex items-center justify-between"
+                onClick={() => setIsScopeDropdownOpen(!isScopeDropdownOpen)}
               >
-                {outlets.map((outlet) => (
-                  <option key={outlet.id} value={outlet.id}>
-                    {outlet.name}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+                <span className="truncate pr-2">
+                  {selectedOutlets.length === 0 ? "All Assigned Outlets" : `${selectedOutlets.length} Outlet${selectedOutlets.length > 1 ? 's' : ''} Selected`}
+                </span>
+                <ChevronDown className="w-5 h-5 text-gray-400" />
+              </div>
+              
+              {isScopeDropdownOpen && (
+                <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg max-h-60 overflow-auto z-50">
+                  <div
+                    className="px-4 py-2 hover:bg-slate-50 cursor-pointer border-b border-slate-100 text-sm font-medium text-slate-700"
+                    onClick={() => {
+                      setSelectedOutlets([])
+                      setIsScopeDropdownOpen(false)
+                    }}
+                  >
+                    All Assigned Outlets
+                  </div>
+                  {outlets.map(outlet => (
+                    <label key={outlet.id} className="flex items-center px-4 py-2 hover:bg-slate-50 cursor-pointer text-sm text-slate-700">
+                      <input
+                        type="checkbox"
+                        checked={selectedOutlets.includes(outlet.id)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedOutlets([...selectedOutlets, outlet.id])
+                          } else {
+                            setSelectedOutlets(selectedOutlets.filter(id => id !== outlet.id))
+                          }
+                        }}
+                        className="mr-3 w-4 h-4 text-emerald-600 border-slate-300 rounded focus:ring-emerald-500"
+                      />
+                      <span className="truncate">{outlet.name}</span>
+                    </label>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Time Period Selector */}
@@ -262,8 +517,36 @@ export default function RTOMTeleshopAnalytics() {
                 Manager: {selectedOutletData.teleshopManagerName}
               </p>
             </div>
-            <div className="text-right text-sm text-gray-500">
-              {startDate} to {endDate}
+            <div className="flex flex-col items-end gap-3">
+              <div className="text-sm text-gray-500">
+                {startDate} to {endDate}
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={exportToPDF}
+                  disabled={exportingPdf || loading || !metrics}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-xs font-medium disabled:bg-blue-400"
+                >
+                  {exportingPdf ? (
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <Download className="w-4 h-4" />
+                  )}
+                  {exportingPdf ? 'Exporting...' : 'Export PDF'}
+                </button>
+                <button
+                  onClick={exportToCSV}
+                  disabled={exportingCsv || loading || !metrics}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors text-xs font-medium disabled:bg-emerald-400"
+                >
+                  {exportingCsv ? (
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <FileText className="w-4 h-4" />
+                  )}
+                  {exportingCsv ? 'Exporting...' : 'Export CSV'}
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -444,6 +727,9 @@ export default function RTOMTeleshopAnalytics() {
                       </div>
                       <div>
                         <p className="font-medium text-gray-900">{officer.name}</p>
+                        {officer.teleshopName && (
+                          <p className="text-xs text-emerald-600 mb-0.5 font-medium">{officer.teleshopName}</p>
+                        )}
                         <p className="text-sm text-gray-600">{officer.tokensServed} tokens served</p>
                       </div>
                     </div>

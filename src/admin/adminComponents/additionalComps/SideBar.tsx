@@ -34,6 +34,7 @@ import {
   ClipboardList,
   Activity,
   Bell,
+  Settings,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useUser } from '../../../contexts/UserContext'
@@ -82,6 +83,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed, activePa
     { name: 'Insights', icon: BarChart2, to: '/admin/insights' },
     { name: 'System Logs', icon: Activity, to: '/admin/logs' },
     { name: 'Notifications', icon: Bell, to: '/admin/notification-settings' },
+    { name: 'Settings', icon: Settings, to: '/admin/settings' },
   ]
   // Officer navigation items - Queue is now the primary page (first in order)
   const officerItems: NavigationItem[] = [
@@ -108,7 +110,6 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed, activePa
 
   const teleshopManagerItems: NavigationItem[] = [
     { name: 'Dashboard', icon: LayoutDashboard, to: '/teleshop-manager/dashboard' },
-    { name: 'Services', icon: ListOrdered, to: '/teleshop-manager/services' },
     { name: 'QR Codes', icon: QrCode, to: '/teleshop-manager/qr-codes' },
     { name: 'Officer Analytics', icon: BarChart2, to: '/teleshop-manager/officer-analytics' },
     { name: 'Outlet Display', icon: Tv, to: '/teleshop-manager/outlet-display' },
@@ -123,6 +124,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed, activePa
     { name: 'Register Officer', icon: UserPlus, to: '/teleshop-manager/officers/add' },
     { name: 'Service Tracking', icon: MessageSquare, to: '/teleshop-manager/service-tracking' },
     { name: 'Branch Notices', icon: BellOff, to: '/teleshop-manager/closure-notices' },
+    { name: 'Settings', icon: Settings, to: '/teleshop-manager/settings' },
   ]
 
   // Fix flickering: prioritize URL path over role, and handle loading state

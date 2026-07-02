@@ -58,7 +58,7 @@ const ServiceStatus = React.lazy(() => import("./pages/ServiceStatus"))
 const OutletQueueDisplay = React.lazy(() => import("./pages/OutletQueueDisplay"))
 const ManagerServiceTracking = React.lazy(() => import("./pages/ManagerServiceTracking"))
 const TeleshopManagerServiceTracking = React.lazy(() => import("./pages/TeleshopManagerServiceTracking"))
-const TeleshopManagerServices = React.lazy(() => import("./pages/TeleshopManagerServices"))
+const TeleshopManagerSettings = React.lazy(() => import("./pages/TeleshopManagerSettings"))
 const TeleshopManagerClosureNotices = React.lazy(() => import("./pages/TeleshopManagerClosureNotices"))
 const TeleshopManagerAuditLogs = React.lazy(() => import("./pages/TeleshopManagerAuditLogs"))
 const TeleshopManagerOutletDisplay = React.lazy(() => import("./pages/TeleshopManagerOutletDisplay"))
@@ -72,6 +72,7 @@ const AdminDGMs = React.lazy(() => import("./admin/adminPages/AdminDGMs"))
 const AdminTeleshopManagers = React.lazy(() => import("./admin/adminPages/AdminTeleshopManagers"))
 const SystemLogsPage = React.lazy(() => import("./admin/adminPages/SystemLogsPage"))
 const NotificationSettingsPage = React.lazy(() => import('./admin/adminPages/NotificationSettingsPage'))
+const SettingsPage = React.lazy(() => import("./admin/adminPages/SettingsPage"))
 const GMLogin = React.lazy(() => import("./pages/GMLogin"))
 const DGMLogin = React.lazy(() => import("./pages/DGMLogin"))
 const GMDashboard = React.lazy(() => import("./pages/GMDashboard"))
@@ -589,6 +590,10 @@ function App() {
           path="/admin/notification-settings"
         />
         <Route
+          element={<Layout><ProtectedAdminRoute><SettingsPage /></ProtectedAdminRoute></Layout>}
+          path="/admin/settings"
+        />
+        <Route
           element={<KioskLogin />}
           path="/kiosk/login"
         />
@@ -653,8 +658,8 @@ function App() {
           path="/teleshop-manager/dashboard"
         />
         <Route
-          element={<Layout><ProtectedTeleshopManagerRoute><TeleshopManagerServices /></ProtectedTeleshopManagerRoute></Layout>}
-          path="/teleshop-manager/services"
+          element={<Layout><ProtectedTeleshopManagerRoute><TeleshopManagerSettings /></ProtectedTeleshopManagerRoute></Layout>}
+          path="/teleshop-manager/settings"
         />
         <Route
           element={<Layout><ProtectedTeleshopManagerRoute><TeleshopManagerServiceTracking /></ProtectedTeleshopManagerRoute></Layout>}

@@ -132,6 +132,9 @@ export default function AppointmentBooking() {
   // Error shown when selected appointment date/time is on a closed day
   const [closedOnDateError, setClosedOnDateError] = useState<string | null>(null)
   const [checkingDate, setCheckingDate] = useState(false)
+  
+  const currentOutletData = outlets.find(o => o.id === outletId)
+  const enableBillPaymentOptions = currentOutletData?.displaySettings?.enableBillPaymentOptions === true
 
   useEffect(() => {
     fetchOutlets()
@@ -276,7 +279,23 @@ export default function AppointmentBooking() {
 
   const getServiceTitle = (code: string) => {
     const service = services.find(s => s.code === code)
-    return service ? service.title : code
+    if (!service) return code
+    
+    const title = service.title
+    const lowerTitle = title.toLowerCase()
+    
+    // Add translation mapping for known service titles
+    if (lowerTitle.includes('fixed') && lowerTitle.includes('bill')) {
+      return `${t.fixed} - ${t.billPayment}`
+    }
+    if (lowerTitle.includes('fixed') && (lowerTitle.includes('other') || lowerTitle.includes('others'))) {
+      return `${t.fixed} - ${t.others}`
+    }
+    if (lowerTitle === 'mobile' || lowerTitle === 'mobile service') {
+      return t.mobileService
+    }
+    
+    return title
   }
 
   // Translations for UI labels/buttons
@@ -562,8 +581,8 @@ export default function AppointmentBooking() {
         }
 
         // Auto-submit only for non-bill-payment services.
-        // For bill payment, the user must first select payment intent and method.
-        if (!isSltRequiredService(selectedService)) {
+        // For bill payment, the user must first select payment intent and method, unless disabled.
+        if (!isSltRequiredService(selectedService) || !enableBillPaymentOptions) {
           setShouldAutoSubmit(true)
         }
 
@@ -749,6 +768,7 @@ export default function AppointmentBooking() {
   const canProceedFromStep3 = () => {
     const hasBasicInfo = outletId && datetime && isValidMobile(mobileNumber) && isValidAppointmentTime(datetime) && !closedOnDateError && !checkingDate
     if (isSltRequiredService(selectedService)) {
+      if (!enableBillPaymentOptions) return hasBasicInfo && sltTelephoneNumbers.length > 0 && sltTelephoneNumbers.every(num => isValidSlt(num)) && sltVerified
       const paymentValid = !!billPaymentIntent && (billPaymentIntent === 'full' || (billPaymentIntent === 'partial' && !!billPaymentAmount)) && !!paymentMethod
       return hasBasicInfo && sltTelephoneNumbers.length > 0 && sltTelephoneNumbers.every(num => isValidSlt(num)) && paymentValid && sltVerified
     }
@@ -1001,7 +1021,7 @@ export default function AppointmentBooking() {
                         <p className="text-xs text-blue-600 mt-2">{t.verifySltAccountNote}</p>
                       </div>
 
-                      {sltVerified && (
+                      {sltVerified && enableBillPaymentOptions && (
                         <div className="space-y-4 animate-in fade-in slide-in-from-top-1 duration-300">
                           {/* Payment Intent (Full/Partial) */}
                           <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-4 shadow-sm">
@@ -1109,7 +1129,7 @@ export default function AppointmentBooking() {
                 {!serviceRequiresOtp ? (
                   <button
                     type="submit"
-                    disabled={loading || !outletId || !datetime || !isValidAppointmentTime(datetime) || !!closedOnDateError || (isSltRequiredService(selectedService) && (!sltVerified || !billPaymentIntent || !paymentMethod))}
+                    disabled={loading || !outletId || !datetime || !isValidAppointmentTime(datetime) || !!closedOnDateError || (isSltRequiredService(selectedService) && (!sltVerified || (enableBillPaymentOptions && (!billPaymentIntent || !paymentMethod))))}
                     className="flex-1 bg-indigo-600 text-white py-3 rounded-lg font-semibold hover:bg-indigo-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
                   >
                     {loading ? t.booking : t.book}
@@ -1156,7 +1176,7 @@ export default function AppointmentBooking() {
                   {!shouldAutoSubmit && (otpStep === 'sent' || otpStep === 'verified') && (
                     <button
                       type="submit"
-                      disabled={loading || !selectedService || (otpStep === 'sent' && otpCode.length !== 4) || (otpStep === 'verified' && isSltRequiredService(selectedService) && (!sltVerified || !billPaymentIntent || !paymentMethod))}
+                      disabled={loading || !selectedService || (otpStep === 'sent' && otpCode.length !== 4) || (otpStep === 'verified' && isSltRequiredService(selectedService) && (!sltVerified || (enableBillPaymentOptions && (!billPaymentIntent || !paymentMethod))))}
                       className="w-full mt-4 bg-blue-600 text-white py-3 rounded-xl font-semibold hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
                     >
                       {loading ? t.booking : t.step4Subtitle}

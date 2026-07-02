@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { motion } from "framer-motion"
 import { Clock, Phone, FileText, Users, RefreshCwIcon, Calendar, AlertTriangle, CheckCircle2, Volume2, Play, Star } from "lucide-react"
+import Barcode from "react-barcode"
 // OfficerTopBar is provided globally from Layout for officer routes
 import api, { WS_URL } from "../config/api"
 import type { Officer, Token } from "../types"
@@ -14,8 +15,8 @@ export default function OfficerQueuePage() {
   const navigate = useNavigate()
   const [officer, setOfficer] = useState<Officer | null>(null)
   const [currentToken, setCurrentToken] = useState<Token | null>(null)
-  const [billInfo, setBillInfo] = useState<{ telephoneNumber: string; accountName: string; currentBill: number; dueDate: string; status: string; updatedAt: string } | null>(null)
-  const [multipleBills, setMultipleBills] = useState<{ telephoneNumber: string; accountName: string; currentBill: number; dueDate: string; status: string; billPaymentIntent?: string; billPaymentAmount?: number; updatedAt: string }[]>([])
+  const [billInfo, setBillInfo] = useState<{ telephoneNumber: string; accountName: string; currentBill: number; dueDate: string; status: string; updatedAt: string; accountNumber?: string | null } | null>(null)
+  const [multipleBills, setMultipleBills] = useState<{ telephoneNumber: string; accountName: string; currentBill: number; dueDate: string; status: string; billPaymentIntent?: string; billPaymentAmount?: number; updatedAt: string; accountNumber?: string | null }[]>([])
   const [queue, setQueue] = useState<{ waiting: Token[]; inService: Token[]; availableOfficers: number; totalWaiting: number } | null>(null)
   const [accountRef, setAccountRef] = useState("")
   const [customerName, setCustomerName] = useState("")
@@ -605,10 +606,10 @@ export default function OfficerQueuePage() {
       : hasCallableUnmatchedToken
 
   return (
-    <div className="min-h-screen bg-slate-50 p-4">
-      <div className="mx-auto">
+    <div className="h-[calc(100vh-64px)] bg-slate-50 p-4 flex flex-col overflow-hidden">
+      <div className="mx-auto w-full max-w-[1600px] flex-1 flex flex-col min-h-0">
         {/* Header Section in Body */}
-        <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
+        <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="mb-4 shrink-0">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="flex flex-wrap items-center gap-2">
               <p className="text-sm font-medium text-slate-500 bg-white px-3 py-1.5 rounded-lg border border-slate-200">
@@ -628,9 +629,9 @@ export default function OfficerQueuePage() {
         </motion.div>
 
         {/* Main Content */}
-        <div className="space-y-6">
+        <div className="flex-1 flex flex-col min-h-0 space-y-4">
           {/* Tab Navigation */}
-          <div className="w-full overflow-x-auto pb-2 scrollbar-hide">
+          <div className="w-full overflow-x-auto shrink-0 pb-1 scrollbar-hide">
             <div className="flex gap-2 min-w-max justify-start lg:justify-center">
               {[
                 { id: 'my-queue', label: 'My Queue', color: 'amber', count: myQueueTokens.length },
@@ -658,9 +659,9 @@ export default function OfficerQueuePage() {
           </div>
 
           {/* Flex Container for Current Customer and Queue List */}
-          <div className="flex flex-col lg:flex-row gap-6 items-start">
-            {/* Current Customer Section - Top on mobile, Left on desktop (1/3 width) */}
-            <div className="w-full lg:w-1/3 bg-white rounded-2xl shadow-sm border border-slate-100 p-4 sm:p-6 lg:sticky lg:top-4 self-start">
+          <div className="flex flex-col lg:flex-row gap-6 items-start flex-1 min-h-0">
+            {/* Current Customer Section - Top on mobile, Left on desktop (1/2 width) */}
+            <div className="w-full lg:w-1/2 bg-white rounded-2xl shadow-sm border border-slate-100 p-4 sm:p-5 h-full overflow-y-auto custom-scrollbar">
               {!currentToken ? (
                 <>
                   <h2 className="text-lg font-bold text-slate-900 mb-4">Current Customer</h2>
@@ -711,57 +712,42 @@ export default function OfficerQueuePage() {
                   </div>
 
                   {/* Customer Details Card */}
-                  <div className="bg-slate-50 rounded-2xl p-4 mb-4 space-y-3">
+                  <div className="bg-slate-50 rounded-2xl p-4 mb-4 grid grid-cols-2 gap-4">
                     {/* Customer Name hidden for privacy */}
 
-                    <div className="flex items-center gap-3 pb-3 border-b border-slate-200">
-                      <div className="w-8 h-8 bg-white rounded-xl border border-slate-200 flex items-center justify-center">
-                        <Phone className="w-4 h-4 text-gray-700" />
-                      </div>
-                      <div className="flex-1">
-                        <div className="text-xs text-gray-500">Phone Number</div>
-                        <div className="text-sm font-semibold text-gray-900">
-                          {currentToken.customer?.mobileNumber || 'Phone not available'}
-                        </div>
+                    <div className="flex flex-col gap-1">
+                      <div className="text-xs text-gray-500 flex items-center gap-1"><Phone className="w-3 h-3 text-gray-400" /> Phone Number</div>
+                      <div className="text-sm font-semibold text-gray-900 truncate">
+                        {currentToken.customer?.mobileNumber || 'N/A'}
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-3 pb-3 border-b border-slate-200">
-                      <div className="w-8 h-8 bg-white rounded-xl border border-slate-200 flex items-center justify-center">
-                        <FileText className="w-4 h-4 text-gray-700" />
-                      </div>
-                      <div className="flex-1">
-                        <div className="text-xs text-slate-500 mb-1">Service Type</div>
-                        <div className="flex flex-wrap gap-1">
-                          {Array.isArray(currentToken.serviceTypes) && currentToken.serviceTypes.length > 0 ? (
-                            currentToken.serviceTypes.map((stype: string) => (
-                              <span key={stype} className={`px-2 py-0.5 rounded-full text-xs font-medium ${getServiceColor(stype)}`}>
-                                <ServiceName serviceType={stype} />
-                              </span>
-                            ))
-                          ) : (
-                            <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-gray-200 text-gray-600">No service types</span>
-                          )}
-                        </div>
+                    <div className="flex flex-col gap-1">
+                      <div className="text-xs text-gray-500 flex items-center gap-1"><FileText className="w-3 h-3 text-gray-400" /> Service Type</div>
+                      <div className="flex flex-wrap gap-1">
+                        {Array.isArray(currentToken.serviceTypes) && currentToken.serviceTypes.length > 0 ? (
+                          currentToken.serviceTypes.map((stype: string) => (
+                            <span key={stype} className={`px-2 py-0.5 rounded-full text-xs font-medium ${getServiceColor(stype)}`}>
+                              <ServiceName serviceType={stype} />
+                            </span>
+                          ))
+                        ) : (
+                          <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-gray-200 text-gray-600">No service</span>
+                        )}
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 bg-white rounded-xl border border-slate-200 flex items-center justify-center">
-                        <Clock className="w-4 h-4 text-gray-700" />
-                      </div>
-                      <div className="flex-1">
-                        <div className="text-xs text-gray-500">Waited Time</div>
-                        <div className="text-sm font-semibold text-gray-900">
-                          {Math.floor((Date.now() - new Date(currentToken.createdAt).getTime()) / 60000)} min
-                        </div>
+                    <div className="flex flex-col gap-1">
+                      <div className="text-xs text-gray-500 flex items-center gap-1"><Clock className="w-3 h-3 text-gray-400" /> Waited Time</div>
+                      <div className="text-sm font-semibold text-gray-900">
+                        {Math.floor((Date.now() - new Date(currentToken.createdAt).getTime()) / 60000)} min
                       </div>
                     </div>
 
                     {/* Preferred Languages */}
                     {Array.isArray((currentToken as any).preferredLanguages) && (currentToken as any).preferredLanguages.length > 0 && (
-                      <div className="flex items-center gap-3 pt-3 border-t border-slate-200">
-                        <div className="text-xs text-gray-500">Preferred Languages:</div>
+                      <div className="flex flex-col gap-1">
+                        <div className="text-xs text-gray-500 flex items-center gap-1">Languages:</div>
                         <div className="flex gap-1">
                           {(currentToken as any).preferredLanguages.map((lang: string) => (
                             <span key={lang} className="px-2 py-0.5 bg-white rounded-full text-xs font-medium text-gray-700 border border-gray-300">
@@ -783,64 +769,100 @@ export default function OfficerQueuePage() {
 
                       {/* Summary of Payment Intent & Method */}
                       {(currentToken.billPaymentIntent || currentToken.billPaymentMethod) && (
-                        <div className="mb-4 p-3 bg-white/60 border border-amber-200 rounded-xl space-y-2">
-                          <div className="flex justify-between items-center text-xs">
-                            <span className="text-amber-800 font-medium">Payment Plan:</span>
-                            <span className="font-bold uppercase text-amber-900">
+                        <div className="mb-4 p-3 bg-white/60 border border-amber-200 rounded-xl grid grid-cols-2 gap-3">
+                          <div className="flex flex-col gap-0.5">
+                            <span className="text-amber-800 text-[10px] uppercase font-bold tracking-wider">Payment Plan</span>
+                            <span className="font-bold text-sm text-amber-900">
                               {currentToken.billPaymentIntent === 'full' ? 'Full Payment' : 'Partial Payment'}
                             </span>
                           </div>
                           {currentToken.billPaymentAmount && (
-                            <div className="flex justify-between items-center text-xs">
-                              <span className="text-amber-800 font-medium">Planned Amount:</span>
-                              <span className="font-bold text-amber-900">LKR {currentToken.billPaymentAmount.toLocaleString()}</span>
+                            <div className="flex flex-col gap-0.5">
+                              <span className="text-amber-800 text-[10px] uppercase font-bold tracking-wider">Planned Amount</span>
+                              <span className="font-bold text-sm text-amber-900">LKR {currentToken.billPaymentAmount.toLocaleString()}</span>
                             </div>
                           )}
                           {currentToken.billPaymentMethod && (
-                            <div className="flex justify-between items-center text-xs">
-                              <span className="text-amber-800 font-medium">Payment Method:</span>
-                              <span className="font-bold uppercase text-amber-900">{currentToken.billPaymentMethod.replace('_', ' ')}</span>
+                            <div className="flex flex-col gap-0.5">
+                              <span className="text-amber-800 text-[10px] uppercase font-bold tracking-wider">Payment Method</span>
+                              <span className="font-bold text-sm uppercase text-amber-900">{currentToken.billPaymentMethod.replace('_', ' ')}</span>
                             </div>
                           )}
                         </div>
                       )}
 
-                      <div className="space-y-3">
+                      <div className="space-y-3 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
                         {multipleBills.length > 0 ? (
                           multipleBills.map((bill) => (
-                            <div key={bill.telephoneNumber} className="bg-white rounded-md p-2 border border-slate-200">
-                              <div className="flex justify-between items-center mb-1">
-                                <span className="text-gray-500 text-[10px] uppercase font-bold tracking-wider">SLT Number</span>
-                                <span className="font-mono font-semibold text-gray-800 text-sm">{bill.telephoneNumber}</span>
+                            <div key={bill.telephoneNumber} className="bg-white rounded-xl p-3 sm:p-4 border border-slate-200 shadow-sm flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
+                              <div className="flex-1 w-full space-y-3">
+                                <div className="grid grid-cols-2 gap-3">
+                                  <div className="flex flex-col gap-0.5">
+                                    <span className="text-gray-500 text-[10px] uppercase font-bold tracking-wider">SLT Number</span>
+                                    <span className="font-mono font-semibold text-gray-800 text-sm">{bill.telephoneNumber}</span>
+                                  </div>
+                                  <div className="flex flex-col gap-0.5">
+                                    <span className="text-gray-500 text-[10px] uppercase font-bold tracking-wider">Account Name</span>
+                                    <span className="text-sm font-semibold text-gray-800 truncate" title={bill.accountName}>{bill.accountName}</span>
+                                  </div>
+                                  <div className="flex flex-col gap-0.5">
+                                    <span className="text-gray-500 text-[10px] uppercase font-bold tracking-wider">Bill Status</span>
+                                    <div>
+                                      <span className={`text-[10px] font-black px-2 py-0.5 rounded-full inline-block ${bill.status === 'paid' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
+                                        {bill.status.toUpperCase()}
+                                      </span>
+                                    </div>
+                                  </div>
+                                  <div className="flex flex-col gap-0.5">
+                                    <span className="text-gray-500 text-[10px] uppercase font-bold tracking-wider">Bill Amount</span>
+                                    <span className="font-bold text-sm text-gray-900">
+                                      {bill.currentBill !== undefined && bill.currentBill !== null ? `LKR ${bill.currentBill.toLocaleString()}` : '-'}
+                                    </span>
+                                  </div>
+                                </div>
                               </div>
-                              <div className="flex justify-between items-center mb-1">
-                                <span className="text-gray-500 text-[10px] uppercase font-bold tracking-wider">Account Name</span>
-                                <span className="text-sm font-semibold text-gray-800">{bill.accountName}</span>
-                              </div>
-                              <div className="flex justify-between items-center">
-                                <span className="text-gray-500 text-[10px] uppercase font-bold tracking-wider">Bill Status</span>
-                                <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${bill.status === 'paid' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
-                                  {bill.status.toUpperCase()}
-                                </span>
-                              </div>
+                              
+                              {bill.accountNumber && (
+                                <div className="flex flex-col items-center sm:items-end w-full sm:w-auto sm:border-l sm:border-slate-100 sm:pl-4 pt-3 sm:pt-0 border-t sm:border-t-0 border-slate-100 shrink-0">
+                                  <Barcode value={bill.accountNumber} height={45} width={1.5} fontSize={14} displayValue={true} background="transparent" margin={0} />
+                                </div>
+                              )}
                             </div>
                           ))
                         ) : billInfo ? (
-                          <div className="bg-white rounded-md p-2 border border-slate-200">
-                            <div className="flex justify-between items-center mb-1">
-                              <span className="text-gray-500 text-[10px] uppercase font-bold tracking-wider">SLT Number</span>
-                              <span className="font-mono font-semibold text-gray-800 text-sm">{currentToken.sltTelephoneNumber}</span>
+                          <div className="bg-white rounded-xl p-3 sm:p-4 border border-slate-200 shadow-sm flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
+                            <div className="flex-1 w-full space-y-3">
+                              <div className="grid grid-cols-2 gap-3">
+                                <div className="flex flex-col gap-0.5">
+                                  <span className="text-gray-500 text-[10px] uppercase font-bold tracking-wider">SLT Number</span>
+                                  <span className="font-mono font-semibold text-gray-800 text-sm">{currentToken.sltTelephoneNumber}</span>
+                                </div>
+                                <div className="flex flex-col gap-0.5">
+                                  <span className="text-gray-500 text-[10px] uppercase font-bold tracking-wider">Account Name</span>
+                                  <span className="text-sm font-semibold text-gray-800 truncate" title={billInfo.accountName}>{billInfo.accountName}</span>
+                                </div>
+                                <div className="flex flex-col gap-0.5">
+                                  <span className="text-gray-500 text-[10px] uppercase font-bold tracking-wider">Bill Status</span>
+                                  <div>
+                                    <span className={`text-[10px] font-black px-2 py-0.5 rounded-full inline-block ${billInfo.status === 'paid' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
+                                      {billInfo.status.toUpperCase()}
+                                    </span>
+                                  </div>
+                                </div>
+                                <div className="flex flex-col gap-0.5">
+                                  <span className="text-gray-500 text-[10px] uppercase font-bold tracking-wider">Bill Amount</span>
+                                  <span className="font-bold text-sm text-gray-900">
+                                    {billInfo.currentBill !== undefined && billInfo.currentBill !== null ? `LKR ${billInfo.currentBill.toLocaleString()}` : '-'}
+                                  </span>
+                                </div>
+                              </div>
                             </div>
-                            <div className="flex justify-between items-center mb-1">
-                              <span className="text-gray-500 text-[10px] uppercase font-bold tracking-wider">Account Name</span>
-                              <span className="text-sm font-semibold text-gray-800">{billInfo.accountName}</span>
-                            </div>
-                            <div className="flex justify-between items-center">
-                              <span className="text-gray-500 text-[10px] uppercase font-bold tracking-wider">Bill Status</span>
-                              <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${billInfo.status === 'paid' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
-                                {billInfo.status.toUpperCase()}
-                              </span>
-                            </div>
+                            
+                            {billInfo.accountNumber && (
+                              <div className="flex flex-col items-center sm:items-end w-full sm:w-auto sm:border-l sm:border-slate-100 sm:pl-4 pt-3 sm:pt-0 border-t sm:border-t-0 border-slate-100 shrink-0">
+                                <Barcode value={billInfo.accountNumber} height={45} width={1.5} fontSize={14} displayValue={true} background="transparent" margin={0} />
+                              </div>
+                            )}
                           </div>
                         ) : currentToken.sltTelephoneNumber ? (
                           <p className="text-xs text-amber-700 italic">Fetching bill details...</p>
@@ -852,75 +874,74 @@ export default function OfficerQueuePage() {
                   )}
 
                   {/* Central Voice Announcement Status & Control */}
-                  <div className="mb-4 p-4 bg-blue-50 border border-blue-100 rounded-2xl shadow-sm">
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center gap-2 text-blue-700">
+                  <div className="mb-4 p-3 bg-blue-50 border border-blue-100 rounded-xl flex items-center justify-between shadow-sm">
+                    <div className="flex flex-col">
+                      <div className="flex items-center gap-1.5 text-blue-700">
                         <Volume2 className="w-4 h-4" />
-                        <span className="text-xs font-bold leading-none">Central Announcement</span>
+                        <span className="text-xs font-bold">Central Announcement</span>
                       </div>
-                      <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-[10px] font-bold rounded-full border border-emerald-200 uppercase tracking-wider">Active</span>
+                      <span className="text-[10px] text-blue-600 mt-0.5">Token call announced on main display.</span>
                     </div>
-                    
-                    <p className="text-[11px] text-blue-600 mb-4 leading-relaxed">
-                      Token call will be announced on the main outlet display speaker. Use the button below to repeat if needed.
-                    </p>
-
                     <button
                       onClick={() => handleReannounce(currentToken.id)}
                       disabled={loading}
-                      className="w-full h-11 flex items-center justify-center gap-3 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 active:scale-[0.98] transition-all shadow-md shadow-blue-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-bold hover:bg-blue-700 active:scale-95 transition-all shadow-sm flex items-center gap-1 disabled:opacity-50"
                     >
-                      <Play className="w-4 h-4 fill-current" />
-                      Announce Call
+                      <Play className="w-3 h-3 fill-current" /> Call
                     </button>
                   </div>
 
-                  {/* Customer Details Form */}
-                  <div className="mb-4 space-y-3 bg-white p-4 rounded-2xl border border-slate-200">
-                    <h3 className="text-sm font-bold text-slate-900 mb-2">Update Customer Details (Optional)</h3>
-                    <div>
-                      <label className="block text-xs font-medium text-gray-700 mb-1">Customer Name</label>
-                      <input
-                        type="text"
-                        value={customerName}
-                        onChange={(e) => setCustomerName(e.target.value)}
-                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none"
-                        placeholder="E.g. John Doe"
-                      />
+                  {/* Update Customer Details (Optional) & Notes */}
+                  <details className="mb-4 group bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+                    <summary className="p-3 text-sm font-bold text-slate-800 cursor-pointer bg-slate-50 hover:bg-slate-100 select-none flex items-center justify-between">
+                      Update Details & Notes (Optional)
+                      <span className="text-slate-400 group-open:rotate-180 transition-transform">▼</span>
+                    </summary>
+                    <div className="p-3 border-t border-slate-200 space-y-3 bg-white">
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-xs font-medium text-gray-700 mb-1">Name</label>
+                          <input
+                            type="text"
+                            value={customerName}
+                            onChange={(e) => setCustomerName(e.target.value)}
+                            className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-lg focus:border-indigo-500 focus:outline-none"
+                            placeholder="John Doe"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-gray-700 mb-1">Mobile</label>
+                          <input
+                            type="text"
+                            value={customerMobile}
+                            onChange={(e) => setCustomerMobile(e.target.value)}
+                            className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-lg focus:border-indigo-500 focus:outline-none"
+                            placeholder="07XXXXXXXX"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">Email</label>
+                        <input
+                          type="email"
+                          value={customerEmail}
+                          onChange={(e) => setCustomerEmail(e.target.value)}
+                          className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-lg focus:border-indigo-500 focus:outline-none"
+                          placeholder="email@example.com"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">Notes</label>
+                        <textarea
+                          value={accountRef}
+                          onChange={(e) => setAccountRef(e.target.value)}
+                          rows={2}
+                          className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-lg focus:border-gray-400 focus:outline-none resize-none"
+                          placeholder="Add notes here..."
+                        />
+                      </div>
                     </div>
-                    <div>
-                      <label className="block text-xs font-medium text-gray-700 mb-1">Mobile Number</label>
-                      <input
-                        type="text"
-                        value={customerMobile}
-                        onChange={(e) => setCustomerMobile(e.target.value)}
-                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none"
-                        placeholder="E.g. 07XXXXXXXX"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-medium text-gray-700 mb-1">Email</label>
-                      <input
-                        type="email"
-                        value={customerEmail}
-                        onChange={(e) => setCustomerEmail(e.target.value)}
-                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none"
-                        placeholder="E.g. email@example.com"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Notes Section */}
-                  <div className="mb-4">
-                    <label className="block text-xs font-medium text-gray-700 mb-2">Notes</label>
-                    <textarea
-                      value={accountRef}
-                      onChange={(e) => setAccountRef(e.target.value)}
-                      rows={3}
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-xl focus:border-gray-400 focus:outline-none resize-none"
-                      placeholder="Add notes here ..."
-                    />
-                  </div>
+                  </details>
 
                   {/* Action Buttons */}                  <div className="flex flex-col sm:flex-row gap-2.5 sm:gap-3 justify-stretch sm:justify-center">
                     <button
@@ -952,8 +973,8 @@ export default function OfficerQueuePage() {
               )}
             </div>
 
-            {/* Queue List Section - Right Side (2/3 width) */}
-            <div className="w-full lg:w-2/3 bg-white rounded-2xl shadow-sm border border-slate-100 p-3 sm:p-5">
+            {/* Queue List - Bottom on mobile, Right on desktop (1/2 width) */}
+            <div className="w-full lg:w-1/2 bg-white rounded-2xl shadow-sm border border-slate-100 p-3 sm:p-5 h-full flex flex-col min-h-0">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-5 px-1">
                 <h2 className="text-lg font-bold text-slate-900 border-l-4 border-amber-500 pl-3">
                   {activeTab === 'my-queue' ? 'My Queue' : activeTab === 'transferred' ? 'Transferred Tokens' : 'Unmatched Tokens'}
@@ -1016,7 +1037,7 @@ export default function OfficerQueuePage() {
                       <div className="col-span-3 text-right">Action</div>
                     </div>
 
-                    <div className="space-y-3">
+                    <div className="space-y-3 flex-1 overflow-y-auto pr-2 custom-scrollbar">
                       {sortedMyQueueTokens.map((t) => {
                         const waitTime = Math.floor((Date.now() - new Date(t.createdAt).getTime()) / 60000)
                         const isPriority = t.isPriority === true
@@ -1134,7 +1155,7 @@ export default function OfficerQueuePage() {
                       <div className="col-span-2 text-right">Action</div>
                     </div>
 
-                    <div className="space-y-3">
+                    <div className="space-y-3 flex-1 overflow-y-auto pr-2 custom-scrollbar">
                       {sortedIncomingTransferredTokens.map((t) => {
                         const waitTime = Math.floor((Date.now() - new Date(t.createdAt).getTime()) / 60000)
                         const isPriority = t.isPriority === true
@@ -1240,7 +1261,7 @@ export default function OfficerQueuePage() {
                       <div className="col-span-3 text-right">Action</div>
                     </div>
 
-                    <div className="space-y-3">
+                    <div className="space-y-3 flex-1 overflow-y-auto pr-2 custom-scrollbar">
                       {sortedUnmatchedTokens.map((t) => {
                         const waitTime = Math.floor((Date.now() - new Date(t.createdAt).getTime()) / 60000)
                         const isPriority = t.isPriority === true
